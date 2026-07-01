@@ -338,7 +338,7 @@ export default function App() {
           <Routes>
             <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onLogout={handleLogout} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} />} />
-            <Route path="/child/:id/edit" element={<ChildForm />} />
+            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { setChild(c); navigate('/child') }} />} />
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
             <Route path="/contact"        element={<ContactPage />} />

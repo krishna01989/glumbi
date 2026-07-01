@@ -30,7 +30,7 @@ function defaultFeatureKeys(age) {
   return ALL_FEATURES.filter(f => age >= f.minAge).map(f => f.key)
 }
 
-export default function ChildForm({ onChildCreated }) {
+export default function ChildForm({ onChildCreated, onChildUpdated }) {
   const { id } = useParams()
   const isEdit  = !!id
   const navigate = useNavigate()
@@ -70,8 +70,9 @@ export default function ChildForm({ onChildCreated }) {
     try {
       const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null }
       if (isEdit) {
-        await childApi.update(id, payload)
-        navigate('/child')
+        const updated = await childApi.update(id, payload)
+        if (onChildUpdated) onChildUpdated(updated)
+        else navigate('/child')
       } else {
         const child = await childApi.create(payload)
         onChildCreated(child)

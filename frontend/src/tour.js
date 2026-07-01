@@ -1,6 +1,8 @@
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
+// ── Desktop tour ───────────────────────────────────────────────────────────────
+
 const NAV_STEPS = [
   {
     feature: 'stories',
@@ -85,16 +87,103 @@ const NAV_STEPS = [
   },
 ]
 
-// enabledFeatures: string[] of feature keys (e.g. ["stories","draw"]) or null = show all
-export function startTour(enabledFeatures) {
-  const navSteps = NAV_STEPS
-    .filter(s => {
-      if (enabledFeatures && !enabledFeatures.includes(s.feature)) return false
-      return !!document.querySelector(s.element)
-    })
-    .map(({ element, popover }) => ({ element, popover }))
+const DESKTOP_UTILITY_STEPS = [
+  {
+    element: '#tour-quota',
+    popover: {
+      title: '🤖 Monthly AI Calls',
+      description: 'Every AI action uses 1 call. You get 200 per month shared across all features. The bar turns yellow when you\'re near the limit and red when it\'s full. Resets on the 1st.',
+      side: 'right', align: 'end',
+    },
+  },
+  {
+    element: '#tour-theme-btn',
+    popover: {
+      title: '🎨 Change Theme',
+      description: 'Click the palette icon to change the app\'s look. Pick from 20 themes — Superheroes, Festivals, Nature, and more!',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-notifications',
+    popover: {
+      title: '🔔 Notifications',
+      description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-profile',
+    popover: {
+      title: '👤 My Account',
+      description: 'View your account details, change your password, or delete your account.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-child-name',
+    popover: {
+      title: '🔀 Switch Child',
+      description: 'Managing stories for multiple children? Hit Switch to change who you\'re viewing.',
+      side: 'bottom', align: 'end',
+    },
+  },
+]
 
-  const d = driver({
+// ── Mobile tour ────────────────────────────────────────────────────────────────
+
+const MOBILE_STEPS = [
+  {
+    element: '#tour-mobile-menu',
+    popover: {
+      title: '☰ All Your Features',
+      description: 'Tap the menu to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, Journal, Read & Quiz, My Writing, and Timeline.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-mobile-theme',
+    popover: {
+      title: '🎨 Change Theme',
+      description: 'Tap the palette to change the app\'s look. Pick from 20 themes — Superheroes, Festivals, Nature, and more!',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-mobile-notifications',
+    popover: {
+      title: '🔔 Notifications',
+      description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-mobile-switch',
+    popover: {
+      title: '🔀 Switch Child',
+      description: 'Managing stories for multiple children? Tap here to switch to a different child\'s profile.',
+      side: 'top', align: 'center',
+    },
+  },
+  {
+    // quota bar is inside the mobile menu — show as a floating step instead
+    popover: {
+      title: '🤖 Monthly AI Calls',
+      description: 'You get 200 AI calls per month, shared across all features. Open the ☰ menu at any time to check your usage — the bar turns orange when you\'re close and red when the limit is reached. Resets on the 1st.',
+      side: 'over', align: 'center',
+    },
+  },
+]
+
+// ── Shared launcher ────────────────────────────────────────────────────────────
+
+function isMobileView() {
+  // Match the CSS breakpoint used by .mobile-header / .app-header
+  return window.innerWidth < 768
+}
+
+function makeDriver(steps) {
+  return driver({
     animate: true,
     showProgress: true,
     showButtons: ['next', 'previous', 'close'],
@@ -103,7 +192,44 @@ export function startTour(enabledFeatures) {
     doneBtnText: '🎉 Let\'s go!',
     progressText: '{{current}} of {{total}}',
     popoverClass: 'tt-tour',
-    steps: [
+    steps,
+  })
+}
+
+// enabledFeatures: string[] of feature keys or null = show all
+export function startTour(enabledFeatures) {
+  function present(el) { return !!document.querySelector(el) }
+
+  if (isMobileView()) {
+    const steps = [
+      {
+        popover: {
+          title: '👋 Welcome to Glumbi!',
+          description: 'Let\'s take a quick tour so you know where everything is. It only takes a minute!',
+          side: 'over', align: 'center',
+        },
+      },
+      ...MOBILE_STEPS.filter(s => !s.element || present(s.element)),
+      {
+        popover: {
+          title: '🌟 You\'re all set!',
+          description: 'Tap ☰ to pick a feature and start the magic. Try generating your first story!',
+          side: 'over', align: 'center',
+        },
+      },
+    ]
+    makeDriver(steps).drive()
+  } else {
+    const navSteps = NAV_STEPS
+      .filter(s => {
+        if (enabledFeatures && !enabledFeatures.includes(s.feature)) return false
+        return present(s.element)
+      })
+      .map(({ element, popover }) => ({ element, popover }))
+
+    const utilitySteps = DESKTOP_UTILITY_STEPS.filter(s => present(s.element))
+
+    const steps = [
       {
         popover: {
           title: '👋 Welcome to Glumbi!',
@@ -112,46 +238,7 @@ export function startTour(enabledFeatures) {
         },
       },
       ...navSteps,
-      {
-        element: '#tour-quota',
-        popover: {
-          title: '🤖 Monthly AI Calls',
-          description: 'Every AI action — generating a story, answering a curiosity question, validating a letter drawing, identifying a word, drawing feedback, Read & Quiz, My Writing — uses 1 call. You get 200 per month, shared across all features. The bar turns yellow when you\'re near the limit and red when it\'s full. Resets on the 1st.',
-          side: 'right', align: 'end',
-        },
-      },
-      {
-        element: '#tour-theme-btn',
-        popover: {
-          title: '🎨 Change Theme',
-          description: 'Click the palette icon to change the app\'s look. Pick from 20 themes — Superheroes, Festivals, Nature, and more!',
-          side: 'bottom', align: 'end',
-        },
-      },
-      {
-        element: '#tour-notifications',
-        popover: {
-          title: '🔔 Notifications',
-          description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
-          side: 'bottom', align: 'end',
-        },
-      },
-      {
-        element: '#tour-profile',
-        popover: {
-          title: '👤 My Account',
-          description: 'View your account details, change your password, or delete your account.',
-          side: 'bottom', align: 'end',
-        },
-      },
-      {
-        element: '#tour-child-name',
-        popover: {
-          title: '🔀 Switch Child',
-          description: 'Managing stories for multiple children? Hit Switch to change who you\'re viewing.',
-          side: 'bottom', align: 'end',
-        },
-      },
+      ...utilitySteps,
       {
         popover: {
           title: '🌟 You\'re all set!',
@@ -159,8 +246,7 @@ export function startTour(enabledFeatures) {
           side: 'over', align: 'center',
         },
       },
-    ],
-  })
-
-  d.drive()
+    ]
+    makeDriver(steps).drive()
+  }
 }

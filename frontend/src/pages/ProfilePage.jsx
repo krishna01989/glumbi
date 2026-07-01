@@ -95,7 +95,15 @@ export default function ProfilePage({ onLogout }) {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', fontFamily: 'Nunito, sans-serif' }}>
       <button onClick={() => navigate(-1)}
-        style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+        style={{
+          background: 'transparent', border: '1.5px solid #ffcdb8', color: '#ff6b6b',
+          fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          transition: 'all 0.15s ease',
+        }}>
         ← Back
       </button>
       <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 26, color: '#2d2d2d', marginBottom: 24 }}>

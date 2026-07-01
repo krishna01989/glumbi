@@ -38,7 +38,7 @@ function ErrorPageRoute() {
 const ALL_NAV = [
   { path: 'stories',    label: 'Stories',    emoji: '📖', id: 'tour-stories-tab' },
   { path: 'activities', label: 'Activities', emoji: '🎮', id: 'tour-activities-tab' },
-  { path: 'learn',      label: 'Learn',      emoji: '✏️', id: 'tour-learn-tab' },
+  { path: 'learn',      label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
   { path: 'curiosity',  label: 'Curiosity',  emoji: '🔍', id: 'tour-curiosity-tab' },
   { path: 'draw',       label: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
   { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab' },
@@ -570,9 +570,9 @@ export default function App() {
               <div style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</div>
               {childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>}
             </div>
-            <ThemePicker child={child} onThemeChange={handleThemeChange} />
-            <NotificationBell isMobile />
-            <button onClick={() => setMobileMenuOpen(true)}
+            <span id="tour-mobile-theme"><ThemePicker child={child} onThemeChange={handleThemeChange} /></span>
+            <span id="tour-mobile-notifications"><NotificationBell isMobile /></span>
+            <button id="tour-mobile-menu" onClick={() => setMobileMenuOpen(true)}
               style={{
                 width: 36, height: 36, borderRadius: 10, padding: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -580,7 +580,9 @@ export default function App() {
               }}>☰</button>
           </div>
         </header>
-        <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} />
+        <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} theme={theme}
+          onSwitchChild={() => { setChild(null); navigate('/child') }}
+          onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null)} />
 
         {/* ── Page content ── */}
         <main className="main-scroll" style={{

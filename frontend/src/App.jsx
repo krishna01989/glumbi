@@ -450,7 +450,7 @@ export default function App() {
       </aside>
 
       {/* ── Main content ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {/* ── Desktop / TV / Tablet Header ── */}
         <header className="app-header" style={{

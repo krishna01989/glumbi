@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { storyApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import AudioPlayer from '../components/AudioPlayer'
+import ConfirmDialog from '../components/ConfirmDialog'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -86,6 +87,7 @@ export default function Stories({ child }) {
   const [langPickerPos,  setLangPickerPos]  = useState({ top: 0, right: 0 })
   const [error, setError]               = useState('')
   const [audioError, setAudioError]     = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
   const [showList, setShowList]         = useState(true)
   const isMobile = useIsMobile()
   const langPickerRef = useRef(null)
@@ -137,10 +139,14 @@ export default function Stories({ child }) {
   }
 
   async function handleDelete(storyId) {
-    if (!window.confirm('Delete this story?')) return
-    await storyApi.delete(storyId)
-    setStories(prev => prev.filter(s => s.id !== storyId))
-    if (selected?.id === storyId) setSelected(null)
+    setConfirmDelete(storyId)
+  }
+
+  async function confirmDeleteStory() {
+    await storyApi.delete(confirmDelete)
+    setStories(prev => prev.filter(s => s.id !== confirmDelete))
+    if (selected?.id === confirmDelete) setSelected(null)
+    setConfirmDelete(null)
   }
 
   async function toggleFav(storyId) {
@@ -181,6 +187,15 @@ export default function Stories({ child }) {
   const scene = selected ? getScene(selected.keywords) : null
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!confirmDelete}
+      title="Delete Story?"
+      message="This story will be permanently deleted."
+      confirmLabel="Delete"
+      onConfirm={confirmDeleteStory}
+      onCancel={() => setConfirmDelete(null)}
+    />
     <div style={{
       display: isMobile ? 'flex' : 'grid',
       flexDirection: isMobile ? 'column' : undefined,
@@ -395,5 +410,6 @@ export default function Stories({ child }) {
         </div>
       )}
     </div>
+    </>
   )
 }

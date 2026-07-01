@@ -1,5 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { writingApi } from '../api/client'
+import ConfirmDialog from '../components/ConfirmDialog'
+
+function useIsMobile() {
+  const [m, setM] = useState(window.innerWidth < 640)
+  useEffect(() => {
+    const h = () => setM(window.innerWidth < 640)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return m
+}
 
 const STARTERS = [
   'One stormy night, I discovered…',
@@ -112,28 +123,63 @@ export default function MyWriting({ child }) {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this story?')) return
-    await writingApi.delete(id)
-    setEntries(prev => prev.filter(e => e.id !== id))
-    if (selected?.id === id) setSelected(null)
-    if (savedId.current === id) { savedId.current = null; setEditing(false) }
+    setConfirmDelete(id)
   }
 
+  async function confirmDeleteEntry() {
+    await writingApi.delete(confirmDelete)
+    setEntries(prev => prev.filter(e => e.id !== confirmDelete))
+    if (selected?.id === confirmDelete) setSelected(null)
+    if (savedId.current === confirmDelete) { savedId.current = null; setEditing(false) }
+    setConfirmDelete(null)
+  }
+
+  const [confirmDelete, setConfirmDelete] = useState(null)
   const wc = wordCount(content)
+  const isMobile = useIsMobile()
+  const showingContent = editing || (selected && !editing)
 
   return (
-    <div style={{ display: 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+    <>
+    <ConfirmDialog
+      open={!!confirmDelete}
+      title="Delete Story?"
+      message="This story will be permanently deleted."
+      confirmLabel="Delete"
+      onConfirm={confirmDeleteEntry}
+      onCancel={() => setConfirmDelete(null)}
+    />
+    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+
+      {/* Mobile top bar */}
+      {isMobile && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          {showingContent ? (
+            <button onClick={() => { setEditing(false); setSelected(null) }}
+              style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              ← Back
+            </button>
+          ) : (
+            <button onClick={startNew}
+              style={{ flex: 1, padding: '13px', borderRadius: 50, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(142,68,173,0.3)' }}>
+              ✍️ Write New Story
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Left panel ── */}
-      <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button onClick={startNew}
-          style={{
-            padding: '14px', borderRadius: 50, fontWeight: 800, fontSize: 15,
-            background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', cursor: 'pointer',
-            boxShadow: '0 4px 16px rgba(142,68,173,0.3)',
-          }}>
-          ✍️ Write New Story
-        </button>
+      <div style={{ width: isMobile ? '100%' : 280, flexShrink: 0, display: isMobile && showingContent ? 'none' : 'flex', flexDirection: 'column', gap: 12, marginBottom: isMobile ? 16 : 0 }}>
+        {!isMobile && (
+          <button onClick={startNew}
+            style={{
+              padding: '14px', borderRadius: 50, fontWeight: 800, fontSize: 15,
+              background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(142,68,173,0.3)',
+            }}>
+            ✍️ Write New Story
+          </button>
+        )}
 
         {entries.length === 0 && !editing && (
           <div style={{ textAlign: 'center', padding: '32px 12px', color: '#ccc' }}>
@@ -321,5 +367,6 @@ export default function MyWriting({ child }) {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
       `}</style>
     </div>
+    </>
   )
 }

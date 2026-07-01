@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react'
 import { readQuizApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
+import ConfirmDialog from '../components/ConfirmDialog'
+
+function useIsMobile() {
+  const [m, setM] = useState(window.innerWidth < 640)
+  useEffect(() => {
+    const h = () => setM(window.innerWidth < 640)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return m
+}
 
 const TOPICS = [
   { emoji: '🦁', label: 'Safari adventure' },
@@ -24,9 +35,10 @@ export default function ReadQuiz({ child }) {
   const [topic,    setTopic]    = useState('')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
-  // quiz state
-  const [answers,  setAnswers]  = useState([null, null, null])
-  const [submitted,setSubmitted]= useState(false)
+  const [answers,     setAnswers]     = useState([null, null, null])
+  const [submitted,   setSubmitted]   = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     readQuizApi.getByChild(child.id).then(setEntries).catch(() => {})
@@ -68,19 +80,40 @@ export default function ReadQuiz({ child }) {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this story?')) return
-    await readQuizApi.delete(id)
-    setEntries(prev => prev.filter(e => e.id !== id))
-    if (selected?.id === id) setSelected(null)
+    setConfirmDelete(id)
+  }
+
+  async function confirmDeleteEntry() {
+    await readQuizApi.delete(confirmDelete)
+    setEntries(prev => prev.filter(e => e.id !== confirmDelete))
+    if (selected?.id === confirmDelete) setSelected(null)
+    setConfirmDelete(null)
   }
 
   const lessonColor = selected ? (LESSON_COLORS[selected.lesson] || '#667eea') : '#667eea'
 
   return (
-    <div style={{ display: 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+    <>
+    <ConfirmDialog
+      open={!!confirmDelete}
+      title="Delete Entry?"
+      message="This story and quiz will be permanently deleted."
+      confirmLabel="Delete"
+      onConfirm={confirmDeleteEntry}
+      onCancel={() => setConfirmDelete(null)}
+    />
+    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+
+      {/* Mobile back button */}
+      {isMobile && selected && (
+        <button onClick={() => setSelected(null)}
+          style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginBottom: 12, cursor: 'pointer' }}>
+          ← Back
+        </button>
+      )}
 
       {/* ── Left panel ── */}
-      <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 16, marginBottom: isMobile ? 16 : 0 }}>
 
         {/* Generate form */}
         <div className="card" style={{ padding: 20 }}>
@@ -302,5 +335,6 @@ export default function ReadQuiz({ child }) {
         @keyframes fadeIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
       `}</style>
     </div>
+    </>
   )
 }

@@ -37,7 +37,8 @@ api.interceptors.response.use(
       if (!alreadyOnErrorPage) window.location.href = `/error/${status}`
       return new Promise(() => {})
     }
-    return Promise.reject(new Error(err.response?.data?.error || 'Something went wrong. Please try again!'))
+    const data = err.response?.data
+    return Promise.reject(new Error(data?.error || 'Something went wrong. Please try again!'))
   }
 )
 
@@ -131,4 +132,6 @@ export const adminApi = {
   changeRole:        (id, role)     => api.patch(`/admin/users/${id}/role`, { role }).then(r => r.data),
   resetPassword:     (id, password) => api.patch(`/admin/users/${id}/password`, { password }).then(r => r.data),
   runNotifications:  ()             => api.post('/admin/notifications/run').then(r => r.data),
+  holdUser:          (id, reason)   => api.patch(`/admin/users/${id}/hold`, { reason }).then(r => r.data),
+  releaseUser:       (id)           => api.patch(`/admin/users/${id}/release`).then(r => r.data),
 }

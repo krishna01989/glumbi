@@ -45,7 +45,13 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         return userRepo.findByEmail(req.getEmail().toLowerCase().trim())
                 .filter(u -> u.getPasswordHash() != null && encoder.matches(req.getPassword(), u.getPasswordHash()))
-                .map(u -> ResponseEntity.ok(Map.of("token", jwtUtil.generate(u), "role", u.getRole().name())))
+                .map(u -> {
+                    if (u.isOnHold()) return ResponseEntity.status(403).body(Map.of(
+                        "error", "account_on_hold",
+                        "reason", u.getHoldReason() != null ? u.getHoldReason() : "Your account has been suspended. Please contact support@glumbi.com."
+                    ));
+                    return ResponseEntity.ok(Map.of("token", jwtUtil.generate(u), "role", u.getRole().name()));
+                })
                 .orElse(ResponseEntity.status(401).body(Map.of("error", "Invalid email or password")));
     }
 
@@ -89,6 +95,11 @@ public class AuthController {
                 user.setDisplayName(name);
             }
             userRepo.save(user);
+
+            if (user.isOnHold()) return ResponseEntity.status(403).body(Map.of(
+                "error", "account_on_hold",
+                "reason", user.getHoldReason() != null ? user.getHoldReason() : "Your account has been suspended. Please contact support@glumbi.com."
+            ));
 
             return ResponseEntity.ok(Map.of(
                     "token", jwtUtil.generate(user),

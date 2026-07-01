@@ -228,6 +228,8 @@ public class AdminController {
             m.put("createdAt",   u.getCreatedAt());
             m.put("childCount",  (long) childRepo.findByOwnerId(u.getId()).size());
             m.put("authMethod",  u.getGoogleSub() != null ? "google" : "password");
+            m.put("onHold",      u.isOnHold());
+            m.put("holdReason",  u.getHoldReason());
             return m;
         }).toList();
     }
@@ -271,6 +273,26 @@ public class AdminController {
     public ResponseEntity<Map<String, String>> runNotifications() {
         notificationScheduler.runWeeklyNotifications();
         return ResponseEntity.ok(Map.of("message", "Notification run completed"));
+    }
+
+    @PatchMapping("/users/{id}/hold")
+    public ResponseEntity<?> holdUser(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return userRepo.findById(id).map(u -> {
+            u.setOnHold(true);
+            u.setHoldReason(body.getOrDefault("reason", "Account suspended by admin."));
+            userRepo.save(u);
+            return ResponseEntity.ok(Map.of("email", u.getEmail(), "onHold", true));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/users/{id}/release")
+    public ResponseEntity<?> releaseUser(@PathVariable Long id) {
+        return userRepo.findById(id).map(u -> {
+            u.setOnHold(false);
+            u.setHoldReason(null);
+            userRepo.save(u);
+            return ResponseEntity.ok(Map.of("email", u.getEmail(), "onHold", false));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/users/{id}/role")

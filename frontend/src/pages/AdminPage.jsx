@@ -64,6 +64,31 @@ function PasswordModal({ user, onClose }) {
   )
 }
 
+// ─── Hold modal ───────────────────────────────────────────────────────────────
+function HoldModal({ user, onClose, onConfirm }) {
+  const [reason, setReason] = useState('')
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+      <div style={{ background: 'white', borderRadius: 20, padding: 32, width: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 18 }}>🔒 Put Account on Hold</h3>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: '#888' }}>{user.email}</p>
+        <textarea
+          placeholder="Internal reason for hold (not shown to user)…"
+          value={reason} onChange={e => setReason(e.target.value)} rows={3}
+          style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', marginBottom: 16 }}
+        />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 10, borderRadius: 10, border: '1.5px solid #eee', background: '#f5f5f5', cursor: 'pointer', fontWeight: 700 }}>Cancel</button>
+          <button onClick={() => onConfirm(reason)} disabled={!reason.trim()}
+            style={{ flex: 1, padding: 10, borderRadius: 10, border: 'none', background: reason.trim() ? '#e74c3c' : '#ccc', color: 'white', cursor: reason.trim() ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
+            Hold Account
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, color }) {
   return (
@@ -314,7 +339,8 @@ function Users() {
   const [error, setError]       = useState('')
   const [search, setSearch]     = useState('')
   const [resetUser, setResetUser] = useState(null)
-  const [confirm, setConfirm]   = useState(null)
+  const [holdUser, setHoldUser]   = useState(null)
+  const [confirm, setConfirm]     = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -341,6 +367,21 @@ function Users() {
     })
   }
 
+  async function handleHold(user, reason) {
+    setHoldUser(null)
+    try {
+      await adminApi.holdUser(user.id, reason)
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, onHold: true, holdReason: reason } : u))
+    } catch (e) { setError(e.message) }
+  }
+
+  async function handleRelease(user) {
+    try {
+      await adminApi.releaseUser(user.id)
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, onHold: false, holdReason: null } : u))
+    } catch (e) { setError(e.message) }
+  }
+
   async function handleRoleToggle(user) {
     const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN'
     setConfirm({
@@ -364,6 +405,7 @@ function Users() {
 
   return (
     <div>
+      {holdUser && <HoldModal user={holdUser} onClose={() => setHoldUser(null)} onConfirm={reason => handleHold(holdUser, reason)} />}
       {resetUser && <PasswordModal user={resetUser} onClose={() => setResetUser(null)} />}
       <ConfirmDialog
         open={!!confirm} title={confirm?.title} message={confirm?.message}
@@ -395,13 +437,13 @@ function Users() {
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {filtered.map(user => (
-              <div key={user.id} style={{ background: 'white', borderRadius: 14, padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <div key={user.id} style={{ background: user.onHold ? '#fff8f8' : 'white', borderRadius: 14, padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', borderLeft: user.onHold ? '4px solid #e74c3c' : '4px solid transparent' }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                  background: user.role === 'ADMIN' ? 'linear-gradient(135deg,#2d3436,#636e72)' : 'linear-gradient(135deg,#667eea,#764ba2)',
+                  background: user.onHold ? 'linear-gradient(135deg,#e74c3c,#c0392b)' : user.role === 'ADMIN' ? 'linear-gradient(135deg,#2d3436,#636e72)' : 'linear-gradient(135deg,#667eea,#764ba2)',
                 }}>
-                  {user.role === 'ADMIN' ? '🛡️' : '👤'}
+                  {user.onHold ? '🔒' : user.role === 'ADMIN' ? '🛡️' : '👤'}
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -413,11 +455,21 @@ function Users() {
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: user.role === 'ADMIN' ? '#2d3436' : '#e8f5e9', color: user.role === 'ADMIN' ? 'white' : '#2e7d32' }}>
                       {user.role}
                     </span>
+                    {user.onHold && (
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: '#fff0f0', color: '#e74c3c', border: '1px solid #fcc' }}>
+                        🔒 On Hold
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: '#aaa', marginTop: 3 }}>
                     Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     &nbsp;·&nbsp;{user.childCount} {user.childCount === 1 ? 'child' : 'children'}
                   </div>
+                  {user.onHold && user.holdReason && (
+                    <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 4, fontStyle: 'italic' }}>
+                      Reason: {user.holdReason}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
@@ -429,6 +481,17 @@ function Users() {
                     <button onClick={() => setResetUser(user)}
                       style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#e8f0fe', color: '#1a73e8', border: 'none', cursor: 'pointer' }}>
                       🔑 Reset PW
+                    </button>
+                  )}
+                  {user.onHold ? (
+                    <button onClick={() => handleRelease(user)}
+                      style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#e8f5e9', color: '#2e7d32', border: 'none', cursor: 'pointer' }}>
+                      ✅ Release
+                    </button>
+                  ) : (
+                    <button onClick={() => setHoldUser(user)}
+                      style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#fff3f3', color: '#e74c3c', border: '1.5px solid #fcc', cursor: 'pointer' }}>
+                      🔒 Hold
                     </button>
                   )}
                   <button onClick={() => handleDelete(user)}

@@ -253,8 +253,8 @@ export default function App() {
   function handleLogout() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
+    navigate('/', { replace: true })
     setAuthed(false); setRole(null); setChild(null)
-    navigate('/')
   }
 
   function handleThemeChange(key) { setChild(c => ({ ...c, theme: key })) }
@@ -282,7 +282,9 @@ export default function App() {
         <Route path="/terms"   element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/error/:code" element={<ErrorPageRoute />} />
-        <Route path="*"        element={<ErrorPage code={404} />} />
+        <Route path="/child/*"    element={<Navigate to="/login" replace />} />
+        <Route path="/admin/*"    element={<Navigate to="/login" replace />} />
+        <Route path="*"           element={<ErrorPage code={404} />} />
       </Routes>
     )
   }

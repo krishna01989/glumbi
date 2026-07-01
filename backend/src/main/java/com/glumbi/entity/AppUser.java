@@ -37,5 +37,11 @@ public class AppUser {
     private int monthlyApiCalls = 0;
     private String apiCallMonth;  // "YYYY-MM" — resets when month changes
 
+    @Column(nullable = true, columnDefinition = "boolean default false")
+    private boolean onHold = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String holdReason;
+
     public enum Role { USER, ADMIN }
 }

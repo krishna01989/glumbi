@@ -126,6 +126,8 @@ public class StoryController {
                     .contentType(MediaType.parseMediaType("audio/mpeg"))
                     .body(audio);
         } catch (Exception e) {
+            System.err.println("[listen] ERROR: " + e.getClass().getName() + ": " + e.getMessage());
+            if (e.getCause() != null) System.err.println("[listen] CAUSE: " + e.getCause().getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }

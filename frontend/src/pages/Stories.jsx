@@ -83,11 +83,13 @@ export default function Stories({ child }) {
   const [audioSrc, setAudioSrc]         = useState(null)
   const [translating, setTranslating]   = useState(null)
   const [langPickerOpen, setLangPickerOpen] = useState(false)
+  const [langPickerPos,  setLangPickerPos]  = useState({ top: 0, right: 0 })
   const [error, setError]               = useState('')
   const [audioError, setAudioError]     = useState('')
   const [showList, setShowList]         = useState(true)
   const isMobile = useIsMobile()
   const langPickerRef = useRef(null)
+  const langBtnRef    = useRef(null)
 
   useEffect(() => {
     function handler(e) {
@@ -96,6 +98,19 @@ export default function Stories({ child }) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  function openLangPicker() {
+    if (langBtnRef.current) {
+      const rect = langBtnRef.current.getBoundingClientRect()
+      const popupWidth = Math.min(280, window.innerWidth - 16)
+      // align right edge to button right, but clamp so it doesn't go off left edge
+      const rightEdge = window.innerWidth - rect.right
+      const leftEdge  = rect.right - popupWidth
+      const clampedRight = leftEdge < 8 ? window.innerWidth - popupWidth - 8 : rightEdge
+      setLangPickerPos({ top: rect.bottom + 8, right: clampedRight })
+    }
+    setLangPickerOpen(o => !o)
+  }
 
   useEffect(() => { loadStories() }, [child.id])
 
@@ -269,16 +284,16 @@ export default function Stories({ child }) {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
                 {!speaking && (
                   <div style={{ position: 'relative' }} ref={langPickerRef}>
-                    <button onClick={() => setLangPickerOpen(o => !o)}
+                    <button ref={langBtnRef} onClick={openLangPicker}
                       style={{ padding: '8px 16px', fontSize: 13, borderRadius: 50, border: 'none', background: '#4d96ff', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                       {translating ? <><span className="spinner" /> Translating…</> : '🔊 Listen'}
                     </button>
                     {langPickerOpen && (
                       <div style={{
-                        position: 'absolute', top: 44, right: 0, zIndex: 200,
+                        position: 'fixed', top: langPickerPos.top, right: langPickerPos.right, zIndex: 1000,
                         background: 'white', borderRadius: 16, padding: 16,
                         boxShadow: '0 8px 40px rgba(0,0,0,0.16)',
-                        width: 280, border: '1px solid #f0f0f0',
+                        width: Math.min(280, window.innerWidth - 16), maxHeight: '70vh', overflowY: 'auto', border: '1px solid #f0f0f0',
                       }}>
                         {[
                           { group: '🌍 International', langs: [

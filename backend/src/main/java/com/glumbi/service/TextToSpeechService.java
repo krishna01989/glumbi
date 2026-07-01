@@ -2,39 +2,31 @@ package com.glumbi.service;
 
 import com.google.cloud.texttospeech.v1.*;
 import com.google.protobuf.ByteString;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-/**
- * TextToSpeechService — converts text to audio using Google Cloud WaveNet voices.
- *
- * WaveNet voices sound dramatically more natural than browser speechSynthesis,
- * especially for Indian and Asian languages where browser support is inconsistent.
- *
- * International: English, Spanish, French, Italian, Chinese, Japanese, Korean
- * Regional India: Tamil, Hindi, Malayalam, Telugu, Kannada
- */
 @Service
+@RequiredArgsConstructor
 public class TextToSpeechService {
 
+    private final TextToSpeechClient ttsClient;
+
     public byte[] synthesize(String text, String language) throws Exception {
-        try (TextToSpeechClient client = TextToSpeechClient.create()) {
+        SynthesisInput input = SynthesisInput.newBuilder()
+                .setText(text)
+                .build();
 
-            SynthesisInput input = SynthesisInput.newBuilder()
-                    .setText(text)
-                    .build();
+        VoiceSelectionParams voice = buildVoice(language);
 
-            VoiceSelectionParams voice = buildVoice(language);
+        AudioConfig audioConfig = AudioConfig.newBuilder()
+                .setAudioEncoding(AudioEncoding.MP3)
+                .setSpeakingRate(0.90)
+                .setPitch(1.0)
+                .build();
 
-            AudioConfig audioConfig = AudioConfig.newBuilder()
-                    .setAudioEncoding(AudioEncoding.MP3)
-                    .setSpeakingRate(0.90)   // slightly slower — easier for toddlers to follow
-                    .setPitch(1.0)
-                    .build();
-
-            SynthesizeSpeechResponse response = client.synthesizeSpeech(input, voice, audioConfig);
-            ByteString audioContents = response.getAudioContent();
-            return audioContents.toByteArray();
-        }
+        SynthesizeSpeechResponse response = ttsClient.synthesizeSpeech(input, voice, audioConfig);
+        ByteString audioContents = response.getAudioContent();
+        return audioContents.toByteArray();
     }
 
     private VoiceSelectionParams buildVoice(String language) {

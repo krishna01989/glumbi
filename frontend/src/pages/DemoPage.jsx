@@ -36,6 +36,13 @@ export default function DemoPage() {
   const [error,     setError]     = useState('')
   const [limitHit,  setLimitHit]  = useState(false)
 
+  // Reset loading state when browser restores page from bfcache (back button after 403 redirect)
+  useEffect(() => {
+    const handlePageShow = (e) => { if (e.persisted) setLoading(false) }
+    window.addEventListener('pageshow', handlePageShow)
+    return () => window.removeEventListener('pageshow', handlePageShow)
+  }, [])
+
   // Turnstile
   const turnstileRef    = useRef(null)
   const widgetIdRef     = useRef(null)

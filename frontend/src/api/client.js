@@ -116,7 +116,10 @@ export const writingApi = {
 }
 
 export const userApi = {
-  quota: () => api.get('/users/me/quota').then(r => r.data),
+  quota:          ()                           => api.get('/users/me/quota').then(r => r.data),
+  getProfile:     ()                           => api.get('/users/me').then(r => r.data),
+  changePassword: (currentPassword, newPassword) => api.patch('/users/me/password', { currentPassword, newPassword }).then(r => r.data),
+  deleteAccount:  ()                           => api.delete('/users/me'),
 }
 
 export const notificationApi = {

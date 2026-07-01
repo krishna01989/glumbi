@@ -17,6 +17,7 @@ import Draw        from './pages/Draw'
 import ReadQuiz    from './pages/ReadQuiz'
 import MyWriting   from './pages/MyWriting'
 import DemoPage    from './pages/DemoPage'
+import ProfilePage from './pages/ProfilePage'
 import ErrorPage   from './pages/ErrorPage'
 import PrivacyPage from './pages/legal/PrivacyPage'
 import TermsPage   from './pages/legal/TermsPage'
@@ -330,10 +331,16 @@ export default function App() {
               ← Back
             </button>
           ) : (
-            <button onClick={handleLogout}
-              style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
-              Sign out
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={() => navigate('/profile')}
+                style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
+                👤 Account
+              </button>
+              <button onClick={handleLogout}
+                style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
+                Sign out
+              </button>
+            </div>
           )}
         </header>
         <div style={{ flex: 1 }}>
@@ -341,6 +348,7 @@ export default function App() {
             <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onLogout={handleLogout} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} />} />
             <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { setChild(c); navigate('/child') }} />} />
+            <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} />} />
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
             <Route path="/contact"        element={<ContactPage />} />
@@ -428,6 +436,23 @@ export default function App() {
           </div>
         )}
 
+        {/* Profile link */}
+        <div style={{ padding: collapsed ? '8px' : '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+          <button onClick={() => navigate('/profile')}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+              padding: collapsed ? '10px 0' : '10px 14px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              borderRadius: 12, border: 'none', background: 'transparent',
+              color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: 14,
+              cursor: 'pointer',
+            }}
+            title={collapsed ? 'My Account' : undefined}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>👤</span>
+            {!collapsed && <span>My Account</span>}
+          </button>
+        </div>
+
         {/* Collapse toggle (not on TV) */}
         {!isTV && (
           <button onClick={() => setCollapsed(c => !c)}
@@ -484,6 +509,13 @@ export default function App() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>❓</button>
             <NotificationBell />
+            <button onClick={() => navigate('/profile')} title="My Account"
+              style={{
+                width: 38, height: 38, borderRadius: 10,
+                border: '1.5px solid #eee', cursor: 'pointer',
+                fontSize: 18, background: '#fafafa',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>👤</button>
             <button onClick={handleLogout}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -543,6 +575,7 @@ export default function App() {
               <Route path="/child/:childId/timeline"   element={<Timeline   child={child} />} />
               <Route path="/child/:childId/readquiz"   element={<ReadQuiz   child={child} />} />
               <Route path="/child/:childId/mywriting"  element={<MyWriting  child={child} />} />
+              <Route path="/profile"             element={<ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage />} />
               <Route path="/terms"               element={<TermsPage />} />
               <Route path="/contact"             element={<ContactPage />} />

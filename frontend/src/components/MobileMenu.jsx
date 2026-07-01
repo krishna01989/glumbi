@@ -85,6 +85,10 @@ export default function MobileMenu({ open, onClose, onLogout, child }) {
         </div>
 
         <div style={{ borderTop: '1px solid #f0f0f0', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button onClick={() => go('/profile')}
+            style={{ padding: '11px', borderRadius: 50, background: '#f5f5f5', color: '#555', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+            👤 My Account
+          </button>
           <button onClick={onLogout}
             style={{ padding: '11px', borderRadius: 50, background: '#fff0f0', color: '#ff6b6b', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🚪 Sign Out

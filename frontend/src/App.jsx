@@ -22,6 +22,7 @@ import PrivacyPage from './pages/legal/PrivacyPage'
 import TermsPage   from './pages/legal/TermsPage'
 import ContactPage from './pages/legal/ContactPage'
 import MobileMenu  from './components/MobileMenu'
+import NotificationBell from './components/NotificationBell'
 import AppFooter   from './components/AppFooter'
 import PublicHeader from './components/PublicHeader'
 import Footer      from './components/Footer'
@@ -293,13 +294,10 @@ export default function App() {
   // ── Admin ──
   if (role === 'ADMIN') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <Routes>
-          <Route path="/admin/*" element={<AdminPage onLogout={handleLogout} />} />
-          <Route path="*"        element={<Navigate to="/admin/users" replace />} />
-        </Routes>
-        <Footer />
-      </div>
+      <Routes>
+        <Route path="/admin/*" element={<AdminPage onLogout={handleLogout} onBack={() => navigate('/child')} />} />
+        <Route path="*"        element={<Navigate to="/admin" replace />} />
+      </Routes>
     )
   }
 
@@ -487,6 +485,7 @@ export default function App() {
                 fontSize: 18, background: '#fafafa',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>❓</button>
+            <NotificationBell />
             <button onClick={handleLogout}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
@@ -519,6 +518,7 @@ export default function App() {
               {childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>}
             </div>
             <ThemePicker child={child} onThemeChange={handleThemeChange} />
+            <NotificationBell isMobile />
             <button onClick={() => setMobileMenuOpen(true)}
               style={{
                 width: 36, height: 36, borderRadius: 10, padding: 0,

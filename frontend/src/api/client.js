@@ -116,9 +116,17 @@ export const userApi = {
   quota: () => api.get('/users/me/quota').then(r => r.data),
 }
 
+export const notificationApi = {
+  getAll:      () => api.get('/notifications').then(r => r.data),
+  unreadCount: () => api.get('/notifications/unread-count').then(r => r.data),
+  markAllRead: () => api.put('/notifications/mark-read'),
+}
+
 export const adminApi = {
-  getUsers:      ()              => api.get('/admin/users').then(r => r.data),
-  deleteUser:    (id)            => api.delete(`/admin/users/${id}`),
-  changeRole:    (id, role)      => api.patch(`/admin/users/${id}/role`, { role }).then(r => r.data),
-  resetPassword: (id, password)  => api.patch(`/admin/users/${id}/password`, { password }).then(r => r.data),
+  getStats:          (range = '7d') => api.get('/admin/stats', { params: { range } }).then(r => r.data),
+  getUsers:          ()             => api.get('/admin/users').then(r => r.data),
+  deleteUser:        (id)           => api.delete(`/admin/users/${id}`),
+  changeRole:        (id, role)     => api.patch(`/admin/users/${id}/role`, { role }).then(r => r.data),
+  resetPassword:     (id, password) => api.patch(`/admin/users/${id}/password`, { password }).then(r => r.data),
+  runNotifications:  ()             => api.post('/admin/notifications/run').then(r => r.data),
 }

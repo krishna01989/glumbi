@@ -12,4 +12,5 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByChildIdAndCompletedTrueOrderByCreatedAtDesc(Long childId);
     void deleteByChildId(Long childId);
     void deleteByChildIdAndCompletedFalse(Long childId);
+    long countByCreatedAtAfter(LocalDateTime since);
 }

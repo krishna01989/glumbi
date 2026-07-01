@@ -21,18 +21,20 @@ api.interceptors.response.use(
     const isAuthEndpoint = url.startsWith('/auth/')
     const isDemoEndpoint = url.startsWith('/demo/')
 
+    const alreadyOnErrorPage = window.location.pathname.startsWith('/error/')
+
     if (status === 401 && !isAuthEndpoint && !isDemoEndpoint) {
       localStorage.removeItem('glm_token')
       localStorage.removeItem('glm_role')
-      window.location.href = '/error/401'
+      if (!alreadyOnErrorPage) window.location.href = '/error/401'
       return new Promise(() => {})
     }
     if (status === 403) {
-      window.location.href = '/error/403'
+      if (!alreadyOnErrorPage) window.location.href = '/error/403'
       return new Promise(() => {})
     }
     if (status === 502 || status === 503) {
-      window.location.href = `/error/${status}`
+      if (!alreadyOnErrorPage) window.location.href = `/error/${status}`
       return new Promise(() => {})
     }
     return Promise.reject(new Error(err.response?.data?.error || 'Something went wrong. Please try again!'))

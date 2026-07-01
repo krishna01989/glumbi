@@ -1,0 +1,54 @@
+package com.glumbi.service;
+
+import com.glumbi.agent.CuriosityAgent;
+import com.glumbi.dto.CuriosityRequest;
+import com.glumbi.entity.Child;
+import com.glumbi.entity.CuriosityEntry;
+import com.glumbi.repository.CuriosityRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class CuriosityService {
+
+    private final CuriosityRepository repo;
+    private final ChildService childService;
+    private final CuriosityAgent agent;
+
+    public CuriosityEntry explain(CuriosityRequest req) {
+        Child child = childService.getByIdUnchecked(req.getChildId());
+        int age = Period.between(child.getBirthDate(), LocalDate.now()).getYears();
+
+        CuriosityAgent.CuriosityResult result = agent.explain(req.getQuestion(), child.getName(), age);
+
+        CuriosityEntry entry = new CuriosityEntry();
+        entry.setChild(child);
+        entry.setQuestion(req.getQuestion());
+        entry.setFunFact1(result.funFact1());
+        entry.setFunFact2(result.funFact2());
+        entry.setFunFact3(result.funFact3());
+        entry.setQuizQuestion(result.quizQuestion());
+        entry.setQuizAnswer(result.quizAnswer());
+        entry.setQuizOption1(result.quizOption1());
+        entry.setQuizOption2(result.quizOption2());
+        entry.setQuizOption3(result.quizOption3());
+        entry.setSticker(result.sticker());
+        return repo.save(entry);
+    }
+
+    public List<CuriosityEntry> getByChild(Long childId, LocalDateTime from, LocalDateTime to) {
+        if (from != null && to != null)
+            return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);
+        return repo.findByChildIdOrderByCreatedAtDesc(childId);
+    }
+
+    public void delete(Long id) {
+        repo.deleteById(id);
+    }
+}

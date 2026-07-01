@@ -1,0 +1,325 @@
+import { useState, useEffect, useRef } from 'react'
+import { writingApi } from '../api/client'
+
+const STARTERS = [
+  'One stormy night, I discovered…',
+  'The robot looked at me and said…',
+  'Deep in the jungle, there was a secret…',
+  'My best friend and I found a map that led to…',
+  'The dragon wasn\'t scary at all. In fact, she…',
+  'I pressed the big red button, and suddenly…',
+]
+
+const MIN_WORDS = 30
+
+function wordCount(text) {
+  return text.trim().split(/\s+/).filter(Boolean).length
+}
+
+export default function MyWriting({ child }) {
+  const [entries,  setEntries]  = useState([])
+  const [selected, setSelected] = useState(null)  // entry being viewed
+  const [editing,  setEditing]  = useState(false) // true = editor open
+
+  // Editor state
+  const [title,    setTitle]    = useState('')
+  const [content,  setContent]  = useState('')
+  const [saving,   setSaving]   = useState(false)
+  const [feedback, setFeedback] = useState(null)
+  const [fbLoading,setFbLoading]= useState(false)
+  const [error,    setError]    = useState('')
+  const savedId = useRef(null)  // id of the saved draft being edited
+  const autoSaveRef = useRef(null)
+
+  useEffect(() => {
+    writingApi.getByChild(child.id).then(setEntries).catch(() => {})
+  }, [child.id])
+
+  // Auto-save every 30s while editing
+  useEffect(() => {
+    if (!editing) return
+    autoSaveRef.current = setInterval(() => {
+      if (title.trim() && content.trim()) handleSave(true)
+    }, 30000)
+    return () => clearInterval(autoSaveRef.current)
+  }, [editing, title, content])
+
+  function startNew() {
+    savedId.current = null
+    setTitle(''); setContent(''); setFeedback(null); setError('')
+    setSelected(null); setEditing(true)
+  }
+
+  function openEntry(e) {
+    setSelected(e); setEditing(false)
+    setFeedback(e.feedbackReceived ? {
+      praise: e.feedbackPraise,
+      suggestion: e.feedbackSuggestion,
+      encouragement: e.feedbackEncouragement,
+      starWord: e.starWord,
+      badge: e.badge,
+    } : null)
+  }
+
+  function editEntry(e) {
+    savedId.current = e.id
+    setTitle(e.title); setContent(e.content)
+    setFeedback(null); setError(''); setEditing(true); setSelected(null)
+  }
+
+  async function handleSave(silent = false) {
+    if (!title.trim() || !content.trim()) return
+    if (!silent) setSaving(true)
+    try {
+      const data = { childId: child.id, title, content }
+      let saved
+      if (savedId.current) {
+        saved = await writingApi.update(savedId.current, data)
+      } else {
+        saved = await writingApi.save(data)
+        savedId.current = saved.id
+      }
+      setEntries(prev => {
+        const exists = prev.find(e => e.id === saved.id)
+        return exists ? prev.map(e => e.id === saved.id ? saved : e) : [saved, ...prev]
+      })
+    } catch (e) { if (!silent) setError(e.message) }
+    finally { if (!silent) setSaving(false) }
+  }
+
+  async function handleGetFeedback() {
+    if (!savedId.current) {
+      await handleSave()
+      if (!savedId.current) return
+    }
+    if (wordCount(content) < MIN_WORDS) {
+      setError(`Write at least ${MIN_WORDS} words to get feedback (you have ${wordCount(content)})`); return
+    }
+    setError(''); setFbLoading(true)
+    try {
+      const result = await writingApi.feedback(savedId.current)
+      setFeedback({
+        praise: result.feedbackPraise,
+        suggestion: result.feedbackSuggestion,
+        encouragement: result.feedbackEncouragement,
+        starWord: result.starWord,
+        badge: result.badge,
+      })
+      setEntries(prev => prev.map(e => e.id === result.id ? result : e))
+      window.__glumbiRefreshQuota?.()
+    } catch (e) { setError(e.message) }
+    finally { setFbLoading(false) }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Delete this story?')) return
+    await writingApi.delete(id)
+    setEntries(prev => prev.filter(e => e.id !== id))
+    if (selected?.id === id) setSelected(null)
+    if (savedId.current === id) { savedId.current = null; setEditing(false) }
+  }
+
+  const wc = wordCount(content)
+
+  return (
+    <div style={{ display: 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+
+      {/* ── Left panel ── */}
+      <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button onClick={startNew}
+          style={{
+            padding: '14px', borderRadius: 50, fontWeight: 800, fontSize: 15,
+            background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', cursor: 'pointer',
+            boxShadow: '0 4px 16px rgba(142,68,173,0.3)',
+          }}>
+          ✍️ Write New Story
+        </button>
+
+        {entries.length === 0 && !editing && (
+          <div style={{ textAlign: 'center', padding: '32px 12px', color: '#ccc' }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>✍️</div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>No stories yet — start writing!</div>
+          </div>
+        )}
+
+        {entries.map(e => (
+          <div key={e.id} onClick={() => openEntry(e)}
+            style={{
+              padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
+              background: selected?.id === e.id ? '#f8f0ff' : 'white',
+              border: `1.5px solid ${selected?.id === e.id ? '#c77dff' : '#eee'}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>{e.title}</div>
+            <div style={{ fontSize: 11, color: '#aaa', display: 'flex', gap: 8 }}>
+              <span>{wordCount(e.content)} words</span>
+              {e.feedbackReceived && <span style={{ color: '#8e44ad' }}>✨ Feedback received</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Right panel ── */}
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+
+        {/* Editor */}
+        {editing && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div className="card" style={{ padding: 'clamp(16px,3vw,28px)', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: '#8e44ad', marginBottom: 20 }}>✍️ My Story</div>
+
+              <input value={title} onChange={e => setTitle(e.target.value)}
+                placeholder="Give your story a title…"
+                maxLength={80}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '2px solid #eee', fontSize: 18, fontWeight: 800, color: '#333', boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif', marginBottom: 16 }} />
+
+              {/* Story starters */}
+              {content.length === 0 && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Need a starter?</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {STARTERS.map(s => (
+                      <button key={s} type="button" onClick={() => setContent(s + ' ')}
+                        style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#f8f0ff', color: '#8e44ad', border: '1.5px solid #e0c6ff', cursor: 'pointer' }}>
+                        "{s.slice(0, 28)}…"
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <textarea value={content} onChange={e => setContent(e.target.value)}
+                placeholder="Start writing your story here… let your imagination run wild! 🚀"
+                rows={14}
+                style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '2px solid #eee', fontSize: 15, lineHeight: 1.9, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif', color: '#333' }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ fontSize: 12, color: wc >= MIN_WORDS ? '#27ae60' : '#aaa', fontWeight: 700 }}>
+                  {wc} words {wc < MIN_WORDS ? `(write ${MIN_WORDS - wc} more for feedback)` : '✓'}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => handleSave()} disabled={saving || !title.trim() || !content.trim()}
+                    style={{ padding: '10px 20px', borderRadius: 50, fontWeight: 700, fontSize: 13, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
+                    {saving ? 'Saving…' : '💾 Save'}
+                  </button>
+                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim()}
+                    style={{
+                      padding: '10px 20px', borderRadius: 50, fontWeight: 800, fontSize: 13,
+                      background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none',
+                      cursor: fbLoading || !content.trim() ? 'not-allowed' : 'pointer',
+                      opacity: fbLoading || !content.trim() ? 0.6 : 1,
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}>
+                    {fbLoading
+                      ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Reading…</>
+                      : '✨ Get Feedback'}
+                  </button>
+                </div>
+              </div>
+              {error && <div style={{ marginTop: 10, fontSize: 13, color: '#e74c3c', fontWeight: 700 }}>🚫 {error}</div>}
+            </div>
+
+            {/* Feedback card */}
+            {feedback && (
+              <div style={{ animation: 'fadeIn 0.5s ease' }} className="card">
+                <div style={{ background: 'linear-gradient(135deg,#f8f0ff,#ede0ff)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 40 }}>{feedback.badge}</span>
+                  <div>
+                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#8e44ad' }}>Coach's Feedback</div>
+                    {feedback.starWord && (
+                      <div style={{ fontSize: 12, color: '#8e44ad', fontWeight: 700 }}>⭐ Star word: <em>"{feedback.starWord}"</em></div>
+                    )}
+                  </div>
+                </div>
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ background: '#e8f8f0', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#27ae60', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>What I loved 💚</div>
+                    <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{feedback.praise}</div>
+                  </div>
+                  <div style={{ background: '#fff8e8', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#f39c12', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Try this next time 💡</div>
+                    <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{feedback.suggestion}</div>
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#8e44ad', fontStyle: 'italic' }}>
+                    {feedback.encouragement}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* View mode */}
+        {selected && !editing && (
+          <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            <div className="card" style={{ padding: 'clamp(16px,3vw,28px)', marginBottom: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(20px,3vw,28px)', color: '#333', margin: '0 0 6px' }}>{selected.title}</h2>
+                  <span style={{ fontSize: 12, color: '#aaa', fontWeight: 700 }}>{wordCount(selected.content)} words</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => editEntry(selected)}
+                    style={{ padding: '8px 16px', borderRadius: 50, background: '#f8f0ff', color: '#8e44ad', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    ✏️ Edit
+                  </button>
+                  <button onClick={() => handleDelete(selected.id)}
+                    style={{ padding: '8px 16px', borderRadius: 50, background: '#fff0f0', color: '#e74c3c', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    🗑 Delete
+                  </button>
+                </div>
+              </div>
+              <div style={{ lineHeight: 2, fontSize: 'clamp(14px,1.8vw,16px)', color: '#444', whiteSpace: 'pre-wrap', background: '#fafafa', borderRadius: 12, padding: 'clamp(14px,2vw,20px)', border: '1.5px solid #f0f0f0' }}>
+                {selected.content}
+              </div>
+              {!selected.feedbackReceived && (
+                <button onClick={() => editEntry(selected)}
+                  style={{ marginTop: 16, padding: '12px 24px', borderRadius: 50, background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                  ✨ Edit & Get Feedback
+                </button>
+              )}
+            </div>
+
+            {selected.feedbackReceived && (
+              <div className="card">
+                <div style={{ background: 'linear-gradient(135deg,#f8f0ff,#ede0ff)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 40 }}>{selected.badge}</span>
+                  <div>
+                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#8e44ad' }}>Coach's Feedback</div>
+                    {selected.starWord && <div style={{ fontSize: 12, color: '#8e44ad', fontWeight: 700 }}>⭐ Star word: <em>"{selected.starWord}"</em></div>}
+                  </div>
+                </div>
+                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ background: '#e8f8f0', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#27ae60', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>What I loved 💚</div>
+                    <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackPraise}</div>
+                  </div>
+                  <div style={{ background: '#fff8e8', borderRadius: 12, padding: '14px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#f39c12', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Try this next time 💡</div>
+                    <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackSuggestion}</div>
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#8e44ad', fontStyle: 'italic' }}>
+                    {selected.feedbackEncouragement}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!editing && !selected && (
+          <div style={{ textAlign: 'center', padding: '80px 20px', color: '#ccc' }}>
+            <div style={{ fontSize: 64, marginBottom: 16 }}>✍️</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Your stories live here</div>
+            <div style={{ fontSize: 14 }}>Write a story, save it, then get encouraging feedback from your AI coach!</div>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes spin   { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+      `}</style>
+    </div>
+  )
+}

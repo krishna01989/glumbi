@@ -1,0 +1,147 @@
+package com.glumbi.agent;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+
+@Component
+@RequiredArgsConstructor
+public class ReadQuizAgent {
+
+    private final WebClient.Builder webClientBuilder;
+    private final SafetyGuard safety;
+    private final RelevanceGuard relevance;
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    @Value("${anthropic.api-key}")    private String apiKey;
+    @Value("${anthropic.model}")      private String model;
+
+    public ReadQuizResult generate(String childName, int childAge, String topic) {
+        relevance.validate(topic, RelevanceGuard.Context.STORY);
+        safety.validateInput(topic);
+
+        String system = safety.safetySystemPreamble() + String.format("""
+            You are an engaging reading teacher for a %d-year-old child.
+            Write stories that are longer and richer than bedtime stories —
+            with descriptive language, a clear problem-solution arc, and a meaningful lesson.
+            %s
+            Always follow with comprehension questions to reinforce reading skills.
+            """, childAge, readingGuidance(childAge));
+
+        String prompt = String.format("""
+            Write a reading story for %s who is %d years old, about: %s
+
+            Rules:
+            - Length: 250–350 words (long enough to feel like a real story, short enough to read in one sitting)
+            - Use vivid descriptions and varied sentence structure
+            - Include a clear beginning, middle, and end
+            - Embed a positive lesson naturally (courage, kindness, curiosity, perseverance)
+            - Vocabulary: slightly challenging but decodable for a %d year old
+            - Do NOT use the word "bedtime" — this is a daytime reading story
+
+            Then write exactly 3 comprehension questions:
+            - Q1: Factual (what happened?)
+            - Q2: Inferential (why did the character do/feel something?)
+            - Q3: Reflective (what would YOU do / what did you learn?)
+
+            Each question must have exactly 3 answer options, with one clearly correct.
+
+            Return ONLY this JSON — no extra text:
+            {
+              "title": "...",
+              "story": "...",
+              "readingTime": "5 mins",
+              "lesson": "one-word theme e.g. Courage",
+              "questions": [
+                {
+                  "question": "...",
+                  "options": ["...", "...", "..."],
+                  "correctIndex": 0
+                }
+              ]
+            }
+            """, childName, childAge, topic, childAge);
+
+        ObjectNode body = mapper.createObjectNode();
+        body.put("model", model);
+        body.put("max_tokens", 1024);
+        body.put("system", system);
+        body.putArray("messages").addObject().put("role", "user").put("content", prompt);
+
+        String response = webClientBuilder.build()
+            .post().uri("https://api.anthropic.com/v1/messages")
+            .header("x-api-key", apiKey)
+            .header("anthropic-version", "2023-06-01")
+            .header("content-type", "application/json")
+            .bodyValue(body).retrieve().bodyToMono(String.class).block();
+
+        return parseResponse(response, topic);
+    }
+
+    private String readingGuidance(int age) {
+        if (age <= 5) return "Use very simple words and very short sentences (grade K–1). Focus on one clear idea with fun, repetitive language. Story length: 100–150 words.";
+        if (age <= 7) return "Use simple but slightly varied vocabulary (grade 1–2). Clear cause-and-effect. Story length: 150–250 words.";
+        if (age <= 9) return "Vocabulary should challenge slightly without overwhelming (grade 2–4). Use descriptive language and varied sentence structure. Story length: 250–350 words.";
+        return "Use richer vocabulary and complex sentences (grade 4–6). Include subplots, character development, and deeper themes. Story length: 300–450 words.";
+    }
+
+    private ReadQuizResult parseResponse(String raw, String topic) {
+        try {
+            JsonNode root = mapper.readTree(raw);
+            String text = root.path("content").get(0).path("text").asText();
+            text = text.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();
+            JsonNode node = mapper.readTree(text);
+
+            Question[] questions = new Question[3];
+            JsonNode qs = node.path("questions");
+            for (int i = 0; i < 3 && i < qs.size(); i++) {
+                JsonNode q = qs.get(i);
+                String[] opts = new String[3];
+                for (int j = 0; j < 3 && j < q.path("options").size(); j++) {
+                    opts[j] = q.path("options").get(j).asText();
+                }
+                questions[i] = new Question(
+                    q.path("question").asText(),
+                    opts,
+                    q.path("correctIndex").asInt(0)
+                );
+            }
+
+            return new ReadQuizResult(
+                node.path("title").asText("A Reading Adventure"),
+                node.path("story").asText(),
+                node.path("readingTime").asText("5 mins"),
+                node.path("lesson").asText("Curiosity"),
+                questions
+            );
+        } catch (Exception e) {
+            return fallback(topic);
+        }
+    }
+
+    private ReadQuizResult fallback(String topic) {
+        Question[] qs = {
+            new Question(
+                "What was the main character doing at the start?",
+                new String[]{"Exploring", "Sleeping", "Eating"}, 0),
+            new Question(
+                "Why did the character feel nervous?",
+                new String[]{"It was something new", "They were hungry", "It was too loud"}, 0),
+            new Question(
+                "What lesson does this story teach?",
+                new String[]{"Try new things with courage", "Always stay home", "Never ask for help"}, 0)
+        };
+        return new ReadQuizResult(
+            "The Big Adventure",
+            safety.safeFallback("story"),
+            "5 mins", "Courage", qs
+        );
+    }
+
+    public record ReadQuizResult(String title, String story, String readingTime, String lesson, Question[] questions) {}
+    public record Question(String question, String[] options, int correctIndex) {}
+}

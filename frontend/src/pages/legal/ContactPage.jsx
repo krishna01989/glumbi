@@ -65,7 +65,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <label style={labelStyle}>Email address</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="priya@example.com" required style={inputStyle} />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required style={inputStyle} />
               </div>
             </div>
             <div>

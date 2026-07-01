@@ -33,6 +33,12 @@ api.interceptors.response.use(
       if (!alreadyOnErrorPage) window.location.href = '/error/403'
       return new Promise(() => {})
     }
+    if (status === 429) {
+      // Refresh quota display and surface a consistent error
+      if (window.__glumbiRefreshQuota) window.__glumbiRefreshQuota()
+      const data = err.response?.data
+      return Promise.reject(new Error(data?.error || 'Monthly limit reached. Resets on the 1st!'))
+    }
     if (status === 502 || status === 503) {
       if (!alreadyOnErrorPage) window.location.href = `/error/${status}`
       return new Promise(() => {})
@@ -93,6 +99,18 @@ export const curiosityApi = {
 export const drawApi = {
   identify: (imageData, childName, childAge) =>
     api.post('/draw/identify', { imageData, childName, childAge: String(childAge) }).then(r => r.data),
+}
+
+export const learnApi = {
+  validate:     (imageData, letter, script, childName, childAge, childId) =>
+    api.post('/learn/validate', { imageData, letter, script, childName, childAge: String(childAge), ...(childId ? { childId: String(childId) } : {}) }).then(r => r.data),
+  identifyWord: (imageData, script, childName, childAge, childId) =>
+    api.post('/learn/word', { imageData, script, childName, childAge: String(childAge), childId: String(childId) }).then(r => r.data),
+  audioUrl: (text, language) => {
+    const base  = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+    const token = localStorage.getItem('glm_token')
+    return `${base}/learn/audio?text=${encodeURIComponent(text)}&language=${language}&token=${token}`
+  },
 }
 
 export const demoApi = {

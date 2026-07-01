@@ -17,6 +17,7 @@ import Draw        from './pages/Draw'
 import ReadQuiz    from './pages/ReadQuiz'
 import MyWriting   from './pages/MyWriting'
 import DemoPage    from './pages/DemoPage'
+import LearnPage   from './pages/LearnPage'
 import ProfilePage from './pages/ProfilePage'
 import ErrorPage   from './pages/ErrorPage'
 import PrivacyPage from './pages/legal/PrivacyPage'
@@ -37,6 +38,7 @@ function ErrorPageRoute() {
 const ALL_NAV = [
   { path: 'stories',    label: 'Stories',    emoji: '📖', id: 'tour-stories-tab' },
   { path: 'activities', label: 'Activities', emoji: '🎮', id: 'tour-activities-tab' },
+  { path: 'learn',      label: 'Learn',      emoji: '✏️', id: 'tour-learn-tab' },
   { path: 'curiosity',  label: 'Curiosity',  emoji: '🔍', id: 'tour-curiosity-tab' },
   { path: 'draw',       label: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
   { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab' },
@@ -173,6 +175,48 @@ function Toast({ toasts, onDismiss }) {
           {t.message}
         </div>
       ))}
+    </div>
+  )
+}
+
+function QuotaBar({ quota }) {
+  const [showInfo, setShowInfo] = useState(false)
+  const pct   = Math.min(quota.used / quota.limit, 1)
+  const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : 'rgba(255,255,255,0.7)'
+  return (
+    <div id="tour-quota" style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.15)', position: 'relative' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly AI calls</span>
+          <button
+            onClick={() => setShowInfo(v => !v)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: 12, padding: 0, lineHeight: 1 }}
+            title="What counts?">ⓘ</button>
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 800, color }}>{quota.used}/{quota.limit}</span>
+      </div>
+      <div style={{ height: 5, background: 'rgba(255,255,255,0.2)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct * 100}%`, background: color, borderRadius: 10, transition: 'width 0.4s ease' }} />
+      </div>
+      {pct >= 0.8 && (
+        <div style={{ fontSize: 10, color, marginTop: 4, fontWeight: 700 }}>
+          {pct >= 1 ? '🚫 Limit reached — resets on 1st' : '⚠️ Almost at your monthly limit'}
+        </div>
+      )}
+      {showInfo && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 6px)', left: 8, right: 8,
+          background: '#1e2a3a', borderRadius: 12, padding: '12px 14px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 999,
+          fontSize: 11, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7,
+        }}>
+          <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 What counts as an AI call?</div>
+          <div>Every time Glumbi asks Claude AI to do something — generate a story, answer a curiosity question, give writing feedback, validate a letter you drew, or identify a word — it uses <strong style={{ color: '#ffd93d' }}>1 call</strong>.</div>
+          <div style={{ marginTop: 8 }}>You get <strong style={{ color: '#6bcb77' }}>{quota.limit} calls per month</strong>, shared across all AI features: Stories, Activities, Curiosity, Read &amp; Quiz, My Writing, Draw, and Learn to Write.</div>
+          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.5)' }}>Resets on the 1st of each month.</div>
+          <button onClick={() => setShowInfo(false)} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>Close</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -412,28 +456,7 @@ export default function App() {
 
         {/* Usage bar */}
         {quota && !collapsed && (
-          <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-            {(() => {
-              const pct = Math.min(quota.used / quota.limit, 1)
-              const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : 'rgba(255,255,255,0.7)'
-              return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly usage</span>
-                    <span style={{ fontSize: 10, fontWeight: 800, color }}>{quota.used}/{quota.limit}</span>
-                  </div>
-                  <div style={{ height: 5, background: 'rgba(255,255,255,0.2)', borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct * 100}%`, background: color, borderRadius: 10, transition: 'width 0.4s ease' }} />
-                  </div>
-                  {pct >= 0.8 && (
-                    <div style={{ fontSize: 10, color, marginTop: 4, fontWeight: 700 }}>
-                      {pct >= 1 ? '🚫 Limit reached — resets on 1st' : '⚠️ Almost at your monthly limit'}
-                    </div>
-                  )}
-                </>
-              )
-            })()}
-          </div>
+          <QuotaBar quota={quota} />
         )}
 
         {/* Profile link */}
@@ -508,8 +531,8 @@ export default function App() {
                 fontSize: 18, background: '#fafafa',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>❓</button>
-            <NotificationBell />
-            <button onClick={() => navigate('/profile')} title="My Account"
+            <span id="tour-notifications"><NotificationBell /></span>
+            <button id="tour-profile" onClick={() => navigate('/profile')} title="My Account"
               style={{
                 width: 38, height: 38, borderRadius: 10,
                 border: '1.5px solid #eee', cursor: 'pointer',
@@ -567,14 +590,15 @@ export default function App() {
         }}>
           <div className="page-content">
             <Routes>
-              <Route path="/child/:childId/stories"    element={<Stories    child={child} />} />
-              <Route path="/child/:childId/activities" element={<Activities child={child} />} />
-              <Route path="/child/:childId/curiosity"  element={<Curiosity  child={child} />} />
-              <Route path="/child/:childId/draw"       element={<Draw       child={child} />} />
+              <Route path="/child/:childId/stories"    element={<Stories    child={child} quota={quota} />} />
+              <Route path="/child/:childId/activities" element={<Activities child={child} quota={quota} />} />
+              <Route path="/child/:childId/curiosity"  element={<Curiosity  child={child} quota={quota} />} />
+              <Route path="/child/:childId/draw"       element={<Draw       child={child} quota={quota} />} />
               <Route path="/child/:childId/journal"    element={<Journal    child={child} />} />
               <Route path="/child/:childId/timeline"   element={<Timeline   child={child} />} />
-              <Route path="/child/:childId/readquiz"   element={<ReadQuiz   child={child} />} />
-              <Route path="/child/:childId/mywriting"  element={<MyWriting  child={child} />} />
+              <Route path="/child/:childId/readquiz"   element={<ReadQuiz   child={child} quota={quota} />} />
+              <Route path="/child/:childId/learn"       element={<LearnPage  child={child} quota={quota} />} />
+              <Route path="/child/:childId/mywriting"  element={<MyWriting  child={child} quota={quota} />} />
               <Route path="/profile"             element={<ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage />} />
               <Route path="/terms"               element={<TermsPage />} />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { activityApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
+import QuotaBanner from '../components/QuotaBanner'
 
 const TIMES   = [{ value: 'morning', label: '🌅 Morning' }, { value: 'afternoon', label: '☀️ Afternoon' }, { value: 'evening', label: '🌙 Evening' }]
 const WEATHERS = [{ value: 'sunny', label: '☀️ Sunny' }, { value: 'cloudy', label: '⛅ Cloudy' }, { value: 'rainy', label: '🌧️ Rainy' }, { value: 'windy', label: '💨 Windy' }, { value: 'snowy', label: '❄️ Snowy' }]
@@ -27,7 +28,7 @@ function StarRating({ value, onChange }) {
   )
 }
 
-export default function Activities({ child }) {
+export default function Activities({ child, quota }) {
   const [activities, setActivities] = useState([])
   const [loading, setLoading]       = useState(false)
   const [substituting, setSubstituting] = useState(null) // id being substituted
@@ -145,8 +146,9 @@ export default function Activities({ child }) {
           </div>
         </div>
 
+        <QuotaBanner quota={quota} />
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn-green" onClick={handleGenerate} disabled={loading || !!substituting} style={{ flex: 1, fontSize: 16 }}>
+          <button className="btn-green" onClick={handleGenerate} disabled={loading || !!substituting || quota?.used >= quota?.limit} style={{ flex: 1, fontSize: 16 }}>
             {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : '🎲 Suggest 3 Activities'}
           </button>
           {pending.length > 0 && (

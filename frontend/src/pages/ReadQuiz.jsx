@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { readQuizApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import ConfirmDialog from '../components/ConfirmDialog'
+import QuotaBanner from '../components/QuotaBanner'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -29,7 +30,7 @@ const LESSON_COLORS = {
   Perseverance: '#8e44ad', Friendship: '#2d9a4e', Honesty: '#e67e22',
 }
 
-export default function ReadQuiz({ child }) {
+export default function ReadQuiz({ child, quota }) {
   const [entries,  setEntries]  = useState([])
   const [selected, setSelected] = useState(null)
   const [topic,    setTopic]    = useState('')
@@ -115,6 +116,7 @@ export default function ReadQuiz({ child }) {
       {/* ── Left panel ── */}
       <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 16, marginBottom: isMobile ? 16 : 0 }}>
 
+        <QuotaBanner quota={quota} />
         {/* Generate form */}
         <div className="card" style={{ padding: 20 }}>
           <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#4d96ff', marginBottom: 14 }}>📚 Read & Quiz</div>
@@ -140,7 +142,7 @@ export default function ReadQuiz({ child }) {
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '2px solid #eee', fontSize: 13, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }} />
             </div>
             {error && <div style={{ fontSize: 12, color: '#e74c3c', fontWeight: 700 }}>🚫 {error}</div>}
-            <button type="submit" disabled={loading || !topic.trim()}
+            <button type="submit" disabled={loading || !topic.trim() || quota?.used >= quota?.limit}
               style={{
                 padding: '12px', borderRadius: 50, fontWeight: 800, fontSize: 14,
                 background: 'linear-gradient(135deg,#4d96ff,#667eea)', color: 'white', border: 'none',

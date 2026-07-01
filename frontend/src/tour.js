@@ -21,6 +21,15 @@ const NAV_STEPS = [
     },
   },
   {
+    feature: 'learn',
+    element: '#tour-learn-tab',
+    popover: {
+      title: '✏️ Learn to Write',
+      description: 'Practice writing English and Tamil letters, numbers, and words! Tap a letter to hear it, draw it on the canvas, and get instant AI feedback. Write full words and discover their meaning and translation.',
+      side: 'right',
+    },
+  },
+  {
     feature: 'curiosity',
     element: '#tour-curiosity-tab',
     popover: {
@@ -104,6 +113,14 @@ export function startTour(enabledFeatures) {
       },
       ...navSteps,
       {
+        element: '#tour-quota',
+        popover: {
+          title: '🤖 Monthly AI Calls',
+          description: 'Every AI action — generating a story, answering a curiosity question, validating a letter drawing, identifying a word, drawing feedback, Read & Quiz, My Writing — uses 1 call. You get 200 per month, shared across all features. The bar turns yellow when you\'re near the limit and red when it\'s full. Resets on the 1st.',
+          side: 'right', align: 'end',
+        },
+      },
+      {
         element: '#tour-theme-btn',
         popover: {
           title: '🎨 Change Theme',
@@ -112,9 +129,25 @@ export function startTour(enabledFeatures) {
         },
       },
       {
+        element: '#tour-notifications',
+        popover: {
+          title: '🔔 Notifications',
+          description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
+          side: 'bottom', align: 'end',
+        },
+      },
+      {
+        element: '#tour-profile',
+        popover: {
+          title: '👤 My Account',
+          description: 'View your account details, change your password, or delete your account.',
+          side: 'bottom', align: 'end',
+        },
+      },
+      {
         element: '#tour-child-name',
         popover: {
-          title: '👤 Switch Child',
+          title: '🔀 Switch Child',
           description: 'Managing stories for multiple children? Hit Switch to change who you\'re viewing.',
           side: 'bottom', align: 'end',
         },

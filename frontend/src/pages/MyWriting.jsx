@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { writingApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
+import QuotaBanner from '../components/QuotaBanner'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -27,7 +28,7 @@ function wordCount(text) {
   return text.trim().split(/\s+/).filter(Boolean).length
 }
 
-export default function MyWriting({ child }) {
+export default function MyWriting({ child, quota }) {
   const [entries,  setEntries]  = useState([])
   const [selected, setSelected] = useState(null)  // entry being viewed
   const [editing,  setEditing]  = useState(false) // true = editor open
@@ -150,6 +151,7 @@ export default function MyWriting({ child }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+      <QuotaBanner quota={quota} />
 
       {/* Mobile top bar */}
       {isMobile && (
@@ -264,12 +266,12 @@ export default function MyWriting({ child }) {
                     style={{ padding: '10px 20px', borderRadius: 50, fontWeight: 700, fontSize: 13, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
                     {saving ? 'Saving…' : '💾 Save'}
                   </button>
-                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim()}
+                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || quota?.used >= quota?.limit}
                     style={{
                       padding: '10px 20px', borderRadius: 50, fontWeight: 800, fontSize: 13,
                       background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none',
-                      cursor: fbLoading || !content.trim() ? 'not-allowed' : 'pointer',
-                      opacity: fbLoading || !content.trim() ? 0.6 : 1,
+                      cursor: fbLoading || !content.trim() || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
+                      opacity: fbLoading || !content.trim() || quota?.used >= quota?.limit ? 0.6 : 1,
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}>
                     {fbLoading

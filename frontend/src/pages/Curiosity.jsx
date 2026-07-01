@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { curiosityApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
+import QuotaBanner from '../components/QuotaBanner'
 
 const SAMPLE_QUESTIONS = [
   'Why is the sky blue?', 'Why do stars shine?', 'Why do we dream?',
@@ -109,7 +110,7 @@ function CuriosityCard({ entry, onDelete }) {
   )
 }
 
-export default function Curiosity({ child }) {
+export default function Curiosity({ child, quota }) {
   const [entries, setEntries] = useState([])
   const [question, setQuestion] = useState('')
   const [loading, setLoading]   = useState(false)
@@ -145,6 +146,7 @@ export default function Curiosity({ child }) {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
+      <QuotaBanner quota={quota} />
       {/* Ask box */}
       <form className="card" onSubmit={handleAsk}
         style={{ background: 'linear-gradient(135deg,#f0f0ff,#f9f0ff)', border: '2px dashed #c77dff', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -177,7 +179,7 @@ export default function Curiosity({ child }) {
             🚫 {error}
           </div>
         )}
-        <button type="submit" disabled={loading || !question.trim()}
+        <button type="submit" disabled={loading || !question.trim() || quota?.used >= quota?.limit}
           style={{ background: '#8e44ad', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
           {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : '✨ Explain to ' + child.name}
         </button>

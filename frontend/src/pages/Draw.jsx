@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { drawApi } from '../api/client'
+import QuotaBanner from '../components/QuotaBanner'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -48,7 +49,7 @@ function Divider() {
   return <div style={{ width: '80%', height: 1, background: '#f0f0f0' }} />
 }
 
-export default function Draw({ child }) {
+export default function Draw({ child, quota }) {
   const canvasRef  = useRef(null)
   const colorInput = useRef(null)
   const drawing    = useRef(false)
@@ -397,9 +398,10 @@ export default function Draw({ child }) {
           )}
         </div>
 
+        <QuotaBanner quota={quota} />
         {/* AI section */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button onClick={handleIdentify} disabled={loading || isEmpty}
+          <button onClick={handleIdentify} disabled={loading || isEmpty || quota?.used >= quota?.limit}
             style={{
               padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
               background: 'linear-gradient(135deg,var(--primary),var(--accent))',

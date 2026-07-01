@@ -212,7 +212,7 @@ export default function DemoPage() {
               You loved it!
             </h2>
             <p style={{ color: '#888', fontSize: 15, marginBottom: 24, lineHeight: 1.7 }}>
-              You've used your 2 free demo stories for today. Create a free account to get unlimited stories, activities, curiosity answers, drawing AI, read & quiz, writing coach, and more!
+              You've used your 2 free demo stories for today. Create a free account to get unlimited stories, activities, curiosity answers, learn-to-write with AI feedback, drawing AI, read & quiz, writing coach, and more!
             </p>
             <button onClick={() => navigate('/login')}
               style={{
@@ -276,7 +276,7 @@ export default function DemoPage() {
                   Want personalized stories like this every day?
                 </div>
                 <p style={{ fontSize: 13, color: '#888', marginBottom: 16, lineHeight: 1.6 }}>
-                  Create a free account and unlock AI-generated stories, daily activities, curiosity answers, drawing AI, growth journal, read & quiz, writing coach — all personalized for your child's age and interests.
+                  Create a free account and unlock AI-generated stories, daily activities, curiosity answers, learn-to-write (English &amp; Tamil), drawing AI, growth journal, read &amp; quiz, writing coach — all personalized for your child's age and interests.
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => navigate('/login')}
@@ -304,6 +304,7 @@ export default function DemoPage() {
             {[
               { emoji: '🎮', label: 'Daily Activities',  desc: 'Age-perfect ideas for today',        color: '#fff0f8' },
               { emoji: '🔍', label: 'Curiosity Corner',  desc: 'Answer every "Why?"',                color: '#f0f8ff' },
+              { emoji: '✏️', label: 'Learn to Write',    desc: 'English & Tamil letters + AI check', color: '#fff7ed' },
               { emoji: '🎨', label: 'Drawing AI',        desc: 'AI guesses what they drew',          color: '#fff8f0' },
               { emoji: '📝', label: 'Growth Journal',    desc: 'Capture precious moments',           color: '#f0fff4' },
               { emoji: '📚', label: 'Read & Quiz',       desc: 'Stories with comprehension quizzes', color: '#fdf0ff' },

@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.glumbi.security.JwtFilter.AuthUser;
+import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -18,18 +21,23 @@ import java.util.Map;
 public class DrawController {
 
     private final WebClient.Builder webClientBuilder;
+    private final ApiQuotaService   quotaService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${anthropic.api-key}") private String apiKey;
 
     @PostMapping("/identify")
-    public ResponseEntity<?> identify(@RequestBody Map<String, String> body) {
-        String imageData = body.get("imageData"); // base64 PNG, no prefix
+    public ResponseEntity<?> identify(@RequestBody Map<String, String> body,
+                                      @AuthenticationPrincipal AuthUser authUser) {
+        String imageData = body.get("imageData");
         String childName = body.getOrDefault("childName", "you");
         int childAge     = Integer.parseInt(body.getOrDefault("childAge", "4"));
 
         if (imageData == null || imageData.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "No image provided"));
+        }
+        if (!quotaService.tryConsume(authUser.id())) {
+            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 
         try {

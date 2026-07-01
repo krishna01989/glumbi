@@ -3,6 +3,7 @@ import { storyApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import AudioPlayer from '../components/AudioPlayer'
 import ConfirmDialog from '../components/ConfirmDialog'
+import QuotaBanner from '../components/QuotaBanner'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -74,7 +75,7 @@ const LANG_SCRIPT = {
   chinese: '普通话', japanese: '日本語', korean: '한국어',
 }
 
-export default function Stories({ child }) {
+export default function Stories({ child, quota }) {
   const [stories, setStories] = useState([])
   const [keywords, setKeywords] = useState('')
   const [loading, setLoading] = useState(false)
@@ -215,6 +216,7 @@ export default function Stories({ child }) {
       <div style={{ display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', padding: '4px 6px 4px 2px', margin: '0 -6px 0 -2px' }}>
 
         {/* Generator card */}
+        <QuotaBanner quota={quota} />
         <form className="card" onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: 'linear-gradient(135deg,#fff9f0,#fff0f0)', border: '2px dashed #ffcdb8' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 28 }}>🪄</span>
@@ -224,7 +226,7 @@ export default function Stories({ child }) {
             placeholder={`What should ${child.name}'s story be about?\n\ne.g. dragon, brave girl, magic forest`}
             value={keywords} onChange={e => setKeywords(e.target.value)}
             rows={3} style={{ resize: 'none', background: 'white' }} />
-          <button type="submit" className="btn-primary" disabled={loading || !keywords.trim()}
+          <button type="submit" className="btn-primary" disabled={loading || !keywords.trim() || quota?.used >= quota?.limit}
             style={{ fontSize: 16 }}>
             {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : '✨ Generate Story'}
           </button>

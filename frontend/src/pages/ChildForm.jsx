@@ -11,14 +11,15 @@ const CURRENT_YEAR = new Date().getFullYear()
 const BIRTH_YEARS  = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 - i)
 
 const ALL_FEATURES = [
-  { key: 'stories',    label: 'Stories',    emoji: '📖', minAge: 3 },
-  { key: 'activities', label: 'Activities', emoji: '🎮', minAge: 3 },
-  { key: 'curiosity',  label: 'Curiosity',  emoji: '🔍', minAge: 3 },
-  { key: 'draw',       label: 'Draw',       emoji: '🎨', minAge: 3 },
-  { key: 'journal',    label: 'Journal',    emoji: '📝', minAge: 3 },
-  { key: 'timeline',   label: 'Timeline',   emoji: '🗓️', minAge: 3 },
-  { key: 'readquiz',   label: 'Read & Quiz',emoji: '📚', minAge: 7 },
-  { key: 'mywriting',  label: 'My Writing', emoji: '✍️', minAge: 7 },
+  { key: 'stories',    label: 'Stories',        emoji: '📖', minAge: 3 },
+  { key: 'activities', label: 'Activities',      emoji: '🎮', minAge: 3 },
+  { key: 'learn',      label: 'Learn to Write',  emoji: '✏️', minAge: 3, maxAge: 6 },
+  { key: 'curiosity',  label: 'Curiosity',       emoji: '🔍', minAge: 3 },
+  { key: 'draw',       label: 'Draw',            emoji: '🎨', minAge: 3 },
+  { key: 'journal',    label: 'Journal',         emoji: '📝', minAge: 3 },
+  { key: 'timeline',   label: 'Timeline',        emoji: '🗓️', minAge: 3 },
+  { key: 'readquiz',   label: 'Read & Quiz',     emoji: '📚', minAge: 7 },
+  { key: 'mywriting',  label: 'My Writing',      emoji: '✍️', minAge: 7 },
 ]
 
 function calcAge(birthYear) {
@@ -27,7 +28,7 @@ function calcAge(birthYear) {
 }
 
 function defaultFeatureKeys(age) {
-  return ALL_FEATURES.filter(f => age >= f.minAge).map(f => f.key)
+  return ALL_FEATURES.filter(f => age >= f.minAge && (!f.maxAge || age <= f.maxAge)).map(f => f.key)
 }
 
 export default function ChildForm({ onChildCreated, onChildUpdated }) {
@@ -213,7 +214,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated }) {
                       opacity: tooYoung ? 0.5 : 1,
                     }}>
                     {f.emoji} {f.label}
-                    {tooYoung && <span style={{ fontSize: 10, marginLeft: 4 }}>7+</span>}
+                    {tooYoung && <span style={{ fontSize: 10, marginLeft: 4 }}>{f.minAge}+</span>}
                   </button>
                 )
               })}

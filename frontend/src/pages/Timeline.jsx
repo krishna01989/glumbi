@@ -5,6 +5,7 @@ const TYPE_META = {
   story:    { label: '📖 Story',       dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },
   journal:  { label: '📝 Journal',     dot: '#6bcb77', textColor: '#27ae60',  feature: 'journal' },
   activity: { label: '🎮 Activity',    dot: '#4d96ff', textColor: '#2980b9',  feature: 'activities' },
+  learn:    { label: '✏️ Learn',       dot: '#f97316', textColor: '#ea580c',  feature: 'learn' },
   curiosity:{ label: '🔍 Curiosity',   dot: '#c77dff', textColor: '#8e44ad',  feature: 'curiosity' },
   readquiz: { label: '📚 Read & Quiz', dot: '#f39c12', textColor: '#e67e22',  feature: 'readquiz' },
   writing:  { label: '✍️ My Writing',  dot: '#2ecc71', textColor: '#27ae60',  feature: 'mywriting' },
@@ -72,7 +73,11 @@ export default function Timeline({ child }) {
     const fetches = []
     if (!enabled || enabled.has('stories'))    fetches.push(storyApi.getByChild(child.id, params).then(r => r.map(s => ({ ...s, type: 'story' }))))
     if (!enabled || enabled.has('journal'))    fetches.push(journalApi.getByChild(child.id, params).then(r => r.map(j => ({ ...j, type: 'journal' }))))
-    if (!enabled || enabled.has('activities')) fetches.push(activityApi.getByChild(child.id, params).then(r => r.map(a => ({ ...a, type: 'activity' }))))
+    if (!enabled || enabled.has('activities') || enabled.has('learn')) fetches.push(activityApi.getByChild(child.id, params).then(r => r.filter(a => {
+        if (a.category === 'learn') return !enabled || enabled.has('learn')
+        return !enabled || enabled.has('activities')
+      }).map(a => ({ ...a, type: a.category === 'learn' ? 'learn' : 'activity' }))))
+
     if (!enabled || enabled.has('curiosity'))  fetches.push(curiosityApi.getByChild(child.id, params).then(r => r.map(c => ({ ...c, type: 'curiosity' }))))
     if (!enabled || enabled.has('readquiz'))   fetches.push(readQuizApi.getByChild(child.id, params).then(r => r.map(q => ({ ...q, type: 'readquiz' }))))
     if (!enabled || enabled.has('mywriting'))  fetches.push(writingApi.getByChild(child.id, params).then(r => r.map(w => ({ ...w, type: 'writing' }))))
@@ -120,6 +125,14 @@ export default function Timeline({ child }) {
             {item.completed ? '✅ Completed' : '⏳ Pending'} · {item.duration}
             {item.rating && ' · ' + '⭐'.repeat(item.rating)}
           </div>
+        </>
+      case 'learn':
+        return <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <span style={{ fontSize: 24 }}>{item.emoji}</span>
+            <span style={{ fontWeight: 700 }}>{item.title}</span>
+          </div>
+          {item.description && <p style={{ color: '#888', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{item.description}</p>}
         </>
       case 'curiosity':
         return <>

@@ -47,6 +47,12 @@ const FEATURES = [
     color: '#e67e22', bg: '#fff8f0',
   },
   {
+    emoji: '✏️',
+    title: 'Learn to Write',
+    desc: 'Practice English and Tamil letters, numbers, and words on a drawing canvas. AI checks each attempt, celebrates progress, and translates words into 4 languages.',
+    color: '#f97316', bg: '#fff7ed',
+  },
+  {
     emoji: '🛡️',
     title: 'Safe & Guarded',
     desc: 'Every prompt is filtered through 4 layers of content safety. Only age-appropriate, child-friendly content gets through.',
@@ -173,7 +179,7 @@ export default function LandingPage() {
               Everything your child needs to thrive 🌱
             </h2>
             <p style={{ fontSize: 17, color: '#888', maxWidth: 520, margin: '0 auto' }}>
-              Eight features designed for children aged 1–10, guarded with AI safety at every step.
+              Nine features designed for children aged 1–10, guarded with AI safety at every step.
             </p>
           </div>
 

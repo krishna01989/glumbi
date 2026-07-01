@@ -61,7 +61,8 @@ export const storyApi = {
   translate:      (id, language)      => api.get(`/stories/${id}/translate?language=${language}`).then(r => r.data),
   listenUrl:      (id, language)      => {
     const token = localStorage.getItem('glm_token')
-    return `http://localhost:8080/api/stories/${id}/listen?language=${language}&token=${token}`
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+    return `${base}/stories/${id}/listen?language=${language}&token=${token}`
   },
   delete:         (id)                => api.delete(`/stories/${id}`),
 }

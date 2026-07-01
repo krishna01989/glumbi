@@ -2,12 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { childApi } from '../api/client'
 
-function calcAge(birthDate) {
-  const today = new Date()
-  const dob = new Date(birthDate)
-  let age = today.getFullYear() - dob.getFullYear()
-  if (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate())) age--
-  return age
+function calcAge(birthYear) {
+  return !birthYear ? null : new Date().getFullYear() - parseInt(birthYear)
 }
 
 export default function ChildList({ onChildSelected, onLogout }) {
@@ -56,7 +52,7 @@ export default function ChildList({ onChildSelected, onLogout }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 18 }}>{c.name}</div>
                   <div style={{ color: '#888', fontSize: 13 }}>
-                    {c.gender === 'girl' ? '👧' : '👦'} · {calcAge(c.birthDate)} yrs old
+                    {c.gender === 'girl' ? '👧' : '👦'} · {calcAge(c.birthYear)} yrs old
                   </div>
                 </div>
                 <button onClick={e => { e.stopPropagation(); navigate(`/child/${c.id}/edit`) }}

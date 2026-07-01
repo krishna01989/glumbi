@@ -49,7 +49,7 @@ public class StoryRecommendationAgent {
                     Keep it short and exciting for a parent to read.
                     Return only the message text.
                     """,
-                    child.getName(), java.time.Period.between(child.getBirthDate(), java.time.LocalDate.now()).getYears(), recentTitles, keywords);
+                    child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()), recentTitles, keywords);
 
             ObjectNode body = mapper.createObjectNode();
             body.put("model", model);

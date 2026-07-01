@@ -49,7 +49,7 @@ public class ProgressReportAgent {
                 Write 2-3 friendly sentences. Be specific about the numbers. End with a positive note.
                 Return only the message text, no JSON, no formatting.
                 """,
-                child.getName(), java.time.Period.between(child.getBirthDate(), java.time.LocalDate.now()).getYears(),
+                child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()),
                 storyCount, quizCount, scoreSummary, writingCount);
 
         return callClaude(prompt);

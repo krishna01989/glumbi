@@ -25,7 +25,7 @@ public class ReadQuizService {
 
     public ReadQuizEntry generate(ReadQuizRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
-        int age = Period.between(child.getBirthDate(), LocalDate.now()).getYears();
+        int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
         ReadQuizAgent.ReadQuizResult result = agent.generate(child.getName(), age, req.getTopic());
 

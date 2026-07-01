@@ -54,7 +54,7 @@ public class WritingService {
             .orElseThrow(() -> new RuntimeException("Writing not found"));
 
         Child child = entry.getChild();
-        int age = Period.between(child.getBirthDate(), LocalDate.now()).getYears();
+        int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
         WritingCoachAgent.CoachResult result =
             agent.getFeedback(child.getName(), age, entry.getTitle(), entry.getContent());

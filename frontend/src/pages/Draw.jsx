@@ -148,9 +148,7 @@ export default function Draw({ child }) {
 
   async function handleIdentify() {
     const imageData = canvasRef.current.toDataURL('image/png').split(',')[1]
-    const age = child?.birthDate
-      ? Math.floor((Date.now() - new Date(child.birthDate)) / (365.25 * 24 * 60 * 60 * 1000))
-      : 4
+    const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 4
     setLoading(true)
     setAiReply('')
     try {

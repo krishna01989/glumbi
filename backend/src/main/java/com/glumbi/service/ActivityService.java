@@ -26,7 +26,7 @@ public class ActivityService {
 
     public List<Activity> generate(ActivityRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
-        int age = Period.between(child.getBirthDate(), LocalDate.now()).getYears();
+        int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
         // Build context from past highly-rated activities so agent personalises
         String pastFavorites = repo.findByChildIdAndCompletedTrueOrderByCreatedAtDesc(child.getId())

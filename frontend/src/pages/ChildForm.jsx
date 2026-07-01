@@ -4,7 +4,11 @@ import { childApi } from '../api/client'
 import { THEMES, THEME_GROUPS } from '../themes'
 
 const AVATARS = ['🧒','👧','👦','🧒🏽','👧🏽','👦🏽','🧒🏿','👧🏿','👦🏿']
-const EMPTY_FORM = { name: '', birthDate: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null }
+const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null }
+
+const CURRENT_YEAR = new Date().getFullYear()
+// age 1 (youngest) to age 10 (oldest)
+const BIRTH_YEARS  = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 - i)
 
 const ALL_FEATURES = [
   { key: 'stories',    label: 'Stories',    emoji: '📖', minAge: 3 },
@@ -17,13 +21,9 @@ const ALL_FEATURES = [
   { key: 'mywriting',  label: 'My Writing', emoji: '✍️', minAge: 7 },
 ]
 
-function calcAge(birthDate) {
-  if (!birthDate) return null
-  const today = new Date()
-  const dob = new Date(birthDate)
-  let age = today.getFullYear() - dob.getFullYear()
-  if (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate())) age--
-  return age
+function calcAge(birthYear) {
+  if (!birthYear) return null
+  return CURRENT_YEAR - parseInt(birthYear)
 }
 
 function defaultFeatureKeys(age) {
@@ -45,23 +45,23 @@ export default function ChildForm({ onChildCreated }) {
     childApi.getAll().then(children => {
       const child = children.find(c => String(c.id) === id)
       if (child) {
-        setForm({ name: child.name, birthDate: child.birthDate, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral' })
-        setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthDate) ?? 5))
+        setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral' })
+        setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
       }
       setFetching(false)
     })
   }, [id])
 
-  // When birthDate changes in create mode, set default features
+  // When birthYear changes in create mode, set default features
   useEffect(() => {
-    if (isEdit || !form.birthDate) return
-    const age = calcAge(form.birthDate)
+    if (isEdit || !form.birthYear) return
+    const age = calcAge(form.birthYear)
     if (age !== null && features === null) setFeatures(defaultFeatureKeys(age))
-  }, [form.birthDate])
+  }, [form.birthYear])
 
-  const age = calcAge(form.birthDate)
-  const ageTooOld = age !== null && age > 10
-  const ageTooYoung = age !== null && age < 0
+  const age = calcAge(form.birthYear)
+  const ageTooOld   = age !== null && age > 13
+  const ageTooYoung = age !== null && age < 2
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -118,23 +118,21 @@ export default function ChildForm({ onChildCreated }) {
         </div>
 
         <div>
-          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>Date of Birth</label>
-          <input type="date" value={form.birthDate}
-            onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} required
-            style={{ borderColor: (ageTooOld || ageTooYoung) ? '#e74c3c' : undefined }} />
-          {ageTooOld && (
-            <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 10, background: '#fff0f0', border: '1.5px solid #fcc', color: '#c0392b', fontSize: 13, fontWeight: 600 }}>
-              🚫 Glumbi is designed for children aged 1–10. Please check the date of birth.
-            </div>
-          )}
-          {ageTooYoung && (
-            <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 10, background: '#fff0f0', border: '1.5px solid #fcc', color: '#c0392b', fontSize: 13, fontWeight: 600 }}>
-              🚫 Date of birth can't be in the future.
-            </div>
-          )}
-          {!ageTooOld && !ageTooYoung && (
-            <div style={{ marginTop: 6, fontSize: 11, color: '#bbb' }}>Glumbi is designed for children aged 1–10.</div>
-          )}
+          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>
+            Birth Year
+          </label>
+          <select value={form.birthYear}
+            onChange={e => setForm(f => ({ ...f, birthYear: e.target.value ? parseInt(e.target.value) : '' }))}
+            required
+            style={{ borderColor: (ageTooOld || ageTooYoung) ? '#e74c3c' : undefined }}>
+            <option value="">Select year…</option>
+            {BIRTH_YEARS.map(y => (
+              <option key={y} value={y}>{y} (age {CURRENT_YEAR - y})</option>
+            ))}
+          </select>
+          <div style={{ marginTop: 6, fontSize: 11, color: '#bbb' }}>
+            Used only to personalise stories for your child's age. Never shared.
+          </div>
         </div>
 
         <div>
@@ -191,13 +189,13 @@ export default function ChildForm({ onChildCreated }) {
           <div>
             <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 10, fontWeight: 700 }}>
               Features
-              {form.birthDate && <span style={{ fontWeight: 400, color: '#bbb', marginLeft: 8 }}>
-                (age {calcAge(form.birthDate)})
+              {form.birthYear && <span style={{ fontWeight: 400, color: '#bbb', marginLeft: 8 }}>
+                (age {calcAge(form.birthYear)})
               </span>}
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {ALL_FEATURES.map(f => {
-                const age = calcAge(form.birthDate)
+                const age = calcAge(form.birthYear)
                 const enabled = features.includes(f.key)
                 const tooYoung = age !== null && age < f.minAge
                 return (

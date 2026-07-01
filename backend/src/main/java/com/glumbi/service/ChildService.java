@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.Period;
 import java.util.List;
 
 @Service
@@ -39,20 +38,20 @@ public class ChildService {
         Child child = new Child();
         child.setOwner(owner);
         child.setName(req.getName());
-        child.setBirthDate(req.getBirthDate());
+        child.setBirthYear(req.getBirthYear());
         child.setAvatarEmoji(req.getAvatarEmoji());
         child.setGender(req.getGender());
         child.setTheme(req.getTheme() != null ? req.getTheme() : "coral");
         child.setEnabledFeatures(req.getEnabledFeatures() != null
                 ? req.getEnabledFeatures()
-                : defaultFeatures(req.getBirthDate()));
+                : defaultFeatures(req.getBirthYear()));
         return repo.save(child);
     }
 
     public Child update(Long id, ChildRequest req, Long ownerId) {
         Child child = getById(id, ownerId);
         child.setName(req.getName());
-        child.setBirthDate(req.getBirthDate());
+        child.setBirthYear(req.getBirthYear());
         child.setAvatarEmoji(req.getAvatarEmoji());
         child.setGender(req.getGender());
         child.setTheme(req.getTheme() != null ? req.getTheme() : "coral");
@@ -62,8 +61,13 @@ public class ChildService {
         return repo.save(child);
     }
 
-    private String defaultFeatures(LocalDate birthDate) {
-        int age = Period.between(birthDate, LocalDate.now()).getYears();
+    public static int ageFromBirthYear(Integer birthYear) {
+        if (birthYear == null) return 6;
+        return LocalDate.now().getYear() - birthYear;
+    }
+
+    private String defaultFeatures(Integer birthYear) {
+        int age = ageFromBirthYear(birthYear);
         if (age >= 7) {
             return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"timeline\",\"readquiz\",\"mywriting\"]";
         }

@@ -23,7 +23,7 @@ public class StoryService {
 
     public Story generate(StoryRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
-        int age = Period.between(child.getBirthDate(), LocalDate.now()).getYears();
+        int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
         StoryAgent.StoryResult result = storyAgent.generateStory(
                 child.getName(), age, child.getGender(), req.getKeywords()

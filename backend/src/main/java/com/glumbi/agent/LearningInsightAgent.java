@@ -45,7 +45,7 @@ public class LearningInsightAgent {
                     Focus on one concrete thing the parent can do to help.
                     Return only the insight text.
                     """,
-                    child.getName(), java.time.Period.between(child.getBirthDate(), java.time.LocalDate.now()).getYears(), quizSummary, writingSummary);
+                    child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()), quizSummary, writingSummary);
 
             ObjectNode body = mapper.createObjectNode();
             body.put("model", model);

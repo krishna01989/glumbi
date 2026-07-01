@@ -5,7 +5,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -26,8 +25,7 @@ public class Child {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private LocalDate birthDate;
+    private Integer birthYear;
 
     private String avatarEmoji;
 

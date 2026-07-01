@@ -44,13 +44,9 @@ const ALL_NAV = [
   { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab' },
 ]
 
-function calcChildAge(birthDate) {
-  if (!birthDate) return null
-  const today = new Date()
-  const dob = new Date(birthDate)
-  let age = today.getFullYear() - dob.getFullYear()
-  if (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate())) age--
-  return age
+function calcChildAge(birthYear) {
+  if (!birthYear) return null
+  return new Date().getFullYear() - parseInt(birthYear)
 }
 
 function navForChild(child) {
@@ -102,7 +98,7 @@ function ThemePicker({ child, onThemeChange }) {
     onThemeChange(key)
     try {
       await childApi.update(child.id, {
-        name: child.name, birthDate: child.birthDate,
+        name: child.name, birthYear: child.birthYear,
         avatarEmoji: child.avatarEmoji, gender: child.gender, theme: key
       })
     } catch (_) {}
@@ -357,7 +353,7 @@ export default function App() {
   const theme = THEMES[child.theme] || THEMES.coral
   const SW = isTV ? 260 : collapsed ? 64 : 220
   const NAV = navForChild(child)
-  const childAge = calcChildAge(child.birthDate)
+  const childAge = calcChildAge(child.birthYear)
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>

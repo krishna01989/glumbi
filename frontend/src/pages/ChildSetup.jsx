@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { childApi } from '../api/client'
 
 const AVATARS = ['🧒','👧','👦','🧒🏽','👧🏽','👦🏽','🧒🏿','👧🏿','👦🏿']
-const EMPTY_FORM = { name: '', birthDate: '', avatarEmoji: '🧒', gender: '' }
+const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '' }
+const CURRENT_YEAR = new Date().getFullYear()
+const BIRTH_YEARS  = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 - i)
 
 export default function ChildSetup({ onChildSelected, onLogout }) {
   const [children, setChildren] = useState([])
@@ -24,7 +26,7 @@ export default function ChildSetup({ onChildSelected, onLogout }) {
   function openEditForm(e, child) {
     e.stopPropagation()   // don't trigger the "select child" click
     setEditingChild(child)
-    setForm({ name: child.name, birthDate: child.birthDate, avatarEmoji: child.avatarEmoji, gender: child.gender || '' })
+    setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '' })
     setShowForm(true)
   }
 
@@ -92,7 +94,7 @@ export default function ChildSetup({ onChildSelected, onLogout }) {
                 <span style={{ fontSize: 36 }}>{c.avatarEmoji}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 18 }}>{c.name}</div>
-                  <div style={{ color: '#888', fontSize: 13 }}>Born {c.birthDate}</div>
+                  <div style={{ color: '#888', fontSize: 13 }}>Born {c.birthYear} · age {c.birthYear ? CURRENT_YEAR - c.birthYear : '—'}</div>
                 </div>
                 <button
                   onClick={e => openEditForm(e, c)}
@@ -134,9 +136,16 @@ export default function ChildSetup({ onChildSelected, onLogout }) {
           </div>
 
           <div>
-            <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6 }}>Date of birth</label>
-            <input type="date" value={form.birthDate}
-              onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} required />
+            <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6 }}>Birth Year</label>
+            <select value={form.birthYear}
+              onChange={e => setForm(f => ({ ...f, birthYear: e.target.value ? parseInt(e.target.value) : '' }))}
+              required>
+              <option value="">Select year…</option>
+              {BIRTH_YEARS.map(y => (
+                <option key={y} value={y}>{y} (age {CURRENT_YEAR - y})</option>
+              ))}
+            </select>
+            <div style={{ marginTop: 4, fontSize: 11, color: '#bbb' }}>Used only to personalise stories. Never shared.</div>
           </div>
 
           <div>

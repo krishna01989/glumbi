@@ -121,8 +121,8 @@ public class AdminController {
         for (int age = 3; age <= 11; age++) ageDistribution.put(String.valueOf(age), 0L);
         ageDistribution.put("12+", 0L);
         childRepo.findAll().forEach(c -> {
-            if (c.getBirthDate() == null) return;
-            int age = java.time.Period.between(c.getBirthDate(), java.time.LocalDate.now()).getYears();
+            if (c.getBirthYear() == null) return;
+            int age = com.glumbi.service.ChildService.ageFromBirthYear(c.getBirthYear());
             if (age < 3) return;
             String key = age >= 12 ? "12+" : String.valueOf(age);
             ageDistribution.computeIfPresent(key, (k, v) -> v + 1);

@@ -73,6 +73,8 @@ export default function DemoPage() {
         turnstileToken.current = null
       }
     } catch (err) {
+      // axios interceptor swallows 403 via window.location — always reset loading
+      setLoading(false)
       if (err.message?.includes('free demo') || err.message?.includes('limitReached')) {
         setLimitHit(true)
       } else {
@@ -118,7 +120,7 @@ export default function DemoPage() {
                 </label>
                 <input
                   value={childName} onChange={e => setChildName(e.target.value)}
-                  placeholder="e.g. Rhythm, Arjun, Priya…"
+                  placeholder="e.g. Emma, Liam, Sofia, Noah…"
                   maxLength={30} required
                   style={{ padding: '12px 16px', borderRadius: 12, border: '2px solid #eee', fontSize: 15, width: '100%', boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }}
                 />

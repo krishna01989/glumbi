@@ -61,7 +61,7 @@ export default function ContactPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div>
                 <label style={labelStyle}>Your name</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Priya" required style={inputStyle} />
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Alex, Emma, Noah" required style={inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}>Email address</label>

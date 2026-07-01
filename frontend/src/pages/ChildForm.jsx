@@ -97,7 +97,7 @@ export default function ChildForm({ onChildCreated }) {
 
         <div>
           <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>Name</label>
-          <input placeholder="e.g. Priya" value={form.name}
+          <input placeholder="e.g. Emma, Liam, Sofia" value={form.name}
             onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
         </div>
 

@@ -157,26 +157,54 @@ export default function ReadQuiz({ child }) {
 
         {/* History */}
         {entries.length > 0 && (
-          <div className="card" style={{ padding: 16, flex: 1, overflowY: 'auto' }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>History</div>
-            {entries.map(e => (
-              <div key={e.id} onClick={() => openEntry(e)}
-                style={{
-                  padding: '10px 12px', borderRadius: 10, cursor: 'pointer', marginBottom: 6,
-                  background: selected?.id === e.id ? '#f0f4ff' : 'transparent',
-                  border: selected?.id === e.id ? '1.5px solid #c5d5ff' : '1.5px solid transparent',
-                }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#333', marginBottom: 2 }}>{e.title}</div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#aaa' }}>{e.topic}</span>
-                  {e.completed && (
-                    <span style={{ fontSize: 11, fontWeight: 800, color: e.score === 3 ? '#27ae60' : e.score >= 2 ? '#f39c12' : '#e74c3c' }}>
-                      {e.score}/3 ⭐
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>History</div>
+            {entries.map(e => {
+              const color = LESSON_COLORS[e.lesson] || '#667eea'
+              const scoreColor = e.score === 3 ? '#27ae60' : e.score >= 2 ? '#f39c12' : '#e74c3c'
+              return (
+                <div key={e.id} onClick={() => openEntry(e)}
+                  style={{
+                    borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+                    boxShadow: selected?.id === e.id ? `0 0 0 3px ${color}, 0 4px 20px ${color}33` : 'var(--shadow)',
+                    transition: 'box-shadow 0.2s',
+                  }}>
+                  {/* Coloured header */}
+                  <div style={{
+                    background: `linear-gradient(135deg, ${color}, ${color}99)`,
+                    height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
+                  }}>
+                    <span style={{ fontSize: 22 }}>
+                      {TOPICS.find(t => t.label === e.topic)?.emoji || '📖'}
                     </span>
-                  )}
+                    <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {e.title}
+                    </span>
+                    {e.completed && (
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'white', background: 'rgba(0,0,0,0.2)', borderRadius: 50, padding: '2px 8px' }}>
+                        {e.score}/3
+                      </span>
+                    )}
+                  </div>
+                  {/* Footer */}
+                  <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {e.lesson && (
+                        <span style={{ fontSize: 10, fontWeight: 800, background: `${color}22`, color, padding: '3px 8px', borderRadius: 50 }}>
+                          {e.lesson}
+                        </span>
+                      )}
+                      {e.completed && (
+                        <span style={{ fontSize: 13 }}>
+                          {e.score === 3 ? '🏆' : e.score >= 2 ? '⭐' : '💪'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

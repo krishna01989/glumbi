@@ -212,7 +212,7 @@ export default function Stories({ child }) {
       )}
 
       {/* ── Sidebar ── */}
-      <div style={{ display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', paddingRight: 4 }}>
+      <div style={{ display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', padding: '4px 6px 4px 2px', margin: '0 -6px 0 -2px' }}>
 
         {/* Generator card */}
         <form className="card" onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: 'linear-gradient(135deg,#fff9f0,#fff0f0)', border: '2px dashed #ffcdb8' }}>

@@ -28,7 +28,6 @@ public class GoogleCredentialsConfig {
                 .build();
             return TextToSpeechClient.create(settings);
         }
-        // Local dev — uses GOOGLE_APPLICATION_CREDENTIALS env var / gcloud auth
         return TextToSpeechClient.create();
     }
 }

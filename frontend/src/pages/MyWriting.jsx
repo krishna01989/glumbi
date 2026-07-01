@@ -188,18 +188,34 @@ export default function MyWriting({ child }) {
           </div>
         )}
 
+        {entries.length > 0 && <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Stories</div>}
         {entries.map(e => (
           <div key={e.id} onClick={() => openEntry(e)}
             style={{
-              padding: '12px 14px', borderRadius: 14, cursor: 'pointer',
-              background: selected?.id === e.id ? '#f8f0ff' : 'white',
-              border: `1.5px solid ${selected?.id === e.id ? '#c77dff' : '#eee'}`,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+              borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+              boxShadow: selected?.id === e.id ? '0 0 0 3px #8e44ad, 0 4px 20px rgba(142,68,173,0.2)' : 'var(--shadow)',
+              transition: 'box-shadow 0.2s',
             }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>{e.title}</div>
-            <div style={{ fontSize: 11, color: '#aaa', display: 'flex', gap: 8 }}>
-              <span>{wordCount(e.content)} words</span>
-              {e.feedbackReceived && <span style={{ color: '#8e44ad' }}>✨ Feedback received</span>}
+            {/* Header */}
+            <div style={{
+              background: e.feedbackReceived
+                ? 'linear-gradient(135deg,#8e44ad,#c77dff)'
+                : 'linear-gradient(135deg,#b388d4,#d4aaee)',
+              height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
+            }}>
+              <span style={{ fontSize: 22 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
+              <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                {e.title}
+              </span>
+              {e.badge && <span style={{ fontSize: 18 }}>{e.badge}</span>}
+            </div>
+            {/* Footer */}
+            <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
+              {e.feedbackReceived
+                ? <span style={{ fontSize: 10, fontWeight: 800, background: '#f0e6ff', color: '#8e44ad', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
+                : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Draft</span>
+              }
             </div>
           </div>
         ))}

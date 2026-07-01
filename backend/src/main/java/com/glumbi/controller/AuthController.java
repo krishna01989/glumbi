@@ -119,4 +119,9 @@ public class AuthController {
         @NotBlank private String email;
         @NotBlank private String password;
     }
+
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("ok");
+    }
 }

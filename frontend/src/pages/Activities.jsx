@@ -116,7 +116,7 @@ export default function Activities({ child, quota }) {
       <div className="card" style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <span style={{ fontSize: 28 }}>🎮</span>
-          <h3 style={{ fontSize: 18, color: 'var(--primary)', fontFamily: 'Fredoka One, cursive' }}>What shall we do today?</h3>
+          <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>What shall we do today?</h3>
         </div>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -173,7 +173,7 @@ export default function Activities({ child, quota }) {
       {!loading && pending.length > 0 && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)', margin: 0 }}>
+            <h3 style={{ fontSize: 18, color: 'var(--primary)', margin: 0 }}>
               🌟 Today's Activities
             </h3>
             <button onClick={handleClearAll}
@@ -192,7 +192,7 @@ export default function Activities({ child, quota }) {
                       {cat.icon} {a.category}
                     </span>
                   </div>
-                  <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 17 }}>{a.title}</div>
+                  <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 15, fontWeight: 800, color: 'var(--text)', lineHeight: 1.4 }}>{a.title}</div>
                   <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6, flex: 1 }}>{a.description}</p>
                   <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>⏱ {a.duration}</div>
 
@@ -226,7 +226,7 @@ export default function Activities({ child, quota }) {
       {/* Completed */}
       {completed.length > 0 && (
         <div>
-          <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--muted)', marginBottom: 12 }}>
+          <h3 style={{ fontSize: 18, color: 'var(--muted)', marginBottom: 12 }}>
             ✅ Completed Activities
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -251,7 +251,7 @@ export default function Activities({ child, quota }) {
       {activities.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🎈</div>
-          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20 }}>No activities yet!</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>No activities yet!</div>
           <div style={{ fontSize: 14, marginTop: 8 }}>Hit the button above to get ideas for {child.name} 🎉</div>
         </div>
       )}

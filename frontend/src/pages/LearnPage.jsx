@@ -549,22 +549,22 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
             viewBox={`0 0 ${canvasW} ${canvasH}`}
             preserveAspectRatio="xMidYMid meet"
           >
-            {/* Layer 1: soft silhouette */}
+            {/* Layer 1: faint silhouette — low opacity so it guides without overpowering */}
             <text x={canvasW/2} y={canvasH/2} textAnchor="middle" dominantBaseline="middle"
               fontFamily={traceFontFamily} fontSize={fullWidth ? 320 : 160}
-              fill="rgba(255,107,107,0.20)"
-              stroke="rgba(255,107,107,0.20)"
-              strokeWidth={fullWidth ? 28 : 16}
+              fill="rgba(255,107,107,0.07)"
+              stroke="rgba(255,107,107,0.07)"
+              strokeWidth={fullWidth ? 14 : 8}
               strokeLinejoin="round" strokeLinecap="round">
               {traceChar}
             </text>
-            {/* Layer 2: dotted tracing line on the actual glyph outline */}
+            {/* Layer 2: dotted tracing line — the actual path to follow */}
             <text x={canvasW/2} y={canvasH/2} textAnchor="middle" dominantBaseline="middle"
               fontFamily={traceFontFamily} fontSize={fullWidth ? 320 : 160}
               fill="none"
-              stroke="rgba(255,107,107,0.75)"
-              strokeWidth={fullWidth ? 3.5 : 2.5}
-              strokeDasharray={fullWidth ? '16 12' : '10 8'}
+              stroke="rgba(255,107,107,0.70)"
+              strokeWidth={fullWidth ? 2.5 : 1.8}
+              strokeDasharray={fullWidth ? '14 10' : '8 6'}
               strokeLinecap="round">
               {traceChar}
             </text>
@@ -595,7 +595,7 @@ function LetterGrid({ letters, selected, onSelect, script, pulli, engFontFamily 
   const isScript = script === 'tamil' || script === 'hindi'
   const fontFamily = script === 'tamil' ? '"Noto Sans Tamil",serif'
                    : script === 'hindi' ? '"Noto Sans Devanagari",serif'
-                   : (engFontFamily || 'Fredoka One,cursive')
+                   : (engFontFamily || 'Nunito,sans-serif')
   return (
     <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
       {letters.map(item => (
@@ -642,7 +642,7 @@ function CompoundTable({ selected, onSelect }) {
                   <button onClick={() => onSelect(cell)}
                     style={{
                       width:44, height:52, border:'none', borderRadius:8, cursor:'pointer',
-                      fontFamily:'"Noto Sans Tamil",serif', fontSize:17,
+                      fontFamily:'"Noto Sans Tamil",serif', fontSize:17, fontWeight:400,
                       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
                       background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
                       color: selected?.char === cell.char ? 'white' : '#444',
@@ -661,7 +661,7 @@ function CompoundTable({ selected, onSelect }) {
   )
 }
 
-function th() { return { padding:'4px 6px', textAlign:'center', fontSize:14, fontWeight:700, color:'#aaa' } }
+function th() { return { padding:'4px 6px', textAlign:'center', fontSize:14, fontWeight:400, color:'#aaa' } }
 
 // ── Hindi barakhadi table ──────────────────────────────────────────────────────
 
@@ -1068,7 +1068,7 @@ export default function LearnPage({ child, quota }) {
   const cats = isTamil ? TAMIL_CATS : isHindi ? HINDI_CATS : ENG_CATS
   const cat  = cats.find(c => c.key === catKey) || cats[0]
 
-  const engFontFamily = engFont === 'cursive' ? '"Dancing Script", cursive' : 'Fredoka One, cursive'
+  const engFontFamily = engFont === 'cursive' ? '"Dancing Script", cursive' : 'Nunito, sans-serif'
 
   useEffect(() => {
     setSelected(null)
@@ -1104,8 +1104,8 @@ export default function LearnPage({ child, quota }) {
 
       {/* Header */}
       <div style={{ marginBottom:20 }}>
-        <h2 style={{ fontFamily:'Fredoka One,cursive', fontSize:26, color:'#2d2d2d', margin:'0 0 4px' }}>Learn to Write ✏️</h2>
-        <p style={{ margin:0, fontSize:14, color:'#999' }}>Tap a letter to hear it, draw it, or practise writing words!</p>
+        <h2 style={{ fontSize:22, color:'var(--primary)', margin:'0 0 4px' }}>Learn to Write ✏️</h2>
+        <p style={{ margin:0, fontSize:14, color:'var(--muted)' }}>Tap a letter to hear it, draw it, or practise writing words!</p>
       </div>
 
       {/* Script + mode bar */}
@@ -1164,7 +1164,7 @@ export default function LearnPage({ child, quota }) {
           <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
             {cats.map(c => (
               <button key={c.key} onClick={() => setCatKey(c.key)}
-                style={{ padding:'7px 14px', borderRadius:50, fontSize:13, fontWeight:700, fontFamily:'"Noto Sans Tamil",Nunito,sans-serif', border: catKey===c.key ? 'none' : '1.5px solid #eee', background: catKey===c.key ? 'var(--primary-lt)' : 'white', color: catKey===c.key ? 'var(--primary)' : '#888', cursor:'pointer' }}>
+                style={{ padding:'7px 14px', borderRadius:50, fontSize:13, fontWeight:700, fontFamily:'Nunito,sans-serif', border: catKey===c.key ? 'none' : '1.5px solid #eee', background: catKey===c.key ? 'var(--primary-lt)' : 'white', color: catKey===c.key ? 'var(--primary)' : '#888', cursor:'pointer' }}>
                 {c.label}
               </button>
             ))}

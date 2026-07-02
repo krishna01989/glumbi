@@ -106,7 +106,7 @@ export default function ProfilePage({ onLogout }) {
         }}>
         ← Back
       </button>
-      <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 26, color: '#2d2d2d', marginBottom: 24 }}>
+      <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 26, color: 'var(--primary)', marginBottom: 24 }}>
         My Account
       </h2>
 

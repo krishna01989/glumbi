@@ -233,7 +233,7 @@ export default function MyWriting({ child, quota }) {
         {editing && (
           <div style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card" style={{ padding: 'clamp(16px,3vw,28px)', marginBottom: 20 }}>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>✍️ My Story</div>
+              <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--primary)', marginBottom: 20 }}>✍️ My Story</div>
 
               <input value={title} onChange={e => setTitle(e.target.value)}
                 placeholder="Give your story a title…"
@@ -292,7 +292,7 @@ export default function MyWriting({ child, quota }) {
                 <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 40 }}>{feedback.badge}</span>
                   <div>
-                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)' }}>Coach's Feedback</div>
+                    <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 800, color: 'var(--primary)' }}>Coach's Feedback</div>
                     {feedback.starWord && (
                       <div style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>⭐ Star word: <em>"{feedback.starWord}"</em></div>
                     )}
@@ -352,7 +352,7 @@ export default function MyWriting({ child, quota }) {
                 <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 40 }}>{selected.badge}</span>
                   <div>
-                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)' }}>Coach's Feedback</div>
+                    <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 800, color: 'var(--primary)' }}>Coach's Feedback</div>
                     {selected.starWord && <div style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>⭐ Star word: <em>"{selected.starWord}"</em></div>}
                   </div>
                 </div>

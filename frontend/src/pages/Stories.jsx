@@ -401,7 +401,7 @@ export default function Stories({ child, quota }) {
           background: 'white', borderRadius: 20, boxShadow: 'var(--shadow)',
         }}>
           <div style={{ fontSize: 72 }}>📚</div>
-          <div style={{ fontFamily: 'Fredoka One', fontSize: 20, color: '#ccc' }}>Pick a story to read!</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: '#ccc' }}>Pick a story to read!</div>
           <div style={{ fontSize: 13 }}>or generate a brand new one ✨</div>
         </div>
       )}

@@ -64,7 +64,7 @@ function CuriosityCard({ entry, onDelete }) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>
           <span style={{ fontSize: 36 }}>{entry.sticker}</span>
           <div>
-            <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)' }}>
+            <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 15, fontWeight: 800, color: 'var(--primary)', lineHeight: 1.5 }}>
               {entry.question}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
@@ -155,7 +155,7 @@ export default function Curiosity({ child, quota }) {
         style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 32 }}>🔍</span>
-          <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'var(--primary)' }}>
+          <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>
             What is {child.name} curious about?
           </h3>
         </div>
@@ -194,7 +194,7 @@ export default function Curiosity({ child, quota }) {
       {entries.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🔭</div>
-          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20 }}>No questions yet!</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>No questions yet!</div>
           <div style={{ fontSize: 14, marginTop: 8 }}>Kids ask the best questions — let's answer them! 🌍</div>
         </div>
       )}

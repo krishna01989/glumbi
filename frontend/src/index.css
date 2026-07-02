@@ -64,7 +64,8 @@ body {
   font-size: var(--fs-md);
 }
 
-h1, h2, h3 { font-family: 'Fredoka One', cursive; letter-spacing: 0.5px; }
+h1 { font-family: 'Fredoka One', cursive; letter-spacing: 0.5px; }
+h2, h3 { font-family: 'Nunito', sans-serif; font-weight: 800; }
 
 button {
   cursor: pointer;

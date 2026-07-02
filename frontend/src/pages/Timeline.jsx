@@ -214,7 +214,7 @@ export default function Timeline({ child }) {
       {!loading && Object.keys(grouped).length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--muted)', padding: 60 }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🌈</div>
-          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20 }}>Nothing here yet!</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>Nothing here yet!</div>
           <div style={{ fontSize: 14, marginTop: 8 }}>
             {datePreset !== 'all'
               ? 'No moments in this time period. Try a different date range.'

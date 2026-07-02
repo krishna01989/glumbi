@@ -3,6 +3,29 @@ import { useState, useEffect } from 'react'
 import Footer from '../components/Footer'
 import PublicHeader from '../components/PublicHeader'
 
+function FaqItem({ q, a }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ borderBottom: '1.5px solid #f0f0f0', padding: '4px 0' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', textAlign: 'left', padding: '18px 4px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16,
+          fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 16, color: open ? '#ff6b6b' : '#3d3d3d',
+        }}>
+        <span>{q}</span>
+        <span style={{ fontSize: 22, color: open ? '#ff6b6b' : '#ccc', flexShrink: 0, lineHeight: 1 }}>{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 4px 18px', fontSize: 15, color: '#777', lineHeight: 1.8, fontFamily: 'Nunito, sans-serif' }}>
+          {a}
+        </div>
+      )}
+    </div>
+  )
+}
 
 const FEATURES = [
   {
@@ -259,6 +282,48 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section style={{ padding: '100px 40px', background: '#fafafa' }}>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 56 }}>
+            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+              Questions? We've got answers 💬
+            </h2>
+            <p style={{ fontSize: 17, color: '#888' }}>Everything parents ask before signing up.</p>
+          </div>
+          {[
+            {
+              q: 'What age is Glumbi for?',
+              a: 'Glumbi is designed for children aged 1–10. Stories, activities, and questions all adapt to your child\'s age — a 3-year-old gets simple sentences and playful rhymes, while a 9-year-old gets richer vocabulary and more complex quiz questions.',
+            },
+            {
+              q: 'Is it really free?',
+              a: `Yes. Every account gets ${defaultCredits ?? '…'} AI credits every month at no cost, with no credit card required. Credits reset automatically on the 1st of each month. There is no trial period — it\'s simply free, every month.`,
+            },
+            {
+              q: 'Is the content safe for my child?',
+              a: 'Absolutely. Every piece of AI-generated content passes a multi-layer Safety Guard before it reaches your child. Anything flagged as inappropriate is silently discarded and never shown. Glumbi was built by a parent, for parents.',
+            },
+            {
+              q: 'Can I add more than one child?',
+              a: 'Yes — you can add up to 3 children under one account, each with their own profile, theme, interests, and learning history. Switch between children from the sidebar in seconds.',
+            },
+            {
+              q: 'What languages does Glumbi support?',
+              a: 'Stories can be narrated in 12 languages: English (US, Indian, British, and Australian accents), Spanish, French, Italian, Chinese, Japanese, Korean, Tamil, Hindi, Malayalam, Telugu, and Kannada. Learn to Write supports English, Tamil, and Hindi scripts.',
+            },
+            {
+              q: 'Do I need to install anything?',
+              a: 'No. Glumbi runs entirely in your browser — no app download needed. It works on any device: phone, tablet, or desktop.',
+            },
+            {
+              q: 'What happens to my child\'s data?',
+              a: "Your child's Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Anthropic's Claude AI to generate responses but is not used for model training. See our Privacy Policy for full details.",
+            },
+          ].map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
         </div>
       </section>
 

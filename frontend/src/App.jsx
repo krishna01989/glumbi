@@ -23,6 +23,7 @@ import ErrorPage   from './pages/ErrorPage'
 import PrivacyPage from './pages/legal/PrivacyPage'
 import TermsPage   from './pages/legal/TermsPage'
 import ContactPage from './pages/legal/ContactPage'
+import HelpPage    from './pages/HelpPage'
 import MobileMenu  from './components/MobileMenu'
 import NotificationBell from './components/NotificationBell'
 import { OfflineContext } from './contexts/OfflineContext'
@@ -391,6 +392,7 @@ export default function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms"   element={<TermsPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/help"    element={<HelpPage />} />
         <Route path="/error/:code" element={<ErrorPageRoute />} />
         <Route path="/child/*"    element={<Navigate to="/login" replace />} />
         <Route path="/admin/*"    element={<Navigate to="/login" replace />} />
@@ -461,6 +463,7 @@ export default function App() {
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
             <Route path="/contact"        element={<ContactPage />} />
+            <Route path="/help"           element={<HelpPage />} />
             <Route path="*"               element={<Navigate to="/child" replace />} />
           </Routes>
         </div>
@@ -524,7 +527,7 @@ export default function App() {
           <QuotaBar quota={quota} featureConfig={featureConfig} />
         )}
 
-        {/* Profile link */}
+        {/* Utility links — Profile + Help */}
         <div style={{ padding: collapsed ? '8px' : '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
           <button onClick={() => navigate('/profile')}
             style={{
@@ -538,6 +541,19 @@ export default function App() {
             title={collapsed ? 'My Account' : undefined}>
             <span style={{ fontSize: 18, flexShrink: 0 }}>👤</span>
             {!collapsed && <span>My Account</span>}
+          </button>
+          <button id="tour-help-btn" onClick={() => navigate('/help')}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+              padding: collapsed ? '10px 0' : '10px 14px',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              borderRadius: 12, border: 'none', background: 'transparent',
+              color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: 14,
+              cursor: 'pointer',
+            }}
+            title={collapsed ? 'Help' : undefined}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
+            {!collapsed && <span>Help</span>}
           </button>
         </div>
 
@@ -702,6 +718,7 @@ export default function App() {
               <Route path="/privacy"             element={<PrivacyPage />} />
               <Route path="/terms"               element={<TermsPage />} />
               <Route path="/contact"             element={<ContactPage />} />
+              <Route path="/help"                element={<HelpPage />} />
               <Route path="/error/:code"         element={<ErrorPageRoute />} />
               <Route path="*"                    element={<Navigate to={`/child/${child.id}/stories`} replace />} />
             </Routes>

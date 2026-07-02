@@ -116,6 +116,14 @@ function desktopQuotaStep(limit, featureConfig) {
 
 const DESKTOP_UTILITY_STEPS = [
   {
+    element: '#tour-help-btn',
+    popover: {
+      title: '💡 Help',
+      description: 'New to Glumbi or stuck on something? Tap Help to open the full guide — covers every feature with answers to common questions.',
+      side: 'right', align: 'start',
+    },
+  },
+  {
     element: '#tour-theme-btn',
     popover: {
       title: '🎨 Change Theme',
@@ -252,6 +260,14 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
       },
       ...MOBILE_STEPS.filter(s => !s.element || present(s.element)),
       mobileQuotaStep(creditLimit, featureConfig),
+      {
+        element: '#tour-mobile-help',
+        popover: {
+          title: '💡 Help',
+          description: 'New to Glumbi or need a hand? Tap Help to open the full guide — covers every feature with answers to common questions.',
+          side: 'top', align: 'center',
+        },
+      },
       {
         popover: {
           title: '🌟 You\'re all set!',

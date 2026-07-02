@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { activityApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import QuotaBanner from '../components/QuotaBanner'
+import { useOffline } from '../contexts/OfflineContext'
 
 const TIMES   = [{ value: 'morning', label: '🌅 Morning' }, { value: 'afternoon', label: '☀️ Afternoon' }, { value: 'evening', label: '🌙 Evening' }]
 const WEATHERS = [{ value: 'sunny', label: '☀️ Sunny' }, { value: 'cloudy', label: '⛅ Cloudy' }, { value: 'rainy', label: '🌧️ Rainy' }, { value: 'windy', label: '💨 Windy' }, { value: 'snowy', label: '❄️ Snowy' }]
@@ -29,6 +30,7 @@ function StarRating({ value, onChange }) {
 }
 
 export default function Activities({ child, quota }) {
+  const offline = useOffline()
   const [activities, setActivities] = useState([])
   const [loading, setLoading]       = useState(false)
   const [substituting, setSubstituting] = useState(null) // id being substituted
@@ -111,7 +113,7 @@ export default function Activities({ child, quota }) {
     <div style={{ maxWidth: 780, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* Generator */}
-      <div className="card" style={{ background: 'linear-gradient(135deg,#fff9f0,#f0fff0)', border: '2px dashed #b8e0c8' }}>
+      <div className="card" style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <span style={{ fontSize: 28 }}>🎮</span>
           <h3 style={{ fontSize: 18, color: '#27ae60', fontFamily: 'Fredoka One, cursive' }}>What shall we do today?</h3>
@@ -124,7 +126,7 @@ export default function Activities({ child, quota }) {
               {TIMES.map(t => (
                 <button key={t.value} type="button" onClick={() => setTimeOfDay(t.value)}
                   style={{ flex: 1, padding: '8px 4px', fontSize: 12, borderRadius: 10,
-                    background: timeOfDay === t.value ? '#27ae60' : '#f0f0f0',
+                    background: timeOfDay === t.value ? 'var(--primary)' : '#f0f0f0',
                     color: timeOfDay === t.value ? 'white' : '#555' }}>
                   {t.label}
                 </button>
@@ -137,7 +139,7 @@ export default function Activities({ child, quota }) {
               {WEATHERS.map(w => (
                 <button key={w.value} type="button" onClick={() => setWeather(w.value)}
                   style={{ flex: 1, padding: '8px 4px', fontSize: 12, borderRadius: 10,
-                    background: weather === w.value ? '#4d96ff' : '#f0f0f0',
+                    background: weather === w.value ? 'var(--primary)' : '#f0f0f0',
                     color: weather === w.value ? 'white' : '#555' }}>
                   {w.label}
                 </button>
@@ -148,8 +150,8 @@ export default function Activities({ child, quota }) {
 
         <QuotaBanner quota={quota} />
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn-green" onClick={handleGenerate} disabled={loading || !!substituting || quota?.used >= quota?.limit} style={{ flex: 1, fontSize: 16 }}>
-            {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : '🎲 Suggest 3 Activities'}
+          <button className="btn-primary" onClick={handleGenerate} disabled={loading || !!substituting || quota?.used >= quota?.limit || offline} style={{ flex: 1, fontSize: 16 }}>
+            {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : offline ? '✈️ AI is off' : '🎲 Suggest 3 Activities'}
           </button>
           {pending.length > 0 && (
             <button onClick={handleRefresh} disabled={loading || !!substituting}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { curiosityApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import QuotaBanner from '../components/QuotaBanner'
+import { useOffline } from '../contexts/OfflineContext'
 
 const SAMPLE_QUESTIONS = [
   'Why is the sky blue?', 'Why do stars shine?', 'Why do we dream?',
@@ -90,7 +91,7 @@ function CuriosityCard({ entry, onDelete }) {
 
       {/* Quiz toggle */}
       {!showQuiz ? (
-        <button className="btn-blue" style={{ fontSize: 14 }} onClick={() => setShowQuiz(true)}>
+        <button className="btn-primary" style={{ fontSize: 14 }} onClick={() => setShowQuiz(true)}>
           🧠 Take the Quiz!
         </button>
       ) : (
@@ -111,6 +112,7 @@ function CuriosityCard({ entry, onDelete }) {
 }
 
 export default function Curiosity({ child, quota }) {
+  const offline = useOffline()
   const [entries, setEntries] = useState([])
   const [question, setQuestion] = useState('')
   const [loading, setLoading]   = useState(false)
@@ -149,10 +151,10 @@ export default function Curiosity({ child, quota }) {
       <QuotaBanner quota={quota} />
       {/* Ask box */}
       <form className="card" onSubmit={handleAsk}
-        style={{ background: 'linear-gradient(135deg,#f0f0ff,#f9f0ff)', border: '2px dashed #c77dff', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 32 }}>🔍</span>
-          <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: '#8e44ad' }}>
+          <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'var(--primary)' }}>
             What is {child.name} curious about?
           </h3>
         </div>
@@ -167,7 +169,7 @@ export default function Curiosity({ child, quota }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {SAMPLE_QUESTIONS.map(q => (
               <button key={q} type="button" onClick={() => setQuestion(q)}
-                style={{ padding: '5px 12px', fontSize: 12, background: 'white', color: '#8e44ad', border: '1.5px solid #c77dff', borderRadius: 50, fontWeight: 600 }}>
+                style={{ padding: '5px 12px', fontSize: 12, background: 'white', color: 'var(--primary)', border: '1.5px solid var(--primary-lt)', borderRadius: 50, fontWeight: 600 }}>
                 {q}
               </button>
             ))}
@@ -179,9 +181,9 @@ export default function Curiosity({ child, quota }) {
             🚫 {error}
           </div>
         )}
-        <button type="submit" disabled={loading || !question.trim() || quota?.used >= quota?.limit}
-          style={{ background: '#8e44ad', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: 'pointer' }}>
-          {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : '✨ Explain to ' + child.name}
+        <button type="submit" disabled={loading || !question.trim() || quota?.used >= quota?.limit || offline}
+          style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
+          {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : offline ? '✈️ AI is off' : '✨ Explain to ' + child.name}
         </button>
       </form>
 

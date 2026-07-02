@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { drawApi } from '../api/client'
 import QuotaBanner from '../components/QuotaBanner'
+import { useOffline } from '../contexts/OfflineContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -50,6 +51,7 @@ function Divider() {
 }
 
 export default function Draw({ child, quota }) {
+  const offline = useOffline()
   const canvasRef  = useRef(null)
   const colorInput = useRef(null)
   const drawing    = useRef(false)
@@ -401,22 +403,22 @@ export default function Draw({ child, quota }) {
         <QuotaBanner quota={quota} />
         {/* AI section */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button onClick={handleIdentify} disabled={loading || isEmpty || quota?.used >= quota?.limit}
+          <button onClick={handleIdentify} disabled={loading || isEmpty || quota?.used >= quota?.limit || offline}
             style={{
               padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
               background: 'linear-gradient(135deg,var(--primary),var(--accent))',
-              color: 'white', border: 'none', cursor: isEmpty ? 'not-allowed' : 'pointer',
-              opacity: isEmpty ? 0.5 : 1,
-              boxShadow: '0 4px 16px rgba(255,107,107,0.3)',
+              color: 'white', border: 'none', cursor: (isEmpty || offline) ? 'not-allowed' : 'pointer',
+              opacity: (isEmpty || offline) ? 0.5 : 1,
+              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
               whiteSpace: 'nowrap',
             }}>
-            {loading ? '🤔 Thinking…' : '✨ What did I draw?'}
+            {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : '✨ What did I draw?'}
           </button>
           {aiReply && (
             <div style={{
-              flex: 1, background: 'linear-gradient(135deg,#fff9f0,#fff0f0)',
+              flex: 1, background: 'var(--primary-lt)',
               borderRadius: 16, padding: '14px 20px',
-              border: '2px solid #ffcdb8', fontSize: 15, fontWeight: 600, color: '#444',
+              border: '2px solid var(--primary-lt)', fontSize: 15, fontWeight: 600, color: '#444',
               animation: 'fadeIn 0.4s ease',
             }}>
               {aiReply}

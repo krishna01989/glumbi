@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { learnApi } from '../api/client'
 import QuotaBanner from '../components/QuotaBanner'
+import ThemeLoader from '../components/ThemeLoader'
+import { useOffline } from '../contexts/OfflineContext'
 
 // ── Tamil data ─────────────────────────────────────────────────────────────────
 
@@ -42,14 +44,20 @@ const ENG_NUMBERS    = ['1','2','3','4','5','6','7','8','9','10'].map(c => ({ ch
 
 // ── Canvas component ───────────────────────────────────────────────────────────
 
-function DrawCanvas({ onSubmit, loading, disabled = false, height = 260 }) {
+function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
 
+  // Internal canvas resolution — large so AI gets a crisp image
+  const canvasW = fullWidth ? 800 : 300
+  const canvasH = fullWidth ? 600 : height
+
   function getPos(e, canvas) {
     const rect = canvas.getBoundingClientRect()
-    const src  = e.touches ? e.touches[0] : e
-    return { x: src.clientX - rect.left, y: src.clientY - rect.top }
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const src = e.touches ? e.touches[0] : e
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY }
   }
 
   function start(e) {
@@ -65,7 +73,8 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260 }) {
     const ctx = canvasRef.current.getContext('2d')
     const pos = getPos(e, canvasRef.current)
     ctx.lineTo(pos.x, pos.y)
-    ctx.strokeStyle = '#2d2d2d'; ctx.lineWidth = 6
+    ctx.strokeStyle = '#000000'
+    ctx.lineWidth = fullWidth ? 10 : 6   // thicker strokes on large canvas
     ctx.lineCap = 'round'; ctx.lineJoin = 'round'
     ctx.stroke()
   }
@@ -77,19 +86,51 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260 }) {
   }
 
   function submit() {
-    const data = canvasRef.current.toDataURL('image/png').split(',')[1]
-    onSubmit(data)
+    const c = canvasRef.current
+    const ctx = c.getContext('2d')
+
+    // Crop to bounding box of drawn content + padding, so AI sees a tight image
+    const pixels = ctx.getImageData(0, 0, c.width, c.height).data
+    let minX = c.width, minY = c.height, maxX = 0, maxY = 0
+    for (let y = 0; y < c.height; y++) {
+      for (let x = 0; x < c.width; x++) {
+        const alpha = pixels[(y * c.width + x) * 4 + 3]
+        if (alpha > 20) {
+          if (x < minX) minX = x; if (x > maxX) maxX = x
+          if (y < minY) minY = y; if (y > maxY) maxY = y
+        }
+      }
+    }
+
+    let imageData
+    if (maxX > minX && maxY > minY) {
+      const pad = 24
+      const x = Math.max(0, minX - pad), y = Math.max(0, minY - pad)
+      const w = Math.min(c.width, maxX + pad) - x
+      const h = Math.min(c.height, maxY + pad) - y
+      const crop = document.createElement('canvas')
+      crop.width = w; crop.height = h
+      const cCtx = crop.getContext('2d')
+      cCtx.fillStyle = '#ffffff'
+      cCtx.fillRect(0, 0, w, h)
+      cCtx.drawImage(c, x, y, w, h, 0, 0, w, h)
+      imageData = crop.toDataURL('image/png').split(',')[1]
+    } else {
+      imageData = c.toDataURL('image/png').split(',')[1]
+    }
+
+    onSubmit(imageData)
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-      <canvas ref={canvasRef} width={300} height={height}
-        style={{ border: '2.5px dashed #ffc0a0', borderRadius: 16, background: '#fffaf7', touchAction: 'none', cursor: 'crosshair' }}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: fullWidth ? '100%' : 'auto' }}>
+      <canvas ref={canvasRef} width={canvasW} height={canvasH}
+        style={{ border: '2.5px solid var(--primary)', borderRadius: 16, background: '#ffffff', touchAction: 'none', cursor: 'crosshair', width: fullWidth ? '100%' : canvasW, height: fullWidth ? 'auto' : canvasH, display: 'block' }}
         onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseLeave={stop}
         onTouchStart={start} onTouchMove={move} onTouchEnd={stop} />
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={clear} style={btn('#f5f5f5','#555')}>🗑️ Clear</button>
-        <button onClick={submit} disabled={loading || disabled} style={btn('linear-gradient(135deg,#ff6b6b,#ff8e53)','white')}>
+        <button onClick={submit} disabled={loading || disabled} style={btn('linear-gradient(135deg,var(--primary),var(--accent))','white')}>
           {loading ? <><span className="spinner" style={{ width:14,height:14,borderWidth:2 }}/>&nbsp;Checking…</> : '✨ Check!'}
         </button>
       </div>
@@ -113,9 +154,9 @@ function LetterGrid({ letters, selected, onSelect, isTamil }) {
             borderRadius:12, border:'none', cursor:'pointer',
             fontFamily: isTamil ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive',
             fontSize: isTamil ? 22 : 22, fontWeight: isTamil ? 400 : 700,
-            background: selected?.char === item.char ? 'linear-gradient(135deg,#ff6b6b,#ff8e53)' : '#fff8f4',
-            color: selected?.char === item.char ? 'white' : '#e05a2b',
-            boxShadow: selected?.char === item.char ? '0 4px 14px rgba(255,107,107,0.35)' : '0 2px 6px rgba(0,0,0,0.06)',
+            background: selected?.char === item.char ? 'var(--primary)' : 'var(--primary-lt)',
+            color: selected?.char === item.char ? 'white' : 'var(--primary)',
+            boxShadow: selected?.char === item.char ? '0 4px 14px rgba(0,0,0,0.15)' : '0 2px 6px rgba(0,0,0,0.06)',
             transition:'all 0.15s',
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
           }}>
@@ -137,21 +178,21 @@ function CompoundTable({ selected, onSelect }) {
           <tr>
             <th style={th()}></th>
             {TAMIL_VOWELS.map(v => (
-              <th key={v.char} style={{ ...th(), color:'#ff6b6b', fontSize:16 }}>{v.char}</th>
+              <th key={v.char} style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{v.char}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {COMPOUND_TABLE.map(row => (
             <tr key={row.consonant.char}>
-              <td style={{ ...th(), color:'#ff8e53', fontSize:16 }}>{row.consonant.char}</td>
+              <td style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{row.consonant.char}</td>
               {row.compounds.map(cell => (
                 <td key={cell.char} style={{ padding:0 }}>
                   <button onClick={() => onSelect(cell)}
                     style={{
                       width:44, height:44, border:'none', borderRadius:8, cursor:'pointer',
                       fontFamily:'"Noto Sans Tamil",serif', fontSize:17,
-                      background: selected?.char === cell.char ? 'linear-gradient(135deg,#ff6b6b,#ff8e53)' : 'transparent',
+                      background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
                       color: selected?.char === cell.char ? 'white' : '#444',
                       transition:'all 0.12s',
                     }}>
@@ -172,6 +213,7 @@ function th() { return { padding:'4px 6px', textAlign:'center', fontSize:14, fon
 // ── Letter practice panel ──────────────────────────────────────────────────────
 
 function LetterPanel({ selected, script, child, onPlay, quota }) {
+  const offline = useOffline()
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
 
@@ -183,6 +225,7 @@ function LetterPanel({ selected, script, child, onPlay, quota }) {
       const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
       const result = await learnApi.validate(imageData, selected.char, script, child?.name || 'you', age, child?.id)
       setFeedback(result)
+      window.__glumbiRefreshQuota?.()
     } catch { setFeedback({ correct:true, feedback:'Great effort! Keep practising! 🌟' }) }
     finally { setLoading(false) }
   }
@@ -198,19 +241,21 @@ function LetterPanel({ selected, script, child, onPlay, quota }) {
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
       {/* Big letter */}
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive', fontWeight: script==='tamil' ? 400 : 700, color:'#ff6b6b', lineHeight:1, textShadow:'0 4px 16px rgba(255,107,107,0.2)' }}>
+        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive', fontWeight: script==='tamil' ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
           {selected.char}
         </div>
         {selected.roman && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
-          pronounced: <span style={{ color:'#ff8e53' }}>{selected.roman}</span>
+          pronounced: <span style={{ color:'var(--primary)' }}>{selected.roman}</span>
         </div>}
         {selected.meaning && <div style={{ fontSize:11, color:'#bbb', marginTop:2 }}>{selected.meaning}</div>}
-        <button onClick={onPlay} style={{ marginTop:8, background:'#fff0e8', border:'none', borderRadius:50, padding:'6px 14px', fontSize:12, fontWeight:700, color:'#ff6b6b', cursor:'pointer' }}>
+        <button onClick={onPlay} style={{ marginTop:8, background:'var(--primary-lt)', border:'none', borderRadius:50, padding:'6px 14px', fontSize:12, fontWeight:700, color:'var(--primary)', cursor:'pointer' }}>
           🔊 Hear it
         </button>
       </div>
-      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit} />
-      {feedback && (
+      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth />
+      {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
+      {loading && <ThemeLoader theme={child?.theme} />}
+      {!loading && feedback && (
         <div style={{ maxWidth:300, padding:'12px 16px', borderRadius:14, textAlign:'center', background: feedback.correct ? '#f0fff4' : '#fff8f0', border:`1.5px solid ${feedback.correct ? '#6bcb77' : '#ffc0a0'}`, fontSize:14, lineHeight:1.6, fontWeight:600, color: feedback.correct ? '#1e6b3c' : '#c05a00' }}>
           <div style={{ fontSize:26, marginBottom:6 }}>{feedback.correct ? '🎉' : '💪'}</div>
           {feedback.feedback}
@@ -229,25 +274,46 @@ const ALL_TRANS_LANGS = [
   { key:'french',  label:'French',  flag:'🇫🇷', tts:'english' },
 ]
 
-const WORD_HINTS = {
-  tamil:   { hint:'Try: வீடு · பூ · நாய் · மரம் · பால்', placeholder:'Write a Tamil word' },
-  english: { hint:'Try: cat · home · tree · sun · book',  placeholder:'Write an English word' },
+const WORD_POOL = {
+  tamil: [
+    'வீடு','பூ','நாய்','மரம்','பால்','கண்','கை','அம்மா','அப்பா','பறவை',
+    'மீன்','நிலா','நீர்','காடு','பழம்','பயிர்','கோழி','யானை','புலி','மான்',
+    'வானம்','மேகம்','மழை','நதி','மலை','கல்','நெல்','வாழை','மாமரம்','ஆறு',
+  ],
+  english: [
+    'cat','dog','home','tree','sun','book','fish','bird','moon','star',
+    'rain','lake','frog','duck','rose','leaf','boat','kite','bell','gate',
+    'lamp','sand','rock','wave','nest','seed','road','hand','foot','drum',
+  ],
 }
 
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5) }
+const BANK_SIZE = 10
+
 function WordMode({ script, child, quota }) {
-  const [loading,   setLoading]   = useState(false)
-  const [result,    setResult]    = useState(null)
-  const [extraLang, setExtraLang] = useState(null)
+  const offline = useOffline()
+  const [targetWord,    setTargetWord]    = useState('')
+  const [customWord,    setCustomWord]    = useState('')
+  const [step,          setStep]          = useState('pick')   // 'pick' | 'draw'
+  const [loading,       setLoading]       = useState(false)
+  const [result,        setResult]        = useState(null)
+  const [extraLang,     setExtraLang]     = useState(null)
+  const [visibleWords,  setVisibleWords]  = useState(() => shuffle(WORD_POOL[script]).slice(0, BANK_SIZE))
   const audioRef = useRef(null)
 
   // Reset when script changes
-  useEffect(() => { setResult(null); setExtraLang(null) }, [script])
+  useEffect(() => {
+    setTargetWord(''); setCustomWord(''); setStep('pick'); setResult(null); setExtraLang(null)
+    setVisibleWords(shuffle(WORD_POOL[script]).slice(0, BANK_SIZE))
+  }, [script])
+
+  function refreshWords() { setVisibleWords(shuffle(WORD_POOL[script]).slice(0, BANK_SIZE)) }
 
   const childAge  = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
   const childName = child?.name || 'you'
 
   // Cross-language: Tamil→English or English→Tamil
-  const crossKey  = script === 'tamil' ? 'english' : 'tamil'
+  const crossKey   = script === 'tamil' ? 'english' : 'tamil'
   const crossLabel = script === 'tamil' ? '🇬🇧 In English' : '🌺 In Tamil'
   const crossFont  = script === 'tamil' ? 'Nunito,sans-serif' : '"Noto Sans Tamil",serif'
   const crossTts   = script === 'tamil' ? 'english' : 'tamil'
@@ -258,41 +324,108 @@ function WordMode({ script, child, quota }) {
     if (audioRef.current) { audioRef.current.src = url; audioRef.current.play().catch(()=>{}) }
   }
 
+  function pickWord(w) { setTargetWord(w); setCustomWord(''); setStep('draw'); setResult(null) }
+  function useCustomWord() {
+    const w = customWord.trim()
+    if (!w) return
+    setTargetWord(w); setStep('draw'); setResult(null)
+  }
+
   async function handleSubmit(imageData) {
     setLoading(true); setResult(null); setExtraLang(null)
     try {
-      const data = await learnApi.identifyWord(imageData, script, childName, childAge, child?.id)
+      const data = await learnApi.identifyWord(imageData, script, childName, childAge, child?.id, targetWord)
       setResult(data)
-      // Auto-play the translation so the child hears the other language
-      if (data.couldRead && data.translations?.[crossKey]) play(data.translations[crossKey], crossTts)
+      window.__glumbiRefreshQuota?.()
+      if (data.correct && data.translations?.[crossKey]) play(data.translations[crossKey], crossTts)
     } catch {
-      setResult({ couldRead:false, meaning:"Couldn't read that — try writing a bit bigger! 😊", emoji:'✍️' })
+      setResult({ correct:false, couldRead:false, feedback:"Couldn't read that — try writing a bit bigger! 😊", emoji:'✍️' })
     } finally { setLoading(false) }
   }
 
-  const hints = WORD_HINTS[script]
+  const wordFont = script === 'tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive'
 
+  /* ── Step 1: Pick a word ─────────────────────────────────── */
+  if (step === 'pick') return (
+    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+      <audio ref={audioRef} />
+      <div style={{ background:'var(--primary-lt)', borderRadius:16, padding:'18px 20px' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+          <p style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--primary)' }}>
+            {script === 'tamil' ? '🌺 Pick a Tamil word to write:' : '✏️ Pick an English word to write:'}
+          </p>
+          <button onClick={refreshWords} title="New words"
+            style={{ background:'white', border:'none', borderRadius:50, padding:'6px 12px', fontSize:16, cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.08)', lineHeight:1 }}>
+            🔀
+          </button>
+        </div>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:16 }}>
+          {visibleWords.map(w => (
+            <button key={w} onClick={() => pickWord(w)}
+              style={{ padding:'8px 18px', borderRadius:50, border:'none', fontFamily: wordFont, fontSize: script==='tamil'?18:15, fontWeight:700, background:'white', color:'var(--primary)', cursor:'pointer', boxShadow:'0 2px 8px rgba(0,0,0,0.08)' }}>
+              {w}
+            </button>
+          ))}
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          <input value={customWord} onChange={e => setCustomWord(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && useCustomWord()}
+            placeholder={script==='tamil' ? 'Or type your own Tamil word…' : 'Or type your own word…'}
+            style={{ flex:1, padding:'10px 14px', borderRadius:50, border:'1.5px solid var(--primary-lt)', fontSize:14, fontFamily:'Nunito,sans-serif', outline:'none' }} />
+          <button onClick={useCustomWord} disabled={!customWord.trim()}
+            style={{ padding:'10px 20px', borderRadius:50, border:'none', background:'var(--primary)', color:'white', fontWeight:800, fontSize:14, cursor: customWord.trim()?'pointer':'not-allowed', opacity: customWord.trim()?1:0.5 }}>
+            Go →
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  /* ── Step 2: Draw the word ──────────────────────────────── */
   return (
-    <div style={{ display:'flex', gap:24, flexWrap:'wrap', alignItems:'flex-start' }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
       <audio ref={audioRef} />
 
-      {/* Canvas side */}
-      <div style={{ flex:'0 0 auto' }}>
-        <p style={{ margin:'0 0 6px', fontSize:14, color:'#888', fontWeight:700 }}>{hints.placeholder}</p>
-        <p style={{ margin:'0 0 12px', fontSize:12, color:'#bbb' }}>{hints.hint}</p>
-        <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit} height={180} />
+      {/* Target word display */}
+      <div style={{ background:'var(--primary-lt)', borderRadius:16, padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:800, color:'var(--primary)', textTransform:'uppercase', letterSpacing:1, marginBottom:4 }}>Write this word:</div>
+          <div style={{ fontFamily: wordFont, fontSize: script==='tamil'?40:34, fontWeight:700, color:'var(--primary)', lineHeight:1.2 }}>{targetWord}</div>
+        </div>
+        <div style={{ display:'flex', flexDirection:'column', gap:6, alignItems:'flex-end' }}>
+          <button onClick={() => play(targetWord, srcTts)}
+            style={{ background:'white', border:'none', borderRadius:50, padding:'7px 14px', fontSize:12, fontWeight:700, color:'var(--primary)', cursor:'pointer' }}>
+            🔊 Hear it
+          </button>
+          <button onClick={() => { setStep('pick'); setResult(null) }}
+            style={{ background:'none', border:'none', fontSize:12, fontWeight:700, color:'#aaa', cursor:'pointer' }}>
+            ← Pick different word
+          </button>
+        </div>
       </div>
 
-      {/* Result side */}
-      {result ? (
-        <div style={{ flex:'1 1 280px', display:'flex', flexDirection:'column', gap:14 }}>
-          {result.couldRead ? <>
+      {/* Canvas */}
+      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth />
+      {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
+
+      {/* Loading / Result side */}
+      {loading ? (
+        <div><ThemeLoader theme={child?.theme} /></div>
+      ) : result ? (
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          {/* Correct/incorrect feedback banner */}
+          <div style={{ padding:'14px 18px', borderRadius:14, textAlign:'center', background: result.correct ? '#f0fff4' : '#fff8f0', border:`1.5px solid ${result.correct ? '#6bcb77' : '#ffc0a0'}` }}>
+            <div style={{ fontSize:28, marginBottom:6 }}>{result.correct ? '🎉' : '💪'}</div>
+            <div style={{ fontSize:14, fontWeight:700, color: result.correct ? '#1e6b3c' : '#c05a00', lineHeight:1.6 }}>{result.feedback}</div>
+          </div>
+
+          {result.correct ? <>
 
             {/* Source word + emoji */}
-            <div style={{ display:'flex', alignItems:'center', gap:16, background:'#fff8f4', borderRadius:16, padding:'14px 18px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:16, background:'var(--primary-lt)', borderRadius:16, padding:'14px 18px' }}>
               <span style={{ fontSize:52 }}>{result.emoji}</span>
               <div>
-                <div style={{ fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive', fontSize:30, color:'#ff6b6b', lineHeight:1.2 }}>
+                <div style={{ fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive', fontSize:30, color:'var(--primary)', lineHeight:1.2 }}>
                   {result.word}
                 </div>
                 <button onClick={() => play(result.word, srcTts)}
@@ -310,14 +443,14 @@ function WordMode({ script, child, quota }) {
 
             {/* PRIMARY: cross-language translation — always shown */}
             {result.translations?.[crossKey] && (
-              <div style={{ background:'linear-gradient(135deg,#667eea18,#764ba218)', borderRadius:14, padding:'14px 18px', border:'1.5px solid #c5b8f0' }}>
-                <div style={{ fontSize:11, fontWeight:800, color:'#764ba2', textTransform:'uppercase', letterSpacing:1, marginBottom:8 }}>{crossLabel}</div>
+              <div style={{ background:'var(--primary-lt)', borderRadius:14, padding:'14px 18px', border:'1.5px solid var(--primary-lt)' }}>
+                <div style={{ fontSize:11, fontWeight:800, color:'var(--primary)', textTransform:'uppercase', letterSpacing:1, marginBottom:8 }}>{crossLabel}</div>
                 <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                  <span style={{ fontFamily:crossFont, fontSize:26, color:'#764ba2', fontWeight:700 }}>
+                  <span style={{ fontFamily:crossFont, fontSize:26, color:'var(--primary)', fontWeight:700 }}>
                     {result.translations[crossKey]}
                   </span>
                   <button onClick={() => play(result.translations[crossKey], crossTts)}
-                    style={{ background:'linear-gradient(135deg,#667eea,#764ba2)', border:'none', borderRadius:50, padding:'8px 16px', fontSize:13, fontWeight:800, color:'white', cursor:'pointer' }}>
+                    style={{ background:'linear-gradient(135deg,var(--primary),var(--accent))', border:'none', borderRadius:50, padding:'8px 16px', fontSize:13, fontWeight:800, color:'white', cursor:'pointer' }}>
                     🔊 Hear it
                   </button>
                 </div>
@@ -365,19 +498,14 @@ function WordMode({ script, child, quota }) {
               )
             })()}
 
-          </> : (
-            <div style={{ padding:'24px', background:'#fff8f4', borderRadius:16, textAlign:'center' }}>
-              <div style={{ fontSize:40, marginBottom:10 }}>💪</div>
-              <div style={{ fontSize:14, color:'#888', lineHeight:1.7 }}>{result.meaning}</div>
-            </div>
-          )}
+          </> : null}
+          {/* Try again button */}
+          <button onClick={() => setResult(null)}
+            style={{ alignSelf:'center', padding:'10px 24px', borderRadius:50, border:'none', background:'var(--primary)', color:'white', fontWeight:800, fontSize:14, cursor:'pointer' }}>
+            ✍️ Try again
+          </button>
         </div>
-      ) : !loading && (
-        <div style={{ flex:'1 1 280px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 20px', color:'#ccc', textAlign:'center' }}>
-          <div style={{ fontSize:48, marginBottom:10 }}>✍️</div>
-          <div style={{ fontSize:14, fontWeight:700 }}>Write a word and tap Check!</div>
-        </div>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -443,14 +571,14 @@ export default function LearnPage({ child, quota }) {
         <div style={{ display:'flex', gap:6 }}>
           {[{k:'tamil',label:'🌺 Tamil'},{k:'english',label:'🔤 English'}].map(s => (
             <button key={s.k} onClick={() => { setScript(s.k); setMode('letters') }}
-              style={{ padding:'7px 16px', borderRadius:50, border:'none', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', background: script===s.k ? 'linear-gradient(135deg,#ff6b6b,#ff8e53)' : '#f5f5f5', color: script===s.k ? 'white' : '#777' }}>
+              style={{ padding:'7px 16px', borderRadius:50, border:'none', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', background: script===s.k ? 'var(--primary)' : '#f5f5f5', color: script===s.k ? 'white' : '#777' }}>
               {s.label}
             </button>
           ))}
         </div>
 
         <button onClick={() => setMode(mode==='words' ? 'letters' : 'words')}
-          style={{ padding:'7px 16px', borderRadius:50, fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', border:`1.5px solid ${mode==='words' ? '#764ba2' : '#ddd'}`, background: mode==='words' ? '#f5f0ff' : 'white', color: mode==='words' ? '#764ba2' : '#999' }}>
+          style={{ padding:'7px 16px', borderRadius:50, fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', border:`1.5px solid ${mode==='words' ? 'var(--primary)' : '#ddd'}`, background: mode==='words' ? 'var(--primary-lt)' : 'white', color: mode==='words' ? 'var(--primary)' : '#999' }}>
           ✍️ Write a word
         </button>
       </div>
@@ -463,7 +591,7 @@ export default function LearnPage({ child, quota }) {
           <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
             {cats.map(c => (
               <button key={c.key} onClick={() => setCatKey(c.key)}
-                style={{ padding:'7px 14px', borderRadius:50, fontSize:13, fontWeight:700, fontFamily:'"Noto Sans Tamil",Nunito,sans-serif', border: catKey===c.key ? 'none' : '1.5px solid #eee', background: catKey===c.key ? '#fff0e8' : 'white', color: catKey===c.key ? '#ff6b6b' : '#888', cursor:'pointer' }}>
+                style={{ padding:'7px 14px', borderRadius:50, fontSize:13, fontWeight:700, fontFamily:'"Noto Sans Tamil",Nunito,sans-serif', border: catKey===c.key ? 'none' : '1.5px solid #eee', background: catKey===c.key ? 'var(--primary-lt)' : 'white', color: catKey===c.key ? 'var(--primary)' : '#888', cursor:'pointer' }}>
                 {c.label}
               </button>
             ))}

@@ -4,6 +4,7 @@ import ThemeLoader from '../components/ThemeLoader'
 import AudioPlayer from '../components/AudioPlayer'
 import ConfirmDialog from '../components/ConfirmDialog'
 import QuotaBanner from '../components/QuotaBanner'
+import { useOffline } from '../contexts/OfflineContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -76,6 +77,7 @@ const LANG_SCRIPT = {
 }
 
 export default function Stories({ child, quota }) {
+  const offline = useOffline()
   const [stories, setStories] = useState([])
   const [keywords, setKeywords] = useState('')
   const [loading, setLoading] = useState(false)
@@ -217,7 +219,7 @@ export default function Stories({ child, quota }) {
 
         {/* Generator card */}
         <QuotaBanner quota={quota} />
-        <form className="card" onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: 'linear-gradient(135deg,#fff9f0,#fff0f0)', border: '2px dashed #ffcdb8' }}>
+        <form className="card" onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 28 }}>🪄</span>
             <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>Story Magic</h3>
@@ -226,9 +228,9 @@ export default function Stories({ child, quota }) {
             placeholder={`What should ${child.name}'s story be about?\n\ne.g. dragon, brave girl, magic forest`}
             value={keywords} onChange={e => setKeywords(e.target.value)}
             rows={3} style={{ resize: 'none', background: 'white' }} />
-          <button type="submit" className="btn-primary" disabled={loading || !keywords.trim() || quota?.used >= quota?.limit}
+          <button type="submit" className="btn-primary" disabled={loading || !keywords.trim() || quota?.used >= quota?.limit || offline}
             style={{ fontSize: 16 }}>
-            {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : '✨ Generate Story'}
+            {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : offline ? '✈️ AI is off' : '✨ Generate Story'}
           </button>
           {error && (
             <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
@@ -302,7 +304,7 @@ export default function Stories({ child, quota }) {
                 {!speaking && (
                   <div style={{ position: 'relative' }} ref={langPickerRef}>
                     <button ref={langBtnRef} onClick={openLangPicker}
-                      style={{ padding: '8px 16px', fontSize: 13, borderRadius: 50, border: 'none', background: '#4d96ff', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      style={{ padding: '8px 16px', fontSize: 13, borderRadius: 50, border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                       {translating ? <><span className="spinner" /> Translating…</> : '🔊 Listen'}
                     </button>
                     {langPickerOpen && (
@@ -335,7 +337,7 @@ export default function Stories({ child, quota }) {
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                               {langs.map(({ lang, label }) => (
                                 <button key={lang} onClick={() => { setLangPickerOpen(false); handleListen(selected, lang) }}
-                                  style={{ padding: '6px 12px', borderRadius: 50, fontSize: 12, fontWeight: 700, border: '1.5px solid #eee', background: speakingLang === lang ? '#4d96ff' : '#f5f5f5', color: speakingLang === lang ? 'white' : '#444', cursor: 'pointer' }}>
+                                  style={{ padding: '6px 12px', borderRadius: 50, fontSize: 12, fontWeight: 700, border: '1.5px solid #eee', background: speakingLang === lang ? 'var(--primary)' : '#f5f5f5', color: speakingLang === lang ? 'white' : '#444', cursor: 'pointer' }}>
                                   {label}
                                 </button>
                               ))}

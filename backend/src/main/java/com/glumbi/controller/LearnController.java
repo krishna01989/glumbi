@@ -95,6 +95,7 @@ public class LearnController {
 
             JsonNode root     = mapper.readTree(raw);
             String   text     = root.path("content").get(0).path("text").asText();
+            text = text.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
             JsonNode result   = mapper.readTree(text);
             boolean  correct  = result.path("correct").asBoolean();
             String   feedback = result.path("feedback").asText("Great try! Keep going! 🌟");
@@ -126,8 +127,9 @@ public class LearnController {
     public ResponseEntity<?> identifyWord(@RequestBody Map<String, String> body,
                                           @AuthenticationPrincipal AuthUser authUser) {
         String imageData  = body.get("imageData");
+        String targetWord = body.getOrDefault("targetWord", "");  // the word the child is practising
         String childName  = body.getOrDefault("childName", "you");
-        String script     = body.getOrDefault("script", "tamil"); // "tamil" | "english"
+        String script     = body.getOrDefault("script", "tamil");
         int    childAge   = Integer.parseInt(body.getOrDefault("childAge", "5"));
         Long   childId    = null;
         try { if (body.containsKey("childId")) childId = Long.parseLong(body.get("childId")); } catch (Exception ignored) {}
@@ -137,30 +139,36 @@ public class LearnController {
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 
-        boolean isTamil = script.equals("tamil");
-        String scriptLabel   = isTamil ? "Tamil" : "English";
-        String wordField     = isTamil ? "the Tamil word in Tamil script" : "the English word";
-        String primaryTrans  = isTamil ? "\"tamil\": \"(same as word — repeat it)\"" :
-                                         "\"tamil\": \"Tamil translation in Tamil script\"";
-        String secondaryKey  = isTamil ? "english" : "tamil";
+        boolean isTamil     = script.equals("tamil");
+        String  scriptLabel = isTamil ? "Tamil" : "English";
+        String  primaryTrans = isTamil
+            ? "\"tamil\": \"" + targetWord + "\""
+            : "\"tamil\": \"Tamil translation in Tamil script\"";
 
         String prompt = String.format(
-            "A %d-year-old child named %s has written a %s word. Look at the image carefully.\n" +
-            "Respond ONLY with a JSON object — no other text — with these fields:\n" +
+            "A %d-year-old child named %s has practised writing the %s word \"%s\" on a white canvas. " +
+            "IMPORTANT RULES:\n" +
+            "- Set \"correct\" to TRUE if there are ANY visible pen strokes on the canvas, even if messy or imperfect. " +
+            "Children's handwriting is naturally rough — reward every attempt.\n" +
+            "- Set \"correct\" to FALSE ONLY if the canvas is completely blank (no marks at all).\n" +
+            "- Never judge letter-by-letter accuracy. If the child made an effort, correct=true.\n" +
+            "Respond ONLY with a valid JSON object, no markdown:\n" +
             "{\n" +
+            "  \"correct\": true or false,\n" +
             "  \"word\": \"%s\",\n" +
-            "  \"couldRead\": true or false (false if writing is too unclear to identify),\n" +
-            "  \"meaning\": \"a warm 1-2 sentence explanation in simple English for a %d-year-old\",\n" +
-            "  \"funFact\": \"one short fun or interesting fact about this word/thing for a child\",\n" +
+            "  \"couldRead\": true,\n" +
+            "  \"feedback\": \"a warm, enthusiastic 1-2 sentence celebration for a %d-year-old who just practised writing\",\n" +
+            "  \"meaning\": \"a simple 1-2 sentence explanation of what '%s' means\",\n" +
+            "  \"funFact\": \"one short fun fact about this word/thing for a child\",\n" +
             "  \"emoji\": \"the single most fitting emoji\",\n" +
             "  \"translations\": {\n" +
             "    %s,\n" +
             "    \"hindi\": \"Hindi word in Devanagari script\",\n" +
             "    \"french\": \"French word\"\n" +
             "  }\n" +
-            "}\n" +
-            "If couldRead is false, set word to empty string and give an encouraging message to try again.",
-            childAge, childName, scriptLabel, wordField, childAge, primaryTrans
+            "}",
+            childAge, childName, scriptLabel, targetWord,
+            targetWord, childAge, targetWord, primaryTrans
         );
 
         try {
@@ -192,20 +200,15 @@ public class LearnController {
 
             JsonNode root   = mapper.readTree(raw);
             String   text   = root.path("content").get(0).path("text").asText();
-            // Strip markdown code fences if present
             text = text.replaceAll("```json\\s*", "").replaceAll("```\\s*", "").trim();
             JsonNode result = mapper.readTree(text);
 
-            // Save to Activity timeline if word was identified and childId provided
-            if (result.path("couldRead").asBoolean() && childId != null) {
+            // Save to timeline when correct
+            if (result.path("correct").asBoolean() && childId != null) {
                 childRepository.findById(childId).ifPresent(child -> {
-                    String word        = result.path("word").asText("");
                     String translation = result.path("translations").path(isTamil ? "english" : "tamil").asText("");
                     String emoji       = result.path("emoji").asText("✏️");
-                    String title       = isTamil
-                        ? word + (translation.isBlank() ? "" : " → " + translation)
-                        : word + (translation.isBlank() ? "" : " → " + translation);
-
+                    String title       = targetWord + (translation.isBlank() ? "" : " → " + translation);
                     Activity entry = new Activity();
                     entry.setChild(child);
                     entry.setTitle(title);
@@ -220,11 +223,11 @@ public class LearnController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.ok(mapper.createObjectNode()
+                .put("correct", false)
                 .put("couldRead", false)
-                .put("word", "")
-                .put("meaning", "I couldn't quite read that — try writing a bit bigger! 😊")
-                .put("funFact", "")
-                .put("emoji", "✍️"));
+                .put("word", targetWord)
+                .put("feedback", "Try writing a bit bigger and clearer! You've got this! 💪")
+                .put("meaning", "").put("funFact", "").put("emoji", "✍️"));
         }
     }
 

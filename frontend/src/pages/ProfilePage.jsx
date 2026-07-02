@@ -95,10 +95,10 @@ export default function ProfilePage({ onLogout }) {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', fontFamily: 'Nunito, sans-serif' }}>
       <button onClick={() => navigate(-1)}
-        onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-lt)'; e.currentTarget.style.transform = 'translateX(-2px)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
         style={{
-          background: 'transparent', border: '1.5px solid #ffcdb8', color: '#ff6b6b',
+          background: 'transparent', border: '1.5px solid var(--primary-lt)', color: 'var(--primary)',
           fontWeight: 700, fontSize: 13, cursor: 'pointer',
           padding: '6px 14px', marginBottom: 20, borderRadius: 50,
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -155,7 +155,7 @@ export default function ProfilePage({ onLogout }) {
             )}
 
             <button type="submit" disabled={pwLoading}
-              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: 'linear-gradient(135deg,#ff6b6b,#ff8e53)', color: 'white', border: 'none', cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1 }}>
+              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1 }}>
               {pwLoading ? 'Saving…' : 'Update Password'}
             </button>
           </form>

@@ -105,6 +105,14 @@ const DESKTOP_UTILITY_STEPS = [
     },
   },
   {
+    element: '#tour-offline-toggle',
+    popover: {
+      title: '✈️ Practice Mode',
+      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode, all AI features are paused — kids can still draw, write, and browse freely without using any AI calls. Listening to stories and words always works regardless. Great for quota-free practice sessions!',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
     element: '#tour-notifications',
     popover: {
       title: '🔔 Notifications',
@@ -154,6 +162,14 @@ const MOBILE_STEPS = [
     popover: {
       title: '🔔 Notifications',
       description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-mobile-offline',
+    popover: {
+      title: '✈️ Practice Mode',
+      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode all AI features pause — kids can still draw, write, and browse freely without using AI calls. Listening always works. Tap again to turn AI back on.',
       side: 'bottom', align: 'end',
     },
   },

@@ -25,6 +25,7 @@ import TermsPage   from './pages/legal/TermsPage'
 import ContactPage from './pages/legal/ContactPage'
 import MobileMenu  from './components/MobileMenu'
 import NotificationBell from './components/NotificationBell'
+import { OfflineContext } from './contexts/OfflineContext'
 import AppFooter   from './components/AppFooter'
 import PublicHeader from './components/PublicHeader'
 import Footer      from './components/Footer'
@@ -232,6 +233,15 @@ export default function App() {
   const [quota, setQuota]         = useState(null)   // { used, limit }
   const [toasts, setToasts]       = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [offlineMode, setOfflineMode] = useState(() => localStorage.getItem('glm_offline') === '1')
+
+  function toggleOffline() {
+    setOfflineMode(v => {
+      const next = !v
+      localStorage.setItem('glm_offline', next ? '1' : '0')
+      return next
+    })
+  }
   const navigate  = useNavigate()
   const location  = useLocation()
   const bp        = useBreakpoint()
@@ -524,6 +534,18 @@ export default function App() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <ThemePicker child={child} onThemeChange={handleThemeChange} />
+            <button id="tour-offline-toggle" onClick={toggleOffline} title={offlineMode ? 'AI is off — click to turn on' : 'Turn off AI (practice mode)'}
+              style={{
+                height: 38, padding: '0 12px', borderRadius: 10, cursor: 'pointer',
+                fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6,
+                background: offlineMode ? '#f5f5f5' : '#f0fff4',
+                color:      offlineMode ? '#999'    : '#27ae60',
+                border:     offlineMode ? '1.5px solid #e0e0e0' : '1.5px solid #a8e6b0',
+                transition: 'all 0.2s',
+              }}>
+              <span style={{ fontSize: 15 }}>{offlineMode ? '✈️' : '🤖'}</span>
+              {offlineMode ? 'Practice' : 'AI On'}
+            </button>
             <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null)} title="Tour"
               style={{
                 width: 38, height: 38, borderRadius: 10,
@@ -572,6 +594,14 @@ export default function App() {
             </div>
             <span id="tour-mobile-theme"><ThemePicker child={child} onThemeChange={handleThemeChange} /></span>
             <span id="tour-mobile-notifications"><NotificationBell isMobile /></span>
+            <button id="tour-mobile-offline" onClick={toggleOffline} title={offlineMode ? 'Practice mode — tap to enable AI' : 'Tap to switch to practice mode'}
+              style={{
+                width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 18,
+                background: offlineMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+              {offlineMode ? '✈️' : '🤖'}
+            </button>
             <button id="tour-mobile-menu" onClick={() => setMobileMenuOpen(true)}
               style={{
                 width: 36, height: 36, borderRadius: 10, padding: 0,
@@ -582,7 +612,18 @@ export default function App() {
         </header>
         <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} theme={theme}
           onSwitchChild={() => { setChild(null); navigate('/child') }}
-          onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null)} />
+          onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null)}
+          offlineMode={offlineMode} onToggleOffline={toggleOffline} />
+
+        {/* ── Offline banner ── */}
+        {offlineMode && (
+          <div style={{ background: '#f4f6ff', borderBottom: '1px solid #dce4f7', padding: '7px 24px', fontSize: 12, fontWeight: 700, color: '#5a72c9', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <span>✈️ Practice mode — AI features are paused. Listening and browsing still work.</span>
+            <button onClick={toggleOffline} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#5a72c9', fontWeight: 800, cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 }}>
+              Turn AI on →
+            </button>
+          </div>
+        )}
 
         {/* ── Page content ── */}
         <main className="main-scroll" style={{
@@ -590,6 +631,7 @@ export default function App() {
           padding: isMobile ? '16px 12px' : isTV ? '32px 40px' : '24px',
           overflowY: 'auto',
         }}>
+          <OfflineContext.Provider value={offlineMode}>
           <div className="page-content">
             <Routes>
               <Route path="/child/:childId/stories"    element={<Stories    child={child} quota={quota} />} />
@@ -609,6 +651,7 @@ export default function App() {
               <Route path="*"                    element={<Navigate to={`/child/${child.id}/stories`} replace />} />
             </Routes>
           </div>
+          </OfflineContext.Provider>
         </main>
         <AppFooter />
       </div>

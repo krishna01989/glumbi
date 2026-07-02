@@ -3,6 +3,7 @@ import { readQuizApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import QuotaBanner from '../components/QuotaBanner'
+import { useOffline } from '../contexts/OfflineContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -31,6 +32,7 @@ const LESSON_COLORS = {
 }
 
 export default function ReadQuiz({ child, quota }) {
+  const offline = useOffline()
   const [entries,  setEntries]  = useState([])
   const [selected, setSelected] = useState(null)
   const [topic,    setTopic]    = useState('')
@@ -91,7 +93,7 @@ export default function ReadQuiz({ child, quota }) {
     setConfirmDelete(null)
   }
 
-  const lessonColor = selected ? (LESSON_COLORS[selected.lesson] || '#667eea') : '#667eea'
+  const lessonColor = 'var(--primary)'
 
   return (
     <>
@@ -119,7 +121,7 @@ export default function ReadQuiz({ child, quota }) {
         <QuotaBanner quota={quota} />
         {/* Generate form */}
         <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#4d96ff', marginBottom: 14 }}>📚 Read & Quiz</div>
+          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)', marginBottom: 14 }}>📚 Read & Quiz</div>
           <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 800, color: '#888', display: 'block', marginBottom: 8 }}>PICK A TOPIC</label>
@@ -128,9 +130,9 @@ export default function ReadQuiz({ child, quota }) {
                   <button key={t.label} type="button" onClick={() => setTopic(t.label)}
                     style={{
                       padding: '5px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                      background: topic === t.label ? 'linear-gradient(135deg,#4d96ff,#667eea)' : '#f0f4ff',
-                      color: topic === t.label ? 'white' : '#4d96ff',
-                      border: topic === t.label ? 'none' : '1.5px solid #c5d5ff',
+                      background: topic === t.label ? 'var(--primary)' : 'var(--primary-lt)',
+                      color: topic === t.label ? 'white' : 'var(--primary)',
+                      border: topic === t.label ? 'none' : '1.5px solid var(--primary-lt)',
                     }}>
                     {t.emoji} {t.label}
                   </button>
@@ -142,17 +144,17 @@ export default function ReadQuiz({ child, quota }) {
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '2px solid #eee', fontSize: 13, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }} />
             </div>
             {error && <div style={{ fontSize: 12, color: '#e74c3c', fontWeight: 700 }}>🚫 {error}</div>}
-            <button type="submit" disabled={loading || !topic.trim() || quota?.used >= quota?.limit}
+            <button type="submit" disabled={loading || !topic.trim() || quota?.used >= quota?.limit || offline}
               style={{
                 padding: '12px', borderRadius: 50, fontWeight: 800, fontSize: 14,
-                background: 'linear-gradient(135deg,#4d96ff,#667eea)', color: 'white', border: 'none',
-                cursor: loading || !topic.trim() ? 'not-allowed' : 'pointer',
-                opacity: loading || !topic.trim() ? 0.6 : 1,
+                background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none',
+                cursor: loading || !topic.trim() || offline ? 'not-allowed' : 'pointer',
+                opacity: loading || !topic.trim() || offline ? 0.6 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
               {loading
                 ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Generating…</>
-                : '📖 Generate Story'}
+                : offline ? '✈️ AI is off' : '📖 Generate Story'}
             </button>
           </form>
         </div>
@@ -162,18 +164,17 @@ export default function ReadQuiz({ child, quota }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>History</div>
             {entries.map(e => {
-              const color = LESSON_COLORS[e.lesson] || '#667eea'
               const scoreColor = e.score === 3 ? '#27ae60' : e.score >= 2 ? '#f39c12' : '#e74c3c'
               return (
                 <div key={e.id} onClick={() => openEntry(e)}
                   style={{
                     borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                    boxShadow: selected?.id === e.id ? `0 0 0 3px ${color}, 0 4px 20px ${color}33` : 'var(--shadow)',
+                    boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
                     transition: 'box-shadow 0.2s',
                   }}>
                   {/* Coloured header */}
                   <div style={{
-                    background: `linear-gradient(135deg, ${color}, ${color}99)`,
+                    background: 'var(--primary)',
                     height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
                   }}>
                     <span style={{ fontSize: 22 }}>
@@ -193,7 +194,7 @@ export default function ReadQuiz({ child, quota }) {
                     <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       {e.lesson && (
-                        <span style={{ fontSize: 10, fontWeight: 800, background: `${color}22`, color, padding: '3px 8px', borderRadius: 50 }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
                           {e.lesson}
                         </span>
                       )}
@@ -278,7 +279,7 @@ export default function ReadQuiz({ child, quota }) {
 
             {/* Quiz */}
             <div className="card" style={{ padding: 'clamp(16px,3vw,28px)' }}>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: '#4d96ff', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>
                 🧠 Comprehension Quiz
               </div>
 
@@ -293,7 +294,7 @@ export default function ReadQuiz({ child, quota }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {q.options?.map((opt, oi) => {
                         let bg = '#f8f8f8', border = '2px solid #eee', color = '#444'
-                        if (answers[qi] === oi && !submitted) { bg = '#f0f4ff'; border = '2px solid #4d96ff'; color = '#4d96ff' }
+                        if (answers[qi] === oi && !submitted) { bg = 'var(--primary-lt)'; border = '2px solid var(--primary)'; color = 'var(--primary)' }
                         if (submitted) {
                           if (oi === q.correctIndex) { bg = '#e8f8f0'; border = '2px solid #27ae60'; color = '#27ae60' }
                           else if (answers[qi] === oi) { bg = '#fff0f0'; border = '2px solid #e74c3c'; color = '#e74c3c' }
@@ -329,8 +330,8 @@ export default function ReadQuiz({ child, quota }) {
                 <button onClick={handleSubmit}
                   style={{
                     padding: '14px 32px', borderRadius: 50, fontWeight: 800, fontSize: 16,
-                    background: 'linear-gradient(135deg,#4d96ff,#667eea)', color: 'white', border: 'none', cursor: 'pointer',
-                    boxShadow: '0 4px 16px rgba(77,150,255,0.35)',
+                    background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: 'pointer',
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
                   }}>
                   ✅ Submit Answers
                 </button>

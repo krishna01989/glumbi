@@ -73,7 +73,7 @@ export default function Timeline({ child }) {
     const fetches = []
     if (!enabled || enabled.has('stories'))    fetches.push(storyApi.getByChild(child.id, params).then(r => r.map(s => ({ ...s, type: 'story' }))))
     if (!enabled || enabled.has('journal'))    fetches.push(journalApi.getByChild(child.id, params).then(r => r.map(j => ({ ...j, type: 'journal' }))))
-    if (!enabled || enabled.has('activities') || enabled.has('learn')) fetches.push(activityApi.getByChild(child.id, params).then(r => r.filter(a => {
+    if (!enabled || enabled.has('activities') || enabled.has('learn')) fetches.push(activityApi.getByChild(child.id, { ...params, includeLearn: true }).then(r => r.filter(a => {
         if (a.category === 'learn') return !enabled || enabled.has('learn')
         return !enabled || enabled.has('activities')
       }).map(a => ({ ...a, type: a.category === 'learn' ? 'learn' : 'activity' }))))

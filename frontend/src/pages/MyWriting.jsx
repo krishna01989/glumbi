@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { writingApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 import QuotaBanner from '../components/QuotaBanner'
+import { useOffline } from '../contexts/OfflineContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -29,6 +30,7 @@ function wordCount(text) {
 }
 
 export default function MyWriting({ child, quota }) {
+  const offline = useOffline()
   const [entries,  setEntries]  = useState([])
   const [selected, setSelected] = useState(null)  // entry being viewed
   const [editing,  setEditing]  = useState(false) // true = editor open
@@ -163,7 +165,7 @@ export default function MyWriting({ child, quota }) {
             </button>
           ) : (
             <button onClick={startNew}
-              style={{ flex: 1, padding: '13px', borderRadius: 50, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(142,68,173,0.3)' }}>
+              style={{ flex: 1, padding: '13px', borderRadius: 50, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
               ✍️ Write New Story
             </button>
           )}
@@ -176,8 +178,8 @@ export default function MyWriting({ child, quota }) {
           <button onClick={startNew}
             style={{
               padding: '14px', borderRadius: 50, fontWeight: 800, fontSize: 15,
-              background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(142,68,173,0.3)',
+              background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
             }}>
             ✍️ Write New Story
           </button>
@@ -195,14 +197,14 @@ export default function MyWriting({ child, quota }) {
           <div key={e.id} onClick={() => openEntry(e)}
             style={{
               borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-              boxShadow: selected?.id === e.id ? '0 0 0 3px #8e44ad, 0 4px 20px rgba(142,68,173,0.2)' : 'var(--shadow)',
+              boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
               transition: 'box-shadow 0.2s',
             }}>
             {/* Header */}
             <div style={{
               background: e.feedbackReceived
-                ? 'linear-gradient(135deg,#8e44ad,#c77dff)'
-                : 'linear-gradient(135deg,#b388d4,#d4aaee)',
+                ? 'var(--primary)'
+                : 'var(--primary-lt)',
               height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
             }}>
               <span style={{ fontSize: 22 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
@@ -215,7 +217,7 @@ export default function MyWriting({ child, quota }) {
             <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
               {e.feedbackReceived
-                ? <span style={{ fontSize: 10, fontWeight: 800, background: '#f0e6ff', color: '#8e44ad', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
+                ? <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
                 : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Draft</span>
               }
             </div>
@@ -230,7 +232,7 @@ export default function MyWriting({ child, quota }) {
         {editing && (
           <div style={{ animation: 'fadeIn 0.3s ease' }}>
             <div className="card" style={{ padding: 'clamp(16px,3vw,28px)', marginBottom: 20 }}>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: '#8e44ad', marginBottom: 20 }}>✍️ My Story</div>
+              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>✍️ My Story</div>
 
               <input value={title} onChange={e => setTitle(e.target.value)}
                 placeholder="Give your story a title…"
@@ -244,7 +246,7 @@ export default function MyWriting({ child, quota }) {
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {STARTERS.map(s => (
                       <button key={s} type="button" onClick={() => setContent(s + ' ')}
-                        style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#f8f0ff', color: '#8e44ad', border: '1.5px solid #e0c6ff', cursor: 'pointer' }}>
+                        style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: 'var(--primary-lt)', color: 'var(--primary)', border: '1.5px solid var(--primary-lt)', cursor: 'pointer' }}>
                         "{s.slice(0, 28)}…"
                       </button>
                     ))}
@@ -266,17 +268,17 @@ export default function MyWriting({ child, quota }) {
                     style={{ padding: '10px 20px', borderRadius: 50, fontWeight: 700, fontSize: 13, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
                     {saving ? 'Saving…' : '💾 Save'}
                   </button>
-                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || quota?.used >= quota?.limit}
+                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || quota?.used >= quota?.limit || offline}
                     style={{
                       padding: '10px 20px', borderRadius: 50, fontWeight: 800, fontSize: 13,
-                      background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none',
-                      cursor: fbLoading || !content.trim() || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
-                      opacity: fbLoading || !content.trim() || quota?.used >= quota?.limit ? 0.6 : 1,
+                      background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none',
+                      cursor: fbLoading || !content.trim() || quota?.used >= quota?.limit || offline ? 'not-allowed' : 'pointer',
+                      opacity: fbLoading || !content.trim() || quota?.used >= quota?.limit || offline ? 0.6 : 1,
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}>
                     {fbLoading
                       ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Reading…</>
-                      : '✨ Get Feedback'}
+                      : offline ? '✈️ AI is off' : '✨ Get Feedback'}
                   </button>
                 </div>
               </div>
@@ -286,12 +288,12 @@ export default function MyWriting({ child, quota }) {
             {/* Feedback card */}
             {feedback && (
               <div style={{ animation: 'fadeIn 0.5s ease' }} className="card">
-                <div style={{ background: 'linear-gradient(135deg,#f8f0ff,#ede0ff)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 40 }}>{feedback.badge}</span>
                   <div>
-                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#8e44ad' }}>Coach's Feedback</div>
+                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)' }}>Coach's Feedback</div>
                     {feedback.starWord && (
-                      <div style={{ fontSize: 12, color: '#8e44ad', fontWeight: 700 }}>⭐ Star word: <em>"{feedback.starWord}"</em></div>
+                      <div style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>⭐ Star word: <em>"{feedback.starWord}"</em></div>
                     )}
                   </div>
                 </div>
@@ -304,7 +306,7 @@ export default function MyWriting({ child, quota }) {
                     <div style={{ fontSize: 11, fontWeight: 800, color: '#f39c12', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Try this next time 💡</div>
                     <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{feedback.suggestion}</div>
                   </div>
-                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#8e44ad', fontStyle: 'italic' }}>
+                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--primary)', fontStyle: 'italic' }}>
                     {feedback.encouragement}
                   </div>
                 </div>
@@ -324,7 +326,7 @@ export default function MyWriting({ child, quota }) {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => editEntry(selected)}
-                    style={{ padding: '8px 16px', borderRadius: 50, background: '#f8f0ff', color: '#8e44ad', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    style={{ padding: '8px 16px', borderRadius: 50, background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
                     ✏️ Edit
                   </button>
                   <button onClick={() => handleDelete(selected.id)}
@@ -337,20 +339,20 @@ export default function MyWriting({ child, quota }) {
                 {selected.content}
               </div>
               {!selected.feedbackReceived && (
-                <button onClick={() => editEntry(selected)}
-                  style={{ marginTop: 16, padding: '12px 24px', borderRadius: 50, background: 'linear-gradient(135deg,#8e44ad,#c77dff)', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-                  ✨ Edit & Get Feedback
+                <button onClick={() => !offline && editEntry(selected)} disabled={offline}
+                  style={{ marginTop: 16, padding: '12px 24px', borderRadius: 50, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
+                  {offline ? '✈️ AI is off' : '✨ Edit & Get Feedback'}
                 </button>
               )}
             </div>
 
             {selected.feedbackReceived && (
               <div className="card">
-                <div style={{ background: 'linear-gradient(135deg,#f8f0ff,#ede0ff)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 40 }}>{selected.badge}</span>
                   <div>
-                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#8e44ad' }}>Coach's Feedback</div>
-                    {selected.starWord && <div style={{ fontSize: 12, color: '#8e44ad', fontWeight: 700 }}>⭐ Star word: <em>"{selected.starWord}"</em></div>}
+                    <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)' }}>Coach's Feedback</div>
+                    {selected.starWord && <div style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>⭐ Star word: <em>"{selected.starWord}"</em></div>}
                   </div>
                 </div>
                 <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -362,7 +364,7 @@ export default function MyWriting({ child, quota }) {
                     <div style={{ fontSize: 11, fontWeight: 800, color: '#f39c12', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Try this next time 💡</div>
                     <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackSuggestion}</div>
                   </div>
-                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: '#8e44ad', fontStyle: 'italic' }}>
+                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--primary)', fontStyle: 'italic' }}>
                     {selected.feedbackEncouragement}
                   </div>
                 </div>

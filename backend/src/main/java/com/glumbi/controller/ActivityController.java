@@ -44,8 +44,9 @@ public class ActivityController {
     @GetMapping("/child/{childId}")
     public List<Activity> getByChild(@PathVariable Long childId,
                                       @RequestParam(required = false) LocalDateTime from,
-                                      @RequestParam(required = false) LocalDateTime to) {
-        return service.getByChild(childId, from, to);
+                                      @RequestParam(required = false) LocalDateTime to,
+                                      @RequestParam(defaultValue = "false") boolean includeLearn) {
+        return service.getByChild(childId, from, to, includeLearn);
     }
 
     @PatchMapping("/{id}/complete")

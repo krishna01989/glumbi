@@ -103,7 +103,7 @@ input:focus, textarea:focus, select:focus {
   box-shadow: var(--shadow);
 }
 
-.btn-primary   { background: var(--primary); color: white; }
+.btn-primary   { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; }
 .btn-secondary { background: #f5ede4; color: #777; }
 .btn-danger    { background: #ff6b6b; color: white; }
 .btn-green     { background: var(--green); color: white; }

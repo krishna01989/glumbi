@@ -62,7 +62,7 @@ const INFO_ITEMS = [
   { emoji: '⚖️', label: 'Terms of Service', path: '/terms' },
 ]
 
-export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, theme, onTour }) {
+export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, theme, onTour, offlineMode, onToggleOffline }) {
   const navigate = useNavigate()
 
   function go(path) {
@@ -130,6 +130,10 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {quota && <MobileQuotaBar quota={quota} />}
+          <button onClick={onToggleOffline}
+            style={{ padding: '11px', borderRadius: 50, border: offlineMode ? '1.5px solid rgba(255,255,255,0.5)' : 'none', background: offlineMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+            {offlineMode ? '✈️ Practice mode (AI off) — tap to turn on' : '🤖 AI On — tap for practice mode'}
+          </button>
           <button id="tour-mobile-switch" onClick={() => { onSwitchChild(); onClose() }}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🔀 Switch Child

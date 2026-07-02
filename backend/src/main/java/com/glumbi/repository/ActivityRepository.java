@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
     List<Activity> findByChildIdOrderByCreatedAtDesc(Long childId);
+    List<Activity> findByChildIdAndCategoryNotOrderByCreatedAtDesc(Long childId, String category);
+    List<Activity> findByChildIdAndCategoryNotAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, String category, LocalDateTime from, LocalDateTime to);
     List<Activity> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     List<Activity> findByChildIdAndCompletedTrueOrderByCreatedAtDesc(Long childId);
     void deleteByChildId(Long childId);

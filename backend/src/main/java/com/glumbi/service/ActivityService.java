@@ -56,10 +56,15 @@ public class ActivityService {
         }).collect(Collectors.toList());
     }
 
-    public List<Activity> getByChild(Long childId, LocalDateTime from, LocalDateTime to) {
+    public List<Activity> getByChild(Long childId, LocalDateTime from, LocalDateTime to, boolean includeLearn) {
+        if (includeLearn) {
+            if (from != null && to != null)
+                return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);
+            return repo.findByChildIdOrderByCreatedAtDesc(childId);
+        }
         if (from != null && to != null)
-            return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);
-        return repo.findByChildIdOrderByCreatedAtDesc(childId);
+            return repo.findByChildIdAndCategoryNotAndCreatedAtBetweenOrderByCreatedAtDesc(childId, "learn", from, to);
+        return repo.findByChildIdAndCategoryNotOrderByCreatedAtDesc(childId, "learn");
     }
 
     public Activity markComplete(Long id, RatingRequest req) {

@@ -9,6 +9,8 @@ import com.glumbi.repository.AppSettingRepository;
 import com.glumbi.repository.FeatureConfigRepository;
 import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.repository.UserRepository;
+import com.glumbi.entity.SchedulerRun;
+import com.glumbi.repository.SchedulerRunRepository;
 import com.glumbi.scheduler.SchedulerHistoryHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +38,7 @@ public class ApiQuotaService {
     private final AppSettingRepository          appSettingRepo;
     private final UserFeatureOverrideRepository overrideRepo;
     private final ObjectMapper                  objectMapper;
+    private final SchedulerRunRepository        schedulerRunRepo;
 
     @Value("${app.quota.default-monthly-credits:200}")
     private int defaultMonthlyCreditsYaml;
@@ -101,7 +104,13 @@ public class ApiQuotaService {
     @Scheduled(cron = "0 0 0 1 * *")
     @Transactional
     public void resetAllMonthlyCounters() {
-        String startedAt = LocalDateTime.now().format(FMT);
+        // Insert RUNNING row immediately
+        SchedulerRun run = new SchedulerRun();
+        run.setSchedulerId("reset-credits");
+        run.setStartedAt(LocalDateTime.now());
+        run.setStatus("RUNNING");
+        run = schedulerRunRepo.save(run);
+
         String error = null;
         int usersReset = 0;
         try {
@@ -117,14 +126,13 @@ public class ApiQuotaService {
             error = e.getMessage();
             System.err.println("[Scheduler] Credit reset failed: " + error);
         }
-        String finishedAt = LocalDateTime.now().format(FMT);
-        Map<String, Object> record = new LinkedHashMap<>();
-        record.put("startedAt",   startedAt);
-        record.put("finishedAt",  finishedAt);
-        record.put("usersReset",  usersReset);
-        record.put("success",     error == null);
-        if (error != null) record.put("error", error);
-        SchedulerHistoryHelper.append(appSettingRepo, objectMapper, RESET_HISTORY_KEY, record);
+
+        // Update row with result
+        run.setFinishedAt(LocalDateTime.now());
+        run.setStatus(error == null ? "SUCCESS" : "FAILED");
+        run.setChildrenProcessed(usersReset);
+        run.setErrors(error != null ? "[\"" + error + "\"]" : "[]");
+        schedulerRunRepo.save(run);
     }
 
     public int getDefaultMonthlyCredits() {

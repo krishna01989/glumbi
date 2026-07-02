@@ -60,13 +60,15 @@ public class LearnController {
         String scriptLabel = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
         String prompt = String.format(
             "A %d-year-old child named %s is learning to write the %s letter/character \"%s\". " +
-            "Look at their drawing and decide: does it resemble \"%s\"? " +
-            "Respond with a JSON object with two fields: " +
-            "\"correct\": true or false (be generous — any reasonable attempt counts as true), " +
-            "\"feedback\": a warm 1-2 sentence message in simple English for a %d-year-old. " +
-            "If correct, celebrate enthusiastically! If not quite right, be very gentle and encouraging — never discouraging. " +
-            "Only respond with the JSON, no other text.",
-            childAge, childName, scriptLabel, letter, letter, childAge
+            "IMPORTANT RULES:\n" +
+            "- Set \"correct\" to TRUE if there are ANY visible pen strokes on the canvas, even if messy or imperfect.\n" +
+            "- Set \"correct\" to FALSE ONLY if the canvas is completely blank (no marks at all).\n" +
+            "- Never judge accuracy. If the child made any effort, correct=true.\n" +
+            "Respond ONLY with a JSON object with two fields:\n" +
+            "\"correct\": true or false,\n" +
+            "\"feedback\": a warm, enthusiastic 1-2 sentence celebration in simple English for a %d-year-old. " +
+            "Always celebrate their effort! Only respond with the JSON, no other text.",
+            childAge, childName, scriptLabel, letter, childAge
         );
 
         try {

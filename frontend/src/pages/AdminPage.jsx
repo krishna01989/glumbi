@@ -841,17 +841,12 @@ function Users() {
 }
 
 // ─── AI Agents section ────────────────────────────────────────────────────────
-const AGENT_COLORS = {
-  'progress-report':      '#4facfe',
-  'milestone':            '#43e97b',
-  'story-recommendation': '#f093fb',
-  'learning-insight':     '#fa709a',
-}
 const AGENT_ICONS = {
   'progress-report':      '📊',
   'milestone':            '🏆',
   'story-recommendation': '✨',
   'learning-insight':     '💡',
+  'learn-to-write':       '✏️',
 }
 
 function Agents() {
@@ -907,14 +902,13 @@ function Agents() {
       {!loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {agents.map(a => {
-            const color   = AGENT_COLORS[a.id] || '#aaa'
-            const icon    = AGENT_ICONS[a.id]  || '🤖'
+            const icon     = AGENT_ICONS[a.id] || '🤖'
             const toggling = saving === a.id
             return (
               <div key={a.id} style={{
                 background: 'white', borderRadius: 14, padding: '18px 22px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', gap: 14, alignItems: 'center',
-                borderLeft: `4px solid ${a.enabled ? color : '#ddd'}`,
+                borderLeft: `4px solid ${a.enabled ? '#27ae60' : '#ddd'}`,
                 opacity: a.enabled ? 1 : 0.65,
                 transition: 'opacity 0.2s, border-color 0.2s',
               }}>
@@ -930,7 +924,7 @@ function Agents() {
                     style={{
                       width: 48, height: 26, borderRadius: 13, border: 'none',
                       cursor: toggling ? 'wait' : 'pointer', position: 'relative',
-                      background: a.enabled ? color : '#e0e0e0',
+                      background: a.enabled ? '#27ae60' : '#e0e0e0',
                       transition: 'background 0.2s',
                       opacity: toggling ? 0.6 : 1,
                     }}>
@@ -940,7 +934,7 @@ function Agents() {
                       boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                     }} />
                   </button>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: a.enabled ? color : '#aaa' }}>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: a.enabled ? '#27ae60' : '#aaa' }}>
                     {toggling ? '…' : a.enabled ? 'ENABLED' : 'DISABLED'}
                   </span>
                 </div>
@@ -1370,28 +1364,32 @@ function SchedulerHistoryModal({ scheduler, onClose }) {
         {history && history.length > 0 && (
           <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {history.map((run, i) => {
-              const ok  = run.success !== false
+              const status  = run.status ?? (run.success !== false ? 'SUCCESS' : 'FAILED')
+              const running = status === 'RUNNING'
+              const ok      = status === 'SUCCESS'
               const ran     = run.agentsRan     ?? []
               const skipped = run.agentsSkipped ?? []
               const errors  = run.errors        ?? []
               return (
                 <div key={i} style={{
-                  borderRadius: 12, border: `1.5px solid ${ok ? '#c3e6cb' : '#f5c6cb'}`,
-                  background: ok ? '#f0fff4' : '#fff5f5', padding: '12px 16px',
+                  borderRadius: 12,
+                  border: `1.5px solid ${running ? '#bee3f8' : ok ? '#c3e6cb' : '#f5c6cb'}`,
+                  background: running ? '#ebf8ff' : ok ? '#f0fff4' : '#fff5f5',
+                  padding: '12px 16px',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 16 }}>{ok ? '✅' : '❌'}</span>
-                    <span style={{ fontWeight: 800, fontSize: 13, color: ok ? '#2e7d32' : '#c62828' }}>
-                      {ok ? 'Success' : 'Failed'}
+                    <span style={{ fontSize: 16 }}>{running ? '⏳' : ok ? '✅' : '❌'}</span>
+                    <span style={{ fontWeight: 800, fontSize: 13, color: running ? '#2b6cb0' : ok ? '#2e7d32' : '#c62828' }}>
+                      {running ? 'Running…' : ok ? 'Success' : 'Failed'}
                     </span>
                     <span style={{ flex: 1 }} />
-                    <span style={{ fontSize: 11, color: '#888', fontWeight: 700 }}>{run.startedAt}</span>
+                    <span style={{ fontSize: 11, color: '#888', fontWeight: 700 }}>{new Date(run.startedAt).toLocaleString()}</span>
                   </div>
 
                   {/* Duration */}
                   {run.finishedAt && run.startedAt && (() => {
                     try {
-                      const diff = Math.round((new Date(run.finishedAt.replace(' ', 'T')) - new Date(run.startedAt.replace(' ', 'T'))) / 1000)
+                      const diff = Math.round((new Date(run.finishedAt) - new Date(run.startedAt)) / 1000)
                       return diff > 0
                         ? <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Duration: {diff < 60 ? diff + 's' : Math.round(diff / 60) + 'm ' + (diff % 60) + 's'}</div>
                         : null
@@ -1668,13 +1666,7 @@ export default function AdminPage({ onBack, onLogout }) {
 
         {/* Bottom actions */}
         <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {onBack && (
-            <button onClick={onBack}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
-              ← Back to App
-            </button>
-          )}
-          {onLogout && (
+{onLogout && (
             <button onClick={onLogout}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.15)', color: '#ff6b6b', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
               🚪 Sign Out

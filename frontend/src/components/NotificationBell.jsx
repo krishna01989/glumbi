@@ -6,6 +6,7 @@ const TYPE_ICON = {
   MILESTONE:            '🏆',
   STORY_RECOMMENDATION: '✨',
   LEARNING_INSIGHT:     '💡',
+  LEARN_TO_WRITE:       '✏️',
 }
 
 const TYPE_LABEL = {
@@ -13,6 +14,7 @@ const TYPE_LABEL = {
   MILESTONE:            'Milestone',
   STORY_RECOMMENDATION: 'Story Idea',
   LEARNING_INSIGHT:     'Learning Insight',
+  LEARN_TO_WRITE:       'Learn to Write',
 }
 
 export default function NotificationBell({ isMobile = false }) {

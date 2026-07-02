@@ -42,6 +42,7 @@ public class AdminController {
     private final ApiQuotaService               quotaService;
     private final UserFeatureOverrideRepository overrideRepo;
     private final AppSettingRepository          appSettingRepo;
+    private final SchedulerRunRepository        schedulerRunRepo;
     private final ObjectMapper                  objectMapper;
 
     @GetMapping("/stats")
@@ -492,21 +493,46 @@ public class AdminController {
 
     @GetMapping("/scheduler/{id}/history")
     public ResponseEntity<?> schedulerHistory(@PathVariable String id) {
-        String historyKey = switch (id) {
-            case "weekly-notifications" -> NotificationScheduler.HISTORY_KEY;
-            case "reset-credits"        -> ApiQuotaService.RESET_HISTORY_KEY;
-            default -> null;
-        };
-        if (historyKey == null) return ResponseEntity.badRequest().body(Map.of("error", "Unknown scheduler: " + id));
-        List<Map<String, Object>> history = SchedulerHistoryHelper.read(appSettingRepo, objectMapper, historyKey);
+        if (!Set.of("weekly-notifications", "reset-credits").contains(id))
+            return ResponseEntity.badRequest().body(Map.of("error", "Unknown scheduler: " + id));
+
+        List<Map<String, Object>> history = schedulerRunRepo
+            .findTop50BySchedulerIdOrderByStartedAtDesc(id)
+            .stream()
+            .map(r -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id",                r.getId());
+                m.put("startedAt",         r.getStartedAt());
+                m.put("finishedAt",        r.getFinishedAt());
+                m.put("status",            r.getStatus());
+                m.put("childrenProcessed", r.getChildrenProcessed());
+                m.put("agentsRan",         parseJson(r.getAgentsRan()));
+                m.put("agentsSkipped",     parseJson(r.getAgentsSkipped()));
+                m.put("errors",            parseJson(r.getErrors()));
+                return m;
+            })
+            .toList();
+
         return ResponseEntity.ok(Map.of("schedulerId", id, "history", history));
+    }
+
+    private Object parseJson(String json) {
+        if (json == null) return List.of();
+        try { return objectMapper.readValue(json, List.class); } catch (Exception e) { return List.of(); }
     }
 
     private Map<String, Object> parseLastRunLog(String key) {
         return appSettingRepo.findById(key).map(s -> {
             try {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> m = objectMapper.readValue(s.getValue(), Map.class);
+                Map<String, Object> m = new LinkedHashMap<>(objectMapper.readValue(s.getValue(), Map.class));
+                // Parse any fields that were stored as JSON strings instead of arrays
+                for (String field : List.of("agentsRan", "agentsSkipped", "errors")) {
+                    Object v = m.get(field);
+                    if (v instanceof String str) {
+                        try { m.put(field, objectMapper.readValue(str, List.class)); } catch (Exception ignored) {}
+                    }
+                }
                 return m;
             } catch (Exception e) {
                 return Map.<String, Object>of();
@@ -520,7 +546,8 @@ public class AdminController {
         Map.of("id", NotificationScheduler.AGENT_PROGRESS,  "label", "Progress Report",        "description", "Generates a weekly summary of each child's learning activity — stories, quizzes, and writing entries from the past 7 days."),
         Map.of("id", NotificationScheduler.AGENT_MILESTONE, "label", "Milestone Detection",    "description", "Scans all-time activity to detect achievements (e.g. first story, 10 quizzes) and sends a congratulatory notification."),
         Map.of("id", NotificationScheduler.AGENT_STORY_REC, "label", "Story Recommendation",   "description", "Analyses a child's reading history and suggests a new story theme tailored to their interests."),
-        Map.of("id", NotificationScheduler.AGENT_LEARNING,  "label", "Learning Insight",       "description", "Reviews the last two weeks of quizzes and writing to surface patterns and tips for the parent.")
+        Map.of("id", NotificationScheduler.AGENT_LEARNING,  "label", "Learning Insight",       "description", "Reviews the last two weeks of quizzes and writing to surface patterns and tips for the parent."),
+        Map.of("id", NotificationScheduler.AGENT_LEARN_WRITE, "label", "Learn to Write",       "description", "Summarises the letters and words a child practised writing this week and suggests what to try next.")
     );
 
     @GetMapping("/agents")

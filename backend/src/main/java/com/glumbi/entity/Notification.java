@@ -43,6 +43,7 @@ public class Notification {
         MILESTONE,
         STORY_RECOMMENDATION,
         LEARNING_INSIGHT,
+        LEARN_TO_WRITE,
         QUOTA_WARNING
     }
 }

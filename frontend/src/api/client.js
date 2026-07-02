@@ -155,4 +155,5 @@ export const adminApi = {
   runNotifications:  ()             => api.post('/admin/notifications/run').then(r => r.data),
   holdUser:          (id, reason)   => api.patch(`/admin/users/${id}/hold`, { reason }).then(r => r.data),
   releaseUser:       (id)           => api.patch(`/admin/users/${id}/release`).then(r => r.data),
+  resetQuota:        (id)           => api.patch(`/admin/users/${id}/quota/reset`).then(r => r.data),
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { adminApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -85,6 +85,70 @@ function HoldModal({ user, onClose, onConfirm }) {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── User actions kebab menu ──────────────────────────────────────────────────
+function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onHold, onRelease, onDelete }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  function act(fn) { setOpen(false); fn() }
+
+  const items = [
+    { label: user.role === 'ADMIN' ? 'Demote to User' : 'Make Admin', icon: user.role === 'ADMIN' ? '↓' : '↑', color: '#555', bg: '#f0f0f0', fn: onRoleToggle },
+    user.authMethod === 'password' && { label: 'Reset Password', icon: '🔑', color: '#1a73e8', bg: '#e8f0fe', fn: onResetPw },
+    user.role !== 'ADMIN' && (user.quotaUsed ?? 0) > 0 && { label: 'Reset AI Quota', icon: '🔄', color: '#7c3aed', bg: '#f3e8ff', fn: onResetQuota },
+    user.onHold
+      ? { label: 'Release Account', icon: '✅', color: '#2e7d32', bg: '#e8f5e9', fn: onRelease }
+      : { label: 'Put on Hold', icon: '🔒', color: '#e74c3c', bg: '#fff3f3', fn: onHold },
+    { label: 'Delete User', icon: '🗑', color: '#e74c3c', bg: '#fff0f0', fn: onDelete, danger: true },
+  ].filter(Boolean)
+
+  return (
+    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{
+          width: 34, height: 34, borderRadius: 8, border: '1.5px solid #eee',
+          background: open ? '#f0f0f0' : 'white', cursor: 'pointer',
+          fontSize: 18, fontWeight: 900, color: '#555',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          lineHeight: 1,
+        }}>
+        ⋮
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: 40, zIndex: 100,
+          background: 'white', borderRadius: 12, padding: '6px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+          border: '1px solid #eee', minWidth: 180,
+        }}>
+          {items.map((item, i) => (
+            <button key={i} onClick={() => act(item.fn)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                padding: '9px 12px', borderRadius: 8, border: 'none',
+                background: 'none', cursor: 'pointer', textAlign: 'left',
+                fontSize: 13, fontWeight: 700, color: item.color,
+                borderTop: item.danger && items.length > 1 ? '1px solid #f5f5f5' : 'none',
+                marginTop: item.danger ? 4 : 0,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = item.bg }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
+              <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -309,6 +373,28 @@ function Dashboard() {
         </div>
       </div>}
 
+      {/* Quota overview */}
+      {stats && (
+        <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>🤖 AI Quota — This Month</div>
+          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>200 calls/user · resets on the 1st</div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#667eea' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Total AI calls used</div>
+            </div>
+            <div style={{ flex: '1 1 140px', background: (stats.usersAtLimit ?? 0) > 0 ? '#fff0f0' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersAtLimit ?? 0) > 0 ? '1.5px solid #fcc' : 'none' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersAtLimit ?? 0) > 0 ? '#e74c3c' : '#aaa' }}>{stats.usersAtLimit ?? 0}</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users at limit (200/200)</div>
+            </div>
+            <div style={{ flex: '1 1 140px', background: (stats.usersNearLimit ?? 0) > 0 ? '#fff8e1' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersNearLimit ?? 0) > 0 ? '1.5px solid #ffd54f' : 'none' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersNearLimit ?? 0) > 0 ? '#f57f17' : '#aaa' }}>{stats.usersNearLimit ?? 0}</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users near limit (160+)</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Recent activity */}
       {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
         <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 16 }}>🕐 Recent Activity</div>
@@ -380,6 +466,22 @@ function Users() {
       await adminApi.releaseUser(user.id)
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, onHold: false, holdReason: null } : u))
     } catch (e) { setError(e.message) }
+  }
+
+  async function handleResetQuota(user) {
+    setConfirm({
+      title: 'Reset Quota',
+      message: `Reset AI quota for ${user.email} to 0/200? They'll get the full 200 calls immediately.`,
+      confirmLabel: 'Reset',
+      confirmColor: '#667eea',
+      onConfirm: async () => {
+        setConfirm(null)
+        try {
+          const updated = await adminApi.resetQuota(user.id)
+          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, quotaUsed: updated.quotaUsed } : u))
+        } catch (e) { setError(e.message) }
+      }
+    })
   }
 
   async function handleRoleToggle(user) {
@@ -465,6 +567,21 @@ function Users() {
                     Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     &nbsp;·&nbsp;{user.childCount} {user.childCount === 1 ? 'child' : 'children'}
                   </div>
+                  {/* Quota bar */}
+                  {user.role !== 'ADMIN' && (() => {
+                    const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 200), 1)
+                    const color = pct >= 1 ? '#e74c3c' : pct >= 0.8 ? '#f57f17' : '#43e97b'
+                    return (
+                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ flex: 1, height: 5, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: 'nowrap' }}>
+                          {user.quotaUsed ?? 0}/{user.quotaLimit ?? 200} AI calls
+                        </span>
+                      </div>
+                    )
+                  })()}
                   {user.onHold && user.holdReason && (
                     <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 4, fontStyle: 'italic' }}>
                       Reason: {user.holdReason}
@@ -472,33 +589,15 @@ function Users() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
-                  <button onClick={() => handleRoleToggle(user)}
-                    style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
-                    {user.role === 'ADMIN' ? '↓ Demote' : '↑ Make Admin'}
-                  </button>
-                  {user.authMethod === 'password' && (
-                    <button onClick={() => setResetUser(user)}
-                      style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#e8f0fe', color: '#1a73e8', border: 'none', cursor: 'pointer' }}>
-                      🔑 Reset PW
-                    </button>
-                  )}
-                  {user.onHold ? (
-                    <button onClick={() => handleRelease(user)}
-                      style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#e8f5e9', color: '#2e7d32', border: 'none', cursor: 'pointer' }}>
-                      ✅ Release
-                    </button>
-                  ) : (
-                    <button onClick={() => setHoldUser(user)}
-                      style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#fff3f3', color: '#e74c3c', border: '1.5px solid #fcc', cursor: 'pointer' }}>
-                      🔒 Hold
-                    </button>
-                  )}
-                  <button onClick={() => handleDelete(user)}
-                    style={{ padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#fff0f0', color: '#e74c3c', border: '1.5px solid #fcc', cursor: 'pointer' }}>
-                    🗑 Delete
-                  </button>
-                </div>
+                <UserActions
+                  user={user}
+                  onRoleToggle={() => handleRoleToggle(user)}
+                  onResetPw={() => setResetUser(user)}
+                  onResetQuota={() => handleResetQuota(user)}
+                  onHold={() => setHoldUser(user)}
+                  onRelease={() => handleRelease(user)}
+                  onDelete={() => handleDelete(user)}
+                />
               </div>
             ))}
             {filtered.length === 0 && (

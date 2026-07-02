@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -128,17 +129,55 @@ public class AdminController {
             ageDistribution.computeIfPresent(key, (k, v) -> v + 1);
         });
 
-        // Recent activity feed — last 10 stories
-        List<Map<String, Object>> recentActivity = storyRepo.findTop10ByOrderByCreatedAtDesc()
-                .stream().map(s -> {
-                    Map<String, Object> a = new LinkedHashMap<>();
-                    a.put("type",      "story");
-                    a.put("icon",      "📖");
-                    a.put("label",     "Story generated: " + s.getTitle());
-                    a.put("childName", s.getChild() != null ? s.getChild().getName() : "");
-                    a.put("createdAt", s.getCreatedAt().toString());
-                    return a;
-                }).collect(Collectors.toList());
+        // Recent activity feed — merge across all feature tables, show newest 15
+        List<Map<String, Object>> recentActivity = new ArrayList<>();
+        storyRepo.findTop10ByOrderByCreatedAtDesc().forEach(s -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "story"); a.put("icon", "📖");
+            a.put("label", "Story: " + s.getTitle());
+            a.put("childName", s.getChild() != null ? s.getChild().getName() : "");
+            a.put("createdAt", s.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        curiosityRepo.findTop5ByOrderByCreatedAtDesc().forEach(c -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "curiosity"); a.put("icon", "🔍");
+            a.put("label", "Asked: " + c.getQuestion());
+            a.put("childName", c.getChild() != null ? c.getChild().getName() : "");
+            a.put("createdAt", c.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        quizRepo.findTop5ByCompletedTrueOrderByCreatedAtDesc().forEach(q -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "quiz"); a.put("icon", "📚");
+            a.put("label", "Quiz: " + q.getTopic() + " — " + q.getScore() + "/3");
+            a.put("childName", q.getChild() != null ? q.getChild().getName() : "");
+            a.put("createdAt", q.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        writingRepo.findTop5ByOrderByCreatedAtDesc().forEach(w -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "writing"); a.put("icon", "✍️");
+            a.put("label", "Writing: " + w.getTitle());
+            a.put("childName", w.getChild() != null ? w.getChild().getName() : "");
+            a.put("createdAt", w.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        activityRepo.findTop5ByCategoryNotOrderByCreatedAtDesc("learn").forEach(act -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "activity"); a.put("icon", act.getEmoji() != null ? act.getEmoji() : "🎮");
+            a.put("label", "Activity: " + act.getTitle());
+            a.put("childName", act.getChild() != null ? act.getChild().getName() : "");
+            a.put("createdAt", act.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        recentActivity.sort((x, y) -> y.get("createdAt").toString().compareTo(x.get("createdAt").toString()));
+        List<Map<String, Object>> recentActivityTrimmed = recentActivity.stream().limit(15).collect(Collectors.toList());
+
+        // Quota overview — current month usage across all users
+        String thisMonth = YearMonth.now().toString();
+        long totalQuotaCalls = userRepo.findAll().stream()
+            .filter(u -> thisMonth.equals(u.getApiCallMonth()))
+            .mapToLong(u -> u.getMonthlyApiCalls()).sum();
+        long usersAtLimit   = userRepo.findAll().stream()
+            .filter(u -> thisMonth.equals(u.getApiCallMonth()) && u.getMonthlyApiCalls() >= 200).count();
+        long usersNearLimit = userRepo.findAll().stream()
+            .filter(u -> thisMonth.equals(u.getApiCallMonth()) && u.getMonthlyApiCalls() >= 160 && u.getMonthlyApiCalls() < 200).count();
 
         // Alerts — always based on 7-day window regardless of selected range
         long newUsersThisWeek = userRepo.countByCreatedAtAfter(week);
@@ -179,8 +218,11 @@ public class AdminController {
         result.put("quizScoreDistribution", quizScores);
         result.put("engagementBuckets",   engagementBuckets);
         result.put("ageDistribution",     ageDistribution);
-        result.put("recentActivity",      recentActivity);
+        result.put("recentActivity",      recentActivityTrimmed);
         result.put("alerts",              alerts);
+        result.put("totalQuotaCalls",     totalQuotaCalls);
+        result.put("usersAtLimit",        usersAtLimit);
+        result.put("usersNearLimit",      usersNearLimit);
         return result;
     }
 
@@ -220,6 +262,7 @@ public class AdminController {
 
     @GetMapping("/users")
     public List<Map<String, Object>> listUsers() {
+        String thisMonth = YearMonth.now().toString();
         return userRepo.findAll().stream().map(u -> {
             Map<String, Object> m = new java.util.HashMap<>();
             m.put("id",          u.getId());
@@ -230,8 +273,23 @@ public class AdminController {
             m.put("authMethod",  u.getGoogleSub() != null ? "google" : "password");
             m.put("onHold",      u.isOnHold());
             m.put("holdReason",  u.getHoldReason());
+            // Quota: reset month check (same logic as ApiQuotaService)
+            int used = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
+            m.put("quotaUsed",   used);
+            m.put("quotaLimit",  200);
             return m;
         }).toList();
+    }
+
+    @PatchMapping("/users/{id}/quota/reset")
+    @Transactional
+    public ResponseEntity<?> resetQuota(@PathVariable Long id) {
+        return userRepo.findById(id).map(u -> {
+            u.setMonthlyApiCalls(0);
+            u.setApiCallMonth(YearMonth.now().toString());
+            userRepo.save(u);
+            return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", 200));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/users/{id}")

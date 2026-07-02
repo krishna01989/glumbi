@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../api/client'
+import ErrorBox from '../components/ErrorBox'
 import PublicHeader from '../components/PublicHeader'
 import Footer from '../components/Footer'
 
@@ -162,11 +163,7 @@ export default function AuthPage({ onAuth }) {
             })()}
           </div>
 
-          {error && (
-            <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
-              🚫 {error}
-            </div>
-          )}
+          <ErrorBox msg={error} />
 
           <button type="submit" className="btn-primary" disabled={loading}
             style={{ padding: '14px', fontSize: 16, marginTop: 4 }}>

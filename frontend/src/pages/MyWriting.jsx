@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { writingApi } from '../api/client'
+import ErrorBox from '../components/ErrorBox'
 import ConfirmDialog from '../components/ConfirmDialog'
 import QuotaBanner from '../components/QuotaBanner'
 import { useOffline } from '../contexts/OfflineContext'
@@ -282,7 +283,7 @@ export default function MyWriting({ child, quota }) {
                   </button>
                 </div>
               </div>
-              {error && <div style={{ marginTop: 10, fontSize: 13, color: '#e74c3c', fontWeight: 700 }}>🚫 {error}</div>}
+              <ErrorBox msg={error} />
             </div>
 
             {/* Feedback card */}

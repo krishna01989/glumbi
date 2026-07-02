@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { demoApi } from '../api/client'
+import ErrorBox from '../components/ErrorBox'
 import PublicHeader from '../components/PublicHeader'
 import Footer from '../components/Footer'
 
@@ -85,7 +86,7 @@ export default function DemoPage() {
       if (err.message?.includes('free demo') || err.message?.includes('limitReached')) {
         setLimitHit(true)
       } else {
-        setError(err.message || 'Something went wrong. Please try again.')
+        setError(err.message || 'Something went wrong. Please try again!')
         if (widgetIdRef.current != null) window.turnstile.reset(widgetIdRef.current)
       }
     } finally {
@@ -106,7 +107,7 @@ export default function DemoPage() {
             ✨ Try Glumbi Live
           </div>
           <p style={{ fontSize: 'clamp(14px,2.5vw,17px)', color: '#888', maxWidth: 480, margin: '0 auto' }}>
-            Enter any child's name and a few story ideas — watch AI create a magical bedtime story in seconds. No sign-up needed!
+            Enter any child's name and a few story ideas — watch Glumbi AI create a magical bedtime story in seconds. No sign-up needed!
           </p>
           <div style={{ display: 'inline-block', marginTop: 12, background: '#fff3cd', color: '#856404', padding: '6px 16px', borderRadius: 50, fontSize: 12, fontWeight: 700 }}>
             🎁 2 free stories per day • No credit card
@@ -174,11 +175,7 @@ export default function DemoPage() {
                 <div ref={turnstileRef} />
               </div>
 
-              {error && (
-                <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
-                  🚫 {error}
-                </div>
-              )}
+              <ErrorBox msg={error} />
               <button type="submit" disabled={loading || !childName.trim() || !keywords.trim()}
                 style={{
                   padding: '16px', borderRadius: 50, fontSize: 17, fontWeight: 800,
@@ -212,7 +209,7 @@ export default function DemoPage() {
               You loved it!
             </h2>
             <p style={{ color: '#888', fontSize: 15, marginBottom: 24, lineHeight: 1.7 }}>
-              You've used your 2 free demo stories for today. Create a free account to get unlimited stories, activities, curiosity answers, learn-to-write with AI feedback, drawing AI, read & quiz, writing coach, and more!
+              You've used your 2 free demo stories for today. Create a free account to get unlimited stories, activities, curiosity answers, learn-to-write with Glumbi AI feedback, and more!
             </p>
             <button onClick={() => navigate('/login')}
               style={{
@@ -276,7 +273,7 @@ export default function DemoPage() {
                   Want personalized stories like this every day?
                 </div>
                 <p style={{ fontSize: 13, color: '#888', marginBottom: 16, lineHeight: 1.6 }}>
-                  Create a free account and unlock AI-generated stories, daily activities, curiosity answers, learn-to-write (English &amp; Tamil), drawing AI, growth journal, read &amp; quiz, writing coach — all personalized for your child's age and interests.
+                  Create a free account and unlock Glumbi AI — personalized stories, daily activities, curiosity answers, learn-to-write (English &amp; Tamil), drawing canvas, growth journal, read &amp; quiz, writing coach — all tailored to your child's age and interests.
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => navigate('/login')}
@@ -304,11 +301,11 @@ export default function DemoPage() {
             {[
               { emoji: '🎮', label: 'Daily Activities',  desc: 'Age-perfect ideas for today',        color: '#fff0f8' },
               { emoji: '🔍', label: 'Curiosity Corner',  desc: 'Answer every "Why?"',                color: '#f0f8ff' },
-              { emoji: '✏️', label: 'Learn to Write',    desc: 'English & Tamil letters + AI check', color: '#fff7ed' },
-              { emoji: '🎨', label: 'Drawing AI',        desc: 'AI guesses what they drew',          color: '#fff8f0' },
+              { emoji: '✏️', label: 'Learn to Write',    desc: 'English & Tamil letters + Glumbi AI check', color: '#fff7ed' },
+              { emoji: '🎨', label: 'Drawing Canvas',    desc: 'Glumbi AI guesses what they drew',          color: '#fff8f0' },
               { emoji: '📝', label: 'Growth Journal',    desc: 'Capture precious moments',           color: '#f0fff4' },
               { emoji: '📚', label: 'Read & Quiz',       desc: 'Stories with comprehension quizzes', color: '#fdf0ff' },
-              { emoji: '✍️', label: 'My Writing',        desc: 'AI writing coach for young authors', color: '#fffff0' },
+              { emoji: '✍️', label: 'My Writing',        desc: 'Glumbi AI writing coach for young authors', color: '#fffff0' },
             ].map(f => (
               <div key={f.label} style={{ background: f.color, borderRadius: 16, padding: '16px 14px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.06)', border: '1.5px solid rgba(0,0,0,0.05)' }}>
                 <div style={{ fontSize: 28, marginBottom: 6 }}>{f.emoji}</div>

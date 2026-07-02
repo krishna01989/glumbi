@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { adminApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ErrorBox from '../components/ErrorBox'
 
 // ─── Sidebar nav items ───────────────────────────────────────────────────────
 const NAV = [
@@ -89,8 +90,68 @@ function HoldModal({ user, onClose, onConfirm }) {
   )
 }
 
+// ─── Set quota modal ──────────────────────────────────────────────────────────
+function SetQuotaModal({ user, onClose, onSave }) {
+  const [value, setValue] = useState(String(user.quotaLimit ?? 200))
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+
+  const num = parseInt(value, 10)
+  const valid = !isNaN(num) && num >= 0 && num <= 10000
+
+  async function handleSave() {
+    if (!valid) return
+    setSaving(true); setError('')
+    try { await onSave(num) }
+    catch (e) { setError(e.message); setSaving(false) }
+  }
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000 }}>
+      <div style={{ background:'white', borderRadius:20, padding:32, width:380, boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ margin:'0 0 4px', fontSize:18 }}>🔢 Set Quota Limit</h3>
+        <p style={{ margin:'0 0 6px', fontSize:13, color:'#888' }}>{user.email}</p>
+        <p style={{ margin:'0 0 20px', fontSize:12, color:'#e67e22', fontWeight:700, background:'#fff8f0', borderRadius:8, padding:'8px 12px' }}>
+          ⚠️ Changing the limit resets usage to 0. The user starts fresh with the new limit.
+        </p>
+        <div style={{ marginBottom:8, fontSize:13, fontWeight:700, color:'#555' }}>
+          Current: <span style={{ color:'#667eea' }}>{user.quotaUsed ?? 0}/{user.quotaLimit ?? 200} used</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+          <input
+            type="number" min="0" max="10000" value={value}
+            onChange={e => setValue(e.target.value)}
+            style={{ flex:1, padding:'10px 14px', borderRadius:10, border:`1.5px solid ${valid ? '#ddd' : '#e74c3c'}`, fontSize:16, fontWeight:800, textAlign:'center', outline:'none' }}
+          />
+          <span style={{ fontSize:13, color:'#aaa', fontWeight:700 }}>calls / month</span>
+        </div>
+        <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
+          {[50, 100, 200, 500].map(v => (
+            <button key={v} onClick={() => setValue(String(v))}
+              style={{ padding:'5px 14px', borderRadius:50, fontSize:12, fontWeight:800, border:'none', cursor:'pointer', background: num === v ? '#667eea' : '#f0f0f0', color: num === v ? 'white' : '#555' }}>
+              {v}
+            </button>
+          ))}
+          <button onClick={() => setValue('0')}
+            style={{ padding:'5px 14px', borderRadius:50, fontSize:12, fontWeight:800, border:'none', cursor:'pointer', background: num === 0 ? '#e74c3c' : '#fff0f0', color: num === 0 ? 'white' : '#e74c3c' }}>
+            Block (0)
+          </button>
+        </div>
+        <ErrorBox msg={error} />
+        <div style={{ display:'flex', gap:8 }}>
+          <button onClick={onClose} style={{ flex:1, padding:10, borderRadius:10, border:'1.5px solid #eee', background:'#f5f5f5', cursor:'pointer', fontWeight:700 }}>Cancel</button>
+          <button onClick={handleSave} disabled={!valid || saving}
+            style={{ flex:1, padding:10, borderRadius:10, border:'none', background: valid ? '#667eea' : '#ccc', color:'white', cursor: valid ? 'pointer' : 'not-allowed', fontWeight:700 }}>
+            {saving ? 'Saving…' : `Set to ${valid ? num : '?'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── User actions kebab menu ──────────────────────────────────────────────────
-function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onHold, onRelease, onDelete }) {
+function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -105,6 +166,7 @@ function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onHold, onRe
   const items = [
     { label: user.role === 'ADMIN' ? 'Demote to User' : 'Make Admin', icon: user.role === 'ADMIN' ? '↓' : '↑', color: '#555', bg: '#f0f0f0', fn: onRoleToggle },
     user.authMethod === 'password' && { label: 'Reset Password', icon: '🔑', color: '#1a73e8', bg: '#e8f0fe', fn: onResetPw },
+    user.role !== 'ADMIN' && { label: 'Set Quota Limit', icon: '🔢', color: '#0288d1', bg: '#e1f5fe', fn: onSetQuota },
     user.role !== 'ADMIN' && (user.quotaUsed ?? 0) > 0 && { label: 'Reset AI Quota', icon: '🔄', color: '#7c3aed', bg: '#f3e8ff', fn: onResetQuota },
     user.onHold
       ? { label: 'Release Account', icon: '✅', color: '#2e7d32', bg: '#e8f5e9', fn: onRelease }
@@ -233,7 +295,7 @@ function Dashboard() {
 
   const rangeLabel = RANGES.find(r => r.value === range)?.label || '7 Days'
 
-  if (error) return <div style={{ padding: 24, color: '#e74c3c' }}>❌ {error}</div>
+  if (error) return <div style={{ padding: 24 }}><ErrorBox msg={error} /></div>
 
   const alertStyle = {
     warn:    { bg: '#fff8e1', border: '#ffd54f', icon: '⚠️',  text: '#f57f17' },
@@ -377,7 +439,7 @@ function Dashboard() {
       {stats && (
         <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>🤖 AI Quota — This Month</div>
-          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>200 calls/user · resets on the 1st</div>
+          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Per-user limits (default 200) · resets on the 1st</div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: '#667eea' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
@@ -385,11 +447,11 @@ function Dashboard() {
             </div>
             <div style={{ flex: '1 1 140px', background: (stats.usersAtLimit ?? 0) > 0 ? '#fff0f0' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersAtLimit ?? 0) > 0 ? '1.5px solid #fcc' : 'none' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersAtLimit ?? 0) > 0 ? '#e74c3c' : '#aaa' }}>{stats.usersAtLimit ?? 0}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users at limit (200/200)</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users at limit</div>
             </div>
             <div style={{ flex: '1 1 140px', background: (stats.usersNearLimit ?? 0) > 0 ? '#fff8e1' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersNearLimit ?? 0) > 0 ? '1.5px solid #ffd54f' : 'none' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersNearLimit ?? 0) > 0 ? '#f57f17' : '#aaa' }}>{stats.usersNearLimit ?? 0}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users near limit (160+)</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users near limit (≥80%)</div>
             </div>
           </div>
         </div>
@@ -424,9 +486,10 @@ function Users() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
   const [search, setSearch]     = useState('')
-  const [resetUser, setResetUser] = useState(null)
-  const [holdUser, setHoldUser]   = useState(null)
-  const [confirm, setConfirm]     = useState(null)
+  const [resetUser, setResetUser]   = useState(null)
+  const [holdUser, setHoldUser]     = useState(null)
+  const [quotaUser, setQuotaUser]   = useState(null)
+  const [confirm, setConfirm]       = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -471,17 +534,28 @@ function Users() {
   async function handleResetQuota(user) {
     setConfirm({
       title: 'Reset Quota',
-      message: `Reset AI quota for ${user.email} to 0/200? They'll get the full 200 calls immediately.`,
+      message: `Reset AI quota for ${user.email}? Usage resets to 0 and they get the full ${user.quotaLimit ?? 200} calls immediately.`,
       confirmLabel: 'Reset',
       confirmColor: '#667eea',
       onConfirm: async () => {
         setConfirm(null)
         try {
           const updated = await adminApi.resetQuota(user.id)
-          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, quotaUsed: updated.quotaUsed } : u))
+          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, quotaUsed: updated.quotaUsed, quotaLimit: updated.quotaLimit } : u))
         } catch (e) { setError(e.message) }
       }
     })
+  }
+
+  async function handleSetQuota(user, newLimit) {
+    try {
+      const updated = await adminApi.setQuota(user.id, newLimit)
+      setUsers(prev => prev.map(u => u.id === user.id
+        ? { ...u, quotaUsed: updated.quotaUsed, quotaLimit: updated.quotaLimit }
+        : u
+      ))
+      setQuotaUser(null)
+    } catch (e) { throw e }
   }
 
   async function handleRoleToggle(user) {
@@ -509,6 +583,7 @@ function Users() {
     <div>
       {holdUser && <HoldModal user={holdUser} onClose={() => setHoldUser(null)} onConfirm={reason => handleHold(holdUser, reason)} />}
       {resetUser && <PasswordModal user={resetUser} onClose={() => setResetUser(null)} />}
+      {quotaUser && <SetQuotaModal user={quotaUser} onClose={() => setQuotaUser(null)} onSave={limit => handleSetQuota(quotaUser, limit)} />}
       <ConfirmDialog
         open={!!confirm} title={confirm?.title} message={confirm?.message}
         confirmLabel={confirm?.confirmLabel} confirmColor={confirm?.confirmColor}
@@ -532,7 +607,7 @@ function Users() {
         </div>
       </div>
 
-      {error && <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 12, padding: '12px 16px', marginBottom: 16, color: '#c0392b', fontWeight: 600 }}>🚫 {error}</div>}
+      <ErrorBox msg={error} />
 
       {loading
         ? <div style={{ textAlign: 'center', padding: 48, color: '#aaa' }}>Loading…</div>
@@ -594,6 +669,7 @@ function Users() {
                   onRoleToggle={() => handleRoleToggle(user)}
                   onResetPw={() => setResetUser(user)}
                   onResetQuota={() => handleResetQuota(user)}
+                  onSetQuota={() => setQuotaUser(user)}
                   onHold={() => setHoldUser(user)}
                   onRelease={() => handleRelease(user)}
                   onDelete={() => handleDelete(user)}
@@ -679,7 +755,7 @@ function Agents() {
         <div>• Runs automatically every <strong>Sunday at 8:00 AM UTC</strong></div>
         <div>• Only generates notifications for children who had activity in the past 7 days</div>
         <div>• Learning Insight uses a 14-day window for better trend detection</div>
-        <div>• Cost: ~$0.50/month on Claude Haiku for 50 active children</div>
+
       </div>
     </div>
   )

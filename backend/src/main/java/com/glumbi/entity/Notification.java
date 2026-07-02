@@ -42,6 +42,7 @@ public class Notification {
         PROGRESS_REPORT,
         MILESTONE,
         STORY_RECOMMENDATION,
-        LEARNING_INSIGHT
+        LEARNING_INSIGHT,
+        QUOTA_WARNING
     }
 }

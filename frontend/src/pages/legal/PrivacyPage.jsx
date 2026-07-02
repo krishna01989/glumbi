@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <h3>Generated content</h3>
       <ul>
         <li>Stories, curiosity answers, activities, journal entries, and growth milestones you create are stored so you can access them again.</li>
-        <li>Keywords and questions you type are sent to the Anthropic Claude API to generate content. See section 5.</li>
+        <li>Keywords and questions you type are processed by Glumbi AI to generate content. See section 5 for third-party details.</li>
       </ul>
       <h3>Usage data</h3>
       <ul>
@@ -51,8 +51,8 @@ export default function PrivacyPage() {
       <p>We do not use your data for marketing without your explicit consent.</p>
 
       <h2>5. Third-party services</h2>
-      <h3>Anthropic Claude API</h3>
-      <p>Story keywords, curiosity questions, and activity preferences are sent to Anthropic's Claude API to generate content. Anthropic's data processing is governed by their <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noreferrer">privacy policy</a>. We do not send any personally identifiable information (names, email) to Anthropic — only the creative keywords.</p>
+      <h3>AI content generation (Anthropic)</h3>
+      <p>Glumbi AI is powered by Anthropic's API. Story keywords, curiosity questions, and activity preferences are sent to Anthropic to generate content. Anthropic's data processing is governed by their <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noreferrer">privacy policy</a>. We do not send any personally identifiable information (names, email) to Anthropic — only the creative keywords.</p>
       <h3>Google Sign-In</h3>
       <p>If you use "Continue with Google", the Google Identity Services script runs in your browser and may set a short-lived <code>g_state</code> cookie on Google's domain. We receive only a verified identity token; we never see your Google password. Google's sign-in is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google's Privacy Policy</a>.</p>
       <h3>Google Text-to-Speech</h3>
@@ -73,7 +73,7 @@ export default function PrivacyPage() {
         <li>All data is transmitted over HTTPS.</li>
         <li>Passwords are hashed using bcrypt before storage.</li>
         <li>JWT tokens expire and are stored only in browser localStorage (not in cookies, reducing XSS surface).</li>
-        <li>All AI inputs pass through 4 layers of content safety filtering before reaching Claude.</li>
+        <li>All AI inputs pass through 4 layers of content safety filtering before being processed.</li>
       </ul>
 
       <h2>9. Your rights</h2>

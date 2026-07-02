@@ -175,9 +175,13 @@ public class AdminController {
             .filter(u -> thisMonth.equals(u.getApiCallMonth()))
             .mapToLong(u -> u.getMonthlyApiCalls()).sum();
         long usersAtLimit   = userRepo.findAll().stream()
-            .filter(u -> thisMonth.equals(u.getApiCallMonth()) && u.getMonthlyApiCalls() >= 200).count();
+            .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
+            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200; return u.getMonthlyApiCalls() >= lim; })
+            .count();
         long usersNearLimit = userRepo.findAll().stream()
-            .filter(u -> thisMonth.equals(u.getApiCallMonth()) && u.getMonthlyApiCalls() >= 160 && u.getMonthlyApiCalls() < 200).count();
+            .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
+            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200; return u.getMonthlyApiCalls() >= lim * 0.8 && u.getMonthlyApiCalls() < lim; })
+            .count();
 
         // Alerts — always based on 7-day window regardless of selected range
         long newUsersThisWeek = userRepo.countByCreatedAtAfter(week);
@@ -274,9 +278,10 @@ public class AdminController {
             m.put("onHold",      u.isOnHold());
             m.put("holdReason",  u.getHoldReason());
             // Quota: reset month check (same logic as ApiQuotaService)
-            int used = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
+            int used  = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
+            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200;
             m.put("quotaUsed",   used);
-            m.put("quotaLimit",  200);
+            m.put("quotaLimit",  limit);
             return m;
         }).toList();
     }
@@ -288,7 +293,24 @@ public class AdminController {
             u.setMonthlyApiCalls(0);
             u.setApiCallMonth(YearMonth.now().toString());
             userRepo.save(u);
-            return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", 200));
+            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200;
+            return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", limit));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PatchMapping("/users/{id}/quota")
+    @Transactional
+    public ResponseEntity<?> setQuota(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        int newLimit = body.getOrDefault("limit", 200);
+        if (newLimit < 0 || newLimit > 10000) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Limit must be between 0 and 10000"));
+        }
+        return userRepo.findById(id).map(u -> {
+            u.setQuotaLimit(newLimit);
+            u.setMonthlyApiCalls(0);
+            u.setApiCallMonth(YearMonth.now().toString());
+            userRepo.save(u);
+            return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", newLimit));
         }).orElse(ResponseEntity.notFound().build());
     }
 

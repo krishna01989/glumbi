@@ -48,6 +48,20 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
 
+  // Attach touch listeners as non-passive so preventDefault() works on mobile
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const onTouchStart = e => start(e)
+    const onTouchMove  = e => move(e)
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false })
+    canvas.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove',  onTouchMove)
+    }
+  })
+
   // Internal canvas resolution — large so AI gets a crisp image
   const canvasW = fullWidth ? 800 : 300
   const canvasH = fullWidth ? 600 : height
@@ -127,7 +141,7 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
       <canvas ref={canvasRef} width={canvasW} height={canvasH}
         style={{ border: '2.5px solid var(--primary)', borderRadius: 16, background: '#ffffff', touchAction: 'none', cursor: 'crosshair', width: fullWidth ? '100%' : canvasW, height: fullWidth ? 'auto' : canvasH, display: 'block' }}
         onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseLeave={stop}
-        onTouchStart={start} onTouchMove={move} onTouchEnd={stop} />
+        onTouchEnd={stop} />
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={clear} style={btn('#f5f5f5','#555')}>🗑️ Clear</button>
         <button onClick={submit} disabled={loading || disabled} style={btn('linear-gradient(135deg,var(--primary),var(--accent))','white')}>

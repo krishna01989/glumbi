@@ -77,6 +77,20 @@ export default function Draw({ child, quota }) {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
   }, [])
 
+  // Attach touch listeners as non-passive so preventDefault() works on mobile
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const onTouchStart = e => startDraw(e)
+    const onTouchMove  = e => draw(e)
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false })
+    canvas.addEventListener('touchmove',  onTouchMove,  { passive: false })
+    return () => {
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove',  onTouchMove)
+    }
+  })
+
   // Close palette on outside click
   useEffect(() => {
     if (!showPalette) return
@@ -385,8 +399,6 @@ export default function Draw({ child, quota }) {
             onMouseMove={draw}
             onMouseUp={stopDraw}
             onMouseLeave={stopDraw}
-            onTouchStart={startDraw}
-            onTouchMove={draw}
             onTouchEnd={stopDraw}
           />
           {isEmpty && (

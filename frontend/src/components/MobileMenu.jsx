@@ -33,7 +33,7 @@ function MobileQuotaBar({ quota }) {
           fontSize: 11, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7,
         }}>
           <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 What counts as an AI call?</div>
-          <div>Every time Glumbi asks Claude AI to do something — generate a story, answer a curiosity question, give writing feedback, validate a letter you drew, or identify a word — it uses <strong style={{ color: '#ffd93d' }}>1 call</strong>.</div>
+          <div>Every time Glumbi AI does something — generate a story, answer a curiosity question, give writing feedback, validate a letter you drew, or identify a word — it uses <strong style={{ color: '#ffd93d' }}>1 call</strong>.</div>
           <div style={{ marginTop: 8 }}>You get <strong style={{ color: '#6bcb77' }}>{quota.limit} calls per month</strong>, shared across all AI features: Stories, Activities, Curiosity, Read &amp; Quiz, My Writing, Draw, and Learn to Write.</div>
           <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.5)' }}>Resets on the 1st of each month.</div>
           <button onClick={() => setShowInfo(false)} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>Close</button>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { readQuizApi } from '../api/client'
+import ErrorBox from '../components/ErrorBox'
 import ThemeLoader from '../components/ThemeLoader'
 import ConfirmDialog from '../components/ConfirmDialog'
 import QuotaBanner from '../components/QuotaBanner'
@@ -143,7 +144,7 @@ export default function ReadQuiz({ child, quota }) {
                 maxLength={80}
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '2px solid #eee', fontSize: 13, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }} />
             </div>
-            {error && <div style={{ fontSize: 12, color: '#e74c3c', fontWeight: 700 }}>🚫 {error}</div>}
+            <ErrorBox msg={error} />
             <button type="submit" disabled={loading || !topic.trim() || quota?.used >= quota?.limit || offline}
               style={{
                 padding: '12px', borderRadius: 50, fontWeight: 800, fontSize: 14,

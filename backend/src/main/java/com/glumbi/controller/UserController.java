@@ -41,9 +41,10 @@ public class UserController {
         String thisMonth = YearMonth.now().toString();
         int used = thisMonth.equals(user.getApiCallMonth()) ? user.getMonthlyApiCalls() : 0;
 
+        int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : 200;
         return ResponseEntity.ok(Map.of(
             "used",  used,
-            "limit", MONTHLY_LIMIT,
+            "limit", limit,
             "month", thisMonth
         ));
     }

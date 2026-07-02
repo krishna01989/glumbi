@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { curiosityApi } from '../api/client'
+import ErrorBox from '../components/ErrorBox'
 import ThemeLoader from '../components/ThemeLoader'
 import QuotaBanner from '../components/QuotaBanner'
 import { useOffline } from '../contexts/OfflineContext'
@@ -176,11 +177,7 @@ export default function Curiosity({ child, quota }) {
           </div>
         </div>
 
-        {error && (
-          <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
-            🚫 {error}
-          </div>
-        )}
+        <ErrorBox msg={error} />
         <button type="submit" disabled={loading || !question.trim() || quota?.used >= quota?.limit || offline}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
           {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : offline ? '✈️ AI is off' : '✨ Explain to ' + child.name}

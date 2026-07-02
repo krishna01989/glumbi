@@ -7,7 +7,7 @@ const FEATURES = [
   {
     emoji: '📖',
     title: 'Bedtime Stories',
-    desc: 'AI-generated personalized stories where your child is the hero. Choose a theme and watch the magic unfold.',
+    desc: 'Glumbi AI creates personalized stories where your child is the hero. Choose a theme and watch the magic unfold.',
     color: '#ff6b6b', bg: '#fff0f0',
   },
   {
@@ -31,7 +31,7 @@ const FEATURES = [
   {
     emoji: '✍️',
     title: 'My Writing',
-    desc: 'Children write their own stories and get warm, encouraging AI feedback — celebrating creativity, not correcting it.',
+    desc: 'Children write their own stories and get warm, encouraging feedback from Glumbi AI — celebrating creativity, not correcting it.',
     color: '#d68910', bg: '#fffbf0',
   },
   {
@@ -49,7 +49,7 @@ const FEATURES = [
   {
     emoji: '✏️',
     title: 'Learn to Write',
-    desc: 'Practice English and Tamil letters, numbers, and words on a drawing canvas. AI checks each attempt, celebrates progress, and translates words into 4 languages.',
+    desc: 'Practice English and Tamil letters, numbers, and words on a drawing canvas. Glumbi AI checks each attempt, celebrates progress, and translates words into 4 languages.',
     color: '#f97316', bg: '#fff7ed',
   },
   {
@@ -94,7 +94,7 @@ export default function LandingPage() {
 
         <div style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', borderRadius: 50, padding: '6px 18px', fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 24 }}>
-            ✨ AI-powered magic for kids
+            ✨ Glumbi AI — magic for kids
           </div>
           <h1 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(40px, 7vw, 72px)', color: 'white', lineHeight: 1.1, marginBottom: 20 }}>
             Magic stories for<br />little ones
@@ -179,7 +179,7 @@ export default function LandingPage() {
               Everything your child needs to thrive 🌱
             </h2>
             <p style={{ fontSize: 17, color: '#888', maxWidth: 520, margin: '0 auto' }}>
-              Nine features designed for children aged 1–10, guarded with AI safety at every step.
+              Nine features designed for children aged 1–10, guarded with Glumbi AI safety at every step.
             </p>
           </div>
 

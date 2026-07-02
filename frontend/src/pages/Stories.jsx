@@ -3,6 +3,7 @@ import { storyApi } from '../api/client'
 import ThemeLoader from '../components/ThemeLoader'
 import AudioPlayer from '../components/AudioPlayer'
 import ConfirmDialog from '../components/ConfirmDialog'
+import ErrorBox from '../components/ErrorBox'
 import QuotaBanner from '../components/QuotaBanner'
 import { useOffline } from '../contexts/OfflineContext'
 
@@ -232,11 +233,7 @@ export default function Stories({ child, quota }) {
             style={{ fontSize: 16 }}>
             {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : offline ? '✈️ AI is off' : '✨ Generate Story'}
           </button>
-          {error && (
-            <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
-              🚫 {error}
-            </div>
-          )}
+          <ErrorBox msg={error} />
         </form>
 
         {/* Story cards list */}
@@ -367,11 +364,7 @@ export default function Stories({ child, quota }) {
                 onStop={stopSpeaking}
               />
             )}
-            {audioError && (
-              <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 12, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
-                🔇 {audioError}
-              </div>
-            )}
+            <ErrorBox msg={audioError} icon="🔇" />
 
             <div style={{ height: 2, background: 'linear-gradient(to right,var(--primary),var(--accent),var(--green))', borderRadius: 4 }} />
 

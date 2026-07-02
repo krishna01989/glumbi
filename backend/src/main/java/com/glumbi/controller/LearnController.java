@@ -54,7 +54,7 @@ public class LearnController {
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 
-        String scriptLabel = script.equals("tamil") ? "Tamil" : "English";
+        String scriptLabel = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
         String prompt = String.format(
             "A %d-year-old child named %s is learning to write the %s letter/character \"%s\". " +
             "Look at their drawing and decide: does it resemble \"%s\"? " +
@@ -104,10 +104,11 @@ public class LearnController {
             if (correct && childId != null) {
                 final Long fChildId = childId;
                 childRepository.findById(fChildId).ifPresent(child -> {
-                    String emoji = script.equals("tamil") ? "🌺" : "🔤";
+                    String emoji  = switch (script) { case "tamil" -> "🌺"; case "hindi" -> "🇮🇳"; default -> "🔤"; };
+                    String label  = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
                     Activity entry = new Activity();
                     entry.setChild(child);
-                    entry.setTitle("Wrote " + letter + " (" + (script.equals("tamil") ? "Tamil" : "English") + ")");
+                    entry.setTitle("Wrote " + letter + " (" + label + ")");
                     entry.setDescription(feedback);
                     entry.setCategory("learn");
                     entry.setEmoji(emoji);
@@ -139,11 +140,14 @@ public class LearnController {
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 
-        boolean isTamil     = script.equals("tamil");
-        String  scriptLabel = isTamil ? "Tamil" : "English";
-        String  primaryTrans = isTamil
-            ? "\"tamil\": \"" + targetWord + "\""
-            : "\"tamil\": \"Tamil translation in Tamil script\"";
+        String scriptLabel  = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
+        String primaryTrans = switch (script) {
+            case "tamil"  -> "\"tamil\": \"" + targetWord + "\"";
+            case "hindi"  -> "\"hindi\": \"" + targetWord + "\"";
+            default       -> "\"tamil\": \"Tamil translation in Tamil script\"";
+        };
+        // cross-language key used for timeline save
+        String crossTransKey = switch (script) { case "tamil" -> "english"; default -> "tamil"; };
 
         String prompt = String.format(
             "A %d-year-old child named %s has practised writing the %s word \"%s\" on a white canvas. " +
@@ -206,7 +210,7 @@ public class LearnController {
             // Save to timeline when correct
             if (result.path("correct").asBoolean() && childId != null) {
                 childRepository.findById(childId).ifPresent(child -> {
-                    String translation = result.path("translations").path(isTamil ? "english" : "tamil").asText("");
+                    String translation = result.path("translations").path(crossTransKey).asText("");
                     String emoji       = result.path("emoji").asText("✏️");
                     String title       = targetWord + (translation.isBlank() ? "" : " → " + translation);
                     Activity entry = new Activity();

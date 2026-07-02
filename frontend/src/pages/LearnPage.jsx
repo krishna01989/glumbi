@@ -36,6 +36,40 @@ const COMPOUND_TABLE = TAMIL_CONSONANTS.map(con => ({
 
 const AYTHAM = { char: 'ஃ', roman: 'aḵ' }
 
+// ── Hindi data ─────────────────────────────────────────────────────────────────
+
+const HINDI_VOWELS = [
+  { char: 'अ', roman: 'a'  }, { char: 'आ', roman: 'aa' }, { char: 'इ', roman: 'i'  },
+  { char: 'ई', roman: 'ii' }, { char: 'उ', roman: 'u'  }, { char: 'ऊ', roman: 'uu' },
+  { char: 'ए', roman: 'e'  }, { char: 'ऐ', roman: 'ai' }, { char: 'ओ', roman: 'o'  },
+  { char: 'औ', roman: 'au' }, { char: 'अं', roman: 'an' }, { char: 'अः', roman: 'ah' },
+]
+
+const HINDI_CONSONANTS = [
+  { char: 'क', roman: 'ka'  }, { char: 'ख', roman: 'kha' }, { char: 'ग', roman: 'ga'  }, { char: 'घ', roman: 'gha' },
+  { char: 'च', roman: 'cha' }, { char: 'छ', roman: 'chha'}, { char: 'ज', roman: 'ja'  }, { char: 'झ', roman: 'jha' },
+  { char: 'ट', roman: 'ta'  }, { char: 'ठ', roman: 'tha' }, { char: 'ड', roman: 'da'  }, { char: 'ढ', roman: 'dha' },
+  { char: 'त', roman: 'ta'  }, { char: 'थ', roman: 'tha' }, { char: 'द', roman: 'da'  }, { char: 'ध', roman: 'dha' },
+  { char: 'न', roman: 'na'  }, { char: 'प', roman: 'pa'  }, { char: 'फ', roman: 'pha' }, { char: 'ब', roman: 'ba'  },
+  { char: 'भ', roman: 'bha' }, { char: 'म', roman: 'ma'  }, { char: 'य', roman: 'ya'  }, { char: 'र', roman: 'ra'  },
+  { char: 'ल', roman: 'la'  }, { char: 'व', roman: 'va'  }, { char: 'श', roman: 'sha' }, { char: 'ष', roman: 'sha' },
+  { char: 'स', roman: 'sa'  }, { char: 'ह', roman: 'ha'  },
+]
+
+const HINDI_NUMBERS = ['१','२','३','४','५','६','७','८','९','१०'].map(c => ({ char: c }))
+
+// Matra signs corresponding to each vowel ('' = inherent 'a', no matra needed)
+const HINDI_MATRAS = ['', 'ा', 'ि', 'ी', 'ु', 'ू', 'े', 'ै', 'ो', 'ौ', 'ं', 'ः']
+
+// Build 30×12 compound (barakhadi) table
+const HINDI_COMPOUND_TABLE = HINDI_CONSONANTS.map(con => ({
+  consonant: con,
+  compounds: HINDI_VOWELS.map((v, vi) => ({
+    char:  con.char + HINDI_MATRAS[vi],
+    roman: con.roman.replace(/a$/, '') + v.roman,
+  })),
+}))
+
 // ── English data ───────────────────────────────────────────────────────────────
 
 const ENG_VOWELS     = 'AEIOU'.split('').map(c => ({ char: c }))
@@ -44,7 +78,7 @@ const ENG_NUMBERS    = ['1','2','3','4','5','6','7','8','9','10'].map(c => ({ ch
 
 // ── Canvas component ───────────────────────────────────────────────────────────
 
-function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false }) {
+function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Fredoka One,cursive' }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
 
@@ -138,10 +172,25 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: fullWidth ? '100%' : 'auto' }}>
-      <canvas ref={canvasRef} width={canvasW} height={canvasH}
-        style={{ border: '2.5px solid var(--primary)', borderRadius: 16, background: '#ffffff', touchAction: 'none', cursor: 'crosshair', width: fullWidth ? '100%' : canvasW, height: fullWidth ? 'auto' : canvasH, display: 'block' }}
-        onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseLeave={stop}
-        onTouchEnd={stop} />
+      <div style={{ position: 'relative', width: fullWidth ? '100%' : canvasW, background: '#ffffff', borderRadius: 16 }}>
+        {traceChar && (
+          <div style={{
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none', userSelect: 'none', zIndex: 1,
+            fontSize: fullWidth ? 320 : 160,
+            fontFamily: traceFontFamily,
+            color: 'transparent',
+            WebkitTextStroke: '3px rgba(255,107,107,0.22)',
+            letterSpacing: 0, lineHeight: 1,
+          }}>
+            {traceChar}
+          </div>
+        )}
+        <canvas ref={canvasRef} width={canvasW} height={canvasH}
+          style={{ border: '2.5px solid var(--primary)', borderRadius: 16, background: 'transparent', touchAction: 'none', cursor: 'crosshair', width: fullWidth ? '100%' : canvasW, height: fullWidth ? 'auto' : canvasH, display: 'block', position: 'relative', zIndex: 2 }}
+          onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseLeave={stop}
+          onTouchEnd={stop} />
+      </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <button onClick={clear} style={btn('#f5f5f5','#555')}>🗑️ Clear</button>
         <button onClick={submit} disabled={loading || disabled} style={btn('linear-gradient(135deg,var(--primary),var(--accent))','white')}>
@@ -158,24 +207,28 @@ function btn(bg, color) {
 
 // ── Shared letter grid ─────────────────────────────────────────────────────────
 
-function LetterGrid({ letters, selected, onSelect, isTamil }) {
+function LetterGrid({ letters, selected, onSelect, script, pulli }) {
+  const isScript = script === 'tamil' || script === 'hindi'
+  const fontFamily = script === 'tamil' ? '"Noto Sans Tamil",serif'
+                   : script === 'hindi' ? '"Noto Sans Devanagari",serif'
+                   : 'Fredoka One,cursive'
   return (
     <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
       {letters.map(item => (
         <button key={item.char} onClick={() => onSelect(item)}
           style={{
-            width: isTamil ? 60 : 52, height: isTamil ? 60 : 52,
+            width: isScript ? 60 : 52, height: isScript ? 60 : 52,
             borderRadius:12, border:'none', cursor:'pointer',
-            fontFamily: isTamil ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive',
-            fontSize: isTamil ? 22 : 22, fontWeight: isTamil ? 400 : 700,
-            background: selected?.char === item.char ? 'var(--primary)' : 'var(--primary-lt)',
-            color: selected?.char === item.char ? 'white' : 'var(--primary)',
-            boxShadow: selected?.char === item.char ? '0 4px 14px rgba(0,0,0,0.15)' : '0 2px 6px rgba(0,0,0,0.06)',
+            fontFamily,
+            fontSize: 22, fontWeight: isScript ? 400 : 700,
+            background: (selected?.char === item.char || (pulli && selected?.char === item.char + pulli)) ? 'var(--primary)' : 'var(--primary-lt)',
+            color: (selected?.char === item.char || (pulli && selected?.char === item.char + pulli)) ? 'white' : 'var(--primary)',
+            boxShadow: (selected?.char === item.char || (pulli && selected?.char === item.char + pulli)) ? '0 4px 14px rgba(0,0,0,0.15)' : '0 2px 6px rgba(0,0,0,0.06)',
             transition:'all 0.15s',
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
           }}>
-          <span>{item.char}</span>
-          {item.roman && <span style={{ fontSize:8, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.75 }}>{item.roman}</span>}
+          <span>{pulli ? item.char + pulli : item.char}</span>
+          {item.roman && <span style={{ fontSize:8, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.75 }}>{pulli ? item.roman.replace(/a$/, '') : item.roman}</span>}
         </button>
       ))}
     </div>
@@ -199,18 +252,20 @@ function CompoundTable({ selected, onSelect }) {
         <tbody>
           {COMPOUND_TABLE.map(row => (
             <tr key={row.consonant.char}>
-              <td style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{row.consonant.char}</td>
+              <td style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{row.consonant.char + '்'}</td>
               {row.compounds.map(cell => (
                 <td key={cell.char} style={{ padding:0 }}>
                   <button onClick={() => onSelect(cell)}
                     style={{
-                      width:44, height:44, border:'none', borderRadius:8, cursor:'pointer',
+                      width:44, height:52, border:'none', borderRadius:8, cursor:'pointer',
                       fontFamily:'"Noto Sans Tamil",serif', fontSize:17,
+                      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
                       background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
                       color: selected?.char === cell.char ? 'white' : '#444',
                       transition:'all 0.12s',
                     }}>
-                    {cell.char}
+                    <span>{cell.char}</span>
+                    <span style={{ fontSize:7, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.7, lineHeight:1 }}>{cell.roman}</span>
                   </button>
                 </td>
               ))}
@@ -223,6 +278,48 @@ function CompoundTable({ selected, onSelect }) {
 }
 
 function th() { return { padding:'4px 6px', textAlign:'center', fontSize:14, fontWeight:700, color:'#aaa' } }
+
+// ── Hindi barakhadi table ──────────────────────────────────────────────────────
+
+function HindiCompoundTable({ selected, onSelect }) {
+  return (
+    <div style={{ overflowX:'auto' }}>
+      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Devanagari",serif' }}>
+        <thead>
+          <tr>
+            <th style={th()}></th>
+            {HINDI_VOWELS.map(v => (
+              <th key={v.char} style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{v.char}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {HINDI_COMPOUND_TABLE.map(row => (
+            <tr key={row.consonant.char}>
+              <td style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{row.consonant.char + '्'}</td>
+              {row.compounds.map(cell => (
+                <td key={cell.char} style={{ padding:0 }}>
+                  <button onClick={() => onSelect(cell)}
+                    style={{
+                      width:44, height:52, border:'none', borderRadius:8, cursor:'pointer',
+                      fontFamily:'"Noto Sans Devanagari",serif', fontSize:17,
+                      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
+                      background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
+                      color: selected?.char === cell.char ? 'white' : '#444',
+                      transition:'all 0.12s',
+                    }}>
+                    <span>{cell.char}</span>
+                    <span style={{ fontSize:7, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.7, lineHeight:1 }}>{cell.roman}</span>
+                  </button>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 // ── Letter practice panel ──────────────────────────────────────────────────────
 
@@ -255,7 +352,7 @@ function LetterPanel({ selected, script, child, onPlay, quota }) {
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
       {/* Big letter */}
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive', fontWeight: script==='tamil' ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : 'Fredoka One,cursive', fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
           {selected.char}
         </div>
         {selected.roman && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
@@ -266,7 +363,9 @@ function LetterPanel({ selected, script, child, onPlay, quota }) {
           🔊 Hear it
         </button>
       </div>
-      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth />
+      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth
+        traceChar={selected.char}
+        traceFontFamily={script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : 'Fredoka One,cursive'} />
       {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
       {loading && <ThemeLoader theme={child?.theme} />}
       {!loading && feedback && (
@@ -299,6 +398,11 @@ const WORD_POOL = {
     'rain','lake','frog','duck','rose','leaf','boat','kite','bell','gate',
     'lamp','sand','rock','wave','nest','seed','road','hand','foot','drum',
   ],
+  hindi: [
+    'घर','फूल','कुत्ता','पेड़','दूध','आंख','हाथ','माँ','पापा','पक्षी',
+    'मछली','चाँद','पानी','जंगल','फल','मुर्गी','हाथी','बाघ','हिरण','आकाश',
+    'बादल','बारिश','नदी','पहाड़','पत्थर','केला','आम','सूरज','तारा','नाव',
+  ],
 }
 
 function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5) }
@@ -326,12 +430,12 @@ function WordMode({ script, child, quota }) {
   const childAge  = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
   const childName = child?.name || 'you'
 
-  // Cross-language: Tamil→English or English→Tamil
-  const crossKey   = script === 'tamil' ? 'english' : 'tamil'
-  const crossLabel = script === 'tamil' ? '🇬🇧 In English' : '🌺 In Tamil'
-  const crossFont  = script === 'tamil' ? 'Nunito,sans-serif' : '"Noto Sans Tamil",serif'
-  const crossTts   = script === 'tamil' ? 'english' : 'tamil'
-  const srcTts     = script === 'tamil' ? 'tamil'   : 'english'
+  // Cross-language: always show English as the primary translation for Tamil/Hindi, Tamil for English
+  const crossKey   = script === 'english' ? 'tamil'   : 'english'
+  const crossLabel = script === 'english' ? '🌺 In Tamil' : '🇬🇧 In English'
+  const crossFont  = script === 'english' ? '"Noto Sans Tamil",serif' : 'Nunito,sans-serif'
+  const crossTts   = script === 'english' ? 'tamil'   : 'english'
+  const srcTts     = script === 'hindi'   ? 'hindi'   : script === 'tamil' ? 'tamil' : 'english'
 
   function play(text, tts) {
     const url = learnApi.audioUrl(text, tts)
@@ -357,7 +461,9 @@ function WordMode({ script, child, quota }) {
     } finally { setLoading(false) }
   }
 
-  const wordFont = script === 'tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive'
+  const wordFont = script === 'tamil' ? '"Noto Sans Tamil",serif'
+                 : script === 'hindi' ? '"Noto Sans Devanagari",serif'
+                 : 'Fredoka One,cursive'
 
   /* ── Step 1: Pick a word ─────────────────────────────────── */
   if (step === 'pick') return (
@@ -366,7 +472,9 @@ function WordMode({ script, child, quota }) {
       <div style={{ background:'var(--primary-lt)', borderRadius:16, padding:'18px 20px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
           <p style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--primary)' }}>
-            {script === 'tamil' ? '🌺 Pick a Tamil word to write:' : '✏️ Pick an English word to write:'}
+            { script === 'tamil' ? '🌺 Pick a Tamil word to write:'
+            : script === 'hindi' ? '🇮🇳 Pick a Hindi word to write:'
+            : '✏️ Pick an English word to write:' }
           </p>
           <button onClick={refreshWords} title="New words"
             style={{ background:'white', border:'none', borderRadius:50, padding:'6px 12px', fontSize:16, cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.08)', lineHeight:1 }}>
@@ -384,7 +492,7 @@ function WordMode({ script, child, quota }) {
         <div style={{ display:'flex', gap:8 }}>
           <input value={customWord} onChange={e => setCustomWord(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && useCustomWord()}
-            placeholder={script==='tamil' ? 'Or type your own Tamil word…' : 'Or type your own word…'}
+            placeholder={script==='tamil' ? 'Or type your own Tamil word…' : script==='hindi' ? 'Or type your own Hindi word…' : 'Or type your own word…'}
             style={{ flex:1, padding:'10px 14px', borderRadius:50, border:'1.5px solid var(--primary-lt)', fontSize:14, fontFamily:'Nunito,sans-serif', outline:'none' }} />
           <button onClick={useCustomWord} disabled={!customWord.trim()}
             style={{ padding:'10px 20px', borderRadius:50, border:'none', background:'var(--primary)', color:'white', fontWeight:800, fontSize:14, cursor: customWord.trim()?'pointer':'not-allowed', opacity: customWord.trim()?1:0.5 }}>
@@ -444,7 +552,7 @@ function WordMode({ script, child, quota }) {
                 </div>
                 <button onClick={() => play(result.word, srcTts)}
                   style={{ marginTop:6, background:'none', border:'none', fontSize:11, fontWeight:700, color:'#ccc', cursor:'pointer', padding:0 }}>
-                  🔊 Hear in {script === 'tamil' ? 'Tamil' : 'English'}
+                  🔊 Hear in {script === 'tamil' ? 'Tamil' : script === 'hindi' ? 'Hindi' : 'English'}
                 </button>
               </div>
             </div>
@@ -527,10 +635,17 @@ function WordMode({ script, child, quota }) {
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 const TAMIL_CATS = [
-  { key:'vowels',     label:'உயிர் (12)',    letters: TAMIL_VOWELS },
-  { key:'consonants', label:'மெய் (18)',     letters: TAMIL_CONSONANTS },
+  { key:'vowels',     label:'உயிர் (12)',       letters: TAMIL_VOWELS },
+  { key:'consonants', label:'மெய் (18)',        letters: TAMIL_CONSONANTS },
   { key:'compound',   label:'உயிர்மெய் (216)', letters: null },
-  { key:'aytham',    label:'ஆய்தம்',        letters: [AYTHAM] },
+  { key:'aytham',     label:'ஆய்தம்',          letters: [AYTHAM] },
+]
+
+const HINDI_CATS = [
+  { key:'vowels',     label:'स्वर (12)',       letters: HINDI_VOWELS },
+  { key:'consonants', label:'व्यंजन (30)',     letters: HINDI_CONSONANTS },
+  { key:'barakhadi',  label:'बारहखड़ी (360)', letters: null },
+  { key:'numbers',    label:'संख्या',          letters: HINDI_NUMBERS },
 ]
 
 const ENG_CATS = [
@@ -547,7 +662,8 @@ export default function LearnPage({ child, quota }) {
   const audioRef = useRef(null)
 
   const isTamil  = script === 'tamil'
-  const cats     = isTamil ? TAMIL_CATS : ENG_CATS
+  const isHindi  = script === 'hindi'
+  const cats     = isTamil ? TAMIL_CATS : isHindi ? HINDI_CATS : ENG_CATS
   const cat      = cats.find(c => c.key === catKey) || cats[0]
 
   useEffect(() => {
@@ -558,14 +674,20 @@ export default function LearnPage({ child, quota }) {
   useEffect(() => { setSelected(null) }, [catKey])
 
   function selectLetter(item) {
-    setSelected(item)
-    const url = learnApi.audioUrl(item.char, isTamil ? 'tamil' : 'english')
+    const pulliMark = cat.key === 'consonants' ? (isTamil ? '்' : isHindi ? '्' : '') : ''
+    const displayItem = pulliMark
+      ? { ...item, char: item.char + pulliMark, roman: item.roman ? item.roman.replace(/a$/, '') : item.roman }
+      : item
+    setSelected(displayItem)
+    const tts = isTamil ? 'tamil' : isHindi ? 'hindi' : 'english'
+    const url = learnApi.audioUrl(displayItem.char, tts)
     if (audioRef.current) { audioRef.current.src = url; audioRef.current.load(); audioRef.current.play().catch(()=>{}) }
   }
 
   function replayAudio() {
     if (!selected) return
-    const url = learnApi.audioUrl(selected.char, isTamil ? 'tamil' : 'english')
+    const tts = isTamil ? 'tamil' : isHindi ? 'hindi' : 'english'
+    const url = learnApi.audioUrl(selected.char, tts)
     if (audioRef.current) { audioRef.current.src = url; audioRef.current.load(); audioRef.current.play().catch(()=>{}) }
   }
 
@@ -577,13 +699,13 @@ export default function LearnPage({ child, quota }) {
       {/* Header */}
       <div style={{ marginBottom:20 }}>
         <h2 style={{ fontFamily:'Fredoka One,cursive', fontSize:26, color:'#2d2d2d', margin:'0 0 4px' }}>Learn to Write ✏️</h2>
-        <p style={{ margin:0, fontSize:14, color:'#999' }}>Tap a letter to hear it, draw it, or write Tamil words!</p>
+        <p style={{ margin:0, fontSize:14, color:'#999' }}>Tap a letter to hear it, draw it, or practise writing words!</p>
       </div>
 
       {/* Script + mode bar */}
       <div style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap', alignItems:'center' }}>
         <div style={{ display:'flex', gap:6 }}>
-          {[{k:'tamil',label:'🌺 Tamil'},{k:'english',label:'🔤 English'}].map(s => (
+          {[{k:'tamil',label:'🌺 Tamil'},{k:'hindi',label:'🇮🇳 Hindi'},{k:'english',label:'🔤 English'}].map(s => (
             <button key={s.k} onClick={() => { setScript(s.k); setMode('letters') }}
               style={{ padding:'7px 16px', borderRadius:50, border:'none', fontSize:13, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif', background: script===s.k ? 'var(--primary)' : '#f5f5f5', color: script===s.k ? 'white' : '#777' }}>
               {s.label}
@@ -616,8 +738,11 @@ export default function LearnPage({ child, quota }) {
             <div style={{ flex:'1 1 300px' }}>
               {cat.key === 'compound' ? (
                 <CompoundTable selected={selected} onSelect={selectLetter} />
+              ) : cat.key === 'barakhadi' ? (
+                <HindiCompoundTable selected={selected} onSelect={selectLetter} />
               ) : (
-                <LetterGrid letters={cat.letters} selected={selected} onSelect={selectLetter} isTamil={isTamil} />
+                <LetterGrid letters={cat.letters} selected={selected} onSelect={selectLetter} script={script}
+                  pulli={cat.key === 'consonants' ? (script === 'tamil' ? '்' : script === 'hindi' ? '्' : null) : null} />
               )}
             </div>
 

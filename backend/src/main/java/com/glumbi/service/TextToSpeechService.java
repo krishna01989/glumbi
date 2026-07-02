@@ -12,8 +12,11 @@ public class TextToSpeechService {
     private final TextToSpeechClient ttsClient;
 
     public byte[] synthesize(String text, String language) throws Exception {
+        // Wrap in SSML so the TTS engine treats the input as speech markup.
+        // This ensures virama (க்) and halant (क्) are pronounced as pure consonants,
+        // not as syllables with an inherent vowel.
         SynthesisInput input = SynthesisInput.newBuilder()
-                .setText(text)
+                .setSsml("<speak>" + text + "</speak>")
                 .build();
 
         VoiceSelectionParams voice = buildVoice(language);

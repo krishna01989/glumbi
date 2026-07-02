@@ -1170,9 +1170,9 @@ export default function LearnPage({ child, quota }) {
             ))}
           </div>
 
-          <div style={{ display:'flex', gap:24, flexWrap:'wrap', alignItems:'flex-start' }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
             {/* Letter grid / compound table */}
-            <div style={{ flex:'1 1 300px' }}>
+            <div>
               {cat.key === 'compound' ? (
                 <CompoundTable selected={selected} onSelect={selectLetter} />
               ) : cat.key === 'barakhadi' ? (
@@ -1185,7 +1185,7 @@ export default function LearnPage({ child, quota }) {
             </div>
 
             {/* Practice panel */}
-            <div style={{ flex:'0 0 auto', minWidth:300 }}>
+            <div style={{ overflow:'hidden' }}>
               <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota}
                 engFontFamily={isEng ? engFontFamily : null} />
             </div>

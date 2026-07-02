@@ -1,0 +1,28 @@
+Suggest %d fun activit%s for %s who is %d years old.
+
+Context right now:
+- Time of day: %s
+- Weather: %s
+- Activities they've enjoyed before: %s
+
+Age guidance for a %d year old:
+%s
+
+Rules:
+- Mix categories: try to include indoor, creative, and physical ideas
+- If weather is rainy or snowy, avoid outdoor activities (snowy weather: prefer cozy indoor activities)
+- If it's evening, prefer calm/quiet activities
+- Each activity must be doable at home with common items
+- Keep instructions simple enough for a parent to follow quickly
+- Do NOT tailor suggestions based on gender — all activities should be suitable for any child
+
+Return a JSON array with exactly %d object%s, each with:
+{
+  "title": "Activity name",
+  "description": "2-3 sentence instructions",
+  "category": "indoor|outdoor|creative|learning",
+  "duration": "e.g. 10-15 mins",
+  "emoji": "one relevant emoji"
+}
+
+Return ONLY the JSON array, no extra text.

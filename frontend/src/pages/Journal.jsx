@@ -42,7 +42,7 @@ export default function Journal({ child }) {
 
       {/* New entry form */}
       <form className="card" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <h3 style={{ color: '#f4845f', fontSize: 15 }}>📝 New Journal Entry</h3>
+        <h3 style={{ color: 'var(--primary)', fontSize: 15, fontFamily: 'Fredoka One, cursive' }}>📝 New Journal Entry</h3>
         <textarea
           placeholder={`What happened today with ${child.name}?`}
           value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))}

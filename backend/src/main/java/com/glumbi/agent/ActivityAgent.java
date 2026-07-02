@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import lombok.RequiredArgsConstructor;
 import java.util.ArrayList;
@@ -26,13 +25,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ActivityAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
     private final RelevanceGuard relevance;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}") private String apiKey;
-    @Value("${anthropic.model}")   private String model;
+    @Value("${anthropic.model}")                private String model;
+    @Value("${anthropic.max-tokens.activity}")  private int maxTokens;
 
     public List<ActivityResult> generateActivities(
             String childName, int childAge,
@@ -40,56 +40,22 @@ public class ActivityAgent {
             String pastHighRatedActivities,
             int count) {
 
-        String prompt = String.format("""
-                Suggest %d fun activit%s for %s who is %d years old.
-
-                Context right now:
-                - Time of day: %s
-                - Weather: %s
-                - Activities they've enjoyed before: %s
-
-                Age guidance for a %d year old:
-                %s
-
-                Rules:
-                - Mix categories: try to include indoor, creative, and physical ideas
-                - If weather is rainy or snowy, avoid outdoor activities (snowy weather: prefer cozy indoor activities)
-                - If it's evening, prefer calm/quiet activities
-                - Each activity must be doable at home with common items
-                - Keep instructions simple enough for a parent to follow quickly
-                - Do NOT tailor suggestions based on gender — all activities should be suitable for any child
-
-                Return a JSON array with exactly %d object%s, each with:
-                {
-                  "title": "Activity name",
-                  "description": "2-3 sentence instructions",
-                  "category": "indoor|outdoor|creative|learning",
-                  "duration": "e.g. 10-15 mins",
-                  "emoji": "one relevant emoji"
-                }
-
-                Return ONLY the JSON array, no extra text.
-                """, count, count == 1 ? "y" : "ies",
+        String prompt = String.format(promptLoader.load("activity-user"),
+                count, count == 1 ? "y" : "ies",
                 childName, childAge, timeOfDay, weather,
                 pastHighRatedActivities.isEmpty() ? "none yet" : pastHighRatedActivities,
                 childAge, ageGuidance(childAge), count, count == 1 ? "" : "s");
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", 1024);
+        body.put("max_tokens", maxTokens);
         // Layer 2 — safety preamble
         body.put("system", safety.safetySystemPreamble() + "You are a cheerful children's activity planner.");
 
         ArrayNode messages = body.putArray("messages");
         messages.addObject().put("role", "user").put("content", prompt);
 
-        String response = webClientBuilder.build()
-                .post().uri("https://api.anthropic.com/v1/messages")
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
-                .header("content-type", "application/json")
-                .bodyValue(body)
-                .retrieve().bodyToMono(String.class).block();
+        String response = anthropicClient.call(body);
 
         return parseResponse(response);
     }

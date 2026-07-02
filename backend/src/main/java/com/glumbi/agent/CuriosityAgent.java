@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * CuriosityAgent — answers a child's "why" question in a fun, age-appropriate way.
@@ -26,13 +25,14 @@ import org.springframework.web.reactive.function.client.WebClient;
 @RequiredArgsConstructor
 public class CuriosityAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
     private final RelevanceGuard relevance;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}") private String apiKey;
-    @Value("${anthropic.model}")   private String model;
+    @Value("${anthropic.model}")                private String model;
+    @Value("${anthropic.max-tokens.curiosity}") private int maxTokens;
 
     public CuriosityResult explain(String question, String childName, int childAge) {
         // Layer 0 — relevance (is this a child-appropriate curiosity question?)
@@ -40,50 +40,19 @@ public class CuriosityAgent {
         // Layer 1 — safety
         safety.validateInput(question);
 
-        String prompt = String.format("""
-                A %d-year-old child named %s asked: "%s"
-
-                Create a fun, age-appropriate explanation following this structure:
-
-                Rules:
-                - Use super simple words a %d year old understands
-                - STRICT LENGTH: each funFact must be 1-2 short sentences max (under 30 words each)
-                - Make it exciting and magical, not textbook
-                - Use comparisons to things a %d year old knows (%s)
-                - The quiz should be easy enough for them to get right with a little thought
-
-                Return a JSON object with exactly these fields:
-                {
-                  "funFact1": "Simple direct answer in 1-2 fun sentences",
-                  "funFact2": "An amazing wow fact related to the topic",
-                  "funFact3": "A relatable analogy comparing it to something the child knows",
-                  "quizQuestion": "A simple question to test understanding",
-                  "quizAnswer": "The correct answer (short, 2-5 words)",
-                  "quizOption1": "correct answer text",
-                  "quizOption2": "wrong but funny option",
-                  "quizOption3": "wrong but plausible option",
-                  "sticker": "one emoji that represents this topic"
-                }
-
-                Return ONLY the JSON, no extra text.
-                """, childAge, childName, question, childAge, childAge, ageComparisons(childAge));
+        String prompt = String.format(promptLoader.load("curiosity-user"),
+                childAge, childName, question, childAge, childAge, ageComparisons(childAge));
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", 512);
+        body.put("max_tokens", maxTokens);
         // Layer 2 — safety preamble injected into system prompt
         body.put("system", safety.safetySystemPreamble() + "You are a fun, friendly science explainer for young children.");
 
         ArrayNode messages = body.putArray("messages");
         messages.addObject().put("role", "user").put("content", prompt);
 
-        String response = webClientBuilder.build()
-                .post().uri("https://api.anthropic.com/v1/messages")
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
-                .header("content-type", "application/json")
-                .bodyValue(body)
-                .retrieve().bodyToMono(String.class).block();
+        String response = anthropicClient.call(body);
 
         CuriosityResult result = parseResponse(response, question);
 

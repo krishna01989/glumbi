@@ -6,18 +6,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
 @RequiredArgsConstructor
 public class WritingCoachAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}") private String apiKey;
-    @Value("${anthropic.model}")   private String model;
+    @Value("${anthropic.model}")                     private String model;
+    @Value("${anthropic.max-tokens.writing-coach}")  private int maxTokens;
 
     public CoachResult getFeedback(String childName, int childAge, String title, String writing) {
         safety.validateInput(writing);
@@ -29,51 +29,19 @@ public class WritingCoachAgent {
             );
         }
 
-        String system = safety.safetySystemPreamble() + String.format("""
-            You are an enthusiastic, warm writing coach for a %d-year-old child.
-            Your job is to celebrate the child's creativity and give ONE specific,
-            actionable suggestion to make their story even better.
-            %s
+        String system = safety.safetySystemPreamble() + String.format(
+                promptLoader.load("writing-coach-system"), childAge, coachGuidance(childAge), childAge);
 
-            Rules:
-            - ALWAYS start with genuine praise — find something specific and real to celebrate
-            - Be warm, encouraging, and use age-appropriate language for a %d year old
-            - Give exactly ONE concrete suggestion (not a list)
-            - The suggestion should feel exciting, not like homework
-            - Never say the writing is bad, wrong, or needs fixing
-            - Keep total response under 120 words
-            - End with an enthusiastic encouragement to keep writing
-            """, childAge, coachGuidance(childAge), childAge);
-
-        String prompt = String.format("""
-            %s (%d years old) wrote this story titled "%s":
-
-            ---
-            %s
-            ---
-
-            Give warm, encouraging feedback following these rules. Return ONLY this JSON:
-            {
-              "praise": "specific thing you loved about their writing (1-2 sentences)",
-              "suggestion": "one fun idea to make it even better (1-2 sentences)",
-              "encouragement": "short enthusiastic sign-off (1 sentence)",
-              "starWord": "pick the best/most creative word they used in the story",
-              "badge": "one emoji that represents their story theme"
-            }
-            """, childName, childAge, title, writing);
+        String prompt = String.format(promptLoader.load("writing-coach-user"),
+                childName, childAge, title, writing);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", 300);
+        body.put("max_tokens", maxTokens);
         body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
-        String response = webClientBuilder.build()
-            .post().uri("https://api.anthropic.com/v1/messages")
-            .header("x-api-key", apiKey)
-            .header("anthropic-version", "2023-06-01")
-            .header("content-type", "application/json")
-            .bodyValue(body).retrieve().bodyToMono(String.class).block();
+        String response = anthropicClient.call(body);
 
         return parseResponse(response, childName);
     }

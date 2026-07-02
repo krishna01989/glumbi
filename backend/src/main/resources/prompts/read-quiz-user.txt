@@ -1,0 +1,31 @@
+Write a reading story for %s who is %d years old, about: %s
+
+Rules:
+- Length: 250–350 words (long enough to feel like a real story, short enough to read in one sitting)
+- Use vivid descriptions and varied sentence structure
+- Include a clear beginning, middle, and end
+- Embed a positive lesson naturally (courage, kindness, curiosity, perseverance)
+- Vocabulary: slightly challenging but decodable for a %d year old
+- Do NOT use the word "bedtime" — this is a daytime reading story
+
+Then write exactly 3 comprehension questions:
+- Q1: Factual (what happened?)
+- Q2: Inferential (why did the character do/feel something?)
+- Q3: Reflective (what would YOU do / what did you learn?)
+
+Each question must have exactly 3 answer options, with one clearly correct.
+
+Return ONLY this JSON — no extra text:
+{
+  "title": "...",
+  "story": "...",
+  "readingTime": "5 mins",
+  "lesson": "one-word theme e.g. Courage",
+  "questions": [
+    {
+      "question": "...",
+      "options": ["...", "...", "..."],
+      "correctIndex": 0
+    }
+  ]
+}

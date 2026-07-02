@@ -9,8 +9,6 @@ import com.glumbi.repository.ReadQuizRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.Period;
 import java.time.LocalDateTime;
 import java.util.List;
 

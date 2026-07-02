@@ -351,10 +351,18 @@ export default function ReadQuiz({ child, quota }) {
                   <div style={{ color: '#666', fontSize: 14, marginBottom: 16 }}>
                     You got {selected.score} out of 3 correct
                   </div>
-                  <button onClick={() => { setSelected(null); setSubmitted(false) }}
-                    style={{ padding: '10px 24px', borderRadius: 50, background: '#f5f5f5', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', color: '#555' }}>
-                    Read another story →
-                  </button>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {selected.score < 3 && (
+                      <button onClick={() => { setAnswers([null, null, null]); setSubmitted(false) }}
+                        style={{ padding: '10px 24px', borderRadius: 50, background: 'var(--primary)', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', color: 'white' }}>
+                        🔄 Try again
+                      </button>
+                    )}
+                    <button onClick={() => { setSelected(null); setSubmitted(false) }}
+                      style={{ padding: '10px 24px', borderRadius: 50, background: '#f5f5f5', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer', color: '#555' }}>
+                      Read another story →
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

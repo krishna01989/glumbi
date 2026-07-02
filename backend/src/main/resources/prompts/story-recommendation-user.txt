@@ -1,0 +1,7 @@
+A child named %s (age %d) has recently enjoyed these stories: %s.
+Their story keywords/themes include: %s.
+
+Suggest 3 fresh story topics they would enjoy this week, based on their interests.
+Format: one sentence introducing the suggestions, then list the 3 topics with a fun emoji each.
+Keep it short and exciting for a parent to read.
+Return only the message text.

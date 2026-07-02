@@ -8,7 +8,6 @@ import com.glumbi.entity.Story;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,11 +16,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StoryRecommendationAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}")    private String apiKey;
-    @Value("${anthropic.model}")      private String model;
+    @Value("${anthropic.model}")                            private String model;
+    @Value("${anthropic.max-tokens.story-recommendation}")  private int maxTokens;
 
     public String generate(Child child, List<Story> recentStories) {
         if (recentStories.isEmpty()) {
@@ -40,29 +40,17 @@ public class StoryRecommendationAgent {
                 .collect(Collectors.joining(", "));
 
         try {
-            String prompt = String.format("""
-                    A child named %s (age %d) has recently enjoyed these stories: %s.
-                    Their story keywords/themes include: %s.
-
-                    Suggest 3 fresh story topics they would enjoy this week, based on their interests.
-                    Format: one sentence introducing the suggestions, then list the 3 topics with a fun emoji each.
-                    Keep it short and exciting for a parent to read.
-                    Return only the message text.
-                    """,
-                    child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()), recentTitles, keywords);
+            String prompt = String.format(promptLoader.load("story-recommendation-user"),
+                    child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()),
+                    recentTitles, keywords);
 
             ObjectNode body = mapper.createObjectNode();
             body.put("model", model);
-            body.put("max_tokens", 150);
+            body.put("max_tokens", maxTokens);
             body.putArray("messages").addObject()
                     .put("role", "user").put("content", prompt);
 
-            String response = webClientBuilder.build()
-                    .post().uri("https://api.anthropic.com/v1/messages")
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .header("content-type", "application/json")
-                    .bodyValue(body).retrieve().bodyToMono(String.class).block();
+            String response = anthropicClient.call(body);
 
             JsonNode root = mapper.readTree(response);
             return root.path("content").get(0).path("text").asText().trim();

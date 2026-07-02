@@ -116,7 +116,7 @@ export default function Activities({ child, quota }) {
       <div className="card" style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <span style={{ fontSize: 28 }}>🎮</span>
-          <h3 style={{ fontSize: 18, color: '#27ae60', fontFamily: 'Fredoka One, cursive' }}>What shall we do today?</h3>
+          <h3 style={{ fontSize: 18, color: 'var(--primary)', fontFamily: 'Fredoka One, cursive' }}>What shall we do today?</h3>
         </div>
 
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -158,7 +158,7 @@ export default function Activities({ child, quota }) {
               title="Replace all pending activities with a fresh set"
               style={{
                 padding: '12px 16px', borderRadius: 50, fontSize: 14, fontWeight: 800,
-                background: '#f0f9f4', color: '#27ae60', border: '2px solid #b8e0c8',
+                background: 'var(--primary-lt)', color: 'var(--primary)', border: '2px solid rgba(255,107,107,0.3)',
                 cursor: loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
               }}>
               🔄 Refresh
@@ -173,11 +173,11 @@ export default function Activities({ child, quota }) {
       {!loading && pending.length > 0 && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--text)', margin: 0 }}>
+            <h3 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)', margin: 0 }}>
               🌟 Today's Activities
             </h3>
             <button onClick={handleClearAll}
-              style={{ fontSize: 12, fontWeight: 700, color: '#e53935', background: '#fff0f0', border: '1.5px solid #ffcdd2', borderRadius: 20, padding: '5px 14px', cursor: 'pointer' }}>
+              style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', background: 'var(--primary-lt)', border: '1.5px solid rgba(255,107,107,0.3)', borderRadius: 20, padding: '5px 14px', cursor: 'pointer' }}>
               🗑 Clear all
             </button>
           </div>
@@ -202,12 +202,12 @@ export default function Activities({ child, quota }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn-green" style={{ flex: 1, padding: '8px', fontSize: 13 }}
+                    <button className="btn-primary" style={{ flex: 1, padding: '8px', fontSize: 13 }}
                       onClick={() => handleComplete(a.id)}>✓ Done!</button>
-                    <button className="btn-danger" style={{ padding: '8px 12px', fontSize: 13 }}
-                      disabled={!!substituting}
+                    <button disabled={!!substituting}
                       onClick={() => handleDelete(a.id)}
-                      title="Remove and get a replacement">
+                      title="Remove and get a replacement"
+                      style={{ padding: '8px 12px', fontSize: 13, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '1.5px solid rgba(255,107,107,0.3)', background: 'var(--primary-lt)', color: 'var(--primary)', cursor: substituting ? 'not-allowed' : 'pointer' }}>
                       {substituting === a.id ? '…' : '↻ Swap'}
                     </button>
                     <button onClick={() => handleRemove(a.id)}

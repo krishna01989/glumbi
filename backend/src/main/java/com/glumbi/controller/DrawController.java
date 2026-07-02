@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.glumbi.agent.AnthropicClient;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Map;
 
@@ -20,11 +20,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DrawController {
 
-    private final WebClient.Builder webClientBuilder;
-    private final ApiQuotaService   quotaService;
+    private final AnthropicClient  anthropicClient;
+    private final ApiQuotaService  quotaService;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}") private String apiKey;
+    @Value("${anthropic.fast-model}")      private String fastModel;
+    @Value("${anthropic.max-tokens.draw}") private int maxTokens;
 
     @PostMapping("/identify")
     public ResponseEntity<?> identify(@RequestBody Map<String, String> body,
@@ -42,8 +43,8 @@ public class DrawController {
 
         try {
             ObjectNode request = mapper.createObjectNode();
-            request.put("model", "claude-haiku-4-5-20251001");
-            request.put("max_tokens", 256);
+            request.put("model", fastModel);
+            request.put("max_tokens", maxTokens);
             request.put("system", String.format(
                 "You are a warm, encouraging art teacher talking to %s who is %d years old. " +
                 "Look at their drawing and respond with pure joy and imagination. " +
@@ -70,13 +71,7 @@ public class DrawController {
             // Text block
             content.addObject().put("type", "text").put("text", "What did I draw?");
 
-            String raw = webClientBuilder.build()
-                    .post().uri("https://api.anthropic.com/v1/messages")
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .header("content-type", "application/json")
-                    .bodyValue(request)
-                    .retrieve().bodyToMono(String.class).block();
+            String raw = anthropicClient.call(request);
 
             JsonNode root = mapper.readTree(raw);
             String response = root.path("content").get(0).path("text").asText();

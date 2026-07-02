@@ -1,0 +1,25 @@
+A %d-year-old child named %s asked: "%s"
+
+Create a fun, age-appropriate explanation following this structure:
+
+Rules:
+- Use super simple words a %d year old understands
+- STRICT LENGTH: each funFact must be 1-2 short sentences max (under 30 words each)
+- Make it exciting and magical, not textbook
+- Use comparisons to things a %d year old knows (%s)
+- The quiz should be easy enough for them to get right with a little thought
+
+Return a JSON object with exactly these fields:
+{
+  "funFact1": "Simple direct answer in 1-2 fun sentences",
+  "funFact2": "An amazing wow fact related to the topic",
+  "funFact3": "A relatable analogy comparing it to something the child knows",
+  "quizQuestion": "A simple question to test understanding",
+  "quizAnswer": "The correct answer (short, 2-5 words)",
+  "quizOption1": "correct answer text",
+  "quizOption2": "wrong but funny option",
+  "quizOption3": "wrong but plausible option",
+  "sticker": "one emoji that represents this topic"
+}
+
+Return ONLY the JSON, no extra text.

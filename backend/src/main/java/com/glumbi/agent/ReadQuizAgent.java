@@ -6,78 +6,37 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
 @RequiredArgsConstructor
 public class ReadQuizAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
     private final RelevanceGuard relevance;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}")    private String apiKey;
-    @Value("${anthropic.model}")      private String model;
+    @Value("${anthropic.model}")                 private String model;
+    @Value("${anthropic.max-tokens.read-quiz}")  private int maxTokens;
 
     public ReadQuizResult generate(String childName, int childAge, String topic) {
         relevance.validate(topic, RelevanceGuard.Context.STORY);
         safety.validateInput(topic);
 
-        String system = safety.safetySystemPreamble() + String.format("""
-            You are an engaging reading teacher for a %d-year-old child.
-            Write stories that are longer and richer than bedtime stories —
-            with descriptive language, a clear problem-solution arc, and a meaningful lesson.
-            %s
-            Always follow with comprehension questions to reinforce reading skills.
-            """, childAge, readingGuidance(childAge));
+        String system = safety.safetySystemPreamble() + String.format(
+                promptLoader.load("read-quiz-system"), childAge, readingGuidance(childAge));
 
-        String prompt = String.format("""
-            Write a reading story for %s who is %d years old, about: %s
-
-            Rules:
-            - Length: 250–350 words (long enough to feel like a real story, short enough to read in one sitting)
-            - Use vivid descriptions and varied sentence structure
-            - Include a clear beginning, middle, and end
-            - Embed a positive lesson naturally (courage, kindness, curiosity, perseverance)
-            - Vocabulary: slightly challenging but decodable for a %d year old
-            - Do NOT use the word "bedtime" — this is a daytime reading story
-
-            Then write exactly 3 comprehension questions:
-            - Q1: Factual (what happened?)
-            - Q2: Inferential (why did the character do/feel something?)
-            - Q3: Reflective (what would YOU do / what did you learn?)
-
-            Each question must have exactly 3 answer options, with one clearly correct.
-
-            Return ONLY this JSON — no extra text:
-            {
-              "title": "...",
-              "story": "...",
-              "readingTime": "5 mins",
-              "lesson": "one-word theme e.g. Courage",
-              "questions": [
-                {
-                  "question": "...",
-                  "options": ["...", "...", "..."],
-                  "correctIndex": 0
-                }
-              ]
-            }
-            """, childName, childAge, topic, childAge);
+        String prompt = String.format(promptLoader.load("read-quiz-user"),
+                childName, childAge, topic, childAge);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", 1024);
+        body.put("max_tokens", maxTokens);
         body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
-        String response = webClientBuilder.build()
-            .post().uri("https://api.anthropic.com/v1/messages")
-            .header("x-api-key", apiKey)
-            .header("anthropic-version", "2023-06-01")
-            .header("content-type", "application/json")
-            .bodyValue(body).retrieve().bodyToMono(String.class).block();
+        String response = anthropicClient.call(body);
 
         return parseResponse(response, topic);
     }

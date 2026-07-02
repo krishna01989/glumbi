@@ -21,7 +21,6 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class UserController {
 
-    private static final int MONTHLY_LIMIT = 200;
     private static final Pattern STRONG_PASSWORD =
         Pattern.compile("^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{}|;':\",./<>?]).{8,}$");
 

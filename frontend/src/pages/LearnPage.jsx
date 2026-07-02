@@ -72,15 +72,384 @@ const HINDI_COMPOUND_TABLE = HINDI_CONSONANTS.map(con => ({
 
 // ── English data ───────────────────────────────────────────────────────────────
 
-const ENG_VOWELS     = 'AEIOU'.split('').map(c => ({ char: c }))
-const ENG_CONSONANTS = 'BCDFGHJKLMNPQRSTVWXYZ'.split('').map(c => ({ char: c }))
-const ENG_NUMBERS    = ['1','2','3','4','5','6','7','8','9','10'].map(c => ({ char: c }))
+const ENG_VOWELS        = 'AEIOU'.split('').map(c => ({ char: c }))
+const ENG_CONSONANTS    = 'BCDFGHJKLMNPQRSTVWXYZ'.split('').map(c => ({ char: c }))
+const ENG_VOWELS_LOWER  = 'aeiou'.split('').map(c => ({ char: c }))
+const ENG_CONS_LOWER    = 'bcdfghjklmnpqrstvwxyz'.split('').map(c => ({ char: c }))
+const ENG_NUMBERS       = ['1','2','3','4','5','6','7','8','9','10'].map(c => ({ char: c }))
+
+// ── Stroke order data ─────────────────────────────────────────────────────────
+// STROKE_POSITIONS: per-character stroke starting points as [xFrac, yFrac]
+// fractions of the detected pixel bounding box (0=left/top, 1=right/bottom)
+const STROKE_POSITIONS = {
+  // ── English uppercase ──
+  // Badges placed ALONG the stroke path so shared start-corners never overlap
+  'A':[[.28,.55],[.72,.55],[.22,.55]],   // left-leg mid, right-leg mid, crossbar
+  'B':[[.22,.25],[.60,.28],[.60,.68]],   // upper stem, upper bump mid, lower bump mid
+  'C':[[.72,.15]],
+  'D':[[.22,.25],[.62,.42]],             // upper stem, bump mid
+  'E':[[.22,.35],[.50,.06],[.50,.52],[.50,.92]], // stem mid, top bar, mid bar, bottom bar
+  'F':[[.22,.35],[.50,.06],[.50,.50]],   // stem mid, top bar, mid bar
+  'G':[[.72,.15],[.60,.52]],
+  'H':[[.22,.30],[.78,.30],[.50,.52]],
+  'I':[[.50,.50]],
+  'J':[[.62,.35],[.40,.85]],
+  'K':[[.22,.35],[.70,.18],[.68,.68]],
+  'L':[[.22,.35],[.58,.92]],
+  'M':[[.15,.40],[.38,.42],[.62,.42],[.85,.40]],
+  'N':[[.22,.35],[.50,.50],[.78,.35]],
+  'O':[[.55,.06]],
+  'P':[[.22,.35],[.60,.28]],
+  'Q':[[.55,.06],[.68,.72]],
+  'R':[[.22,.35],[.60,.28],[.68,.68]],
+  'S':[[.70,.18],[.35,.80]],
+  'T':[[.38,.06],[.50,.45]],             // top bar left-half, stem mid
+  'U':[[.22,.42],[.50,.92],[.78,.42]],
+  'V':[[.28,.42],[.72,.42]],
+  'W':[[.15,.42],[.35,.80],[.50,.50],[.68,.80],[.85,.42]],
+  'X':[[.25,.30],[.75,.30]],
+  'Y':[[.25,.30],[.75,.30],[.50,.62]],
+  'Z':[[.42,.06],[.75,.06],[.28,.92]],   // top bar mid, top bar end, bottom bar mid
+  // ── English lowercase ──
+  'a':[[.68,.35],[.75,.60]],             // circle mid, downstroke mid
+  'b':[[.22,.30],[.60,.60]],             // stem mid, bump mid
+  'c':[[.72,.30]],
+  'd':[[.65,.35],[.78,.30]],             // circle mid, stem mid
+  'e':[[.38,.52],[.65,.28]],
+  'f':[[.58,.20],[.38,.52]],             // hook mid, crossbar
+  'g':[[.65,.30],[.75,.72]],
+  'h':[[.22,.30],[.65,.55],[.78,.42]],
+  'i':[[.50,.52],[.50,.18]],             // body mid, dot
+  'j':[[.55,.52],[.55,.18]],
+  'k':[[.22,.30],[.70,.28],[.65,.62]],
+  'l':[[.50,.40]],
+  'm':[[.25,.52],[.50,.42],[.78,.52]],
+  'n':[[.22,.52],[.65,.42]],
+  'o':[[.55,.30]],
+  'p':[[.22,.52],[.22,.75],[.60,.55]],   // upper stem, lower stem, bump
+  'q':[[.62,.35],[.78,.52],[.78,.75]],
+  'r':[[.22,.52],[.55,.42]],
+  's':[[.65,.32],[.38,.72]],
+  't':[[.50,.35],[.32,.50]],             // stem mid, crossbar
+  'u':[[.25,.50],[.50,.68],[.75,.50]],
+  'v':[[.28,.45],[.72,.45]],
+  'w':[[.15,.45],[.35,.72],[.50,.52],[.68,.72],[.85,.45]],
+  'x':[[.28,.38],[.72,.38]],
+  'y':[[.28,.40],[.72,.40],[.50,.72]],
+  'z':[[.38,.35],[.72,.35],[.28,.72]],
+  // ── English numbers ──
+  '1':[[.50,.05]],
+  '2':[[.68,.08],[.20,.90]],
+  '3':[[.65,.08],[.65,.54]],
+  '4':[[.72,.05],[.72,.46],[.18,.48]],
+  '5':[[.78,.05],[.22,.06],[.22,.55]],
+  '6':[[.65,.08],[.50,.62]],
+  '7':[[.18,.05],[.78,.05]],
+  '8':[[.50,.05],[.50,.52]],
+  '9':[[.50,.05],[.65,.60]],
+  // ── Tamil vowels (உயிர்) ──
+  'அ':[[.55,.12],[.62,.72]],
+  'ஆ':[[.45,.12],[.52,.68],[.88,.15]],
+  'இ':[[.40,.08],[.58,.70]],
+  'ஈ':[[.35,.08],[.50,.58],[.72,.80]],
+  'உ':[[.32,.18],[.65,.68]],
+  'ஊ':[[.28,.14],[.55,.62],[.74,.80]],
+  'எ':[[.68,.12]],
+  'ஏ':[[.62,.10],[.88,.46]],
+  'ஐ':[[.55,.08],[.35,.54],[.72,.78]],
+  'ஒ':[[.62,.08],[.88,.44]],
+  'ஓ':[[.55,.08],[.88,.38],[.88,.62]],
+  'ஔ':[[.50,.08],[.88,.34],[.88,.58],[.65,.84]],
+  // ── Tamil consonants (மெய்) ──
+  'க':[[.62,.12],[.40,.55]],
+  'ங':[[.55,.10],[.42,.70]],
+  'ச':[[.70,.20],[.44,.70],[.72,.82]],
+  'ஞ':[[.55,.08],[.72,.60]],
+  'ட':[[.55,.12],[.62,.44],[.18,.54]],
+  'ண':[[.58,.08],[.40,.70]],
+  'த':[[.58,.10],[.18,.52]],
+  'ந':[[.54,.08],[.40,.68]],
+  'ப':[[.15,.14],[.42,.14],[.85,.14],[.42,.74]],
+  'ம':[[.58,.12],[.28,.76]],
+  'ய':[[.54,.08],[.62,.64]],
+  'ர':[[.38,.22],[.55,.76]],
+  'ல':[[.58,.10],[.35,.70]],
+  'வ':[[.62,.18],[.54,.70]],
+  'ழ':[[.55,.10],[.40,.70]],
+  'ள':[[.58,.08],[.38,.70]],
+  'ற':[[.55,.10],[.40,.64]],
+  'ன':[[.55,.12]],
+  'ஃ':[[.25,.46],[.50,.46],[.75,.46]],
+  // ── Hindi vowels (स्वर) ──
+  'अ':[[.22,.08],[.55,.08],[.50,.62]],
+  'आ':[[.18,.08],[.50,.08],[.45,.62],[.82,.08]],
+  'इ':[[.35,.08],[.65,.08],[.50,.70]],
+  'ई':[[.28,.08],[.55,.08],[.50,.68],[.80,.08]],
+  'उ':[[.42,.08],[.42,.62]],
+  'ऊ':[[.38,.08],[.38,.58],[.62,.78]],
+  'ए':[[.22,.08],[.78,.08],[.50,.55],[.22,.90]],
+  'ऐ':[[.18,.08],[.50,.08],[.78,.08],[.50,.55],[.22,.90]],
+  'ओ':[[.22,.08],[.78,.08],[.50,.55],[.22,.90],[.65,.72]],
+  'औ':[[.18,.08],[.50,.08],[.78,.08],[.50,.55],[.22,.90],[.65,.72]],
+  'अं':[[.22,.08],[.55,.08],[.50,.62],[.62,.12]],
+  'अः':[[.22,.08],[.55,.08],[.50,.62],[.80,.28],[.80,.55]],
+  // ── Hindi consonants (व्यंजन) ──
+  'क':[[.28,.08],[.28,.55],[.15,.82]],
+  'ख':[[.42,.08],[.42,.52],[.65,.08]],
+  'ग':[[.62,.12],[.28,.55]],
+  'घ':[[.55,.10],[.28,.50],[.65,.08]],
+  'च':[[.60,.16],[.28,.55],[.65,.08]],
+  'छ':[[.55,.12],[.65,.32],[.28,.58]],
+  'ज':[[.72,.08],[.45,.40],[.28,.60],[.65,.08]],
+  'झ':[[.65,.08],[.40,.35],[.65,.58]],
+  'ट':[[.55,.15],[.28,.55],[.65,.08]],
+  'ठ':[[.55,.12],[.65,.35],[.65,.08]],
+  'ड':[[.55,.15],[.28,.55],[.65,.08]],
+  'ढ':[[.55,.12],[.65,.35],[.65,.08]],
+  'त':[[.55,.10],[.35,.45],[.65,.08]],
+  'थ':[[.55,.08],[.38,.45],[.65,.65],[.65,.08]],
+  'द':[[.72,.08],[.40,.40],[.40,.70]],
+  'ध':[[.65,.08],[.35,.38],[.65,.55],[.35,.70]],
+  'न':[[.28,.08],[.28,.55],[.65,.08],[.65,.55]],
+  'प':[[.28,.08],[.28,.55],[.60,.35],[.65,.08]],
+  'फ':[[.28,.08],[.28,.55],[.60,.35],[.85,.35],[.65,.08]],
+  'ब':[[.28,.08],[.28,.55],[.55,.35],[.65,.08]],
+  'भ':[[.28,.08],[.28,.52],[.55,.35],[.28,.72],[.65,.08]],
+  'म':[[.28,.08],[.28,.55],[.55,.35],[.28,.72],[.55,.72],[.65,.08]],
+  'य':[[.40,.12],[.28,.55],[.65,.08]],
+  'र':[[.22,.08],[.65,.08]],
+  'ल':[[.28,.08],[.28,.55],[.50,.70],[.65,.08]],
+  'व':[[.38,.12],[.28,.55],[.65,.08]],
+  'श':[[.55,.18],[.28,.55],[.65,.08]],
+  'ष':[[.38,.12],[.28,.55],[.65,.08]],
+  'स':[[.72,.08],[.42,.40],[.55,.62],[.65,.08]],
+  'ह':[[.72,.08],[.42,.40],[.28,.55],[.28,.78],[.65,.08]],
+}
+
+// STROKE_ENDS: stroke end points [xFrac, yFrac] — shown as red stop dots
+// Same index order as STROKE_POSITIONS. Characters without an entry use direction-offset estimate.
+const STROKE_ENDS = {
+  // ── English uppercase ──
+  'A':[[.50,.96],[.50,.96],[.78,.54]],
+  'B':[[.22,.92],[.22,.50],[.22,.92]],
+  'C':[[.72,.85]],
+  'D':[[.22,.92],[.22,.92]],
+  'E':[[.22,.92],[.82,.06],[.75,.52],[.82,.92]],
+  'F':[[.22,.92],[.82,.06],[.75,.50]],
+  'G':[[.72,.85],[.52,.52]],
+  'H':[[.22,.92],[.78,.92],[.78,.52]],
+  'I':[[.50,.92]],
+  'J':[[.38,.88],[.38,.88]],
+  'K':[[.22,.92],[.82,.06],[.82,.92]],
+  'L':[[.22,.92],[.82,.92]],
+  'M':[[.15,.92],[.50,.60],[.50,.60],[.85,.92]],
+  'N':[[.22,.92],[.78,.92],[.78,.06]],
+  'O':[[.55,.06]],
+  'P':[[.22,.92],[.22,.50]],
+  'Q':[[.55,.06],[.82,.92]],
+  'R':[[.22,.92],[.22,.50],[.82,.92]],
+  'S':[[.35,.40],[.65,.80]],
+  'T':[[.82,.06],[.50,.92]],
+  'U':[[.50,.92],[.50,.92],[.78,.92]],
+  'V':[[.50,.92],[.50,.92]],
+  'W':[[.32,.92],[.50,.50],[.68,.92],[.85,.06],[.85,.06]],
+  'X':[[.75,.92],[.25,.92]],
+  'Y':[[.50,.52],[.50,.52],[.50,.92]],
+  'Z':[[.82,.06],[.18,.92],[.82,.92]],
+  // ── English lowercase ──
+  'a':[[.68,.08],[.70,.92]],
+  'b':[[.22,.92],[.22,.92]],
+  'c':[[.72,.80]],
+  'd':[[.62,.08],[.75,.92]],
+  'e':[[.72,.52],[.22,.62]],
+  'f':[[.55,.35],[.65,.52]],
+  'g':[[.65,.08],[.75,.92]],
+  'h':[[.22,.92],[.22,.92],[.78,.92]],
+  'i':[[.50,.80],[.50,.18]],
+  'j':[[.38,.88],[.55,.18]],
+  'k':[[.22,.92],[.82,.45],[.82,.92]],
+  'l':[[.50,.92]],
+  'm':[[.25,.92],[.50,.92],[.78,.92]],
+  'n':[[.22,.92],[.78,.92]],
+  'o':[[.55,.30]],
+  'p':[[.22,.92],[.22,.92],[.22,.92]],
+  'q':[[.62,.08],[.78,.92],[.78,.92]],
+  'r':[[.22,.92],[.62,.50]],
+  's':[[.35,.50],[.65,.80]],
+  't':[[.50,.88],[.65,.50]],
+  'u':[[.50,.88],[.50,.88],[.78,.92]],
+  'v':[[.50,.88],[.50,.88]],
+  'w':[[.32,.88],[.50,.55],[.68,.88],[.85,.50],[.85,.50]],
+  'x':[[.72,.88],[.28,.88]],
+  'y':[[.50,.60],[.50,.60],[.50,.96]],
+  'z':[[.72,.35],[.28,.72],[.72,.72]],
+  // ── English numbers ──
+  '1':[[.50,.92]],
+  '2':[[.55,.38],[.80,.90]],
+  '3':[[.35,.50],[.35,.90]],
+  '4':[[.18,.48],[.72,.90],[.80,.48]],
+  '5':[[.22,.06],[.22,.55],[.65,.82]],
+  '6':[[.35,.15],[.50,.90]],
+  '7':[[.82,.05],[.40,.90]],
+  '8':[[.50,.52],[.50,.06]],
+  '9':[[.50,.05],[.40,.92]],
+}
+
+// Approximate end offset by direction when STROKE_ENDS not defined
+const DIR_END_OFFSET = {
+  '↓':[0,.35],'↑':[0,-.35],'→':[.35,0],'←':[-.35,0],
+  '↘':[.28,.28],'↙':[-.28,.28],'↗':[.28,-.28],'↖':[-.28,-.28],
+  '↺':[-.08,.22],'↻':[.08,.22],'↩':[.22,.08],'↪':[-.22,.08],'•':[0,0],
+}
+
+// STROKE_HINTS: direction arrows for each stroke (same order as STROKE_POSITIONS)
+const STROKE_HINTS = {
+  // ── English uppercase ──
+  'A':['↘','↙','→'], 'B':['↓','↩','↩'], 'C':['↺'], 'D':['↓','↩'],
+  'E':['↓','→','→','→'], 'F':['↓','→','→'], 'G':['↺','→'], 'H':['↓','↓','→'],
+  'I':['↓'], 'J':['↓','↩'], 'K':['↓','↗','↘'], 'L':['↓','→'],
+  'M':['↓','↘','↗','↓'], 'N':['↓','↘','↑'], 'O':['↺'], 'P':['↓','↩'],
+  'Q':['↺','↘'], 'R':['↓','↩','↘'], 'S':['↩','↪'], 'T':['→','↓'],
+  'U':['↓','↩','↑'], 'V':['↘','↗'], 'W':['↘','↗','↘','↗'], 'X':['↘','↙'],
+  'Y':['↘','↙','↓'], 'Z':['→','↘','→'],
+  // ── English lowercase ──
+  'a':['↺','↓'], 'b':['↓','↩'], 'c':['↺'], 'd':['↺','↓'], 'e':['→','↺'],
+  'f':['↩','→'], 'g':['↺','↓'], 'h':['↓','↩','→'], 'i':['↓','•'], 'j':['↓','•'],
+  'k':['↓','↗','↘'], 'l':['↓'], 'm':['↓','↩','↩'], 'n':['↓','↩'], 'o':['↺'],
+  'p':['↓','↩'], 'q':['↺','↓'], 'r':['↓','↩'], 's':['↩','↪'], 't':['↓','→'],
+  'u':['↓','↩','↑'], 'v':['↘','↗'], 'w':['↘','↗','↘','↗'], 'x':['↘','↙'],
+  'y':['↘','↙↓'], 'z':['→','↘','→'],
+  // ── English numbers ──
+  '1':['↓'], '2':['↩','↘','→'], '3':['↩','↩'], '4':['↘','↓','→'],
+  '5':['←','↓','↩'], '6':['↙','↺'], '7':['→','↘'], '8':['↻','↺'],
+  '9':['↺','↓'], '10':['↓','↺'],
+  // ── Tamil vowels (உயிர்) ──
+  'அ':['↙','↺'], 'ஆ':['↙','↺','→'], 'இ':['↓','↩'],
+  'ஈ':['↓','↩','↩'], 'உ':['↙','↩'], 'ஊ':['↙','↩','↩'],
+  'எ':['↺'], 'ஏ':['↺','→'], 'ஐ':['↺','↩','↩'],
+  'ஒ':['↺','→'], 'ஓ':['↺','→','→'], 'ஔ':['↺','→','↓'],
+  // ── Tamil consonants (மெய்) ──
+  'க':['↺','→'], 'ங':['↺','↓'], 'ச':['↩','↓','↩'],
+  'ஞ':['↺','↻'], 'ட':['↻','•','→'], 'ண':['↺','↓'],
+  'த':['↺','→'], 'ந':['↺','↓'], 'ப':['→','↓','←','↩'],
+  'ம':['↺','↙'], 'ய':['↺','↺'], 'ர':['↙','↩'],
+  'ல':['↺','↓'], 'வ':['↩','↩'], 'ழ':['↺','↓'],
+  'ள':['↺','↓'], 'ற':['↻','↓'], 'ன':['↺'],
+  'ஃ':['•','•','•'],
+  // ── Hindi vowels (स्वर) ──
+  'अ':['→','↙','↓'], 'आ':['→','↙','↓','↓'], 'इ':['↓','→','↓'],
+  'ई':['↓','→','↓','→'], 'उ':['↓','↩'], 'ऊ':['↓','↩','↩'],
+  'ए':['→','↙','↓','→'], 'ऐ':['→','→','↙','↓','→'], 'ओ':['→','↙','↓','↩'],
+  'औ':['→','↙','↓','↩','↩'], 'अं':['→','↙','↓','•'], 'अः':['→','↙','↓','•','•'],
+  // ── Hindi consonants (व्यंजन) ──
+  'क':['↙','↓','→'], 'ख':['↓','→','↓','→'], 'ग':['↩','→'], 'घ':['↩','↓','→'],
+  'च':['↩','↓','→'], 'छ':['↩','↩','→'], 'ज':['→','↙','↓','→'], 'झ':['→','↙','↗','→'],
+  'ट':['↻','↓','→'], 'ठ':['↻','↗','→'], 'ड':['↻','↓','→'], 'ढ':['↻','↗','→'],
+  'त':['→','↙','→'], 'थ':['→','↙','↗','→'], 'द':['→','↙','↓'], 'ध':['→','↙','↗','↓','→'],
+  'न':['↓','→','↓','→'], 'प':['↓','↩','→'], 'फ':['↓','↩','→','→'], 'ब':['↓','↩','→'],
+  'भ':['↓','↩','↓','→'], 'म':['↓','↩','↓','→'], 'य':['↙','↓','→'], 'र':['→','↘'],
+  'ल':['↓','↩','→'], 'व':['↙','↓','→'], 'श':['↩','↓','→'], 'ष':['↙','↓','→'],
+  'स':['→','↙','↩','→'], 'ह':['→','↙','↓','→'],
+}
+
+// ── English per-stroke SVG paths (normalized 0-100 coordinate space) ──────────
+// Each character maps to an array of path strings, one per stroke.
+// Scale to pixel space using: px = x0 + (n/100)*lw, py = y0 + (n/100)*lh
+const ENG_STROKE_PATHS = {
+  // Uppercase
+  'A':['M50,2 L12,96','M50,2 L88,96','M18,55 L82,55'],
+  'B':['M22,4 L22,92','M22,4 Q78,4 78,26 Q78,48 22,48','M22,48 Q82,48 82,70 Q82,92 22,92'],
+  'C':['M82,18 Q82,4 52,4 Q15,4 15,50 Q15,96 52,96 Q82,96 82,80'],
+  'D':['M22,4 L22,92','M22,4 Q88,4 88,50 Q88,96 22,96'],
+  'E':['M22,4 L22,92','M22,4 L82,4','M22,50 L70,50','M22,92 L82,92'],
+  'F':['M22,4 L22,92','M22,4 L82,4','M22,50 L70,50'],
+  'G':['M82,18 Q82,4 50,4 Q14,4 14,50 Q14,96 50,96 Q82,96 82,80','M82,55 L55,55'],
+  'H':['M22,4 L22,92','M78,4 L78,92','M22,50 L78,50'],
+  'I':['M50,4 L50,92'],
+  'J':['M62,4 L62,72','M62,72 Q62,95 40,95 Q18,95 18,78'],
+  'K':['M22,4 L22,92','M78,8 L22,50','M22,50 L78,92'],
+  'L':['M22,4 L22,92','M22,92 L82,92'],
+  'M':['M12,4 L12,92','M12,4 L50,55','M88,4 L50,55','M88,4 L88,92'],
+  'N':['M15,4 L15,92','M15,4 L85,92','M85,4 L85,92'],
+  'O':['M50,4 Q88,4 88,50 Q88,96 50,96 Q12,96 12,50 Q12,4 50,4'],
+  'P':['M22,4 L22,92','M22,4 Q78,4 78,26 Q78,48 22,48'],
+  'Q':['M50,4 Q88,4 88,50 Q88,96 50,96 Q12,96 12,50 Q12,4 50,4','M58,68 L82,92'],
+  'R':['M22,4 L22,92','M22,4 Q78,4 78,26 Q78,48 22,48','M45,48 L82,92'],
+  'S':['M78,16 Q78,4 52,4 Q22,4 22,28 Q22,50 50,50','M50,50 Q78,50 78,72 Q78,96 45,96 Q18,96 18,84'],
+  'T':['M10,4 L90,4','M50,4 L50,92'],
+  'U':['M22,4 L22,70','M22,70 Q22,94 50,94 Q78,94 78,70','M78,70 L78,4'],
+  'V':['M15,4 L50,92','M85,4 L50,92'],
+  'W':['M10,4 L30,92','M30,92 L50,45','M50,45 L70,92','M70,92 L90,4'],
+  'X':['M12,4 L88,92','M88,4 L12,92'],
+  'Y':['M12,4 L50,52','M88,4 L50,52','M50,52 L50,92'],
+  'Z':['M12,4 L88,4','M88,4 L12,92','M12,92 L88,92'],
+  // Lowercase
+  'a':['M68,32 Q68,8 48,8 Q22,8 22,38 Q22,65 48,65 Q68,65 68,38','M68,8 L68,90'],
+  'b':['M22,4 L22,92','M22,55 Q22,32 45,32 Q72,32 72,60 Q72,88 45,88 Q22,88 22,70'],
+  'c':['M75,20 Q75,6 52,6 Q22,6 22,48 Q22,88 52,88 Q75,88 75,78'],
+  'd':['M72,32 Q72,10 50,10 Q25,10 25,38 Q25,65 50,65 Q72,65 72,38','M72,10 L72,90'],
+  'e':['M22,45 L72,45','M72,45 Q72,15 48,15 Q18,15 18,48 Q18,80 48,88 Q68,92 75,80'],
+  'f':['M65,10 Q65,4 52,4 Q30,4 30,22 L30,90','M12,40 L62,40'],
+  'g':['M70,32 Q70,10 48,10 Q22,10 22,36 Q22,62 48,62 Q70,62 70,38','M70,10 L70,72 Q70,95 45,95 Q22,95 22,80'],
+  'h':['M22,4 L22,90','M22,48 Q22,30 42,30 Q65,30 65,48 L65,90'],
+  'i':['M50,30 L50,90','M50,10 L50,18'],
+  'j':['M55,30 L55,72 Q55,94 38,94 Q20,94 20,80','M55,10 L55,18'],
+  'k':['M22,4 L22,90','M72,28 L22,55','M42,60 L75,90'],
+  'l':['M48,4 L48,90'],
+  'm':['M15,32 L15,90','M15,32 Q15,15 33,15 Q52,15 52,32 L52,90','M52,32 Q52,15 68,15 Q85,15 85,32 L85,90'],
+  'n':['M20,32 L20,90','M20,32 Q20,15 42,15 Q65,15 65,32 L65,90'],
+  'o':['M50,8 Q80,8 80,50 Q80,90 50,90 Q18,90 18,50 Q18,8 50,8'],
+  'p':['M20,32 L20,96','M20,32 Q20,10 45,10 Q72,10 72,38 Q72,65 45,65 Q20,65 20,50'],
+  'q':['M72,35 Q72,10 48,10 Q22,10 22,38 Q22,65 48,65 Q72,65 72,40','M72,10 L72,96'],
+  'r':['M20,32 L20,90','M20,38 Q22,18 40,18 Q58,18 62,30'],
+  's':['M72,22 Q72,8 50,8 Q22,8 22,32 Q22,50 50,50','M50,50 Q78,50 78,72 Q78,90 50,90 Q25,90 22,78'],
+  't':['M50,8 L50,88 Q50,95 62,95','M18,40 L72,40'],
+  'u':['M20,30 L20,68','M20,68 Q20,90 50,90 Q80,90 80,68','M80,68 L80,30'],
+  'v':['M15,30 L50,90','M85,30 L50,90'],
+  'w':['M8,30 L28,90','M28,90 L50,50','M50,50 L72,90','M72,90 L92,30'],
+  'x':['M15,30 L85,90','M85,30 L15,90'],
+  'y':['M15,30 L50,62','M85,30 L50,62 Q42,75 30,96'],
+  'z':['M12,30 L82,30','M82,30 L18,90','M18,90 L82,90'],
+  // Numbers
+  '1':['M38,15 Q44,8 50,6 L50,92'],
+  '2':['M22,22 Q22,5 50,5 Q78,5 78,28 Q78,46 22,72','M22,72 L80,72'],
+  '3':['M18,14 Q18,4 50,4 Q80,4 80,28 Q80,50 50,50','M50,50 Q80,50 80,74 Q80,96 50,96 Q18,96 18,86'],
+  '4':['M68,4 L20,60','M68,4 L68,92','M10,60 L82,60'],
+  '5':['M78,5 L18,5','M18,5 L18,52','M18,52 Q18,95 52,95 Q88,95 88,70 Q88,52 52,52'],
+  '6':['M75,5 Q42,5 22,42','M22,58 Q22,96 52,96 Q82,96 82,68 Q82,42 52,42 Q22,42 22,60'],
+  '7':['M12,5 L88,5','M88,5 L35,92'],
+  '8':['M50,50 Q82,50 82,28 Q82,4 50,4 Q18,4 18,28 Q18,50 50,50','M50,50 Q82,50 82,74 Q82,96 50,96 Q18,96 18,74 Q18,50 50,50'],
+  '9':['M50,6 Q80,6 80,32 Q80,58 50,58 Q20,58 20,32 Q20,6 50,6','M80,32 L80,94'],
+}
+
+// Scale a path from 0-100 normalized space to actual pixel coordinates
+function scalePath(pathStr, x0, y0, lw, lh) {
+  return pathStr.replace(/(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (_, px, py) =>
+    `${(x0 + parseFloat(px) / 100 * lw).toFixed(1)},${(y0 + parseFloat(py) / 100 * lh).toFixed(1)}`
+  )
+}
+
+// Extract start [x,y] and end [x,y] from a scaled path string
+function pathEndpoints(pathStr) {
+  const pairs = [...pathStr.matchAll(/(-?\d+\.?\d*),(-?\d+\.?\d*)/g)]
+  const s = pairs[0], e = pairs[pairs.length - 1]
+  return {
+    sx: parseFloat(s[1]), sy: parseFloat(s[2]),
+    ex: parseFloat(e[1]), ey: parseFloat(e[2]),
+  }
+}
 
 // ── Canvas component ───────────────────────────────────────────────────────────
 
 function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Fredoka One,cursive' }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
+
+  // Clear canvas whenever the letter changes
+  useEffect(() => {
+    const c = canvasRef.current
+    if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height)
+  }, [traceChar])
 
   // Attach touch listeners as non-passive so preventDefault() works on mobile
   useEffect(() => {
@@ -173,18 +542,33 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: fullWidth ? '100%' : 'auto' }}>
       <div style={{ position: 'relative', width: fullWidth ? '100%' : canvasW, background: '#ffffff', borderRadius: 16 }}>
+        {/* Tracing guide: thick outline + dotted inner line */}
         {traceChar && (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            pointerEvents: 'none', userSelect: 'none', zIndex: 1,
-            fontSize: fullWidth ? 320 : 160,
-            fontFamily: traceFontFamily,
-            color: 'transparent',
-            WebkitTextStroke: '3px rgba(255,107,107,0.22)',
-            letterSpacing: 0, lineHeight: 1,
-          }}>
-            {traceChar}
-          </div>
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 1 }}
+            viewBox={`0 0 ${canvasW} ${canvasH}`}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {/* Layer 1: soft silhouette */}
+            <text x={canvasW/2} y={canvasH/2} textAnchor="middle" dominantBaseline="middle"
+              fontFamily={traceFontFamily} fontSize={fullWidth ? 320 : 160}
+              fill="rgba(255,107,107,0.20)"
+              stroke="rgba(255,107,107,0.20)"
+              strokeWidth={fullWidth ? 28 : 16}
+              strokeLinejoin="round" strokeLinecap="round">
+              {traceChar}
+            </text>
+            {/* Layer 2: dotted tracing line on the actual glyph outline */}
+            <text x={canvasW/2} y={canvasH/2} textAnchor="middle" dominantBaseline="middle"
+              fontFamily={traceFontFamily} fontSize={fullWidth ? 320 : 160}
+              fill="none"
+              stroke="rgba(255,107,107,0.75)"
+              strokeWidth={fullWidth ? 3.5 : 2.5}
+              strokeDasharray={fullWidth ? '16 12' : '10 8'}
+              strokeLinecap="round">
+              {traceChar}
+            </text>
+          </svg>
         )}
         <canvas ref={canvasRef} width={canvasW} height={canvasH}
           style={{ border: '2.5px solid var(--primary)', borderRadius: 16, background: 'transparent', touchAction: 'none', cursor: 'crosshair', width: fullWidth ? '100%' : canvasW, height: fullWidth ? 'auto' : canvasH, display: 'block', position: 'relative', zIndex: 2 }}
@@ -207,11 +591,11 @@ function btn(bg, color) {
 
 // ── Shared letter grid ─────────────────────────────────────────────────────────
 
-function LetterGrid({ letters, selected, onSelect, script, pulli }) {
+function LetterGrid({ letters, selected, onSelect, script, pulli, engFontFamily }) {
   const isScript = script === 'tamil' || script === 'hindi'
   const fontFamily = script === 'tamil' ? '"Noto Sans Tamil",serif'
                    : script === 'hindi' ? '"Noto Sans Devanagari",serif'
-                   : 'Fredoka One,cursive'
+                   : (engFontFamily || 'Fredoka One,cursive')
   return (
     <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
       {letters.map(item => (
@@ -323,7 +707,7 @@ function HindiCompoundTable({ selected, onSelect }) {
 
 // ── Letter practice panel ──────────────────────────────────────────────────────
 
-function LetterPanel({ selected, script, child, onPlay, quota }) {
+function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) {
   const offline = useOffline()
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
@@ -352,7 +736,7 @@ function LetterPanel({ selected, script, child, onPlay, quota }) {
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
       {/* Big letter */}
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : 'Fredoka One,cursive', fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Fredoka One,cursive'), fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
           {selected.char}
         </div>
         {selected.roman && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
@@ -365,7 +749,7 @@ function LetterPanel({ selected, script, child, onPlay, quota }) {
       </div>
       <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth
         traceChar={selected.char}
-        traceFontFamily={script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : 'Fredoka One,cursive'} />
+        traceFontFamily={script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Fredoka One,cursive')} />
       {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
       {loading && <ThemeLoader theme={child?.theme} />}
       {!loading && feedback && (
@@ -648,28 +1032,50 @@ const HINDI_CATS = [
   { key:'numbers',    label:'संख्या',          letters: HINDI_NUMBERS },
 ]
 
-const ENG_CATS = [
-  { key:'vowels',     label:'Vowels',     letters: ENG_VOWELS },
-  { key:'consonants', label:'Consonants', letters: ENG_CONSONANTS },
-  { key:'numbers',    label:'Numbers',    letters: ENG_NUMBERS },
-]
+// ENG_CATS is generated dynamically based on engStyle in the component
 
 export default function LearnPage({ child, quota }) {
-  const [script,   setScript]   = useState('tamil')
-  const [mode,     setMode]     = useState('letters')   // 'letters' | 'words'
-  const [catKey,   setCatKey]   = useState('vowels')
-  const [selected, setSelected] = useState(null)
+  const [script,    setScript]    = useState('tamil')
+  const [mode,      setMode]      = useState('letters')   // 'letters' | 'words'
+  const [catKey,    setCatKey]    = useState('vowels')
+  const [selected,  setSelected]  = useState(null)
+  const [engCase,   setEngCase]   = useState('upper')   // 'upper' | 'lower'
+  const [engFont,   setEngFont]   = useState('print')   // 'print' | 'cursive'
   const audioRef = useRef(null)
+
+  // Load Dancing Script when cursive is selected
+  useEffect(() => {
+    if (engFont === 'cursive' && !document.getElementById('dancing-script-font')) {
+      const link = document.createElement('link')
+      link.id   = 'dancing-script-font'
+      link.rel  = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap'
+      document.head.appendChild(link)
+    }
+  }, [engFont])
 
   const isTamil  = script === 'tamil'
   const isHindi  = script === 'hindi'
-  const cats     = isTamil ? TAMIL_CATS : isHindi ? HINDI_CATS : ENG_CATS
-  const cat      = cats.find(c => c.key === catKey) || cats[0]
+  const isEng    = script === 'english'
+
+  const isLower = engCase === 'lower'
+  const ENG_CATS = [
+    { key:'vowels',     label:'Vowels',     letters: isLower ? ENG_VOWELS_LOWER : ENG_VOWELS },
+    { key:'consonants', label:'Consonants', letters: isLower ? ENG_CONS_LOWER   : ENG_CONSONANTS },
+    { key:'numbers',    label:'Numbers',    letters: ENG_NUMBERS },
+  ]
+
+  const cats = isTamil ? TAMIL_CATS : isHindi ? HINDI_CATS : ENG_CATS
+  const cat  = cats.find(c => c.key === catKey) || cats[0]
+
+  const engFontFamily = engFont === 'cursive' ? '"Dancing Script", cursive' : 'Fredoka One, cursive'
 
   useEffect(() => {
     setSelected(null)
     setCatKey(cats[0].key)
   }, [script])
+
+  useEffect(() => { setSelected(null) }, [engCase, engFont])
 
   useEffect(() => { setSelected(null) }, [catKey])
 
@@ -703,7 +1109,7 @@ export default function LearnPage({ child, quota }) {
       </div>
 
       {/* Script + mode bar */}
-      <div style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap', alignItems:'center' }}>
+      <div style={{ display:'flex', gap:8, marginBottom: isEng ? 10 : 18, flexWrap:'wrap', alignItems:'center' }}>
         <div style={{ display:'flex', gap:6 }}>
           {[{k:'tamil',label:'🌺 Tamil'},{k:'hindi',label:'🇮🇳 Hindi'},{k:'english',label:'🔤 English'}].map(s => (
             <button key={s.k} onClick={() => { setScript(s.k); setMode('letters') }}
@@ -718,6 +1124,37 @@ export default function LearnPage({ child, quota }) {
           ✍️ Write a word
         </button>
       </div>
+
+      {/* English style toggles */}
+      {isEng && mode === 'letters' && (
+        <div style={{ display:'flex', gap:12, marginBottom:18, flexWrap:'wrap', alignItems:'center' }}>
+          {/* Font style */}
+          <div style={{ display:'flex', gap:6 }}>
+            {[{k:'print',label:'✏️ Print'},{k:'cursive',label:'𝒜 Cursive'}].map(s => (
+              <button key={s.k} onClick={() => setEngFont(s.k)}
+                style={{ padding:'6px 14px', borderRadius:50, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif',
+                  border: engFont===s.k ? 'none' : '1.5px solid #eee',
+                  background: engFont===s.k ? 'var(--primary)' : '#f8f8f8',
+                  color: engFont===s.k ? 'white' : '#888' }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ width:1, height:22, background:'#e0e0e0' }} />
+          {/* Case */}
+          <div style={{ display:'flex', gap:6 }}>
+            {[{k:'upper',label:'ABC Upper'},{k:'lower',label:'abc Lower'}].map(s => (
+              <button key={s.k} onClick={() => setEngCase(s.k)}
+                style={{ padding:'6px 14px', borderRadius:50, fontSize:12, fontWeight:800, cursor:'pointer', fontFamily:'Nunito,sans-serif',
+                  border: engCase===s.k ? 'none' : '1.5px solid #eee',
+                  background: engCase===s.k ? 'var(--primary)' : '#f8f8f8',
+                  color: engCase===s.k ? 'white' : '#888' }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {mode === 'words' ? (
         <WordMode script={script} child={child} quota={quota} />
@@ -742,13 +1179,15 @@ export default function LearnPage({ child, quota }) {
                 <HindiCompoundTable selected={selected} onSelect={selectLetter} />
               ) : (
                 <LetterGrid letters={cat.letters} selected={selected} onSelect={selectLetter} script={script}
-                  pulli={cat.key === 'consonants' ? (script === 'tamil' ? '்' : script === 'hindi' ? '्' : null) : null} />
+                  pulli={cat.key === 'consonants' ? (script === 'tamil' ? '்' : script === 'hindi' ? '्' : null) : null}
+                  engFontFamily={isEng ? engFontFamily : null} />
               )}
             </div>
 
             {/* Practice panel */}
             <div style={{ flex:'0 0 auto', minWidth:300 }}>
-              <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota} />
+              <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota}
+                engFontFamily={isEng ? engFontFamily : null} />
             </div>
           </div>
         </>

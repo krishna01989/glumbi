@@ -247,28 +247,27 @@ export default function Stories({ child, quota }) {
                 boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
                 transition: 'box-shadow 0.2s',
               }}>
-              {/* Mini illustration */}
               <div style={{
-                background: getScene(s.keywords).bg,
-                height: 60, display: 'flex', alignItems: 'center',
+                background: 'var(--primary)',
+                height: 56, display: 'flex', alignItems: 'center',
                 padding: '0 14px', gap: 10,
               }}>
-                <span style={{ fontSize: 28 }}>{getScene(s.keywords).emoji}</span>
-                <span style={{ color: 'rgba(255,255,255,0.9)', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                <span style={{ fontSize: 22 }}>{getScene(s.keywords).emoji}</span>
+                <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                   {s.title}
                 </span>
-                <span onClick={e => { e.stopPropagation(); toggleFav(s.id) }} style={{ fontSize: 18, cursor: 'pointer' }}>
+                <span onClick={e => { e.stopPropagation(); toggleFav(s.id) }} style={{ fontSize: 16, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
                   {s.favorite ? '⭐' : '☆'}
                 </span>
               </div>
-              <div style={{ background: 'white', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600 }}>
+              <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
                   {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {s.keywords && <span className="tag" style={{ fontSize: 10 }}>{s.keywords.split(',')[0]}</span>}
+                  {s.keywords && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
                   {s.language && s.language !== 'english' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#f0f0ff', color: '#5c6bc0', padding: '3px 8px', borderRadius: 50 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
                       {LANG_SCRIPT[s.language] || s.language}
                     </span>
                   )}

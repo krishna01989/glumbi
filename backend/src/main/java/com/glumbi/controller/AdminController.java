@@ -2,7 +2,6 @@ package com.glumbi.controller;
 
 import com.glumbi.entity.AppUser;
 import com.glumbi.entity.Child;
-import com.glumbi.entity.Story;
 import com.glumbi.repository.*;
 import com.glumbi.scheduler.NotificationScheduler;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +29,6 @@ public class AdminController {
     private final CuriosityRepository    curiosityRepo;
     private final ReadQuizRepository     quizRepo;
     private final WritingRepository      writingRepo;
-    private final NotificationRepository notificationRepo;
     private final PasswordEncoder        encoder;
     private final NotificationScheduler  notificationScheduler;
 

@@ -1,0 +1,8 @@
+Write a warm, encouraging weekly progress summary for a parent about their child %s (age %d).
+This week's activity:
+- Stories read: %d
+- Quizzes completed: %d (average score: %s)
+- Writing entries: %d
+
+Write 2-3 friendly sentences. Be specific about the numbers. End with a positive note.
+Return only the message text, no JSON, no formatting.

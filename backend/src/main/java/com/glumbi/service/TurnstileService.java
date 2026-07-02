@@ -11,7 +11,8 @@ import java.util.Map;
 @Service
 public class TurnstileService {
 
-    private static final String VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    @Value("${app.turnstile.verify-url}")
+    private String verifyUrl;
 
     @Value("${app.turnstile.secret:}")
     private String secret;
@@ -33,7 +34,7 @@ public class TurnstileService {
             if (remoteIp != null) body.add("remoteip", remoteIp);
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.postForObject(VERIFY_URL, body, Map.class);
+            Map<String, Object> response = restTemplate.postForObject(verifyUrl, body, Map.class);
             return response != null && Boolean.TRUE.equals(response.get("success"));
         } catch (Exception e) {
             return false;

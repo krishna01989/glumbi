@@ -5,20 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.glumbi.entity.Activity;
-import com.glumbi.entity.Child;
 import com.glumbi.repository.ActivityRepository;
 import com.glumbi.repository.ChildRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.agent.AnthropicClient;
 import com.glumbi.service.TextToSpeechService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Map;
 
@@ -27,14 +25,16 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LearnController {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
     private final TextToSpeechService ttsService;
     private final ActivityRepository activityRepository;
     private final ChildRepository childRepository;
     private final ApiQuotaService quotaService;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}") private String apiKey;
+    @Value("${anthropic.fast-model}")                       private String fastModel;
+    @Value("${anthropic.max-tokens.learn-pronunciation}")   private int pronunciationMaxTokens;
+    @Value("${anthropic.max-tokens.learn-letter}")          private int letterMaxTokens;
 
     @PostMapping("/validate")
     public ResponseEntity<?> validate(@RequestBody Map<String, String> body,
@@ -68,8 +68,8 @@ public class LearnController {
 
         try {
             ObjectNode request = mapper.createObjectNode();
-            request.put("model", "claude-haiku-4-5-20251001");
-            request.put("max_tokens", 200);
+            request.put("model", fastModel);
+            request.put("max_tokens", pronunciationMaxTokens);
 
             ArrayNode messages = request.putArray("messages");
             ObjectNode msg = messages.addObject();
@@ -85,13 +85,7 @@ public class LearnController {
 
             content.addObject().put("type", "text").put("text", prompt);
 
-            String raw = webClientBuilder.build()
-                    .post().uri("https://api.anthropic.com/v1/messages")
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .header("content-type", "application/json")
-                    .bodyValue(request)
-                    .retrieve().bodyToMono(String.class).block();
+            String raw = anthropicClient.call(request);
 
             JsonNode root     = mapper.readTree(raw);
             String   text     = root.path("content").get(0).path("text").asText();
@@ -177,8 +171,8 @@ public class LearnController {
 
         try {
             ObjectNode request = mapper.createObjectNode();
-            request.put("model", "claude-haiku-4-5-20251001");
-            request.put("max_tokens", 400);
+            request.put("model", fastModel);
+            request.put("max_tokens", letterMaxTokens);
 
             ArrayNode messages = request.putArray("messages");
             ObjectNode msg = messages.addObject();
@@ -194,13 +188,7 @@ public class LearnController {
 
             content.addObject().put("type", "text").put("text", prompt);
 
-            String raw = webClientBuilder.build()
-                    .post().uri("https://api.anthropic.com/v1/messages")
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .header("content-type", "application/json")
-                    .bodyValue(request)
-                    .retrieve().bodyToMono(String.class).block();
+            String raw = anthropicClient.call(request);
 
             JsonNode root   = mapper.readTree(raw);
             String   text   = root.path("content").get(0).path("text").asText();

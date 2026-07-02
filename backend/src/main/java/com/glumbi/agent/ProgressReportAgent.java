@@ -10,7 +10,6 @@ import com.glumbi.entity.WritingEntry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 import java.util.OptionalDouble;
@@ -19,11 +18,12 @@ import java.util.OptionalDouble;
 @RequiredArgsConstructor
 public class ProgressReportAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}")    private String apiKey;
-    @Value("${anthropic.model}")      private String model;
+    @Value("${anthropic.model}")                        private String model;
+    @Value("${anthropic.max-tokens.progress-report}")   private int maxTokens;
 
     public String generate(Child child, List<Story> stories, List<ReadQuizEntry> quizzes, List<WritingEntry> writings) {
         int storyCount = stories.size();
@@ -39,16 +39,7 @@ public class ProgressReportAgent {
                 ? String.format("%.0f%%", (avgScore.getAsDouble() / 3.0) * 100)
                 : "no quizzes completed";
 
-        String prompt = String.format("""
-                Write a warm, encouraging weekly progress summary for a parent about their child %s (age %d).
-                This week's activity:
-                - Stories read: %d
-                - Quizzes completed: %d (average score: %s)
-                - Writing entries: %d
-
-                Write 2-3 friendly sentences. Be specific about the numbers. End with a positive note.
-                Return only the message text, no JSON, no formatting.
-                """,
+        String prompt = String.format(promptLoader.load("progress-report-user"),
                 child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()),
                 storyCount, quizCount, scoreSummary, writingCount);
 
@@ -59,17 +50,12 @@ public class ProgressReportAgent {
         try {
             ObjectNode body = mapper.createObjectNode();
             body.put("model", model);
-            body.put("max_tokens", 200);
+            body.put("max_tokens", maxTokens);
             body.putArray("messages").addObject()
                     .put("role", "user")
                     .put("content", prompt);
 
-            String response = webClientBuilder.build()
-                    .post().uri("https://api.anthropic.com/v1/messages")
-                    .header("x-api-key", apiKey)
-                    .header("anthropic-version", "2023-06-01")
-                    .header("content-type", "application/json")
-                    .bodyValue(body).retrieve().bodyToMono(String.class).block();
+            String response = anthropicClient.call(body);
 
             JsonNode root = mapper.readTree(response);
             return root.path("content").get(0).path("text").asText().trim();

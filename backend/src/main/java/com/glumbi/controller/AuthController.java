@@ -8,9 +8,9 @@ import com.glumbi.security.JwtUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +28,8 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper mapper = new ObjectMapper();
+
+    @Value("${app.google.token-info-url}") private String googleTokenInfoUrl;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
@@ -65,7 +67,7 @@ public class AuthController {
             // Verify token with Google
             String raw = webClientBuilder.build()
                     .get()
-                    .uri("https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken)
+                    .uri(googleTokenInfoUrl + "?id_token=" + idToken)
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();

@@ -2,25 +2,23 @@ package com.glumbi.agent;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 
 @Component
 @RequiredArgsConstructor
 public class StoryAgent {
 
-    private final WebClient.Builder webClientBuilder;
+    private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
     private final RelevanceGuard relevance;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Value("${anthropic.api-key}")    private String apiKey;
-    @Value("${anthropic.model}")      private String model;
-    @Value("${anthropic.max-tokens}") private int maxTokens;
+    @Value("${anthropic.model}")               private String model;
+    @Value("${anthropic.max-tokens.story}")    private int maxTokens;
 
     public StoryResult generateStory(String childName, int childAge, String gender, String keywords) {
         relevance.validate(keywords, RelevanceGuard.Context.STORY);
@@ -28,34 +26,18 @@ public class StoryAgent {
 
         String pronoun = "girl".equalsIgnoreCase(gender) ? "she/her" : "he/him";
 
-        String systemPrompt = safety.safetySystemPreamble() + String.format("""
-            You are a warm, imaginative children's storyteller.
-            Write a short bedtime story for %s who is %d years old (pronouns: %s).
-            Rules:
-            - Always use the child's name (%s) as the main character or their best friend
-            - Use the correct pronouns (%s) consistently throughout
-            - STRICT LENGTH: 150-200 words maximum — short enough to read in 2 minutes
-            - Age guidance for %d year old: %s
-            - End with a gentle, sleepy conclusion that helps wind down
-            - Make it warm, safe, and magical — no scary elements
-            - Do NOT pad with descriptions; every sentence must move the story forward
-            Format your response as JSON: { "title": "...", "content": "..." }
-            Return ONLY the JSON, no extra text.
-            """, childName, childAge, pronoun, childName, pronoun, childAge, storyGuidance(childAge));
+        String systemPrompt = safety.safetySystemPreamble() + String.format(
+                promptLoader.load("story-system"),
+                childName, childAge, pronoun, childName, pronoun, childAge, storyGuidance(childAge));
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", 512);
+        body.put("max_tokens", maxTokens);
         body.put("system", systemPrompt);
         body.putArray("messages").addObject().put("role", "user")
                 .put("content", "Create a bedtime story using these elements: " + keywords);
 
-        String response = webClientBuilder.build()
-                .post().uri("https://api.anthropic.com/v1/messages")
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
-                .header("content-type", "application/json")
-                .bodyValue(body).retrieve().bodyToMono(String.class).block();
+        String response = anthropicClient.call(body);
 
         StoryResult result = parseResponse(response);
         if (!safety.isOutputSafe(result.content()))

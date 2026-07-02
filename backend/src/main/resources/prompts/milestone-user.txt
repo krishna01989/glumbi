@@ -1,0 +1,4 @@
+Write a short, fun celebratory message for a parent about their child %s reaching a milestone.
+Milestone: %d %s %s
+Keep it to 1-2 sentences. Be enthusiastic and warm. Start with the emoji %s.
+Return only the message text.

@@ -66,9 +66,10 @@ public class LearnController {
             "- Never judge accuracy. If the child made any effort, correct=true.\n" +
             "Respond ONLY with a JSON object with two fields:\n" +
             "\"correct\": true or false,\n" +
-            "\"feedback\": a warm, enthusiastic 1-2 sentence celebration in simple English for a %d-year-old. " +
-            "Always celebrate their effort! Only respond with the JSON, no other text.",
-            childAge, childName, scriptLabel, letter, childAge
+            "\"feedback\": a warm, enthusiastic 1-2 sentence message in simple English for a %d-year-old. " +
+            "MUST mention the specific letter \"%s\" by name in the feedback. Celebrate their attempt at this specific letter, not just generic effort. " +
+            "Only respond with the JSON, no other text.",
+            childAge, childName, scriptLabel, letter, childAge, letter
         );
 
         try {

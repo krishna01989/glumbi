@@ -1,28 +1,34 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 
-export default function LegalLayout({ title, updated, children }) {
+export default function LegalLayout({ title, updated, children, inApp = false }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
 
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
 
+  const accent       = inApp ? 'var(--primary)'    : '#ff6b6b'
+  const accentLight  = inApp ? 'var(--primary-lt)' : '#fff0f0'
+  const accentBorder = inApp ? 'var(--primary-lt)' : '#ffcdb8'
+
   return (
     <div style={{ background: '#fafafa', fontFamily: 'Nunito, sans-serif', color: '#3d3d3d' }}>
       <div style={{ maxWidth: 760, margin: '0 auto', width: '100%', padding: 'clamp(32px,5vw,56px) clamp(16px,4vw,24px)', boxSizing: 'border-box' }}>
-        <button onClick={() => navigate(-1)}
-          onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-          style={{
-            background: 'transparent', border: '1.5px solid #ffcdb8', color: '#ff6b6b',
-            fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            transition: 'all 0.15s ease',
-          }}>
-          ← Back
-        </button>
-        <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(26px,4vw,38px)', color: '#ff6b6b', marginBottom: 6 }}>
+        {!inApp && (
+          <button onClick={() => navigate(-1)}
+            onMouseEnter={e => { e.currentTarget.style.background = accentLight; e.currentTarget.style.transform = 'translateX(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+            style={{
+              background: 'transparent', border: `1.5px solid ${accentBorder}`, color: accent,
+              fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              transition: 'all 0.15s ease',
+            }}>
+            ← Back
+          </button>
+        )}
+        <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(26px,4vw,38px)', color: accent, marginBottom: 6 }}>
           {title}
         </h1>
         {updated && (

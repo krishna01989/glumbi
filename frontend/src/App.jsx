@@ -354,6 +354,11 @@ export default function App() {
 
   // Expose addToast so quota refreshes after API calls
   useEffect(() => { window.__glumbiRefreshQuota = () => userApi.quota().then(setQuota).catch(() => {}) }, [])
+  useEffect(() => {
+    const handler = e => setMobileMenuOpen(e.detail)
+    window.addEventListener('glumbi:mobile-menu', handler)
+    return () => window.removeEventListener('glumbi:mobile-menu', handler)
+  }, [])
 
   function handleAuth(userRole) {
     setRole(userRole)
@@ -706,9 +711,9 @@ export default function App() {
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/profile"             element={<ProfilePage onLogout={handleLogout} />} />
-              <Route path="/privacy"             element={<PrivacyPage />} />
-              <Route path="/terms"               element={<TermsPage />} />
-              <Route path="/contact"             element={<ContactPage />} />
+              <Route path="/privacy"             element={<PrivacyPage inApp />} />
+              <Route path="/terms"               element={<TermsPage inApp />} />
+              <Route path="/contact"             element={<ContactPage inApp />} />
               <Route path="/help"                element={<HelpPage />} />
               <Route path="/error/:code"         element={<ErrorPageRoute />} />
               <Route path="*"                    element={<Navigate to={`/child/${child.id}/stories`} replace />} />

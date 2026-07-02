@@ -212,11 +212,19 @@ const MOBILE_STEPS = [
 
 function mobileQuotaStep(limit, featureConfig) {
   return {
-    // quota bar is inside the mobile menu — show as a floating step instead
     popover: {
       title: '🤖 Monthly AI Credits',
-      description: `You get <strong>${limit} AI credits every month</strong>. ${featureCostSummary(featureConfig)} Open the ☰ menu at any time to check your usage. Resets on the 1st.`,
+      description: `You get <strong>${limit} AI credits every month</strong>. ${featureCostSummary(featureConfig)} The bar at the top of this menu shows your usage — resets on the 1st.`,
       side: 'over', align: 'center',
+      onPopoverRender: (el) => {
+        el.style.position = 'fixed'
+        el.style.bottom = '90px'
+        el.style.top = 'auto'
+        el.style.left = '50%'
+        el.style.transform = 'translateX(-50%)'
+        el.style.maxWidth = '320px'
+        el.style.width = 'calc(100vw - 32px)'
+      },
     },
   }
 }
@@ -250,6 +258,33 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
   const creditLimit = quota?.limit ?? 100
 
   if (isMobileView()) {
+    const openMenu  = () => window.dispatchEvent(new CustomEvent('glumbi:mobile-menu', { detail: true }))
+    const closeMenu = () => window.dispatchEvent(new CustomEvent('glumbi:mobile-menu', { detail: false }))
+
+    // Elements in the mobile header (always visible — menu must be closed)
+    const HEADER_IDS = ['#tour-mobile-theme', '#tour-mobile-notifications', '#tour-mobile-offline']
+    // Elements inside the hamburger menu (menu must be open)
+    const MENU_IDS   = ['#tour-mobile-switch', '#tour-mobile-help']
+
+    const headerSteps = MOBILE_STEPS
+      .filter(s => HEADER_IDS.includes(s.element) && present(s.element))
+      .map(s => ({ ...s, onHighlightStarted: closeMenu }))
+
+    const menuSteps = MOBILE_STEPS
+      .filter(s => MENU_IDS.includes(s.element) && present(s.element))
+      .map((s, i) => ({ ...s, onHighlightStarted: i === 0 ? openMenu : undefined }))
+
+    if (present('#tour-mobile-help')) {
+      menuSteps.push({
+        element: '#tour-mobile-help',
+        popover: {
+          title: '💡 Help',
+          description: 'New to Glumbi or need a hand? Tap Help to open the full guide — covers every feature with answers to common questions.',
+          side: 'top', align: 'center',
+        },
+      })
+    }
+
     const steps = [
       {
         popover: {
@@ -258,21 +293,23 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
           side: 'over', align: 'center',
         },
       },
-      ...MOBILE_STEPS.filter(s => !s.element || present(s.element)),
-      mobileQuotaStep(creditLimit, featureConfig),
       {
-        element: '#tour-mobile-help',
+        element: '#tour-mobile-menu',
         popover: {
-          title: '💡 Help',
-          description: 'New to Glumbi or need a hand? Tap Help to open the full guide — covers every feature with answers to common questions.',
-          side: 'top', align: 'center',
+          title: '☰ Menu & AI Credits',
+          description: 'Tap to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, and more. The menu also shows your <strong>monthly AI credit balance</strong> so you always know how many you have left.',
+          side: 'bottom', align: 'end',
         },
+        onHighlightStarted: closeMenu,
       },
+      ...headerSteps,
+      ...menuSteps,
       {
         popover: {
           title: '🌟 You\'re all set!',
           description: 'Tap ☰ to pick a feature and start the magic. Try generating your first story!',
           side: 'over', align: 'center',
+          onPopoverRender: closeMenu,
         },
       },
     ]

@@ -1,8 +1,8 @@
 import LegalLayout from './LegalLayout'
 
-export default function TermsPage() {
+export default function TermsPage({ inApp = false }) {
   return (
-    <LegalLayout title="Terms of Service" updated="30 June 2025">
+    <LegalLayout title="Terms of Service" updated="30 June 2025" inApp={inApp}>
       <p>Please read these Terms of Service ("Terms") carefully before using Glumbi. By creating an account or using any part of the service, you agree to be bound by these Terms.</p>
 
       <h2>1. About Glumbi</h2>

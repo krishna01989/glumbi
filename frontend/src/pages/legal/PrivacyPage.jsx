@@ -1,8 +1,8 @@
 import LegalLayout from './LegalLayout'
 
-export default function PrivacyPage() {
+export default function PrivacyPage({ inApp = false }) {
   return (
-    <LegalLayout title="Privacy Policy" updated="30 June 2025">
+    <LegalLayout title="Privacy Policy" updated="30 June 2025" inApp={inApp}>
       <p>Glumbi ("we", "us", "our") is committed to protecting the privacy of families who use our service. This policy explains what data we collect, why, and how we protect it.</p>
 
       <h2>1. Who we are</h2>

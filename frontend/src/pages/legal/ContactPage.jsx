@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import LegalLayout from './LegalLayout'
 
-export default function ContactPage() {
+export default function ContactPage({ inApp = false }) {
+  const accent      = inApp ? 'var(--primary)'    : '#ff6b6b'
+  const accentLight = inApp ? 'var(--primary-lt)' : '#fff9f0'
+  const accentBorder= inApp ? 'var(--primary-lt)' : '#ffcdb8'
+  const btnGrad     = inApp ? 'linear-gradient(135deg,var(--primary),var(--accent))' : 'linear-gradient(135deg,#ff6b6b,#ff8e53)'
+  const btnShadow   = inApp ? '0 4px 16px rgba(0,0,0,0.15)' : '0 4px 16px rgba(255,107,107,0.3)'
   const [sent, setSent]       = useState(false)
   const [name, setName]       = useState('')
   const [email, setEmail]     = useState('')
@@ -18,7 +23,7 @@ export default function ContactPage() {
   }
 
   return (
-    <LegalLayout title="Contact Us" updated={null}>
+    <LegalLayout title="Contact Us" updated={null} inApp={inApp}>
       <p>We'd love to hear from you — whether it's a question, a bug report, a feature idea, or just to say hello. We typically reply within 1–2 business days.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, margin: '24px 0' }}>
@@ -32,13 +37,13 @@ export default function ContactPage() {
             style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '14px 16px', borderRadius: 14,
-              background: '#fff9f0', border: '1.5px solid #ffcdb8',
+              background: accentLight, border: `1.5px solid ${accentBorder}`,
               textDecoration: 'none', color: '#333',
             }}>
             <span style={{ fontSize: 22 }}>{c.emoji}</span>
             <div>
               <div style={{ fontWeight: 800, fontSize: 13 }}>{c.label}</div>
-              <div style={{ fontSize: 12, color: '#ff6b6b' }}>{c.email}</div>
+              <div style={{ fontSize: 12, color: accent }}>{c.email}</div>
             </div>
           </a>
         ))}
@@ -50,7 +55,7 @@ export default function ContactPage() {
           <div style={{ fontWeight: 800, fontSize: 17, color: '#1e6b3c', marginBottom: 6 }}>Your mail client opened!</div>
           <p style={{ color: '#555', fontSize: 14 }}>Send the pre-filled email and we'll get back to you within 1–2 business days.</p>
           <button onClick={() => setSent(false)}
-            style={{ marginTop: 12, background: 'none', border: 'none', color: '#ff6b6b', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+            style={{ marginTop: 12, background: 'none', border: 'none', color: accent, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
             Send another message
           </button>
         </div>
@@ -80,9 +85,9 @@ export default function ContactPage() {
             <button type="submit"
               style={{
                 padding: '13px 32px', borderRadius: 50, fontSize: 15, fontWeight: 800,
-                background: 'linear-gradient(135deg,#ff6b6b,#ff8e53)', color: 'white',
+                background: btnGrad, color: 'white',
                 border: 'none', cursor: 'pointer', alignSelf: 'flex-start',
-                boxShadow: '0 4px 16px rgba(255,107,107,0.3)',
+                boxShadow: btnShadow,
               }}>
               ✉️ Open Mail & Send
             </button>

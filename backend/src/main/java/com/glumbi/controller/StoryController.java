@@ -85,11 +85,12 @@ public class StoryController {
     public ResponseEntity<byte[]> listen(
             @PathVariable Long id,
             @RequestParam(defaultValue = "english") String language,
+            @RequestParam(required = false) String voice,
             @RequestParam(required = false) String token,
             @AuthenticationPrincipal AuthUser authUser,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader) {
         try {
-            String cacheKey = id + ":" + language.toLowerCase();
+            String cacheKey = id + ":" + language.toLowerCase() + (voice != null ? ":" + voice : "");
             byte[] audio = audioCache.get(cacheKey);
             if (audio == null) {
                 if (authUser != null && !quotaService.isFeatureEnabled(authUser.id(), "story-listen")) {
@@ -111,7 +112,7 @@ public class StoryController {
                     title   = translated.title();
                     content = translated.content();
                 }
-                audio = ttsService.synthesize(title + ". " + content, language);
+                audio = ttsService.synthesize(title + ". " + content, language, voice);
                 audioCache.put(cacheKey, audio);
             }
 

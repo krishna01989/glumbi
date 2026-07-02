@@ -70,6 +70,20 @@ function StoryIllustration({ story }) {
   )
 }
 
+const VOICE_MAP = {
+  spanish:   { F: 'es-ES-Wavenet-C', M: 'es-ES-Wavenet-B' },
+  french:    { F: 'fr-FR-Wavenet-E', M: 'fr-FR-Wavenet-B' },
+  italian:   { F: 'it-IT-Wavenet-A', M: 'it-IT-Wavenet-C' },
+  chinese:   { F: 'cmn-CN-Wavenet-A', M: 'cmn-CN-Wavenet-B' },
+  japanese:  { F: 'ja-JP-Wavenet-A',  M: 'ja-JP-Wavenet-C' },
+  korean:    { F: 'ko-KR-Wavenet-A',  M: 'ko-KR-Wavenet-C' },
+  tamil:     { F: 'ta-IN-Wavenet-A',  M: 'ta-IN-Wavenet-B' },
+  hindi:     { F: 'hi-IN-Wavenet-A',  M: 'hi-IN-Wavenet-B' },
+  malayalam: { F: 'ml-IN-Wavenet-A',  M: 'ml-IN-Wavenet-B' },
+  telugu:    { F: 'te-IN-Standard-A', M: 'te-IN-Standard-B' },
+  kannada:   { F: 'kn-IN-Standard-A', M: 'kn-IN-Standard-B' },
+}
+
 const LANG_SCRIPT = {
   tamil: 'தமிழ்', hindi: 'हिंदी', malayalam: 'മലയാളം',
   telugu: 'తెలుగు', kannada: 'ಕನ್ನಡ',
@@ -89,6 +103,8 @@ export default function Stories({ child, quota }) {
   const [translating, setTranslating]   = useState(null)
   const [langPickerOpen, setLangPickerOpen] = useState(false)
   const [langPickerPos,  setLangPickerPos]  = useState({ top: 0, right: 0 })
+  const [selectedAccent, setSelectedAccent] = useState(() => localStorage.getItem('glumbi_accent') || 'en-US')
+  const [selectedGender, setSelectedGender] = useState(() => localStorage.getItem('glumbi_gender') || 'F')
   const [error, setError]               = useState('')
   const [audioError, setAudioError]     = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
@@ -166,13 +182,28 @@ export default function Stories({ child, quota }) {
     setSpeaking(false); setSpeakingLang(null); setAudioSrc(null)
   }
 
-  async function handleListen(story, lang) {
+  const ENGLISH_VOICES = {
+    'en-US': { F: 'en-US-Wavenet-F', M: 'en-US-Wavenet-D' },
+    'en-IN': { F: 'en-IN-Wavenet-A', M: 'en-IN-Wavenet-B' },
+    'en-GB': { F: 'en-GB-Wavenet-A', M: 'en-GB-Wavenet-B' },
+    'en-AU': { F: 'en-AU-Wavenet-A', M: 'en-AU-Wavenet-B' },
+  }
+
+  function handleGenderChange(g) {
+    setSelectedGender(g)
+    localStorage.setItem('glumbi_gender', g)
+  }
+
+  async function handleListen(story, lang, voice) {
     if (speaking && speakingLang === lang) { stopSpeaking(); return }
     stopSpeaking()
     setAudioError('')
     setTranslating(lang)
     try {
-      const url = storyApi.listenUrl(story.id, lang)
+      const resolvedVoice = lang === 'english'
+        ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
+        : (VOICE_MAP[lang]?.[selectedGender] || null)
+      const url = storyApi.listenUrl(story.id, lang, resolvedVoice)
       const audio = new Audio(url)
       audioRef.current = audio
       // play() must be called here — in the click handler — to satisfy browser autoplay policy
@@ -308,24 +339,57 @@ export default function Stories({ child, quota }) {
                         position: 'fixed', top: langPickerPos.top, right: langPickerPos.right, zIndex: 1000,
                         background: 'white', borderRadius: 16, padding: 16,
                         boxShadow: '0 8px 40px rgba(0,0,0,0.16)',
-                        width: Math.min(280, window.innerWidth - 16), maxHeight: '70vh', overflowY: 'auto', border: '1px solid #f0f0f0',
+                        width: Math.min(280, window.innerWidth - 16),
+                        maxHeight: `calc(100vh - ${langPickerPos.top + 16}px)`,
+                        overflowY: 'auto',
+                        border: '1px solid #f0f0f0',
                       }}>
+                        {/* Gender toggle — applies to all languages */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', flex: 1 }}>Voice</span>
+                          {[{ g: 'F', label: '♀ Female' }, { g: 'M', label: '♂ Male' }].map(({ g, label }) => (
+                            <button key={g} onClick={e => { e.stopPropagation(); handleGenderChange(g) }}
+                              style={{ padding: '4px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedGender === g ? 'var(--primary)' : '#eee'}`, background: selectedGender === g ? 'var(--primary-lt)' : '#f5f5f5', color: selectedGender === g ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* English accent picker */}
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>🎙 English Accent</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {[
+                              { id: 'en-US', label: '🇺🇸 US' },
+                              { id: 'en-IN', label: '🇮🇳 India' },
+                              { id: 'en-GB', label: '🇬🇧 British' },
+                              { id: 'en-AU', label: '🇦🇺 Aussie' },
+                            ].map(({ id, label }) => (
+                              <button key={id}
+                                onClick={e => { e.stopPropagation(); setSelectedAccent(id); localStorage.setItem('glumbi_accent', id) }}
+                                style={{ padding: '5px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedAccent === id ? 'var(--primary)' : '#eee'}`, background: selectedAccent === id ? 'var(--primary-lt)' : '#f5f5f5', color: selectedAccent === id ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ height: 1, background: '#f0f0f0', marginBottom: 12 }} />
                         {[
                           { group: '🌍 International', langs: [
-                            { lang: 'english',  label: 'English',   script: 'English' },
-                            { lang: 'spanish',  label: 'Español',   script: 'Español' },
-                            { lang: 'french',   label: 'Français',  script: 'Français' },
-                            { lang: 'italian',  label: 'Italiano',  script: 'Italiano' },
-                            { lang: 'chinese',  label: '普通话',     script: '普通话' },
-                            { lang: 'japanese', label: '日本語',     script: '日本語' },
-                            { lang: 'korean',   label: '한국어',     script: '한국어' },
+                            { lang: 'english',  label: 'English' },
+                            { lang: 'spanish',  label: 'Español' },
+                            { lang: 'french',   label: 'Français' },
+                            { lang: 'italian',  label: 'Italiano' },
+                            { lang: 'chinese',  label: '普通话' },
+                            { lang: 'japanese', label: '日本語' },
+                            { lang: 'korean',   label: '한국어' },
                           ]},
                           { group: '🇮🇳 Regional India', langs: [
-                            { lang: 'tamil',     label: 'தமிழ்',      script: 'தமிழ்' },
-                            { lang: 'hindi',     label: 'हिंदी',       script: 'हिंदी' },
-                            { lang: 'malayalam', label: 'മലയാളം',    script: 'മലയാളം' },
-                            { lang: 'telugu',    label: 'తెలుగు',     script: 'తెలుగు' },
-                            { lang: 'kannada',   label: 'ಕನ್ನಡ',     script: 'ಕನ್ನಡ' },
+                            { lang: 'tamil',     label: 'தமிழ்' },
+                            { lang: 'hindi',     label: 'हिंदी' },
+                            { lang: 'malayalam', label: 'മലയാളം' },
+                            { lang: 'telugu',    label: 'తెలుగు' },
+                            { lang: 'kannada',   label: 'ಕನ್ನಡ' },
                           ]},
                         ].map(({ group, langs }) => (
                           <div key={group} style={{ marginBottom: 12 }}>

@@ -101,7 +101,7 @@ function CuriosityCard({ entry, onDelete }) {
           {won && (
             <div style={{ textAlign: 'center', fontSize: 40, animation: 'spin 0.5s ease' }}>
               {entry.sticker} {entry.sticker} {entry.sticker}
-              <div style={{ fontSize: 16, fontFamily: 'Fredoka One, cursive', color: '#d68910', marginTop: 8 }}>
+              <div style={{ fontSize: 16, fontFamily: 'Nunito, sans-serif', color: '#d68910', marginTop: 8 }}>
                 You earned a sticker! 🎉
               </div>
             </div>

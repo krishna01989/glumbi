@@ -23,7 +23,7 @@ export default function Footer() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <img src="/icon.svg" alt="Glumbi" style={{ width: 36, height: 36 }} />
-              <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 22, color: 'white' }}>Glumbi</span>
+              <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 22, color: 'white' }}>Glumbi</span>
             </div>
             <p style={{ fontSize: 13, lineHeight: 1.8, color: '#888', maxWidth: 220 }}>
               Glumbi — the little friend who lives<br />

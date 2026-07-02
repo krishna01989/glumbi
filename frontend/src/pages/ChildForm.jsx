@@ -91,6 +91,18 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
 
   return (
     <div style={{ maxWidth: 480, margin: '60px auto', padding: '0 20px' }}>
+      <button onClick={() => navigate('/child')}
+        onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+        style={{
+          background: 'transparent', border: '1.5px solid #ffcdb8', color: '#ff6b6b',
+          fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          transition: 'all 0.15s ease',
+        }}>
+        ← Back
+      </button>
       <h1 style={{ fontSize: 22, color: '#f4845f', margin: '0 0 28px' }}>
         {isEdit ? '✏️ Edit Child' : '🌟 Add Your Child'}
       </h1>

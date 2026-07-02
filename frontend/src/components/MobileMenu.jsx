@@ -124,7 +124,7 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src="/icon.svg" alt="Glumbi" style={{ width: 28, height: 28 }} />
-            <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'white' }}>Glumbi</span>
+            <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, color: 'white' }}>Glumbi</span>
           </div>
           <button onClick={onClose}
             style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>

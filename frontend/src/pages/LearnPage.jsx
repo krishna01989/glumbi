@@ -441,7 +441,7 @@ function pathEndpoints(pathStr) {
 
 // ── Canvas component ───────────────────────────────────────────────────────────
 
-function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Fredoka One,cursive' }) {
+function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Nunito, sans-serif' }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
 
@@ -736,7 +736,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
       {/* Big letter */}
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Fredoka One,cursive'), fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif'), fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
           {selected.char}
         </div>
         {selected.roman && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
@@ -749,7 +749,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
       </div>
       <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth
         traceChar={selected.char}
-        traceFontFamily={script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Fredoka One,cursive')} />
+        traceFontFamily={script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif')} />
       {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
       {loading && <ThemeLoader theme={child?.theme} />}
       {!loading && feedback && (
@@ -847,7 +847,7 @@ function WordMode({ script, child, quota }) {
 
   const wordFont = script === 'tamil' ? '"Noto Sans Tamil",serif'
                  : script === 'hindi' ? '"Noto Sans Devanagari",serif'
-                 : 'Fredoka One,cursive'
+                 : 'Nunito, sans-serif'
 
   /* ── Step 1: Pick a word ─────────────────────────────────── */
   if (step === 'pick') return (
@@ -931,7 +931,7 @@ function WordMode({ script, child, quota }) {
             <div style={{ display:'flex', alignItems:'center', gap:16, background:'var(--primary-lt)', borderRadius:16, padding:'14px 18px' }}>
               <span style={{ fontSize:52 }}>{result.emoji}</span>
               <div>
-                <div style={{ fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Fredoka One,cursive', fontSize:30, color:'var(--primary)', lineHeight:1.2 }}>
+                <div style={{ fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : 'Nunito, sans-serif', fontSize:30, color:'var(--primary)', lineHeight:1.2 }}>
                   {result.word}
                 </div>
                 <button onClick={() => play(result.word, srcTts)}

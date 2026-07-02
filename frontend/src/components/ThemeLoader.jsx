@@ -663,7 +663,7 @@ export default function ThemeLoader({ theme = 'coral', label }) {
         </div>
         <div>
           <div style={{
-            fontFamily: 'Fredoka One, cursive', fontSize: 20,
+            fontFamily: 'Nunito, sans-serif', fontSize: 20,
             color: '#222', marginBottom: 6, lineHeight: 1.3,
           }}>
             {msg}

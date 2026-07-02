@@ -129,7 +129,7 @@ function ThemePicker({ child, onThemeChange }) {
           width: 'min(300px, calc(100vw - 32px))',
           zIndex: 1000, maxHeight: '70vh', overflowY: 'auto',
         }}>
-          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 16, color: '#444', marginBottom: 12 }}>🎨 Pick a Theme</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, color: '#444', marginBottom: 12 }}>🎨 Pick a Theme</div>
           {THEME_GROUPS.map(group => (
             <div key={group.label} style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: '#bbb', marginBottom: 8, letterSpacing: 0.5 }}>{group.label}</div>
@@ -389,10 +389,9 @@ export default function App() {
         <Route path="/about"   element={<LandingPage />} />
         <Route path="/demo"    element={<DemoPage />} />
         <Route path="/login"   element={<AuthPage onAuth={handleAuth} />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/terms"   element={<TermsPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/help"    element={<HelpPage />} />
+        <Route path="/privacy" element={<><PublicHeader /><PrivacyPage /><Footer /></>} />
+        <Route path="/terms"   element={<><PublicHeader /><TermsPage /><Footer /></>} />
+        <Route path="/contact" element={<><PublicHeader /><ContactPage /><Footer /></>} />
         <Route path="/error/:code" element={<ErrorPageRoute />} />
         <Route path="/child/*"    element={<Navigate to="/login" replace />} />
         <Route path="/admin/*"    element={<Navigate to="/login" replace />} />
@@ -417,14 +416,14 @@ export default function App() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: '#fff9f0' }}>
         <span className="spinner" style={{ width: 36, height: 36, borderWidth: 4 }} />
-        <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#ff6b6b' }}>Loading Glumbi…</span>
+        <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, color: '#ff6b6b' }}>Loading Glumbi…</span>
       </div>
     )
   }
   if (isChildManagementRoute || !child) {
     const isManage = isChildManagementRoute
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fafafa', color: '#3d3d3d' }}>
         <header style={{
           position: 'sticky', top: 0, zIndex: 100,
           background: 'white', borderBottom: '1px solid #f0f0f0',
@@ -432,42 +431,34 @@ export default function App() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           boxShadow: '0 2px 12px rgba(0,0,0,0.06)', fontFamily: 'Nunito, sans-serif',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div onClick={() => navigate('/child')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <img src="/icon.svg" alt="Glumbi" style={{ width: 32, height: 32 }} />
-            <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
+            <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
           </div>
-          {isManage ? (
-            <button onClick={() => navigate(child ? `/child/${child.id}/stories` : '/child')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={() => navigate('/profile')}
               style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
-              ← Back
+              👤 Account
             </button>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button onClick={() => navigate('/profile')}
-                style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
-                👤 Account
-              </button>
-              <button onClick={handleLogout}
-                style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
-                Sign out
-              </button>
-            </div>
-          )}
+            <button onClick={handleLogout}
+              style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
+              Sign out
+            </button>
+          </div>
         </header>
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onLogout={handleLogout} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
             <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { setChild(c); navigate('/child') }} enabledFeatureConfig={featureConfig} />} />
-            <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} />} />
+            <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
             <Route path="/contact"        element={<ContactPage />} />
-            <Route path="/help"           element={<HelpPage />} />
             <Route path="*"               element={<Navigate to="/child" replace />} />
           </Routes>
         </div>
-        <Footer />
+        <AppFooter />
       </div>
     )
   }
@@ -494,7 +485,7 @@ export default function App() {
           <img src="/icon.svg" alt="Glumbi" style={{ width: isTV ? 40 : 32, height: isTV ? 40 : 32, flexShrink: 0 }} />
           {!collapsed && (
             <div>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: isTV ? 24 : 18, color: 'white', lineHeight: 1 }}>Glumbi</div>
+              <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: isTV ? 24 : 18, color: 'white', lineHeight: 1 }}>Glumbi</div>
               <div style={{ fontSize: isTV ? 12 : 10, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>Where little stories grow ✨</div>
             </div>
           )}
@@ -655,7 +646,7 @@ export default function App() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src="/icon.svg" alt="Glumbi" style={{ width: 30, height: 30 }} />
-            <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'white' }}>Glumbi</span>
+            <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'white' }}>Glumbi</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span id="tour-child-name" style={{ fontSize: 24 }}>{child.avatarEmoji}</span>

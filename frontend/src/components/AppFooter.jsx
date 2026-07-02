@@ -14,7 +14,7 @@ export default function AppFooter() {
     }}>
       <span>© {new Date().getFullYear()} <strong style={{ color: '#ff6b6b' }}>Glumbi</strong> · Where little stories grow ✨</span>
       <div style={{ display: 'flex', gap: 16 }}>
-        {[['Help', '/help'], ['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', '/contact']].map(([l, p]) => (
+        {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', '/contact']].map(([l, p]) => (
           <button key={p} onClick={() => navigate(p)}
             style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 11, cursor: 'pointer', padding: 0, fontFamily: 'Nunito, sans-serif' }}
             onMouseEnter={e => e.currentTarget.style.color = '#ff6b6b'}

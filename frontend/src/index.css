@@ -64,7 +64,7 @@ body {
   font-size: var(--fs-md);
 }
 
-h1 { font-family: 'Fredoka One', cursive; letter-spacing: 0.5px; }
+h1 { font-family: 'Nunito', sans-serif; font-weight: 800; letter-spacing: 0.5px; }
 h2, h3 { font-family: 'Nunito', sans-serif; font-weight: 800; }
 
 button {
@@ -187,7 +187,8 @@ input:focus, textarea:focus, select:focus {
 
 /* ── Driver.js tour styles ── */
 .tt-tour .driver-popover-title {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
   font-size: 18px;
   color: #ff6b6b;
 }

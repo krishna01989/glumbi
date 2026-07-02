@@ -1,7 +1,4 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import PublicHeader from '../../components/PublicHeader'
-import Footer from '../../components/Footer'
-
 import { useEffect } from 'react'
 
 export default function LegalLayout({ title, updated, children }) {
@@ -11,10 +8,8 @@ export default function LegalLayout({ title, updated, children }) {
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', fontFamily: 'Nunito, sans-serif', color: '#3d3d3d', display: 'flex', flexDirection: 'column' }}>
-      <PublicHeader />
-
-      <div style={{ maxWidth: 760, margin: '0 auto', width: '100%', flex: 1, padding: 'clamp(32px,5vw,56px) clamp(16px,4vw,24px)', boxSizing: 'border-box' }}>
+    <div style={{ background: '#fafafa', fontFamily: 'Nunito, sans-serif', color: '#3d3d3d' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', width: '100%', padding: 'clamp(32px,5vw,56px) clamp(16px,4vw,24px)', boxSizing: 'border-box' }}>
         <button onClick={() => navigate(-1)}
           onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
@@ -27,7 +22,7 @@ export default function LegalLayout({ title, updated, children }) {
           }}>
           ← Back
         </button>
-        <h1 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(26px,4vw,38px)', color: '#ff6b6b', marginBottom: 6 }}>
+        <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(26px,4vw,38px)', color: '#ff6b6b', marginBottom: 6 }}>
           {title}
         </h1>
         {updated && (
@@ -37,8 +32,6 @@ export default function LegalLayout({ title, updated, children }) {
           {children}
         </div>
       </div>
-
-      <Footer />
     </div>
   )
 }
@@ -51,7 +44,7 @@ const proseStyle = {
 // Inject global prose styles once
 const style = document.createElement('style')
 style.textContent = `
-  .legal-prose h2 { font-family: 'Fredoka One', cursive; font-size: 20px; color: #333; margin: 32px 0 10px; }
+  .legal-prose h2 { font-family: Nunito, cursive; font-size: 20px; color: #333; margin: 32px 0 10px; }
   .legal-prose h3 { font-size: 15px; font-weight: 800; color: #555; margin: 20px 0 6px; }
   .legal-prose p  { margin: 0 0 14px; }
   .legal-prose ul { padding-left: 20px; margin: 0 0 14px; }
@@ -62,7 +55,7 @@ style.textContent = `
 
 // Apply prose styles via a wrapper div approach using inline style injection
 const proseInjectStyle = `
-  div[data-prose] h2 { font-family: 'Fredoka One', cursive; font-size: 22px; color: #333; margin: 32px 0 10px; border-bottom: 2px solid #fff0f0; padding-bottom: 6px; }
+  div[data-prose] h2 { font-family: Nunito, cursive; font-size: 22px; color: #333; margin: 32px 0 10px; border-bottom: 2px solid #fff0f0; padding-bottom: 6px; }
   div[data-prose] h3 { font-size: 15px; font-weight: 800; color: #555; margin: 20px 0 6px; }
   div[data-prose] p  { margin: 0 0 14px; }
   div[data-prose] ul { padding-left: 22px; margin: 0 0 14px; }

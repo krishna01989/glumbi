@@ -322,7 +322,7 @@ export default function MyWriting({ child, quota }) {
             <div className="card" style={{ padding: 'clamp(16px,3vw,28px)', marginBottom: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
                 <div>
-                  <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(20px,3vw,28px)', color: '#333', margin: '0 0 6px' }}>{selected.title}</h2>
+                  <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(20px,3vw,28px)', color: '#333', margin: '0 0 6px' }}>{selected.title}</h2>
                   <span style={{ fontSize: 12, color: '#aaa', fontWeight: 700 }}>{wordCount(selected.content)} words</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>

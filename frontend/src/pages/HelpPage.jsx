@@ -195,7 +195,7 @@ function Section({ section }) {
     <div style={{ marginBottom: 32 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         <span style={{ fontSize: 24 }}>{section.emoji}</span>
-        <h2 style={{ fontSize: 18, color: 'var(--text)', margin: 0 }}>{section.title}</h2>
+        <h2 style={{ fontSize: 15, color: 'var(--text)', margin: 0, fontWeight: 700 }}>{section.title}</h2>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {section.items.map((item, i) => {
@@ -248,7 +248,7 @@ export default function HelpPage() {
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontSize: 52, marginBottom: 10 }}>🌟</div>
-        <h1 style={{ fontSize: 28, color: 'var(--primary)', marginBottom: 8 }}>Glumbi Help</h1>
+        <h1 style={{ fontSize: 24, color: 'var(--primary)', marginBottom: 8, fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>Glumbi Help</h1>
         <p style={{ color: 'var(--muted)', fontSize: 15, fontFamily: 'Nunito, sans-serif' }}>
           Everything you need to know about using Glumbi with your child.
         </p>

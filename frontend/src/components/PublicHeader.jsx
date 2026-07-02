@@ -18,7 +18,7 @@ export default function PublicHeader({ transparent = false }) {
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate('/')}>
         <img src="/icon.svg" alt="Glumbi" style={{ width: 32, height: 32 }} />
-        <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
+        <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
       </div>
 
       {/* Nav links (desktop) */}

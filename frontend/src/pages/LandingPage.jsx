@@ -143,7 +143,7 @@ export default function LandingPage() {
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', borderRadius: 50, padding: '6px 18px', fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 24 }}>
             ✨ Glumbi AI — magic for kids
           </div>
-          <h1 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(40px, 7vw, 72px)', color: 'white', lineHeight: 1.1, marginBottom: 20 }}>
+          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(40px, 7vw, 72px)', color: 'white', lineHeight: 1.1, marginBottom: 20 }}>
             Magic stories for<br />little ones
           </h1>
           <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'rgba(255,255,255,0.9)', maxWidth: 580, margin: '0 auto 40px', lineHeight: 1.7 }}>
@@ -193,7 +193,7 @@ export default function LandingPage() {
                 }} />
               ))}
             </div>
-            <div style={{ marginTop: 16, fontFamily: 'Fredoka One, cursive', fontSize: 22, color: '#ff6b6b' }}>Glumbi</div>
+            <div style={{ marginTop: 16, fontFamily: 'Nunito, sans-serif', fontSize: 22, color: '#ff6b6b' }}>Glumbi</div>
             <div style={{ fontSize: 12, color: '#bbb', marginTop: 4, fontStyle: 'italic' }}>your child's imagination friend</div>
           </div>
 
@@ -202,7 +202,7 @@ export default function LandingPage() {
             <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '5px 16px', fontSize: 12, fontWeight: 800, marginBottom: 16, letterSpacing: 0.5 }}>
               WHO IS GLUMBI?
             </div>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(26px,4vw,38px)', color: '#3d3d3d', lineHeight: 1.2, marginBottom: 20 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(26px,4vw,38px)', color: '#3d3d3d', lineHeight: 1.2, marginBottom: 20 }}>
               The little friend who lives inside every child's imagination ✨
             </h2>
             <p style={{ fontSize: 16, color: '#777', lineHeight: 1.9, marginBottom: 16 }}>
@@ -222,7 +222,7 @@ export default function LandingPage() {
       <section style={{ padding: '100px 40px', background: '#fafafa' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
               Everything your child needs to thrive 🌱
             </h2>
             <p style={{ fontSize: 17, color: '#888', maxWidth: 520, margin: '0 auto' }}>
@@ -255,7 +255,7 @@ export default function LandingPage() {
       <section style={{ padding: '100px 40px', background: 'white' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
               Up and running in minutes ⚡
             </h2>
             <p style={{ fontSize: 17, color: '#888' }}>Four simple steps to your child's first magical story.</p>
@@ -268,7 +268,7 @@ export default function LandingPage() {
                   width: 64, height: 64, borderRadius: '50%',
                   background: 'linear-gradient(135deg,#ff6b6b,#ff8e53)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'Fredoka One, cursive', fontSize: 22, color: 'white',
+                  fontFamily: 'Nunito, sans-serif', fontSize: 22, color: 'white',
                   margin: '0 auto 20px',
                   boxShadow: '0 8px 24px rgba(255,107,107,0.3)',
                 }}>
@@ -289,7 +289,7 @@ export default function LandingPage() {
       <section style={{ padding: '100px 40px', background: '#fafafa' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
               Questions? We've got answers 💬
             </h2>
             <p style={{ fontSize: 17, color: '#888' }}>Everything parents ask before signing up.</p>
@@ -331,7 +331,7 @@ export default function LandingPage() {
       <section style={{ padding: '80px 40px', background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🌍</div>
-          <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 36, color: '#8e44ad', marginBottom: 16 }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 36, color: '#8e44ad', marginBottom: 16 }}>
             Speaks your child's language
           </h2>
           <p style={{ fontSize: 16, color: '#777', lineHeight: 1.8, marginBottom: 40 }}>
@@ -363,7 +363,7 @@ export default function LandingPage() {
           <div style={{ display: 'inline-block', background: '#fff8e1', borderRadius: 50, padding: '6px 18px', fontSize: 13, fontWeight: 700, color: '#e67e22', marginBottom: 20 }}>
             🎁 Always free — no surprises
           </div>
-          <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 40, color: '#3d3d3d', marginBottom: 16 }}>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 16 }}>
             {defaultCredits ?? '…'} AI credits, every month
           </h2>
           <p style={{ fontSize: 17, color: '#888', maxWidth: 540, margin: '0 auto 48px', lineHeight: 1.7 }}>
@@ -427,7 +427,7 @@ export default function LandingPage() {
         background: 'linear-gradient(135deg,#ff6b6b,#ff8e53,#ffd93d)',
         textAlign: 'center',
       }}>
-        <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 44, color: 'white', marginBottom: 16 }}>
+        <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 44, color: 'white', marginBottom: 16 }}>
           Ready to create some magic? ✨
         </h2>
         <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>

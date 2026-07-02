@@ -122,7 +122,7 @@ export default function ReadQuiz({ child, quota }) {
         <QuotaBanner quota={quota} />
         {/* Generate form */}
         <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: 'var(--primary)', marginBottom: 14 }}>📚 Read & Quiz</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, color: 'var(--primary)', marginBottom: 14 }}>📚 Read & Quiz</div>
           <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 800, color: '#888', display: 'block', marginBottom: 8 }}>PICK A TOPIC</label>
@@ -234,7 +234,7 @@ export default function ReadQuiz({ child, quota }) {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                 <div>
-                  <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(20px,3vw,28px)', color: '#333', margin: '0 0 8px' }}>
+                  <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(20px,3vw,28px)', color: '#333', margin: '0 0 8px' }}>
                     {selected.title}
                   </h2>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -269,7 +269,7 @@ export default function ReadQuiz({ child, quota }) {
               }}>
                 {selected.story[0] && (
                   <>
-                    <span style={{ float: 'left', fontSize: 52, lineHeight: 0.8, marginRight: 8, marginTop: 6, color: lessonColor, fontFamily: 'Fredoka One, cursive' }}>
+                    <span style={{ float: 'left', fontSize: 52, lineHeight: 0.8, marginRight: 8, marginTop: 6, color: lessonColor, fontFamily: 'Nunito, sans-serif' }}>
                       {selected.story[0]}
                     </span>
                     {selected.story.slice(1)}
@@ -280,7 +280,7 @@ export default function ReadQuiz({ child, quota }) {
 
             {/* Quiz */}
             <div className="card" style={{ padding: 'clamp(16px,3vw,28px)' }}>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>
                 🧠 Comprehension Quiz
               </div>
 
@@ -344,7 +344,7 @@ export default function ReadQuiz({ child, quota }) {
                   <div style={{ fontSize: 48, marginBottom: 8 }}>
                     {selected.score === 3 ? '🏆' : selected.score >= 2 ? '⭐' : '💪'}
                   </div>
-                  <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 22, marginBottom: 6,
+                  <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 22, marginBottom: 6,
                     color: selected.score === 3 ? '#27ae60' : selected.score >= 2 ? '#f39c12' : '#e74c3c' }}>
                     {selected.score === 3 ? 'Perfect score!' : selected.score >= 2 ? 'Great job!' : 'Keep practising!'}
                   </div>

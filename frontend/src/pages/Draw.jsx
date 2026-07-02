@@ -452,7 +452,7 @@ export default function Draw({ child, quota }) {
             boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
           }}>
             <div style={{ fontSize: 56 }}>🎨</div>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 26, margin: '12px 0 6px', color: 'var(--primary)' }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, margin: '12px 0 6px', color: 'var(--primary)' }}>
               Drawing Studio
             </h2>
             <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, margin: '0 0 28px' }}>

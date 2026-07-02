@@ -20,7 +20,7 @@ function PasswordStrength({ password }) {
   )
 }
 
-export default function ProfilePage({ onLogout }) {
+export default function ProfilePage({ onLogout, parentOnly = false }) {
   const navigate = useNavigate()
   const [profile, setProfile]       = useState(null)
   const [loading, setLoading]       = useState(true)
@@ -92,21 +92,29 @@ export default function ProfilePage({ onLogout }) {
     ? new Date(profile.joinedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : '—'
 
+  const accent      = parentOnly ? '#ff6b6b'  : 'var(--primary)'
+  const accentLight = parentOnly ? '#fff0f0'  : 'var(--primary-lt)'
+  const accentBorder= parentOnly ? '#ffcdb8'  : 'var(--primary-lt)'
+  const btnGrad     = parentOnly ? 'linear-gradient(135deg,#ff6b6b,#f4845f)' : 'linear-gradient(135deg,var(--primary),var(--accent))'
+  const onBack      = parentOnly ? () => navigate('/child') : () => navigate(-1)
+
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto', fontFamily: 'Nunito, sans-serif' }}>
-      <button onClick={() => navigate(-1)}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-lt)'; e.currentTarget.style.transform = 'translateX(-2px)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-        style={{
-          background: 'transparent', border: '1.5px solid var(--primary-lt)', color: 'var(--primary)',
-          fontWeight: 700, fontSize: 13, cursor: 'pointer',
-          padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          transition: 'all 0.15s ease',
-        }}>
-        ← Back
-      </button>
-      <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 26, color: 'var(--primary)', marginBottom: 24 }}>
+    <div style={{ maxWidth: 560, margin: '48px auto', padding: '0 20px', fontFamily: 'Nunito, sans-serif' }}>
+      {parentOnly && (
+        <button onClick={onBack}
+          onMouseEnter={e => { e.currentTarget.style.background = accentLight; e.currentTarget.style.transform = 'translateX(-2px)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+          style={{
+            background: 'transparent', border: `1.5px solid ${accentBorder}`, color: accent,
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            transition: 'all 0.15s ease',
+          }}>
+          ← Back
+        </button>
+      )}
+      <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, color: accent, marginBottom: 24 }}>
         My Account
       </h2>
 
@@ -155,7 +163,7 @@ export default function ProfilePage({ onLogout }) {
             )}
 
             <button type="submit" disabled={pwLoading}
-              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1 }}>
+              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: btnGrad, color: 'white', border: 'none', cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1 }}>
               {pwLoading ? 'Saving…' : 'Update Password'}
             </button>
           </form>

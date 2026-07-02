@@ -122,7 +122,7 @@ export default function ErrorPage({ code, message }) {
             </div>
           )}
 
-          <h1 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(24px,4vw,36px)', color: '#2d2d2d', marginBottom: 14, lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(24px,4vw,36px)', color: '#2d2d2d', marginBottom: 14, lineHeight: 1.2 }}>
             {info.title}
           </h1>
 

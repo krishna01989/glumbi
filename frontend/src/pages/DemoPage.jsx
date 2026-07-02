@@ -103,7 +103,7 @@ export default function DemoPage() {
 
         {/* Hero */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <div style={{ fontSize: 'clamp(28px,5vw,42px)', fontFamily: 'Fredoka One, cursive', color: '#ff6b6b', lineHeight: 1.2, marginBottom: 12 }}>
+          <div style={{ fontSize: 'clamp(28px,5vw,42px)', fontFamily: 'Nunito, sans-serif', color: '#ff6b6b', lineHeight: 1.2, marginBottom: 12 }}>
             ✨ Try Glumbi Live
           </div>
           <p style={{ fontSize: 'clamp(14px,2.5vw,17px)', color: '#888', maxWidth: 480, margin: '0 auto' }}>
@@ -205,7 +205,7 @@ export default function DemoPage() {
             textAlign: 'center', marginBottom: 32,
           }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>🎉</div>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 26, color: '#ff6b6b', marginBottom: 8 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, color: '#ff6b6b', marginBottom: 8 }}>
               You loved it!
             </h2>
             <p style={{ color: '#888', fontSize: 15, marginBottom: 24, lineHeight: 1.7 }}>
@@ -243,7 +243,7 @@ export default function DemoPage() {
             </div>
 
             <div style={{ padding: 'clamp(20px,4vw,32px)' }}>
-              <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 'clamp(20px,3vw,28px)', color: '#333', marginBottom: 16 }}>
+              <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(20px,3vw,28px)', color: '#333', marginBottom: 16 }}>
                 {story.title}
               </h2>
               <div style={{ height: 3, background: 'linear-gradient(to right,#ff6b6b,#ffd93d,#6bcb77)', borderRadius: 4, marginBottom: 20 }} />
@@ -255,7 +255,7 @@ export default function DemoPage() {
               }}>
                 {story.content[0] && (
                   <>
-                    <span style={{ float: 'left', fontSize: 56, lineHeight: 0.8, marginRight: 8, marginTop: 8, color: '#ff6b6b', fontFamily: 'Fredoka One, cursive' }}>
+                    <span style={{ float: 'left', fontSize: 56, lineHeight: 0.8, marginRight: 8, marginTop: 8, color: '#ff6b6b', fontFamily: 'Nunito, sans-serif' }}>
                       {story.content[0]}
                     </span>
                     {story.content.slice(1)}
@@ -269,7 +269,7 @@ export default function DemoPage() {
                 border: '2px solid #ffcdb8', textAlign: 'center',
               }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>💫</div>
-                <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 18, color: '#ff6b6b', marginBottom: 6 }}>
+                <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, color: '#ff6b6b', marginBottom: 6 }}>
                   Want personalized stories like this every day?
                 </div>
                 <p style={{ fontSize: 13, color: '#888', marginBottom: 16, lineHeight: 1.6 }}>

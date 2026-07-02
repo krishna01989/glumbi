@@ -444,7 +444,7 @@ export default function Stories({ child, quota }) {
               {/* Large drop cap on first letter */}
               {selected.content.slice(0, 1) && (
                 <>
-                  <span style={{ float: 'left', fontSize: 64, lineHeight: 0.8, marginRight: 8, marginTop: 8, color: 'var(--primary)', fontFamily: 'Fredoka One, cursive' }}>
+                  <span style={{ float: 'left', fontSize: 64, lineHeight: 0.8, marginRight: 8, marginTop: 8, color: 'var(--primary)', fontFamily: 'Nunito, sans-serif' }}>
                     {selected.content[0]}
                   </span>
                   {selected.content.slice(1)}

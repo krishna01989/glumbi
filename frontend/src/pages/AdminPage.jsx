@@ -1093,7 +1093,7 @@ function FeatureCredits() {
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 28, color: '#ffd93d', fontWeight: 900 }}>
+              <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 28, color: '#ffd93d', fontWeight: 900 }}>
                 {defaults ? defaults.defaultMonthlyCredits : '…'}
               </span>
               <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>credits/month</span>
@@ -1638,7 +1638,7 @@ export default function AdminPage({ onBack, onLogout }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 22 }}>🛡️</span>
             <div>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: 16, color: 'white', lineHeight: 1.2 }}>Glumbi</div>
+              <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, color: 'white', lineHeight: 1.2 }}>Glumbi</div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Admin Panel</div>
             </div>
           </div>

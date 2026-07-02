@@ -25,10 +25,7 @@ export default function ChildList({ onChildSelected, onLogout }) {
   )
 
   return (
-    <div style={{ maxWidth: 480, margin: '60px auto', padding: '0 20px' }}>
-      <div style={{ textAlign: 'center', marginBottom: 32, position: 'relative' }}>
-        <img src="/logo.svg" alt="Glumbi" style={{ width: 240, height: 'auto' }} />
-      </div>
+    <div style={{ maxWidth: 480, margin: '48px auto', padding: '0 20px' }}>
 
       {children.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>

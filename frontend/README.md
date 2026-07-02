@@ -23,6 +23,9 @@ src/
 ├── components/
 │   ├── AudioPlayer.jsx     # Story audio player (speed, volume, seek, HTTP range)
 │   ├── ConfirmDialog.jsx   # Reusable delete-confirmation modal
+│   ├── NotificationBell.jsx # In-app notification bell with unread count badge
+│   ├── QuotaBanner.jsx     # Displays monthly credit usage
+│   ├── ErrorBox.jsx        # Inline error message display
 │   ├── AppFooter.jsx       # Authenticated app footer
 │   ├── Footer.jsx          # Public page footer
 │   ├── MobileMenu.jsx      # Hamburger nav for mobile
@@ -37,14 +40,16 @@ src/
 │   ├── ChildList.jsx       # Parent dashboard — child switcher
 │   ├── ChildForm.jsx       # Add / edit child profile
 │   ├── ChildSetup.jsx      # Onboarding wizard for new child
-│   ├── Stories.jsx         # AI story generation + audio player
+│   ├── Stories.jsx         # AI story generation + audio player + runtime voice/accent/gender picker
 │   ├── Activities.jsx      # Activity suggestions per story
 │   ├── Curiosity.jsx       # Daily curiosity questions
 │   ├── ReadQuiz.jsx        # Read & quiz with history
 │   ├── MyWriting.jsx       # Kids writing + AI coach feedback
 │   ├── Draw.jsx            # Free-draw canvas
 │   ├── Journal.jsx         # Private kid journal
+│   ├── LearnPage.jsx       # Learn to Write — letter/word tracing with AI validation
 │   ├── Timeline.jsx        # Activity timeline view
+│   ├── ProfilePage.jsx     # Child profile view
 │   ├── AdminPage.jsx       # Admin dashboard (admin role only)
 │   ├── ErrorPage.jsx       # 404 / error fallback
 │   └── legal/              # Privacy, Terms, Contact pages
@@ -136,6 +141,41 @@ Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` re
 - Volume control with a styled range slider
 - Relies on HTTP Range request support in the backend for seeking
 
+### Voice / accent picker (`Stories.jsx`)
+
+The listen button opens a language picker popup that includes:
+- **Voice toggle** — ♀ Female / ♂ Male applies to every language
+- **English Accent** — US 🇺🇸 / India 🇮🇳 / British 🇬🇧 / Australian 🇦🇺; combined with the gender toggle to pick the exact WaveNet voice (e.g. `en-IN-Wavenet-B`)
+- **Language buttons** — English + 6 international + 5 Indian regional; non-English languages use the gender toggle to pick Wavenet A (female) or B (male)
+- Selections persist in `localStorage` (`glumbi_accent`, `glumbi_gender`)
+- The voice name is passed to the backend as `?voice=<wavenet-name>` on the listen URL
+
+### Learn to Write (`LearnPage.jsx`)
+
+- Canvas drawing area for letters (English, Tamil, Hindi) and words
+- On submit, the canvas is base64-encoded and sent to `/api/learn/validate` or `/api/learn/word`
+- AI validation is lenient: any visible strokes = correct, blank canvas = incorrect
+- Correct attempts are saved to the Timeline (`category = "learn"`)
+- TTS pronunciation available for each letter/word via `/api/learn/audio`
+
+### Admin panel (`AdminPage.jsx`)
+
+- **AI Agents** section: toggle individual weekly-notification agents on/off; all toggles use unified green (enabled) / grey (disabled) colours
+- **Scheduler History** modal: live run history from the DB — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ status, started/finished timestamps, duration, children processed, agents ran/skipped, and errors
+
+### Notifications (`NotificationBell.jsx`)
+
+- Bell icon in the nav with unread count badge
+- Supports notification types: `PROGRESS_REPORT`, `MILESTONE`, `STORY_RECOMMENDATION`, `LEARNING_INSIGHT`, `LEARN_TO_WRITE`, `QUOTA_WARNING`
+- Each type has a display label and emoji icon
+
+### Typography
+
+Global font rules in `index.css`:
+- `h1` — Fredoka One (rounded, playful; used for page titles)
+- `h2`, `h3` — Nunito 800 (clean, readable; used for section headings and content)
+- Pages that intentionally use Fredoka One on `h2` (e.g. Stories story title, Read & Quiz) use explicit inline `fontFamily` overrides
+
 ---
 
 ## Routing
@@ -157,5 +197,7 @@ All routes are defined in `App.jsx`. The `vercel.json` at the root of `frontend/
 | `/draw` | Draw |
 | `/journal` | Journal |
 | `/timeline` | Timeline |
+| `/learn` | Learn to Write |
+| `/profile` | Child profile |
 | `/admin` | Admin panel |
 | `/privacy`, `/terms`, `/contact` | Legal pages |

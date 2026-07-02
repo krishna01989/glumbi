@@ -42,20 +42,28 @@ src/main/java/com/glumbi/
 | `TranslationAgent` | Translates story title + content to a target language |
 | `SafetyGuard` | Checks all AI output for child-appropriateness before saving |
 | `RelevanceGuard` | Ensures writing submissions are on-topic |
+| `ProgressReportAgent` | Generates weekly progress-report notifications per child |
+| `MilestoneAgent` | Detects and notifies learning milestones |
+| `StoryRecommendationAgent` | Recommends story topics based on past activity |
+| `LearningInsightAgent` | Produces weekly learning insight summaries |
+| `LearnToWriteAgent` | Summarises letters and words a child practised writing that week |
+
+Weekly notification agents are toggled on/off individually via the admin panel. Each agent's enabled state is stored in `AppSetting`.
 
 ### Key Controllers
 
 | Controller | Base Path | Notes |
 |---|---|---|
 | `AuthController` | `/api/auth` | Register, login, Google OAuth, health check |
-| `StoryController` | `/api/stories` | CRUD + `/listen` audio endpoint with HTTP Range support |
+| `StoryController` | `/api/stories` | CRUD + `/listen` audio endpoint with HTTP Range support and optional `?voice=` param |
 | `ActivityController` | `/api/activities` | Generate and list activities |
 | `CuriosityController` | `/api/curiosity` | Daily curiosity questions |
 | `ReadQuizController` | `/api/readquiz` | Quiz generation and history |
 | `WritingController` | `/api/writing` | Submit writing, get feedback |
+| `LearnController` | `/api/learn` | Letter validation (vision AI), word identification, TTS audio for letters |
 | `ChildController` | `/api/children` | Child profile management |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
-| `AdminController` | `/api/admin` | Admin-only endpoints |
+| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history |
 
 ---
 
@@ -134,9 +142,32 @@ docker run -p 8080:8080 --env-file backend/.env glumbi-backend
 
 - `GET /api/stories/{id}/listen` returns the story as an MP3 audio stream
 - Supports **HTTP Range requests** (`206 Partial Content`) so browsers can seek without re-generating audio
-- Generated audio is cached in-memory (`ConcurrentHashMap`) keyed by `storyId:language`
+- Accepts optional `?voice=<voice-name>` param (e.g. `en-IN-Wavenet-B`) — when provided, the language code and gender are derived from the voice name itself
+- Generated audio is cached in-memory (`ConcurrentHashMap`) keyed by `storyId:language:voice` — different voice selections each get their own cache entry
 - `TextToSpeechService` uses WaveNet voices; speaking rate is `0.90` (slightly slower for kids)
-- Language → voice mapping lives in `TextToSpeechService.buildVoice()`
+- Language → voice mapping lives in `TextToSpeechService.buildVoice()`; falls back to language-based defaults when no voice name is supplied
+
+## Schedulers
+
+| Scheduler | Trigger | Description |
+|---|---|---|
+| `NotificationScheduler` | Weekly (Sunday midnight) | Runs enabled AI agents for each child and saves results as `Notification` records |
+| `ApiQuotaService.resetAllMonthlyCounters` | Monthly (1st of month) | Resets per-user API quota counters |
+
+Both schedulers follow an **insert-then-update** pattern in the `scheduler_runs` table:
+1. Insert a row with `status = RUNNING` at job start
+2. Update the same row to `SUCCESS` or `FAILED` with timing and error details when the job ends
+
+This lets the admin panel show live job state rather than only completed runs.
+
+## Learn to Write
+
+- `POST /api/learn/validate` — accepts a base64 PNG of the child's canvas drawing and the target letter; uses Claude vision to validate it
+- Validation is lenient by design: `correct = true` if **any** visible pen strokes are present; `false` only if the canvas is completely blank — this rewards effort regardless of accuracy
+- AI feedback must mention the specific letter by name (not generic "great drawing" messages)
+- On `correct = true`, an `Activity` record with `category = "learn"` is saved so the attempt appears in the Timeline
+- `POST /api/learn/word` — same leniency rules, returns richer JSON (meaning, fun fact, emoji, translations)
+- `GET /api/learn/audio` — TTS pronunciation for a letter or word
 
 ---
 
@@ -153,4 +184,15 @@ docker run -p 8080:8080 --env-file backend/.env glumbi-backend
 
 Schema is managed by JPA `ddl-auto: update` — tables are created/altered automatically on startup. Main entities:
 
-`AppUser` → `Child` → `Story`, `Activity`, `CuriosityEntry`, `ReadQuizEntry`, `WritingEntry`, `JournalEntry`
+`AppUser` → `Child` → `Story`, `Activity`, `CuriosityEntry`, `ReadQuizEntry`, `WritingEntry`, `JournalEntry`, `Notification`
+
+`SchedulerRun` — one row per scheduler job execution; columns: `scheduler_id`, `started_at`, `finished_at`, `status` (`RUNNING` / `SUCCESS` / `FAILED`), `children_processed`, `agents_ran`, `agents_skipped`, `errors`
+
+`AppSetting` — key/value store for feature flags and agent enabled states; `value` column is `TEXT` (widened from `VARCHAR(500)` to accommodate JSON history payloads)
+
+> **Note:** the `notifications.type` column has a CHECK constraint. When adding new `NotificationType` enum values, run:
+> ```sql
+> ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+> ALTER TABLE notifications ADD CONSTRAINT notifications_type_check
+>   CHECK (type IN ('PROGRESS_REPORT','MILESTONE','STORY_RECOMMENDATION','LEARNING_INSIGHT','LEARN_TO_WRITE','QUOTA_WARNING'));
+> ```

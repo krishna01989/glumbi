@@ -17,8 +17,10 @@ Live at **[glumbi.com](https://glumbi.com)**
 | ✍️ **My Writing** | Kids write their own stories and get AI writing-coach feedback. |
 | 🎨 **Draw** | Free-draw canvas for kids to illustrate their stories. |
 | 📓 **Journal** | A private journal for kids to record their thoughts. |
+| ✏️ **Learn to Write** | Guided letter and word tracing in English, Tamil, and Hindi. Canvas drawing validated by AI — any visible stroke counts as correct to encourage effort. Completed letters and words appear in the Timeline. |
 | 🔒 **Safe & Private** | All content passes a safety guard before being shown to kids. |
-| 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. |
+| 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. Runtime voice picker lets kids choose accent (US, India, British, Australian) and gender (♀/♂) while listening. |
+| 🔔 **Smart Notifications** | Weekly AI-generated notifications per child: Progress Reports, Milestones, Story Recommendations, Learning Insights, and Learn-to-Write summaries of letters and words practised that week. |
 
 ---
 
@@ -73,7 +75,8 @@ Railway — Spring Boot
 
 - Authentication: email+password (JWT) or Sign in with Google (OAuth 2.0)
 - All JWT tokens are stateless and stored in `localStorage` (`glm_token`, `glm_role`)
-- Audio is cached in-memory on the backend so seeking doesn't re-generate TTS
+- Audio is cached in-memory on the backend so seeking doesn't re-generate TTS; cache key includes language and voice name so different voice selections each get their own cached file
+- Scheduled jobs run weekly (notifications) and monthly (quota reset); each run is recorded in the `scheduler_runs` DB table with a RUNNING → SUCCESS/FAILED status pattern so admins can see live job state
 
 ---
 
@@ -107,6 +110,20 @@ cd frontend && npm install && npm run dev
 
 Backend: http://localhost:8080  
 Frontend: http://localhost:5173
+
+---
+
+## Admin Panel
+
+Accessible at `/admin` by users with the `ADMIN` role.
+
+| Section | Description |
+|---|---|
+| 📊 **Stats** | Usage metrics across users and children. |
+| 👥 **Users** | View, hold, release, reset passwords, adjust quotas, manage feature overrides. |
+| 🤖 **AI Agents** | Toggle individual weekly-notification agents on/off per agent type (Progress Report, Milestone, Story Recommendation, Learning Insight, Learn to Write). All toggles use a unified green/grey colour. |
+| ⚙️ **Feature Config** | Enable/disable features and set per-feature credit costs. |
+| 🕒 **Scheduler History** | Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
 
 ---
 

@@ -1,7 +1,19 @@
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 
-function MobileQuotaBar({ quota }) {
+const FEATURE_DISPLAY = {
+  'story':          { label: 'Story',         icon: '📖' },
+  'activity':       { label: 'Activity',      icon: '🎮' },
+  'curiosity':      { label: 'Curiosity',     icon: '🔍' },
+  'read-quiz':      { label: 'Read & Quiz',   icon: '📚' },
+  'writing-coach':  { label: 'Writing Coach', icon: '✍️'  },
+  'translation':    { label: 'Translation',   icon: '🌐' },
+  'draw':           { label: 'Drawing',       icon: '🎨' },
+  'learn-validate': { label: 'Letter Check',  icon: '🔤' },
+  'learn-word':     { label: 'Learn Word',    icon: '✏️'  },
+}
+
+function MobileQuotaBar({ quota, featureConfig = [] }) {
   const [showInfo, setShowInfo] = useState(false)
   const pct      = Math.min(quota.used / quota.limit, 1)
   const alertColor = pct >= 1 ? '#ff6b6b' : pct >= 0.8 ? '#ffd93d' : null
@@ -10,7 +22,7 @@ function MobileQuotaBar({ quota }) {
     <div id="tour-quota" style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '10px 14px', marginBottom: 4, position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly AI calls</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly AI credits</span>
           <button onClick={() => setShowInfo(v => !v)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 13, padding: 0, lineHeight: 1 }}
             title="What counts?">ⓘ</button>
@@ -32,9 +44,24 @@ function MobileQuotaBar({ quota }) {
           boxShadow: '0 8px 32px rgba(0,0,0,0.3)', zIndex: 999,
           fontSize: 11, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7,
         }}>
-          <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 What counts as an AI call?</div>
-          <div>Every time Glumbi AI does something — generate a story, answer a curiosity question, give writing feedback, validate a letter you drew, or identify a word — it uses <strong style={{ color: '#ffd93d' }}>1 call</strong>.</div>
-          <div style={{ marginTop: 8 }}>You get <strong style={{ color: '#6bcb77' }}>{quota.limit} calls per month</strong>, shared across all AI features: Stories, Activities, Curiosity, Read &amp; Quiz, My Writing, Draw, and Learn to Write.</div>
+          <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 How do AI credits work?</div>
+          <div>You get <strong style={{ color: '#6bcb77' }}>{quota.limit} credits per month</strong>. Each feature costs a different amount:</div>
+          {featureConfig.length > 0 && (
+            <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {featureConfig.map(fc => {
+                const meta = FEATURE_DISPLAY[fc.featureName]
+                if (!meta) return null
+                return (
+                  <div key={fc.featureName} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{meta.icon} {meta.label}</span>
+                    <span style={{ fontWeight: 800, color: fc.creditCost >= 3 ? '#ffd93d' : fc.creditCost >= 2 ? '#74b9ff' : '#6bcb77' }}>
+                      {fc.creditCost} cr
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.5)' }}>Resets on the 1st of each month.</div>
           <button onClick={() => setShowInfo(false)} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>Close</button>
         </div>
@@ -62,7 +89,7 @@ const INFO_ITEMS = [
   { emoji: '⚖️', label: 'Terms of Service', path: '/terms' },
 ]
 
-export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, theme, onTour, offlineMode, onToggleOffline }) {
+export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, featureConfig = [], theme, onTour, offlineMode, onToggleOffline }) {
   const navigate = useNavigate()
 
   function go(path) {
@@ -129,7 +156,7 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {quota && <MobileQuotaBar quota={quota} />}
+          {quota && <MobileQuotaBar quota={quota} featureConfig={featureConfig} />}
           <button onClick={onToggleOffline}
             style={{ padding: '11px', borderRadius: 50, border: offlineMode ? '1.5px solid rgba(255,255,255,0.5)' : 'none', background: offlineMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             {offlineMode ? '✈️ Practice mode (AI off) — tap to turn on' : '🤖 AI On — tap for practice mode'}

@@ -11,15 +11,15 @@ const CURRENT_YEAR = new Date().getFullYear()
 const BIRTH_YEARS  = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 - i)
 
 const ALL_FEATURES = [
-  { key: 'stories',    label: 'Stories',        emoji: '📖', minAge: 3 },
-  { key: 'activities', label: 'Activities',      emoji: '🎮', minAge: 3 },
-  { key: 'learn',      label: 'Learn to Write',  emoji: '✏️', minAge: 3, maxAge: 6 },
-  { key: 'curiosity',  label: 'Curiosity',       emoji: '🔍', minAge: 3 },
-  { key: 'draw',       label: 'Draw',            emoji: '🎨', minAge: 3 },
-  { key: 'journal',    label: 'Journal',         emoji: '📝', minAge: 3 },
-  { key: 'timeline',   label: 'Timeline',        emoji: '🗓️', minAge: 3 },
-  { key: 'readquiz',   label: 'Read & Quiz',     emoji: '📚', minAge: 7 },
-  { key: 'mywriting',  label: 'My Writing',      emoji: '✍️', minAge: 7 },
+  { key: 'stories',    label: 'Stories',        emoji: '📖', minAge: 3, featureName: 'story' },
+  { key: 'activities', label: 'Activities',      emoji: '🎮', minAge: 3, featureName: 'activity' },
+  { key: 'learn',      label: 'Learn to Write',  emoji: '✏️', minAge: 3, maxAge: 6, featureName: 'learn-validate' },
+  { key: 'curiosity',  label: 'Curiosity',       emoji: '🔍', minAge: 3, featureName: 'curiosity' },
+  { key: 'draw',       label: 'Draw',            emoji: '🎨', minAge: 3, featureName: 'draw' },
+  { key: 'journal',    label: 'Journal',         emoji: '📝', minAge: 3, featureName: null },
+  { key: 'timeline',   label: 'Timeline',        emoji: '🗓️', minAge: 3, featureName: null },
+  { key: 'readquiz',   label: 'Read & Quiz',     emoji: '📚', minAge: 7, featureName: 'read-quiz' },
+  { key: 'mywriting',  label: 'My Writing',      emoji: '✍️', minAge: 7, featureName: 'writing-coach' },
 ]
 
 function calcAge(birthYear) {
@@ -31,7 +31,7 @@ function defaultFeatureKeys(age) {
   return ALL_FEATURES.filter(f => age >= f.minAge && (!f.maxAge || age <= f.maxAge)).map(f => f.key)
 }
 
-export default function ChildForm({ onChildCreated, onChildUpdated }) {
+export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatureConfig = [] }) {
   const { id } = useParams()
   const isEdit  = !!id
   const navigate = useNavigate()
@@ -200,27 +200,37 @@ export default function ChildForm({ onChildCreated, onChildUpdated }) {
                 const age = calcAge(form.birthYear)
                 const enabled = features.includes(f.key)
                 const tooYoung = age !== null && age < f.minAge
+                // Check if disabled globally or for this user (featureName null = non-AI, always available)
+                const adminDisabled = f.featureName != null &&
+                  enabledFeatureConfig.length > 0 &&
+                  enabledFeatureConfig.some(fc => fc.featureName === f.featureName && fc.enabled === false)
+                const isDisabled = tooYoung || adminDisabled
                 return (
                   <button key={f.key} type="button"
-                    onClick={() => setFeatures(prev =>
-                      prev.includes(f.key) ? prev.filter(k => k !== f.key) : [...prev, f.key]
-                    )}
-                    title={tooYoung ? `Recommended for ages ${f.minAge}+` : ''}
+                    onClick={() => {
+                      if (adminDisabled) return
+                      setFeatures(prev =>
+                        prev.includes(f.key) ? prev.filter(k => k !== f.key) : [...prev, f.key]
+                      )
+                    }}
+                    title={adminDisabled ? 'This feature is currently unavailable' : tooYoung ? `Recommended for ages ${f.minAge}+` : ''}
                     style={{
-                      padding: '8px 14px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                      background: enabled ? '#ffeee8' : '#f5f5f5',
-                      border: enabled ? '2px solid #f4845f' : '2px solid transparent',
-                      color: enabled ? '#f4845f' : '#aaa',
+                      padding: '8px 14px', borderRadius: 50, fontSize: 13, fontWeight: 700,
+                      cursor: adminDisabled ? 'not-allowed' : 'pointer',
+                      background: adminDisabled ? '#f0f0f0' : enabled ? '#ffeee8' : '#f5f5f5',
+                      border: adminDisabled ? '2px solid #e0e0e0' : enabled ? '2px solid #f4845f' : '2px solid transparent',
+                      color: adminDisabled ? '#ccc' : enabled ? '#f4845f' : '#aaa',
                       opacity: tooYoung ? 0.5 : 1,
                     }}>
                     {f.emoji} {f.label}
                     {tooYoung && <span style={{ fontSize: 10, marginLeft: 4 }}>{f.minAge}+</span>}
+                    {adminDisabled && <span style={{ fontSize: 10, marginLeft: 4 }}>🚫</span>}
                   </button>
                 )
               })}
             </div>
             <div style={{ fontSize: 11, color: '#bbb', marginTop: 8 }}>
-              Toggle features on/off for this child.
+              Toggle features on/off for this child. Features marked 🚫 are currently unavailable.
             </div>
           </div>
         )}

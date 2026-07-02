@@ -49,9 +49,11 @@ public class WritingController {
     @PostMapping("/{id}/feedback")
     public ResponseEntity<?> feedback(@PathVariable Long id,
                                       @AuthenticationPrincipal AuthUser user) {
+        if (!quotaService.isFeatureEnabled(user.id(), "writing-coach"))
+            return ResponseEntity.status(403).body(Map.of("error", "Writing Coach is currently unavailable."));
         if (!rateLimiter.tryConsume(user.id(), Endpoint.WRITING))
             return ResponseEntity.status(429).body(Map.of("error", "Too many feedback requests this hour. Try again later!"));
-        if (!quotaService.tryConsume(user.id()))
+        if (!quotaService.tryConsume(user.id(), "writing-coach"))
             return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
         try {
             return ResponseEntity.ok(service.getFeedback(id));

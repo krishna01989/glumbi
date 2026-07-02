@@ -29,11 +29,15 @@ public class CuriosityController {
     @PostMapping("/ask")
     public ResponseEntity<?> ask(@Valid @RequestBody CuriosityRequest req,
                                  @AuthenticationPrincipal AuthUser user) {
+        if (!quotaService.isFeatureEnabled(user.id(), "curiosity")) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Curiosity Corner is currently unavailable."));
+        }
         if (!rateLimiter.tryConsume(user.id(), Endpoint.CURIOSITY)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many questions this hour. Come back soon!"));
         }
-        if (!quotaService.tryConsume(user.id())) {
+        if (!quotaService.tryConsume(user.id(), "curiosity")) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }

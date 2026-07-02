@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Footer from '../components/Footer'
 import PublicHeader from '../components/PublicHeader'
 
@@ -67,8 +68,31 @@ const STEPS = [
   { step: '04', title: 'Listen & explore', desc: 'Play the story aloud in your preferred language and explore activities.' },
 ]
 
+// Maps feature names to landing page display config
+const CREDIT_DISPLAY = [
+  { featureName: 'story',          icon: '📖', label: 'Stories'         },
+  { featureName: 'activity',       icon: '🎮', label: 'Activities'      },
+  { featureName: 'curiosity',      icon: '🔍', label: 'Curiosity'       },
+  { featureName: 'read-quiz',      icon: '📚', label: 'Read & Quiz'     },
+  { featureName: 'draw',           icon: '🎨', label: 'Drawing'         },
+  { featureName: 'learn-word',     icon: '✏️',  label: 'Learn to Write'  },
+  { featureName: 'story-listen',   icon: '🔊', label: 'Story Audio'     },
+]
+
 export default function LandingPage() {
   const navigate = useNavigate()
+  const [featureCredits, setFeatureCredits] = useState([])
+  const [defaultCredits, setDefaultCredits] = useState(null)
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/public/feature-credits`)
+      .then(r => r.json())
+      .then(data => {
+        setFeatureCredits(data.features ?? [])
+        setDefaultCredits(data.defaultCredits ?? 200)
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <div style={{ fontFamily: 'Nunito, sans-serif', color: '#3d3d3d', overflowX: 'hidden' }}>
@@ -112,7 +136,7 @@ export default function LandingPage() {
               ✨ Try it Free
             </button>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 20 }}>No credit card required · Free to use</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 20 }}>No credit card required · <strong style={{ color: 'white' }}>{defaultCredits ?? '…'} free AI credits every month</strong></p>
         </div>
       </section>
 
@@ -264,6 +288,70 @@ export default function LandingPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Free Credits ── */}
+      <section style={{ padding: '80px 40px', background: 'white' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ display: 'inline-block', background: '#fff8e1', borderRadius: 50, padding: '6px 18px', fontSize: 13, fontWeight: 700, color: '#e67e22', marginBottom: 20 }}>
+            🎁 Always free — no surprises
+          </div>
+          <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: 40, color: '#3d3d3d', marginBottom: 16 }}>
+            {defaultCredits ?? '…'} AI credits, every month
+          </h2>
+          <p style={{ fontSize: 17, color: '#888', maxWidth: 540, margin: '0 auto 48px', lineHeight: 1.7 }}>
+            Every account gets {defaultCredits ?? '…'} credits automatically each month. No card needed, no trial period — just magic, every single month.
+          </p>
+
+          {/* Credit breakdown cards — live from API */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 48 }}>
+            {CREDIT_DISPLAY.map(({ featureName, icon, label }) => {
+              const fc = featureCredits.find(f => f.featureName === featureName)
+              const cost = fc?.creditCost ?? null
+              const budget = defaultCredits ?? 100
+              const uses = cost ? Math.floor(budget / cost) : null
+              return (
+                <div key={featureName} style={{
+                  background: '#fafafa', borderRadius: 16, padding: '20px 16px', textAlign: 'center',
+                  border: '1.5px solid #f0f0f0',
+                }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#333', marginBottom: 4 }}>{label}</div>
+                  {cost != null ? (
+                    <>
+                      <div style={{
+                        display: 'inline-block',
+                        background: cost >= 3 ? '#fff3cd' : cost >= 2 ? '#e8f4fd' : '#e8f5e9',
+                        color: cost >= 3 ? '#856404' : cost >= 2 ? '#0277bd' : '#2e7d32',
+                        fontWeight: 800, fontSize: 13, padding: '3px 12px', borderRadius: 50, marginBottom: 8,
+                      }}>
+                        {cost} {cost === 1 ? 'credit' : 'credits'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#aaa' }}>up to {uses}× per month</div>
+                    </>
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#ccc' }}>Loading…</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* How credits reset */}
+          <div style={{
+            background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)', borderRadius: 20, padding: '28px 32px',
+            display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', justifyContent: 'center',
+            border: '1.5px solid #e8d5f5',
+          }}>
+            <div style={{ fontSize: 48 }}>🔄</div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontWeight: 800, fontSize: 17, color: '#8e44ad', marginBottom: 6 }}>Credits reset on the 1st of every month</div>
+              <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, maxWidth: 460 }}>
+                Your {defaultCredits ?? '…'} credits refresh automatically — no action needed. Mix and match features freely. Switch to <strong>Practice Mode</strong> any time to explore without spending credits.
+              </div>
+            </div>
           </div>
         </div>
       </section>

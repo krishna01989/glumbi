@@ -31,9 +31,11 @@ public class ReadQuizController {
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@Valid @RequestBody ReadQuizRequest req,
                                       @AuthenticationPrincipal AuthUser user) {
+        if (!quotaService.isFeatureEnabled(user.id(), "read-quiz"))
+            return ResponseEntity.status(403).body(Map.of("error", "Read & Quiz is currently unavailable."));
         if (!rateLimiter.tryConsume(user.id(), Endpoint.READ_QUIZ))
             return ResponseEntity.status(429).body(Map.of("error", "Too many requests this hour. Try again later!"));
-        if (!quotaService.tryConsume(user.id()))
+        if (!quotaService.tryConsume(user.id(), "read-quiz"))
             return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
         try {
             return ResponseEntity.ok(service.generate(req));

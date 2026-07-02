@@ -1,9 +1,16 @@
 package com.glumbi.controller;
 
 import com.glumbi.entity.AppUser;
+import com.glumbi.entity.AppSetting;
 import com.glumbi.entity.Child;
+import com.glumbi.entity.FeatureConfig;
+import com.glumbi.entity.UserFeatureOverride;
 import com.glumbi.repository.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.scheduler.NotificationScheduler;
+import com.glumbi.scheduler.SchedulerHistoryHelper;
+import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,16 +28,21 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminController {
 
-    private final UserRepository         userRepo;
-    private final ChildRepository        childRepo;
-    private final StoryRepository        storyRepo;
-    private final ActivityRepository     activityRepo;
-    private final JournalRepository      journalRepo;
-    private final CuriosityRepository    curiosityRepo;
-    private final ReadQuizRepository     quizRepo;
-    private final WritingRepository      writingRepo;
-    private final PasswordEncoder        encoder;
-    private final NotificationScheduler  notificationScheduler;
+    private final UserRepository          userRepo;
+    private final ChildRepository         childRepo;
+    private final StoryRepository         storyRepo;
+    private final ActivityRepository      activityRepo;
+    private final JournalRepository       journalRepo;
+    private final CuriosityRepository     curiosityRepo;
+    private final ReadQuizRepository      quizRepo;
+    private final WritingRepository       writingRepo;
+    private final PasswordEncoder         encoder;
+    private final NotificationScheduler   notificationScheduler;
+    private final FeatureConfigRepository       featureConfigRepo;
+    private final ApiQuotaService               quotaService;
+    private final UserFeatureOverrideRepository overrideRepo;
+    private final AppSettingRepository          appSettingRepo;
+    private final ObjectMapper                  objectMapper;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(@RequestParam(defaultValue = "7d") String range) {
@@ -174,11 +186,11 @@ public class AdminController {
             .mapToLong(u -> u.getMonthlyApiCalls()).sum();
         long usersAtLimit   = userRepo.findAll().stream()
             .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
-            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200; return u.getMonthlyApiCalls() >= lim; })
+            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits(); return u.getMonthlyApiCalls() >= lim; })
             .count();
         long usersNearLimit = userRepo.findAll().stream()
             .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
-            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200; return u.getMonthlyApiCalls() >= lim * 0.8 && u.getMonthlyApiCalls() < lim; })
+            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits(); return u.getMonthlyApiCalls() >= lim * 0.8 && u.getMonthlyApiCalls() < lim; })
             .count();
 
         // Alerts — always based on 7-day window regardless of selected range
@@ -222,9 +234,10 @@ public class AdminController {
         result.put("ageDistribution",     ageDistribution);
         result.put("recentActivity",      recentActivityTrimmed);
         result.put("alerts",              alerts);
-        result.put("totalQuotaCalls",     totalQuotaCalls);
-        result.put("usersAtLimit",        usersAtLimit);
-        result.put("usersNearLimit",      usersNearLimit);
+        result.put("totalQuotaCalls",        totalQuotaCalls);
+        result.put("usersAtLimit",           usersAtLimit);
+        result.put("usersNearLimit",         usersNearLimit);
+        result.put("defaultMonthlyCredits",  quotaService.getDefaultMonthlyCredits());
         return result;
     }
 
@@ -277,7 +290,7 @@ public class AdminController {
             m.put("holdReason",  u.getHoldReason());
             // Quota: reset month check (same logic as ApiQuotaService)
             int used  = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
-            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200;
+            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
             m.put("quotaUsed",   used);
             m.put("quotaLimit",  limit);
             return m;
@@ -291,7 +304,7 @@ public class AdminController {
             u.setMonthlyApiCalls(0);
             u.setApiCallMonth(YearMonth.now().toString());
             userRepo.save(u);
-            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : 200;
+            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
             return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", limit));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -299,7 +312,7 @@ public class AdminController {
     @PatchMapping("/users/{id}/quota")
     @Transactional
     public ResponseEntity<?> setQuota(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
-        int newLimit = body.getOrDefault("limit", 200);
+        int newLimit = body.getOrDefault("limit", quotaService.getDefaultMonthlyCredits());
         if (newLimit < 0 || newLimit > 10000) {
             return ResponseEntity.badRequest().body(Map.of("error", "Limit must be between 0 and 10000"));
         }
@@ -310,6 +323,99 @@ public class AdminController {
             userRepo.save(u);
             return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", newLimit));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Feature credit config ─────────────────────────────────────────────────
+
+    @GetMapping("/feature-config")
+    public List<Map<String, Object>> listFeatureConfigs() {
+        return featureConfigRepo.findAll().stream().map(fc -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("featureName",  fc.getFeatureName());
+            m.put("creditCost",   fc.getCreditCost());
+            m.put("enabled",      fc.isEnabled());
+            m.put("description",  fc.getDescription());
+            return m;
+        }).sorted(Comparator.comparing(m -> (String) m.get("featureName"))).toList();
+    }
+
+    @PutMapping("/feature-config/{featureName}")
+    @Transactional
+    public ResponseEntity<?> updateFeatureConfig(@PathVariable String featureName,
+                                                 @RequestBody Map<String, Integer> body) {
+        int cost = body.getOrDefault("creditCost", 1);
+        if (cost < 1 || cost > 100) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Credit cost must be between 1 and 100"));
+        }
+        return featureConfigRepo.findById(featureName).map(fc -> {
+            fc.setCreditCost(cost);
+            featureConfigRepo.save(fc);
+            return ResponseEntity.ok(Map.of("featureName", fc.getFeatureName(), "creditCost", fc.getCreditCost()));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Global feature toggle ──────────────────────────────────────────────────
+
+    @PutMapping("/feature-config/{featureName}/enabled")
+    @Transactional
+    public ResponseEntity<?> setFeatureEnabled(@PathVariable String featureName,
+                                               @RequestBody Map<String, Boolean> body) {
+        boolean enabled = body.getOrDefault("enabled", true);
+        return featureConfigRepo.findById(featureName).map(fc -> {
+            fc.setEnabled(enabled);
+            featureConfigRepo.save(fc);
+            return ResponseEntity.ok(Map.of("featureName", fc.getFeatureName(), "enabled", fc.isEnabled()));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // ── Per-user feature overrides ─────────────────────────────────────────────
+
+    @GetMapping("/users/{userId}/feature-overrides")
+    public ResponseEntity<?> getUserFeatureOverrides(@PathVariable Long userId) {
+        var overrides = overrideRepo.findByIdUserId(userId).stream()
+            .map(o -> Map.of("featureName", (Object) o.getId().getFeatureName(), "enabled", (Object) o.isEnabled()))
+            .toList();
+        // Also include global state so UI has full picture in one call
+        var globals = featureConfigRepo.findAll().stream()
+            .map(fc -> Map.of(
+                "featureName",     (Object) fc.getFeatureName(),
+                "globallyEnabled", (Object) fc.isEnabled(),
+                "creditCost",      (Object) fc.getCreditCost(),
+                "description",     (Object) (fc.getDescription() != null ? fc.getDescription() : "")
+            ))
+            .toList();
+        return ResponseEntity.ok(Map.of("overrides", overrides, "features", globals));
+    }
+
+    @PutMapping("/users/{userId}/feature-overrides/{featureName}")
+    public ResponseEntity<?> setUserFeatureOverride(@PathVariable Long userId,
+                                                    @PathVariable String featureName,
+                                                    @RequestBody Map<String, Object> body) {
+        if (!userRepo.existsById(userId)) return ResponseEntity.notFound().build();
+        Object val = body.get("enabled");
+        if (val == null) {
+            // Reset to global default — remove override
+            quotaService.removeUserFeatureOverride(userId, featureName);
+            return ResponseEntity.ok(Map.of("featureName", featureName, "reset", true));
+        }
+        boolean enabled = Boolean.TRUE.equals(val);
+        quotaService.setUserFeatureOverride(userId, featureName, enabled);
+        return ResponseEntity.ok(Map.of("featureName", featureName, "enabled", enabled));
+    }
+
+    @GetMapping("/quota/default")
+    public Map<String, Object> getQuotaDefaults() {
+        return Map.of("defaultMonthlyCredits", quotaService.getDefaultMonthlyCredits());
+    }
+
+    @PutMapping("/quota/default")
+    public ResponseEntity<?> setQuotaDefault(@RequestBody Map<String, Integer> body) {
+        int credits = body.getOrDefault("defaultMonthlyCredits", 100);
+        if (credits < 10 || credits > 10000) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Default credits must be between 10 and 10000"));
+        }
+        quotaService.setDefaultMonthlyCredits(credits);
+        return ResponseEntity.ok(Map.of("defaultMonthlyCredits", credits));
     }
 
     @DeleteMapping("/users/{id}")
@@ -349,8 +455,91 @@ public class AdminController {
 
     @PostMapping("/notifications/run")
     public ResponseEntity<Map<String, String>> runNotifications() {
-        notificationScheduler.runWeeklyNotifications();
-        return ResponseEntity.ok(Map.of("message", "Notification run completed"));
+        new Thread(notificationScheduler::runWeeklyNotifications).start();
+        return ResponseEntity.accepted().body(Map.of("message", "Weekly notifications triggered — running in background"));
+    }
+
+    @PostMapping("/scheduler/reset-credits")
+    public ResponseEntity<Map<String, String>> runCreditReset() {
+        new Thread(quotaService::resetAllMonthlyCounters).start();
+        return ResponseEntity.accepted().body(Map.of("message", "Credit reset triggered — running in background"));
+    }
+
+    @GetMapping("/scheduler/status")
+    public ResponseEntity<Map<String, Object>> schedulerStatus() {
+        Map<String, Object> weeklyLastRun = parseLastRunLog(NotificationScheduler.LAST_RUN_KEY);
+        return ResponseEntity.ok(Map.of(
+            "schedulers", List.of(
+                Map.of(
+                    "id",          "reset-credits",
+                    "label",       "Monthly Credit Reset",
+                    "description", "Resets all users' monthly AI credit usage to 0. Normally runs automatically on the 1st of every month at midnight.",
+                    "schedule",    "1st of every month, 00:00 UTC",
+                    "endpoint",    "/api/admin/scheduler/reset-credits",
+                    "lastRun",     Map.of()
+                ),
+                Map.of(
+                    "id",          "weekly-notifications",
+                    "label",       "Weekly Notifications",
+                    "description", "Runs AI agents to generate progress reports, milestones, story recommendations and learning insights for all active children.",
+                    "schedule",    "Every Sunday, 08:00 UTC",
+                    "endpoint",    "/api/admin/notifications/run",
+                    "lastRun",     weeklyLastRun
+                )
+            )
+        ));
+    }
+
+    @GetMapping("/scheduler/{id}/history")
+    public ResponseEntity<?> schedulerHistory(@PathVariable String id) {
+        String historyKey = switch (id) {
+            case "weekly-notifications" -> NotificationScheduler.HISTORY_KEY;
+            case "reset-credits"        -> ApiQuotaService.RESET_HISTORY_KEY;
+            default -> null;
+        };
+        if (historyKey == null) return ResponseEntity.badRequest().body(Map.of("error", "Unknown scheduler: " + id));
+        List<Map<String, Object>> history = SchedulerHistoryHelper.read(appSettingRepo, objectMapper, historyKey);
+        return ResponseEntity.ok(Map.of("schedulerId", id, "history", history));
+    }
+
+    private Map<String, Object> parseLastRunLog(String key) {
+        return appSettingRepo.findById(key).map(s -> {
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = objectMapper.readValue(s.getValue(), Map.class);
+                return m;
+            } catch (Exception e) {
+                return Map.<String, Object>of();
+            }
+        }).orElse(Map.of());
+    }
+
+    // ── AI Agent config ──────────────────────────────────────────────────────
+
+    private static final List<Map<String, String>> AGENT_METADATA = List.of(
+        Map.of("id", NotificationScheduler.AGENT_PROGRESS,  "label", "Progress Report",        "description", "Generates a weekly summary of each child's learning activity — stories, quizzes, and writing entries from the past 7 days."),
+        Map.of("id", NotificationScheduler.AGENT_MILESTONE, "label", "Milestone Detection",    "description", "Scans all-time activity to detect achievements (e.g. first story, 10 quizzes) and sends a congratulatory notification."),
+        Map.of("id", NotificationScheduler.AGENT_STORY_REC, "label", "Story Recommendation",   "description", "Analyses a child's reading history and suggests a new story theme tailored to their interests."),
+        Map.of("id", NotificationScheduler.AGENT_LEARNING,  "label", "Learning Insight",       "description", "Reviews the last two weeks of quizzes and writing to surface patterns and tips for the parent.")
+    );
+
+    @GetMapping("/agents")
+    public List<Map<String, Object>> listAgents() {
+        return AGENT_METADATA.stream().map(meta -> {
+            Map<String, Object> m = new LinkedHashMap<>(meta);
+            m.put("enabled", notificationScheduler.isAgentEnabled(meta.get("id")));
+            return m;
+        }).toList();
+    }
+
+    @PutMapping("/agents/{id}/enabled")
+    public ResponseEntity<?> setAgentEnabled(@PathVariable String id,
+                                             @RequestBody Map<String, Boolean> body) {
+        boolean validId = AGENT_METADATA.stream().anyMatch(m -> m.get("id").equals(id));
+        if (!validId) return ResponseEntity.badRequest().body(Map.of("error", "Unknown agent: " + id));
+        boolean enabled = body.getOrDefault("enabled", true);
+        notificationScheduler.setAgentEnabled(id, enabled);
+        return ResponseEntity.ok(Map.of("id", id, "enabled", enabled));
     }
 
     @PatchMapping("/users/{id}/hold")

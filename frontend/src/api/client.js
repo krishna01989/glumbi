@@ -30,6 +30,10 @@ api.interceptors.response.use(
       return new Promise(() => {})
     }
     if (status === 403) {
+      // Feature-disabled responses carry an "error" body — surface them as normal errors
+      // rather than redirecting to the error page
+      const data = err.response?.data
+      if (data?.error) return Promise.reject(new Error(data.error))
       if (!alreadyOnErrorPage) window.location.href = '/error/403'
       return new Promise(() => {})
     }
@@ -135,6 +139,7 @@ export const writingApi = {
 
 export const userApi = {
   quota:          ()                           => api.get('/users/me/quota').then(r => r.data),
+  featureCredits: ()                           => api.get('/users/me/feature-credits').then(r => r.data),
   getProfile:     ()                           => api.get('/users/me').then(r => r.data),
   changePassword: (currentPassword, newPassword) => api.patch('/users/me/password', { currentPassword, newPassword }).then(r => r.data),
   deleteAccount:  ()                           => api.delete('/users/me'),
@@ -155,6 +160,20 @@ export const adminApi = {
   runNotifications:  ()             => api.post('/admin/notifications/run').then(r => r.data),
   holdUser:          (id, reason)   => api.patch(`/admin/users/${id}/hold`, { reason }).then(r => r.data),
   releaseUser:       (id)           => api.patch(`/admin/users/${id}/release`).then(r => r.data),
-  resetQuota:        (id)           => api.patch(`/admin/users/${id}/quota/reset`).then(r => r.data),
-  setQuota:          (id, limit)    => api.patch(`/admin/users/${id}/quota`, { limit }).then(r => r.data),
+  resetQuota:          (id)                   => api.patch(`/admin/users/${id}/quota/reset`).then(r => r.data),
+  setQuota:            (id, limit)            => api.patch(`/admin/users/${id}/quota`, { limit }).then(r => r.data),
+  schedulerStatus:           ()             => api.get('/admin/scheduler/status').then(r => r.data),
+  schedulerHistory:          (id)           => api.get(`/admin/scheduler/${id}/history`).then(r => r.data),
+  runScheduler:              (id)           => api.post(`/admin/scheduler/${id}`).then(r => r.data),
+  runNotifications:          ()             => api.post('/admin/notifications/run').then(r => r.data),
+  listFeatureConfigs:        ()                          => api.get('/admin/feature-config').then(r => r.data),
+  updateFeatureConfig:       (featureName, cost)         => api.put(`/admin/feature-config/${featureName}`, { creditCost: cost }).then(r => r.data),
+  setFeatureEnabled:         (featureName, enabled)      => api.put(`/admin/feature-config/${featureName}/enabled`, { enabled }).then(r => r.data),
+  getQuotaDefaults:          ()                          => api.get('/admin/quota/default').then(r => r.data),
+  updateQuotaDefault:        (credits)                   => api.put('/admin/quota/default', { defaultMonthlyCredits: credits }).then(r => r.data),
+  getUserFeatureOverrides:   (userId)                    => api.get(`/admin/users/${userId}/feature-overrides`).then(r => r.data),
+  setUserFeatureOverride:    (userId, featureName, enabled) => api.put(`/admin/users/${userId}/feature-overrides/${featureName}`, { enabled }).then(r => r.data),
+  resetUserFeatureOverride:  (userId, featureName)       => api.put(`/admin/users/${userId}/feature-overrides/${featureName}`, {}).then(r => r.data),
+  listAgents:                ()                          => api.get('/admin/agents').then(r => r.data),
+  setAgentEnabled:           (id, enabled)               => api.put(`/admin/agents/${id}/enabled`, { enabled }).then(r => r.data),
 }

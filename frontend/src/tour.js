@@ -87,15 +87,34 @@ const NAV_STEPS = [
   },
 ]
 
-const DESKTOP_UTILITY_STEPS = [
-  {
+function featureCostSummary(featureConfig) {
+  if (!featureConfig || featureConfig.length === 0)
+    return 'Different features use different amounts — a curiosity question costs 1 credit, a story costs 2, a read &amp; quiz session costs 3.'
+  const LABELS = {
+    'story': 'Story', 'activity': 'Activity', 'curiosity': 'Curiosity',
+    'read-quiz': 'Read &amp; Quiz', 'writing-coach': 'Writing Coach',
+    'translation': 'Translation', 'draw': 'Drawing',
+    'learn-validate': 'Letter Check', 'learn-word': 'Learn Word',
+  }
+  return featureConfig
+    .filter(fc => LABELS[fc.featureName])
+    .sort((a, b) => b.creditCost - a.creditCost)
+    .map(fc => `<strong>${LABELS[fc.featureName]}</strong>: ${fc.creditCost} cr`)
+    .join(' · ')
+}
+
+function desktopQuotaStep(limit, featureConfig) {
+  return {
     element: '#tour-quota',
     popover: {
-      title: '🤖 Monthly AI Calls',
-      description: 'Every AI action uses 1 call. You get 200 per month shared across all features. The bar turns yellow when you\'re near the limit and red when it\'s full. Resets on the 1st.',
+      title: '🤖 Monthly AI Credits',
+      description: `You get <strong>${limit} AI credits every month</strong>. ${featureCostSummary(featureConfig)} The bar turns yellow near the limit and red when credits run out. Resets on the 1st.`,
       side: 'right', align: 'end',
     },
-  },
+  }
+}
+
+const DESKTOP_UTILITY_STEPS = [
   {
     element: '#tour-theme-btn',
     popover: {
@@ -108,7 +127,7 @@ const DESKTOP_UTILITY_STEPS = [
     element: '#tour-offline-toggle',
     popover: {
       title: '✈️ Practice Mode',
-      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode, all AI features are paused — kids can still draw, write, and browse freely without using any AI calls. Listening to stories and words always works regardless. Great for quota-free practice sessions!',
+      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode, all AI features are paused — kids can still draw, write, and browse freely without using any AI credits. Listening to stories and words always works regardless. Great for credit-free practice sessions!',
       side: 'bottom', align: 'end',
     },
   },
@@ -169,7 +188,7 @@ const MOBILE_STEPS = [
     element: '#tour-mobile-offline',
     popover: {
       title: '✈️ Practice Mode',
-      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode all AI features pause — kids can still draw, write, and browse freely without using AI calls. Listening always works. Tap again to turn AI back on.',
+      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode all AI features pause — kids can still draw, write, and browse freely without spending credits. Listening always works. Tap again to turn AI back on.',
       side: 'bottom', align: 'end',
     },
   },
@@ -181,15 +200,18 @@ const MOBILE_STEPS = [
       side: 'top', align: 'center',
     },
   },
-  {
+]
+
+function mobileQuotaStep(limit, featureConfig) {
+  return {
     // quota bar is inside the mobile menu — show as a floating step instead
     popover: {
-      title: '🤖 Monthly AI Calls',
-      description: 'You get 200 AI calls per month, shared across all features. Open the ☰ menu at any time to check your usage — the bar turns orange when you\'re close and red when the limit is reached. Resets on the 1st.',
+      title: '🤖 Monthly AI Credits',
+      description: `You get <strong>${limit} AI credits every month</strong>. ${featureCostSummary(featureConfig)} Open the ☰ menu at any time to check your usage. Resets on the 1st.`,
       side: 'over', align: 'center',
     },
-  },
-]
+  }
+}
 
 // ── Shared launcher ────────────────────────────────────────────────────────────
 
@@ -213,8 +235,11 @@ function makeDriver(steps) {
 }
 
 // enabledFeatures: string[] of feature keys or null = show all
-export function startTour(enabledFeatures) {
+// quota: { used, limit } — the user's actual quota object
+// featureConfig: [{ featureName, creditCost }] — live feature costs from backend
+export function startTour(enabledFeatures, quota, featureConfig = []) {
   function present(el) { return !!document.querySelector(el) }
+  const creditLimit = quota?.limit ?? 100
 
   if (isMobileView()) {
     const steps = [
@@ -226,6 +251,7 @@ export function startTour(enabledFeatures) {
         },
       },
       ...MOBILE_STEPS.filter(s => !s.element || present(s.element)),
+      mobileQuotaStep(creditLimit, featureConfig),
       {
         popover: {
           title: '🌟 You\'re all set!',
@@ -243,7 +269,10 @@ export function startTour(enabledFeatures) {
       })
       .map(({ element, popover }) => ({ element, popover }))
 
-    const utilitySteps = DESKTOP_UTILITY_STEPS.filter(s => present(s.element))
+    const utilitySteps = [
+      desktopQuotaStep(creditLimit, featureConfig),
+      ...DESKTOP_UTILITY_STEPS.filter(s => present(s.element)),
+    ]
 
     const steps = [
       {

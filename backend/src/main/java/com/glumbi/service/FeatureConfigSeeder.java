@@ -1,0 +1,44 @@
+package com.glumbi.service;
+
+import com.glumbi.entity.FeatureConfig;
+import com.glumbi.repository.FeatureConfigRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class FeatureConfigSeeder implements ApplicationRunner {
+
+    private final FeatureConfigRepository featureConfigRepo;
+
+    private static final List<Object[]> DEFAULTS = List.of(
+        new Object[]{"story",         2, "Generate a bedtime story"},
+        new Object[]{"activity",      2, "Generate a personalised activity"},
+        new Object[]{"curiosity",     1, "Answer a child curiosity question"},
+        new Object[]{"read-quiz",     3, "Generate a read & quiz session"},
+        new Object[]{"writing-coach", 1, "Writing coach feedback"},
+        new Object[]{"translation",   5, "Translate a passage"},
+        new Object[]{"draw",          1, "Identify a child's drawing"},
+        new Object[]{"learn-validate",1, "Validate a letter drawing"},
+        new Object[]{"learn-word",    2, "Identify a written word"},
+        new Object[]{"story-listen",  1, "First listen of a story (TTS synthesis)"}
+    );
+
+    @Override
+    public void run(ApplicationArguments args) {
+        for (Object[] row : DEFAULTS) {
+            String name = (String) row[0];
+            if (!featureConfigRepo.existsById(name)) {
+                FeatureConfig fc = new FeatureConfig();
+                fc.setFeatureName(name);
+                fc.setCreditCost((int) row[1]);
+                fc.setDescription((String) row[2]);
+                featureConfigRepo.save(fc);
+            }
+        }
+    }
+}

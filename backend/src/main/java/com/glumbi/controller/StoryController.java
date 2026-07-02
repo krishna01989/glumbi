@@ -41,11 +41,15 @@ public class StoryController {
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@Valid @RequestBody StoryRequest req,
                                       @AuthenticationPrincipal AuthUser user) {
+        if (!quotaService.isFeatureEnabled(user.id(), "story")) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Stories are currently unavailable."));
+        }
         if (!rateLimiter.tryConsume(user.id(), Endpoint.STORY)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've generated too many stories this hour. Please try again later!"));
         }
-        if (!quotaService.tryConsume(user.id())) {
+        if (!quotaService.tryConsume(user.id(), "story")) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly story limit. It resets at the start of next month!"));
         }
@@ -82,11 +86,20 @@ public class StoryController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "english") String language,
             @RequestParam(required = false) String token,
+            @AuthenticationPrincipal AuthUser authUser,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader) {
         try {
             String cacheKey = id + ":" + language.toLowerCase();
             byte[] audio = audioCache.get(cacheKey);
             if (audio == null) {
+                if (authUser != null && !quotaService.isFeatureEnabled(authUser.id(), "story-listen")) {
+                    return ResponseEntity.status(403).body(null);
+                }
+                // Charge 1 credit for first-time TTS synthesis (cache miss only)
+                if (authUser != null && !quotaService.tryConsume(authUser.id(), "story-listen")) {
+                    return ResponseEntity.status(429)
+                            .body(null);
+                }
                 Story story = service.getById(id);
                 String title, content;
                 if ("english".equalsIgnoreCase(language)) {

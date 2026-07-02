@@ -37,7 +37,10 @@ public class DrawController {
         if (imageData == null || imageData.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "No image provided"));
         }
-        if (!quotaService.tryConsume(authUser.id())) {
+        if (!quotaService.isFeatureEnabled(authUser.id(), "draw")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Drawing is currently unavailable."));
+        }
+        if (!quotaService.tryConsume(authUser.id(), "draw")) {
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 

@@ -3,7 +3,10 @@ package com.glumbi.controller;
 import com.glumbi.entity.AppUser;
 import com.glumbi.entity.Child;
 import com.glumbi.repository.*;
+import com.glumbi.repository.FeatureConfigRepository;
+import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
+import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,13 +27,16 @@ public class UserController {
     private static final Pattern STRONG_PASSWORD =
         Pattern.compile("^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{}|;':\",./<>?]).{8,}$");
 
-    private final UserRepository     userRepository;
-    private final ChildRepository    childRepository;
-    private final StoryRepository    storyRepository;
-    private final ActivityRepository activityRepository;
-    private final JournalRepository  journalRepository;
-    private final CuriosityRepository curiosityRepository;
-    private final PasswordEncoder    encoder;
+    private final UserRepository          userRepository;
+    private final ChildRepository         childRepository;
+    private final StoryRepository         storyRepository;
+    private final ActivityRepository      activityRepository;
+    private final ApiQuotaService         quotaService;
+    private final JournalRepository       journalRepository;
+    private final CuriosityRepository     curiosityRepository;
+    private final PasswordEncoder         encoder;
+    private final FeatureConfigRepository       featureConfigRepo;
+    private final UserFeatureOverrideRepository overrideRepo;
 
     @GetMapping("/me/quota")
     public ResponseEntity<?> getQuota(@AuthenticationPrincipal AuthUser authUser) {
@@ -40,12 +46,33 @@ public class UserController {
         String thisMonth = YearMonth.now().toString();
         int used = thisMonth.equals(user.getApiCallMonth()) ? user.getMonthlyApiCalls() : 0;
 
-        int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : 200;
+        int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
         return ResponseEntity.ok(Map.of(
             "used",  used,
             "limit", limit,
             "month", thisMonth
         ));
+    }
+
+    @GetMapping("/me/feature-credits")
+    public ResponseEntity<?> getFeatureCredits(@AuthenticationPrincipal AuthUser authUser) {
+        var overrideMap = overrideRepo.findByIdUserId(authUser.id()).stream()
+            .collect(java.util.stream.Collectors.toMap(
+                o -> o.getId().getFeatureName(), o -> o.isEnabled()
+            ));
+        var list = featureConfigRepo.findAll().stream()
+            .map(fc -> {
+                boolean effectivelyEnabled = fc.isEnabled() &&
+                    overrideMap.getOrDefault(fc.getFeatureName(), true);
+                return Map.of(
+                    "featureName", (Object) fc.getFeatureName(),
+                    "creditCost",  (Object) fc.getCreditCost(),
+                    "description", (Object) (fc.getDescription() != null ? fc.getDescription() : ""),
+                    "enabled",     (Object) effectivelyEnabled
+                );
+            })
+            .toList();
+        return ResponseEntity.ok(list);
     }
 
     @GetMapping("/me")

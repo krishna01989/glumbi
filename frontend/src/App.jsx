@@ -180,7 +180,36 @@ function Toast({ toasts, onDismiss }) {
   )
 }
 
-function QuotaBar({ quota }) {
+const FEATURE_DISPLAY = {
+  'story':          { label: 'Story',         icon: '📖' },
+  'activity':       { label: 'Activity',      icon: '🎮' },
+  'curiosity':      { label: 'Curiosity',     icon: '🔍' },
+  'read-quiz':      { label: 'Read & Quiz',   icon: '📚' },
+  'writing-coach':  { label: 'Writing Coach', icon: '✍️'  },
+  'translation':    { label: 'Translation',   icon: '🌐' },
+  'draw':           { label: 'Drawing',       icon: '🎨' },
+  'learn-validate': { label: 'Letter Check',  icon: '🔤' },
+  'learn-word':     { label: 'Learn Word',    icon: '✏️'  },
+}
+
+// Guards a feature route — shows unavailable screen if the feature is disabled for this user
+function FeatureGuard({ featureName, featureConfig, children }) {
+  const fc = featureConfig.find(f => f.featureName === featureName)
+  // If featureConfig not yet loaded, render normally (API will reject if needed)
+  if (!fc || fc.enabled !== false) return children
+  const display = FEATURE_DISPLAY[featureName] || { label: featureName, icon: '⚙️' }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 320, padding: 40, textAlign: 'center' }}>
+      <div style={{ fontSize: 56, marginBottom: 16 }}>🚫</div>
+      <div style={{ fontWeight: 900, fontSize: 22, color: '#333', marginBottom: 8 }}>{display.icon} {display.label} is unavailable</div>
+      <div style={{ fontSize: 15, color: '#888', maxWidth: 360, lineHeight: 1.7 }}>
+        This feature has been temporarily disabled. Please check back later or contact your administrator.
+      </div>
+    </div>
+  )
+}
+
+function QuotaBar({ quota, featureConfig }) {
   const [showInfo, setShowInfo] = useState(false)
   const pct   = Math.min(quota.used / quota.limit, 1)
   const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : 'rgba(255,255,255,0.7)'
@@ -188,7 +217,7 @@ function QuotaBar({ quota }) {
     <div id="tour-quota" style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.15)', position: 'relative' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly AI calls</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly AI credits</span>
           <button
             onClick={() => setShowInfo(v => !v)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: 12, padding: 0, lineHeight: 1 }}
@@ -211,9 +240,24 @@ function QuotaBar({ quota }) {
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 999,
           fontSize: 11, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7,
         }}>
-          <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 What counts as an AI call?</div>
-          <div>Every time Glumbi AI does something — generate a story, answer a curiosity question, give writing feedback, validate a letter you drew, or identify a word — it uses <strong style={{ color: '#ffd93d' }}>1 call</strong>.</div>
-          <div style={{ marginTop: 8 }}>You get <strong style={{ color: '#6bcb77' }}>{quota.limit} calls per month</strong>, shared across all AI features: Stories, Activities, Curiosity, Read &amp; Quiz, My Writing, Draw, and Learn to Write.</div>
+          <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 How do AI credits work?</div>
+          <div>Each feature uses a different number of credits. You get <strong style={{ color: '#6bcb77' }}>{quota.limit} credits per month</strong>, shared across all features.</div>
+          {featureConfig.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {featureConfig.map(fc => {
+                const meta = FEATURE_DISPLAY[fc.featureName]
+                if (!meta) return null
+                return (
+                  <div key={fc.featureName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{meta.icon} {meta.label}</span>
+                    <span style={{ fontWeight: 800, color: fc.creditCost >= 3 ? '#ffd93d' : fc.creditCost >= 2 ? '#74b9ff' : '#6bcb77' }}>
+                      {fc.creditCost} cr
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.5)' }}>Resets on the 1st of each month.</div>
           <button onClick={() => setShowInfo(false)} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>Close</button>
         </div>
@@ -230,7 +274,8 @@ export default function App() {
     () => !!getStoredToken() && /^\/child\/\d+\//.test(window.location.pathname)
   )
   const [collapsed, setCollapsed] = useState(false)
-  const [quota, setQuota]         = useState(null)   // { used, limit }
+  const [quota, setQuota]               = useState(null)   // { used, limit }
+  const [featureConfig, setFeatureConfig] = useState([])    // [{ featureName, creditCost }]
   const [toasts, setToasts]       = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [offlineMode, setOfflineMode] = useState(() => localStorage.getItem('glm_offline') === '1')
@@ -255,16 +300,26 @@ export default function App() {
     setCollapsed(isTablet)
   }, [isTablet])
 
-  // Fetch quota when authenticated (not admin), refresh every 5 min
+  // Fetch quota + feature credits when authenticated (not admin), refresh quota every 5 min
   useEffect(() => {
     if (!authed || role === 'ADMIN') return
     function fetchQuota() {
       userApi.quota().then(setQuota).catch(() => {})
     }
+    function fetchFeatureConfig() {
+      userApi.featureCredits().then(setFeatureConfig).catch(() => {})
+    }
     fetchQuota()
+    fetchFeatureConfig()
     const interval = setInterval(fetchQuota, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [authed, role])
+
+  // Refresh feature config on every route change so admin toggles take effect without re-login
+  useEffect(() => {
+    if (!authed || role === 'ADMIN') return
+    userApi.featureCredits().then(setFeatureConfig).catch(() => {})
+  }, [location.pathname, authed, role])
 
   // Warn at 80% usage
   useEffect(() => {
@@ -273,7 +328,7 @@ export default function App() {
     if (pct >= 1) {
       addToast('🚫 Monthly limit reached — usage resets on the 1st', 'error')
     } else if (pct >= 0.8 && quota.used % 10 === 0) {
-      addToast(`⚠️ ${quota.used}/${quota.limit} monthly AI calls used`, 'warning')
+      addToast(`⚠️ ${quota.used}/${quota.limit} monthly AI credits used`, 'warning')
     }
   }, [quota])
 
@@ -321,7 +376,7 @@ export default function App() {
     if (!localStorage.getItem('glm_tour_done')) {
       localStorage.setItem('glm_tour_done', '1')
       const features = c.enabledFeatures ? JSON.parse(c.enabledFeatures) : null
-      setTimeout(() => startTour(features), 600)
+      setTimeout(() => startTour(features, quota, featureConfig), 600)
     }
   }
 
@@ -349,7 +404,7 @@ export default function App() {
     return (
       <Routes>
         <Route path="/admin/*" element={<AdminPage onLogout={handleLogout} onBack={() => navigate('/child')} />} />
-        <Route path="*"        element={<Navigate to="/admin" replace />} />
+        <Route path="*"        element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     )
   }
@@ -400,8 +455,8 @@ export default function App() {
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onLogout={handleLogout} />} />
-            <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} />} />
-            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { setChild(c); navigate('/child') }} />} />
+            <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
+            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { setChild(c); navigate('/child') }} enabledFeatureConfig={featureConfig} />} />
             <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} />} />
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
@@ -466,7 +521,7 @@ export default function App() {
 
         {/* Usage bar */}
         {quota && !collapsed && (
-          <QuotaBar quota={quota} />
+          <QuotaBar quota={quota} featureConfig={featureConfig} />
         )}
 
         {/* Profile link */}
@@ -546,7 +601,7 @@ export default function App() {
               <span style={{ fontSize: 15 }}>{offlineMode ? '✈️' : '🤖'}</span>
               {offlineMode ? 'Practice' : 'AI On'}
             </button>
-            <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null)} title="Tour"
+            <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
               style={{
                 width: 38, height: 38, borderRadius: 10,
                 border: '1.5px solid #eee', cursor: 'pointer',
@@ -610,9 +665,9 @@ export default function App() {
               }}>☰</button>
           </div>
         </header>
-        <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} theme={theme}
+        <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} featureConfig={featureConfig} theme={theme}
           onSwitchChild={() => { setChild(null); navigate('/child') }}
-          onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null)}
+          onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
           offlineMode={offlineMode} onToggleOffline={toggleOffline} />
 
         {/* ── Offline banner ── */}
@@ -634,15 +689,15 @@ export default function App() {
           <OfflineContext.Provider value={offlineMode}>
           <div className="page-content">
             <Routes>
-              <Route path="/child/:childId/stories"    element={<Stories    child={child} quota={quota} />} />
-              <Route path="/child/:childId/activities" element={<Activities child={child} quota={quota} />} />
-              <Route path="/child/:childId/curiosity"  element={<Curiosity  child={child} quota={quota} />} />
-              <Route path="/child/:childId/draw"       element={<Draw       child={child} quota={quota} />} />
+              <Route path="/child/:childId/stories"    element={<FeatureGuard featureName="story"         featureConfig={featureConfig}><Stories    child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/activities" element={<FeatureGuard featureName="activity"      featureConfig={featureConfig}><Activities child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/curiosity"  element={<FeatureGuard featureName="curiosity"     featureConfig={featureConfig}><Curiosity  child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/draw"       element={<FeatureGuard featureName="draw"          featureConfig={featureConfig}><Draw       child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/journal"    element={<Journal    child={child} />} />
               <Route path="/child/:childId/timeline"   element={<Timeline   child={child} />} />
-              <Route path="/child/:childId/readquiz"   element={<ReadQuiz   child={child} quota={quota} />} />
-              <Route path="/child/:childId/learn"       element={<LearnPage  child={child} quota={quota} />} />
-              <Route path="/child/:childId/mywriting"  element={<MyWriting  child={child} quota={quota} />} />
+              <Route path="/child/:childId/readquiz"   element={<FeatureGuard featureName="read-quiz"     featureConfig={featureConfig}><ReadQuiz   child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/profile"             element={<ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage />} />
               <Route path="/terms"               element={<TermsPage />} />

@@ -36,8 +36,8 @@ public class AppUser {
     // Monthly API usage tracking
     private int monthlyApiCalls = 0;
     private String apiCallMonth;   // "YYYY-MM" — resets when month changes
-    @Column(columnDefinition = "integer default 200")
-    private int quotaLimit = 200;  // per-user limit, admin-configurable
+    @Column(columnDefinition = "integer default 0")
+    private int quotaLimit = 0;  // 0 = use global default from app.quota.default-monthly-credits
     @Column(columnDefinition = "varchar(7)")
     private String quotaWarnMonth; // "YYYY-MM" — tracks when 80% warning was last sent
 

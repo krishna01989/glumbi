@@ -30,11 +30,15 @@ public class ActivityController {
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@Valid @RequestBody ActivityRequest req,
                                       @AuthenticationPrincipal AuthUser user) {
+        if (!quotaService.isFeatureEnabled(user.id(), "activity")) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Activities are currently unavailable."));
+        }
         if (!rateLimiter.tryConsume(user.id(), Endpoint.ACTIVITY)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many activity requests this hour. Try again later!"));
         }
-        if (!quotaService.tryConsume(user.id())) {
+        if (!quotaService.tryConsume(user.id(), "activity")) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }

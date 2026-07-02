@@ -14,10 +14,10 @@ export default function QuotaBanner({ quota }) {
       <span style={{ fontSize: 24, flexShrink: 0 }}>🚫</span>
       <div>
         <div style={{ fontWeight: 800, fontSize: 14, color: '#c0392b', marginBottom: 2 }}>
-          Monthly AI limit reached ({quota.used}/{quota.limit} calls used)
+          Monthly AI credits used up ({quota.used}/{quota.limit} credits)
         </div>
         <div style={{ fontSize: 12, color: '#888', lineHeight: 1.5 }}>
-          Your 200 monthly AI calls are shared across Stories, Activities, Curiosity, Learn to Write, Draw, Read &amp; Quiz, and My Writing. Resets automatically on the 1st of each month.
+          Your monthly AI credits are shared across Stories, Activities, Curiosity, Learn to Write, Draw, Read &amp; Quiz, and My Writing. Different features use different amounts. Resets automatically on the 1st of each month.
         </div>
       </div>
     </div>

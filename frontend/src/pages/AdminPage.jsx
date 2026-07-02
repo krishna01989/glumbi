@@ -1,13 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { adminApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ErrorBox from '../components/ErrorBox'
 
 // ─── Sidebar nav items ───────────────────────────────────────────────────────
 const NAV = [
-  { id: 'dashboard', icon: '📊', label: 'Dashboard' },
-  { id: 'users',     icon: '👥', label: 'Users'     },
-  { id: 'agents',    icon: '🤖', label: 'AI Agents' },
+  { id: 'dashboard',  icon: '📊', label: 'Dashboard'      },
+  { id: 'users',      icon: '👥', label: 'Users'          },
+  { id: 'credits',    icon: '💰', label: 'Feature Credits' },
+  { id: 'agents',     icon: '🤖', label: 'AI Agents'      },
+  { id: 'schedulers', icon: '⏰', label: 'Schedulers'     },
 ]
 
 // ─── Password reset modal ─────────────────────────────────────────────────────
@@ -92,7 +95,7 @@ function HoldModal({ user, onClose, onConfirm }) {
 
 // ─── Set quota modal ──────────────────────────────────────────────────────────
 function SetQuotaModal({ user, onClose, onSave }) {
-  const [value, setValue] = useState(String(user.quotaLimit ?? 200))
+  const [value, setValue] = useState(String(user.quotaLimit ?? 100))
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
 
@@ -115,7 +118,7 @@ function SetQuotaModal({ user, onClose, onSave }) {
           ⚠️ Changing the limit resets usage to 0. The user starts fresh with the new limit.
         </p>
         <div style={{ marginBottom:8, fontSize:13, fontWeight:700, color:'#555' }}>
-          Current: <span style={{ color:'#667eea' }}>{user.quotaUsed ?? 0}/{user.quotaLimit ?? 200} used</span>
+          Current: <span style={{ color:'#667eea' }}>{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} used</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
           <input
@@ -123,10 +126,10 @@ function SetQuotaModal({ user, onClose, onSave }) {
             onChange={e => setValue(e.target.value)}
             style={{ flex:1, padding:'10px 14px', borderRadius:10, border:`1.5px solid ${valid ? '#ddd' : '#e74c3c'}`, fontSize:16, fontWeight:800, textAlign:'center', outline:'none' }}
           />
-          <span style={{ fontSize:13, color:'#aaa', fontWeight:700 }}>calls / month</span>
+          <span style={{ fontSize:13, color:'#aaa', fontWeight:700 }}>credits / month</span>
         </div>
         <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
-          {[50, 100, 200, 500].map(v => (
+          {[25, 50, 100, 200].map(v => (
             <button key={v} onClick={() => setValue(String(v))}
               style={{ padding:'5px 14px', borderRadius:50, fontSize:12, fontWeight:800, border:'none', cursor:'pointer', background: num === v ? '#667eea' : '#f0f0f0', color: num === v ? 'white' : '#555' }}>
               {v}
@@ -150,8 +153,142 @@ function SetQuotaModal({ user, onClose, onSave }) {
   )
 }
 
+// ─── Feature Access modal ─────────────────────────────────────────────────────
+const FEATURE_DISPLAY_MAP = {
+  'story':          { label: 'Stories',        icon: '📖' },
+  'activity':       { label: 'Activities',     icon: '🎮' },
+  'curiosity':      { label: 'Curiosity',      icon: '🔍' },
+  'read-quiz':      { label: 'Read & Quiz',    icon: '📚' },
+  'writing-coach':  { label: 'Writing Coach',  icon: '✍️'  },
+  'translation':    { label: 'Translation',    icon: '🌐' },
+  'draw':           { label: 'Drawing',        icon: '🎨' },
+  'learn-validate': { label: 'Letter Validate',icon: '🔤' },
+  'learn-word':     { label: 'Learn Word',     icon: '✏️'  },
+  'story-listen':   { label: 'Story Audio',    icon: '🔊' },
+}
+
+function FeatureAccessModal({ user, onClose }) {
+  const [data, setData]     = useState(null)
+  const [saving, setSaving] = useState(null)
+  const [msg, setMsg]       = useState('')
+
+  useEffect(() => {
+    adminApi.getUserFeatureOverrides(user.id)
+      .then(setData)
+      .catch(() => setMsg('Failed to load'))
+  }, [user.id])
+
+  async function handleToggle(featureName, globallyEnabled, currentEffective) {
+    if (!globallyEnabled) return // can't override a globally disabled feature
+    const next = !currentEffective
+    setSaving(featureName); setMsg('')
+    try {
+      await adminApi.setUserFeatureOverride(user.id, featureName, next)
+      setData(prev => {
+        const overrides = prev.overrides.filter(o => o.featureName !== featureName)
+        overrides.push({ featureName, enabled: next })
+        return { ...prev, overrides }
+      })
+    } catch (e) {
+      setMsg('❌ ' + e.message)
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  async function handleReset(featureName) {
+    setSaving(featureName + '_reset'); setMsg('')
+    try {
+      await adminApi.resetUserFeatureOverride(user.id, featureName)
+      setData(prev => ({
+        ...prev,
+        overrides: prev.overrides.filter(o => o.featureName !== featureName)
+      }))
+    } catch (e) {
+      setMsg('❌ ' + e.message)
+    } finally {
+      setSaving(null)
+    }
+  }
+
+  const overrideMap = Object.fromEntries((data?.overrides ?? []).map(o => [o.featureName, o.enabled]))
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000 }}>
+      <div style={{ background:'white', borderRadius:20, padding:28, width:480, maxHeight:'80vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ margin:'0 0 4px', fontSize:18 }}>🔧 Feature Access</h3>
+        <p style={{ margin:'0 0 4px', fontSize:13, color:'#888' }}>{user.email}</p>
+        <p style={{ margin:'0 0 18px', fontSize:12, color:'#777', lineHeight:1.6, background:'#f8f9ff', borderRadius:8, padding:'8px 12px' }}>
+          Toggle individual features on or off for this user. If a feature is globally disabled (shown in grey), you cannot override it here — it must be re-enabled globally first in the Feature Credits tab.
+        </p>
+
+        {!data && <div style={{ textAlign:'center', color:'#aaa', padding:24 }}>Loading…</div>}
+        {msg && <div style={{ fontSize:12, color:'#e74c3c', marginBottom:12 }}>{msg}</div>}
+
+        {data && (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {data.features.map(fc => {
+              const display = FEATURE_DISPLAY_MAP[fc.featureName] || { label: fc.featureName, icon: '⚙️' }
+              const hasOverride = fc.featureName in overrideMap
+              const effectiveEnabled = fc.globallyEnabled && (hasOverride ? overrideMap[fc.featureName] : true)
+              const isSaving = saving === fc.featureName
+
+              return (
+                <div key={fc.featureName} style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'10px 14px',
+                  borderRadius:12, background: !fc.globallyEnabled ? '#f8f8f8' : effectiveEnabled ? '#f0fff4' : '#fff8f8',
+                  border:`1.5px solid ${!fc.globallyEnabled ? '#eee' : effectiveEnabled ? '#c3e6cb' : '#f5c6cb'}`,
+                  opacity: !fc.globallyEnabled ? 0.6 : 1,
+                }}>
+                  <span style={{ fontSize:20 }}>{display.icon}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:13, color:'#333' }}>{display.label}</div>
+                    <div style={{ fontSize:11, color:'#aaa' }}>
+                      {!fc.globallyEnabled
+                        ? '🌐 Globally disabled — cannot override'
+                        : hasOverride
+                          ? `Override set: ${overrideMap[fc.featureName] ? 'enabled' : 'disabled'} for this user`
+                          : 'Following global setting'}
+                    </div>
+                  </div>
+                  {hasOverride && fc.globallyEnabled && (
+                    <button onClick={() => handleReset(fc.featureName)}
+                      disabled={saving === fc.featureName + '_reset'}
+                      title="Remove override — revert to global setting"
+                      style={{ fontSize:11, color:'#aaa', background:'none', border:'1px solid #ddd', borderRadius:6, padding:'2px 8px', cursor:'pointer' }}>
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleToggle(fc.featureName, fc.globallyEnabled, effectiveEnabled)}
+                    disabled={!fc.globallyEnabled || isSaving}
+                    style={{
+                      width:44, height:24, borderRadius:12, border:'none',
+                      cursor: !fc.globallyEnabled ? 'not-allowed' : 'pointer',
+                      position:'relative', flexShrink:0,
+                      background: !fc.globallyEnabled ? '#e0e0e0' : effectiveEnabled ? '#27ae60' : '#e0e0e0',
+                      transition:'background 0.2s',
+                    }}>
+                    <span style={{
+                      position:'absolute', top:3, width:18, height:18, borderRadius:9, background:'white',
+                      transition:'left 0.2s', left: effectiveEnabled ? 23 : 3,
+                      boxShadow:'0 1px 3px rgba(0,0,0,0.2)',
+                    }} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ marginTop:20, width:'100%', padding:10, borderRadius:10, border:'1.5px solid #eee', background:'#f5f5f5', cursor:'pointer', fontWeight:700 }}>Close</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── User actions kebab menu ──────────────────────────────────────────────────
-function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete }) {
+function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete, onFeatureAccess }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -168,6 +305,7 @@ function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onSetQuota, 
     user.authMethod === 'password' && { label: 'Reset Password', icon: '🔑', color: '#1a73e8', bg: '#e8f0fe', fn: onResetPw },
     user.role !== 'ADMIN' && { label: 'Set Quota Limit', icon: '🔢', color: '#0288d1', bg: '#e1f5fe', fn: onSetQuota },
     user.role !== 'ADMIN' && (user.quotaUsed ?? 0) > 0 && { label: 'Reset AI Quota', icon: '🔄', color: '#7c3aed', bg: '#f3e8ff', fn: onResetQuota },
+    user.role !== 'ADMIN' && { label: 'Feature Access', icon: '🔧', color: '#e67e22', bg: '#fff3e0', fn: onFeatureAccess },
     user.onHold
       ? { label: 'Release Account', icon: '✅', color: '#2e7d32', bg: '#e8f5e9', fn: onRelease }
       : { label: 'Put on Hold', icon: '🔒', color: '#e74c3c', bg: '#fff3f3', fn: onHold },
@@ -438,20 +576,30 @@ function Dashboard() {
       {/* Quota overview */}
       {stats && (
         <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>🤖 AI Quota — This Month</div>
-          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Per-user limits (default 200) · resets on the 1st</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>🤖 AI Credits — This Month</div>
+            <span style={{ fontSize: 11, fontWeight: 700, background: '#f0f0ff', color: '#667eea', borderRadius: 50, padding: '2px 10px' }}>
+              Default: {stats.defaultMonthlyCredits ?? 100} credits/user
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>
+            Credits deducted vary by feature (1–5 per use) · per-user overrides apply · resets on the 1st
+          </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: '#667eea' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Total AI calls used</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Credits spent this month</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>across all users</div>
             </div>
             <div style={{ flex: '1 1 140px', background: (stats.usersAtLimit ?? 0) > 0 ? '#fff0f0' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersAtLimit ?? 0) > 0 ? '1.5px solid #fcc' : 'none' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersAtLimit ?? 0) > 0 ? '#e74c3c' : '#aaa' }}>{stats.usersAtLimit ?? 0}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users at limit</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users out of credits</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>hit their monthly limit</div>
             </div>
             <div style={{ flex: '1 1 140px', background: (stats.usersNearLimit ?? 0) > 0 ? '#fff8e1' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersNearLimit ?? 0) > 0 ? '1.5px solid #ffd54f' : 'none' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersNearLimit ?? 0) > 0 ? '#f57f17' : '#aaa' }}>{stats.usersNearLimit ?? 0}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users near limit (≥80%)</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users running low</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>used ≥80% of credits</div>
             </div>
           </div>
         </div>
@@ -486,10 +634,11 @@ function Users() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
   const [search, setSearch]     = useState('')
-  const [resetUser, setResetUser]   = useState(null)
-  const [holdUser, setHoldUser]     = useState(null)
-  const [quotaUser, setQuotaUser]   = useState(null)
-  const [confirm, setConfirm]       = useState(null)
+  const [resetUser, setResetUser]         = useState(null)
+  const [holdUser, setHoldUser]           = useState(null)
+  const [quotaUser, setQuotaUser]         = useState(null)
+  const [featureAccessUser, setFeatureAccessUser] = useState(null)
+  const [confirm, setConfirm]             = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -534,7 +683,7 @@ function Users() {
   async function handleResetQuota(user) {
     setConfirm({
       title: 'Reset Quota',
-      message: `Reset AI quota for ${user.email}? Usage resets to 0 and they get the full ${user.quotaLimit ?? 200} calls immediately.`,
+      message: `Reset AI quota for ${user.email}? Usage resets to 0 and they get the full ${user.quotaLimit ?? 100} credits immediately.`,
       confirmLabel: 'Reset',
       confirmColor: '#667eea',
       onConfirm: async () => {
@@ -584,6 +733,7 @@ function Users() {
       {holdUser && <HoldModal user={holdUser} onClose={() => setHoldUser(null)} onConfirm={reason => handleHold(holdUser, reason)} />}
       {resetUser && <PasswordModal user={resetUser} onClose={() => setResetUser(null)} />}
       {quotaUser && <SetQuotaModal user={quotaUser} onClose={() => setQuotaUser(null)} onSave={limit => handleSetQuota(quotaUser, limit)} />}
+      {featureAccessUser && <FeatureAccessModal user={featureAccessUser} onClose={() => setFeatureAccessUser(null)} />}
       <ConfirmDialog
         open={!!confirm} title={confirm?.title} message={confirm?.message}
         confirmLabel={confirm?.confirmLabel} confirmColor={confirm?.confirmColor}
@@ -644,7 +794,7 @@ function Users() {
                   </div>
                   {/* Quota bar */}
                   {user.role !== 'ADMIN' && (() => {
-                    const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 200), 1)
+                    const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 100), 1)
                     const color = pct >= 1 ? '#e74c3c' : pct >= 0.8 ? '#f57f17' : '#43e97b'
                     return (
                       <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -652,7 +802,7 @@ function Users() {
                           <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
                         </div>
                         <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: 'nowrap' }}>
-                          {user.quotaUsed ?? 0}/{user.quotaLimit ?? 200} AI calls
+                          {user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
                         </span>
                       </div>
                     )
@@ -673,6 +823,7 @@ function Users() {
                   onHold={() => setHoldUser(user)}
                   onRelease={() => handleRelease(user)}
                   onDelete={() => handleDelete(user)}
+                  onFeatureAccess={() => setFeatureAccessUser(user)}
                 />
               </div>
             ))}
@@ -690,84 +841,784 @@ function Users() {
 }
 
 // ─── AI Agents section ────────────────────────────────────────────────────────
+const AGENT_COLORS = {
+  'progress-report':      '#4facfe',
+  'milestone':            '#43e97b',
+  'story-recommendation': '#f093fb',
+  'learning-insight':     '#fa709a',
+}
+const AGENT_ICONS = {
+  'progress-report':      '📊',
+  'milestone':            '🏆',
+  'story-recommendation': '✨',
+  'learning-insight':     '💡',
+}
+
 function Agents() {
-  const [running, setRunning] = useState(false)
+  const [agents, setAgents]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving]   = useState(null) // agentId being toggled
   const [msg, setMsg]         = useState('')
 
-  async function handleRun() {
-    setRunning(true); setMsg('')
+  useEffect(() => {
+    adminApi.listAgents()
+      .then(setAgents)
+      .catch(() => setMsg('Failed to load agents'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleToggle(agent) {
+    const next = !agent.enabled
+    setSaving(agent.id); setMsg('')
     try {
-      await adminApi.runNotifications()
-      setMsg('✅ All agents ran successfully! Notifications generated for active children.')
+      await adminApi.setAgentEnabled(agent.id, next)
+      setAgents(prev => prev.map(a => a.id === agent.id ? { ...a, enabled: next } : a))
     } catch (e) {
       setMsg('❌ ' + e.message)
     } finally {
-      setRunning(false)
+      setSaving(null)
     }
   }
 
-  const agents = [
-    { icon: '📊', name: 'Progress Report Agent',       desc: 'Analyses weekly stories, quizzes, and writing — generates a warm summary for each parent.',    color: '#4facfe' },
-    { icon: '🏆', name: 'Milestone Agent',              desc: 'Detects when a child hits story/quiz/writing milestones and writes a celebratory message.',      color: '#43e97b' },
-    { icon: '✨', name: 'Story Recommendation Agent',   desc: 'Looks at recent story topics and suggests 3 fresh ideas the child would enjoy.',                 color: '#f093fb' },
-    { icon: '💡', name: 'Learning Insight Agent',       desc: 'Reviews quiz scores and writing feedback over 2 weeks — gives one actionable tip to the parent.', color: '#fa709a' },
-  ]
+  const enabledCount = agents.filter(a => a.enabled).length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* Run card */}
-      <div style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)', borderRadius: 16, padding: '24px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>🤖 Run All Agents Now</div>
-          <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 4 }}>
-            Auto-runs every Sunday 8AM UTC · Skips children with no activity that week
-          </div>
-          {msg && <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: 'white' }}>{msg}</div>}
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)', borderRadius: 16, padding: '24px 28px' }}>
+        <div style={{ color: 'white', fontWeight: 900, fontSize: 18, marginBottom: 6 }}>🤖 AI Agents</div>
+        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.7 }}>
+          These agents run automatically every <strong style={{ color: 'white' }}>Sunday at 8:00 AM UTC</strong> as part of the Weekly Notifications scheduler.
+          Toggle individual agents on or off. Disabled agents are skipped when the scheduler runs — and a log entry is recorded showing which were skipped.
         </div>
-        <button onClick={handleRun} disabled={running}
-          style={{ padding: '12px 28px', borderRadius: 50, border: 'none', fontWeight: 800, fontSize: 14,
-            background: running ? 'rgba(255,255,255,0.25)' : 'white',
-            color: running ? 'rgba(255,255,255,0.6)' : '#764ba2',
-            cursor: running ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
-          {running ? '⏳ Running…' : '▶ Run Now'}
+        {!loading && (
+          <div style={{ marginTop: 12, display: 'inline-block', background: 'rgba(255,255,255,0.15)', borderRadius: 50, padding: '4px 14px', fontSize: 13, color: 'white', fontWeight: 700 }}>
+            {enabledCount} of {agents.length} agents enabled
+          </div>
+        )}
+      </div>
+
+      {msg && <div style={{ padding: '10px 16px', background: '#fff3cd', borderRadius: 10, fontSize: 13, color: '#856404' }}>{msg}</div>}
+
+      {loading && <div style={{ textAlign: 'center', padding: 48, color: '#aaa' }}>Loading agents…</div>}
+
+      {/* Agent toggle cards */}
+      {!loading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {agents.map(a => {
+            const color   = AGENT_COLORS[a.id] || '#aaa'
+            const icon    = AGENT_ICONS[a.id]  || '🤖'
+            const toggling = saving === a.id
+            return (
+              <div key={a.id} style={{
+                background: 'white', borderRadius: 14, padding: '18px 22px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', gap: 14, alignItems: 'center',
+                borderLeft: `4px solid ${a.enabled ? color : '#ddd'}`,
+                opacity: a.enabled ? 1 : 0.65,
+                transition: 'opacity 0.2s, border-color 0.2s',
+              }}>
+                <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{a.label}</div>
+                  <div style={{ fontSize: 12, color: '#888', marginTop: 3, lineHeight: 1.6 }}>{a.description}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <button
+                    onClick={() => handleToggle(a)}
+                    disabled={toggling}
+                    style={{
+                      width: 48, height: 26, borderRadius: 13, border: 'none',
+                      cursor: toggling ? 'wait' : 'pointer', position: 'relative',
+                      background: a.enabled ? color : '#e0e0e0',
+                      transition: 'background 0.2s',
+                      opacity: toggling ? 0.6 : 1,
+                    }}>
+                    <span style={{
+                      position: 'absolute', top: 3, width: 20, height: 20, borderRadius: 10, background: 'white',
+                      transition: 'left 0.2s', left: a.enabled ? 25 : 3,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }} />
+                  </button>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: a.enabled ? color : '#aaa' }}>
+                    {toggling ? '…' : a.enabled ? 'ENABLED' : 'DISABLED'}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Info */}
+      <div style={{ background: '#f8f9fa', borderRadius: 14, padding: '16px 20px', fontSize: 13, color: '#666', lineHeight: 1.7 }}>
+        <div style={{ fontWeight: 700, color: '#333', marginBottom: 6 }}>ℹ️ How agents work</div>
+        <div>• Each agent generates a different type of notification for parents (progress, milestones, story ideas, learning tips).</div>
+        <div>• Agents only run for children who had activity in the past 7 days (14 days for Learning Insight).</div>
+        <div>• To manually trigger all enabled agents, go to the <strong>Schedulers</strong> tab and click <em>Run Now</em> on the Weekly Notifications job.</div>
+        <div>• When a disabled agent is skipped, a note is recorded in the scheduler's last-run log so you can see exactly what ran.</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Feature Credits section ──────────────────────────────────────────────────
+
+// Token complexity derived from application.yml max-tokens values.
+// Used as a reference guide — higher output tokens → heavier AI workload → should cost more.
+const FEATURE_META = {
+  'story':          { label: 'Story',           icon: '📖', desc: 'Generate a bedtime story',              maxTokens: 512,  suggestedCost: 2 },
+  'activity':       { label: 'Activity',        icon: '🎮', desc: 'Generate a personalised activity',      maxTokens: 1024, suggestedCost: 2 },
+  'curiosity':      { label: 'Curiosity',       icon: '🔍', desc: "Answer a child's curiosity question",   maxTokens: 512,  suggestedCost: 1 },
+  'read-quiz':      { label: 'Read & Quiz',     icon: '📚', desc: 'Generate a read & quiz session',        maxTokens: 1024, suggestedCost: 3 },
+  'writing-coach':  { label: 'Writing Coach',   icon: '✍️',  desc: 'Writing coach feedback',               maxTokens: 300,  suggestedCost: 1 },
+  'translation':    { label: 'Translation',     icon: '🌐', desc: 'Translate a passage',                   maxTokens: 2048, suggestedCost: 5 },
+  'draw':           { label: 'Drawing',         icon: '🎨', desc: "Identify a child's drawing",            maxTokens: 256,  suggestedCost: 1 },
+  'learn-validate': { label: 'Letter Validate', icon: '🔤', desc: 'Validate a letter drawing',             maxTokens: 200,  suggestedCost: 1 },
+  'learn-word':     { label: 'Learn Word',      icon: '✏️',  desc: 'Identify a written word',              maxTokens: 400,  suggestedCost: 2 },
+  'story-listen':   { label: 'Story Audio',     icon: '🔊', desc: 'First-time TTS synthesis (cache miss)',  maxTokens: 0,    suggestedCost: 1 },
+}
+
+const MAX_TOKENS_OVERALL = 2048  // translation is the ceiling
+
+function complexityLabel(maxTokens) {
+  if (maxTokens >= 1024) return { label: 'High',   color: '#e74c3c', bg: '#fdecea' }
+  if (maxTokens >= 400)  return { label: 'Medium', color: '#e67e22', bg: '#fff3e0' }
+  return                        { label: 'Low',    color: '#27ae60', bg: '#e8f5e9' }
+}
+
+// Budget simulator default usage mix (uses per month per feature)
+const DEFAULT_MIX = {
+  'story': 3, 'activity': 3, 'curiosity': 5, 'read-quiz': 2,
+  'writing-coach': 3, 'translation': 1, 'draw': 3, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
+}
+
+function FeatureCredits() {
+  const [features, setFeatures]         = useState([])
+  const [defaults, setDefaults]         = useState(null)
+  const [editing, setEditing]           = useState(null)
+  const [editVal, setEditVal]           = useState('')
+  const [saving, setSaving]             = useState(false)
+  const [msg, setMsg]                   = useState('')
+  const [mix, setMix]                   = useState(DEFAULT_MIX)
+  const [editingDefault, setEditingDefault] = useState(false)
+  const [defaultVal, setDefaultVal]     = useState('')
+  const [savingDefault, setSavingDefault] = useState(false)
+
+  useEffect(() => {
+    Promise.all([adminApi.listFeatureConfigs(), adminApi.getQuotaDefaults()])
+      .then(([fc, def]) => { setFeatures(fc); setDefaults(def) })
+      .catch(() => setMsg('Failed to load feature credits'))
+  }, [])
+
+  async function handleToggleGlobal(featureName, currentEnabled) {
+    const next = !currentEnabled
+    try {
+      await adminApi.setFeatureEnabled(featureName, next)
+      setFeatures(prev => prev.map(f => f.featureName === featureName ? { ...f, enabled: next } : f))
+      setMsg(next ? `✅ ${featureName} enabled globally` : `🔒 ${featureName} disabled globally`)
+    } catch (e) {
+      setMsg('❌ ' + e.message)
+    }
+  }
+
+  async function handleSaveDefault() {
+    const val = parseInt(defaultVal, 10)
+    if (!val || val < 10 || val > 10000) { setMsg('Default must be between 10 and 10000'); return }
+    setSavingDefault(true); setMsg('')
+    try {
+      const updated = await adminApi.updateQuotaDefault(val)
+      setDefaults(updated)
+      setEditingDefault(false)
+    } catch (e) {
+      setMsg('❌ ' + e.message)
+    } finally {
+      setSavingDefault(false)
+    }
+  }
+
+  async function handleSave(featureName, directCost) {
+    const cost = directCost ?? parseInt(editVal, 10)
+    if (!cost || cost < 1 || cost > 100) { setMsg('Credit cost must be 1–100'); return }
+    setSaving(true); setMsg('')
+    try {
+      const updated = await adminApi.updateFeatureConfig(featureName, cost)
+      setFeatures(prev => prev.map(f => f.featureName === featureName ? { ...f, creditCost: updated.creditCost } : f))
+      setEditing(null)
+    } catch (e) {
+      setMsg('❌ ' + e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const budget = defaults?.defaultMonthlyCredits ?? 100
+
+  // Total credits consumed by the simulator mix
+  const costMap = Object.fromEntries(features.map(f => [f.featureName, f.creditCost]))
+  const simTotal = Object.entries(mix).reduce((sum, [feat, uses]) => sum + uses * (costMap[feat] ?? 1), 0)
+  const simPct   = Math.min(simTotal / budget, 1)
+  const simColor = simTotal > budget ? '#e74c3c' : simTotal > budget * 0.8 ? '#e67e22' : '#27ae60'
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)', borderRadius: 16, padding: '24px 28px' }}>
+        <div style={{ color: 'white', fontWeight: 900, fontSize: 18, marginBottom: 8 }}>💰 Feature Credit Costs</div>
+        <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
+          Control how many credits each AI feature costs per use.
+          Complexity badges are based on the AI output token limit — a useful guide for setting fair weights.
+        </div>
+
+        {/* Global default credit editor */}
+        <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ color: 'white', fontWeight: 800, fontSize: 14 }}>🎁 Default monthly credits per user</div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 2 }}>
+              New users and users with no override get this many credits each month. Per-user overrides (in Users section) always take precedence.
+            </div>
+          </div>
+          {editingDefault ? (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="number" min="10" max="10000" value={defaultVal}
+                onChange={e => setDefaultVal(e.target.value)}
+                style={{ width: 80, padding: '6px 10px', borderRadius: 8, border: '2px solid rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.9)', fontSize: 15, fontWeight: 800, textAlign: 'center', outline: 'none' }}
+                onKeyDown={e => { if (e.key === 'Enter') handleSaveDefault(); if (e.key === 'Escape') setEditingDefault(false) }}
+                autoFocus
+              />
+              <button onClick={handleSaveDefault} disabled={savingDefault}
+                style={{ padding: '6px 16px', borderRadius: 8, border: 'none', background: '#ffd93d', color: '#333', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                {savingDefault ? '…' : 'Save'}
+              </button>
+              <button onClick={() => setEditingDefault(false)}
+                style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: 'white', fontSize: 13, cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontFamily: 'Fredoka One, cursive', fontSize: 28, color: '#ffd93d', fontWeight: 900 }}>
+                {defaults ? defaults.defaultMonthlyCredits : '…'}
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>credits/month</span>
+              <button
+                onClick={() => { setEditingDefault(true); setDefaultVal(String(defaults?.defaultMonthlyCredits ?? 100)) }}
+                style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid rgba(255,255,255,0.5)', background: 'transparent', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Change
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {msg && <div style={{ padding: '10px 16px', background: '#fff3cd', borderRadius: 10, fontSize: 13, color: '#856404' }}>{msg}</div>}
+
+      {/* Feature table */}
+      <div style={{ background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+
+        {/* Column headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 100px 120px 130px 90px', gap: 0, padding: '10px 20px 8px', borderBottom: '2px solid #f0f0f0', background: '#fafafa' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Complexity</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Suggested</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Current Cost</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Uses / {budget} credits</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Global</div>
+        </div>
+
+        {features.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Loading…</div>}
+
+        {features.map((fc, i) => {
+          const meta    = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️', desc: fc.description || '', maxTokens: 256, suggestedCost: 1 }
+          const cx      = complexityLabel(meta.maxTokens)
+          const usesMax = Math.floor(budget / fc.creditCost)
+          const isEdit  = editing === fc.featureName
+          const isOffSuggestion = fc.creditCost !== meta.suggestedCost
+
+          return (
+            <div key={fc.featureName} style={{
+              display: 'grid', gridTemplateColumns: '1fr 90px 100px 120px 130px 90px',
+              alignItems: 'center', padding: '13px 20px',
+              borderBottom: i < features.length - 1 ? '1px solid #f5f5f5' : 'none',
+              background: fc.enabled === false ? '#fff8f8' : 'white',
+              transition: 'background 0.15s',
+              opacity: fc.enabled === false ? 0.75 : 1,
+            }}>
+
+              {/* Feature name + desc */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{meta.icon}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#1a1a2e' }}>{meta.label}</div>
+                  <div style={{ fontSize: 11, color: '#bbb', marginTop: 1 }}>{meta.desc}</div>
+                </div>
+              </div>
+
+              {/* Complexity badge */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 50, background: cx.bg, color: cx.color }}>{cx.label} AI load</span>
+                  <span style={{ fontSize: 10, color: '#bbb', maxWidth: 80, textAlign: 'center', lineHeight: 1.3 }}>
+                    {cx.label === 'High' ? 'generates a lot of content' : cx.label === 'Medium' ? 'moderate content output' : 'short, quick response'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Suggested cost */}
+              <div style={{ textAlign: 'center' }}>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 50,
+                  background: '#f0f0f0', color: '#888',
+                  border: isOffSuggestion ? '1.5px dashed #e67e22' : 'none',
+                }} title={isOffSuggestion ? `Suggested: ${meta.suggestedCost} — currently differs` : 'Matches suggestion'}>
+                  {meta.suggestedCost}
+                  {isOffSuggestion && <span style={{ marginLeft: 4, color: '#e67e22' }}>⚠</span>}
+                </span>
+              </div>
+
+              {/* Current cost — inline stepper */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, background: '#f0f0f0', borderRadius: 10, overflow: 'hidden', border: '1px solid #e0e0e0' }}>
+                  <button
+                    onClick={() => handleSave(fc.featureName, Math.max(1, fc.creditCost - 1))}
+                    disabled={saving || fc.creditCost <= 1}
+                    style={{ width: 28, height: 32, border: 'none', background: 'transparent', color: fc.creditCost <= 1 ? '#ccc' : '#667eea', fontWeight: 900, fontSize: 16, cursor: fc.creditCost <= 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    −
+                  </button>
+                  <span style={{
+                    fontWeight: 800, fontSize: 14, minWidth: 28, height: 32, textAlign: 'center',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'white', borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0',
+                    color: fc.creditCost >= 4 ? '#c62828' : fc.creditCost >= 2 ? '#0277bd' : '#2e7d32',
+                  }}>
+                    {fc.creditCost}
+                  </span>
+                  <button
+                    onClick={() => handleSave(fc.featureName, Math.min(100, fc.creditCost + 1))}
+                    disabled={saving || fc.creditCost >= 100}
+                    style={{ width: 28, height: 32, border: 'none', background: 'transparent', color: fc.creditCost >= 100 ? '#ccc' : '#667eea', fontWeight: 900, fontSize: 16, cursor: fc.creditCost >= 100 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Uses per budget */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 800, fontSize: 15, color: usesMax >= 50 ? '#27ae60' : usesMax >= 20 ? '#e67e22' : '#e74c3c' }}>
+                  {usesMax}×
+                </div>
+                <div style={{ fontSize: 10, color: '#bbb', marginTop: 1 }}>uses/month</div>
+              </div>
+
+              {/* Global enable/disable toggle */}
+              <div style={{ textAlign: 'center' }}>
+                <button
+                  onClick={() => handleToggleGlobal(fc.featureName, fc.enabled !== false)}
+                  title={fc.enabled !== false ? 'Click to disable for all users' : 'Click to enable for all users'}
+                  style={{
+                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative',
+                    background: fc.enabled !== false ? '#27ae60' : '#e0e0e0',
+                    transition: 'background 0.2s',
+                  }}>
+                  <span style={{
+                    position: 'absolute', top: 3, width: 18, height: 18, borderRadius: 9, background: 'white',
+                    transition: 'left 0.2s', left: fc.enabled !== false ? 23 : 3,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </button>
+                <div style={{ fontSize: 10, color: fc.enabled !== false ? '#27ae60' : '#e74c3c', marginTop: 3, fontWeight: 700 }}>
+                  {fc.enabled !== false ? 'ON' : 'OFF'}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Budget Simulator */}
+      <div style={{ background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '20px 24px' }}>
+        <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e', marginBottom: 6 }}>🧮 Budget Simulator</div>
+
+        {/* Explanation */}
+        <div style={{ background: '#f8f9ff', border: '1px solid #e0e4ff', borderRadius: 10, padding: '12px 16px', marginBottom: 18, fontSize: 13, color: '#555', lineHeight: 1.8 }}>
+          <div style={{ fontWeight: 700, color: '#333', marginBottom: 4 }}>How to use this simulator</div>
+          <div>Each row represents one feature. In the <strong>Uses/month</strong> box, enter how many times you think a typical child uses that feature in a month. The simulator then multiplies that by the feature's credit cost to show how many credits that feature alone would consume.</div>
+          <div style={{ marginTop: 6 }}>For example: if a child listens to <strong>3 stories</strong> per month and each story costs <strong>2 credits</strong>, that's <strong>3 × 2 = 6 credits</strong> just for stories. Add up all features to see the total monthly spend and check whether it fits within the {budget}-credit budget.</div>
+          <div style={{ marginTop: 6, color: '#888' }}>Adjust the numbers to match your users' actual behaviour. If the total exceeds the budget, either raise the default credit limit or reduce some feature costs above.</div>
+        </div>
+
+        {/* Column headers */}
+        <div style={{ display: 'grid', gridTemplateColumns: '140px 160px 1fr 100px', gap: 12, padding: '6px 0 8px', borderBottom: '1.5px solid #f0f0f0', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Uses / month  ×  cost</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Share of budget</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'right' }}>Credits used</div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {features.map(fc => {
+            const meta   = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️' }
+            const uses   = mix[fc.featureName] ?? 0
+            const spend  = uses * fc.creditCost
+            const spendPct = Math.min(spend / budget * 100, 100)
+            const barColor = spend > budget * 0.4 ? '#e67e22' : '#667eea'
+            return (
+              <div key={fc.featureName} style={{ display: 'grid', gridTemplateColumns: '140px 160px 1fr 100px', gap: 12, alignItems: 'center' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#333', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>{meta.icon}</span> {meta.label}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="number" min="0" max="200" value={uses}
+                    onChange={e => setMix(m => ({ ...m, [fc.featureName]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    style={{ width: 48, padding: '4px 6px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 13, fontWeight: 700, textAlign: 'center', outline: 'none' }}
+                  />
+                  <span style={{ fontSize: 12, color: '#aaa' }}>× {fc.creditCost} {fc.creditCost === 1 ? 'credit' : 'credits'} = <strong style={{ color: barColor }}>{spend}</strong></span>
+                </div>
+                <div style={{ height: 8, background: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${spendPct}%`, background: barColor, borderRadius: 10, transition: 'width 0.3s ease' }} />
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: barColor, textAlign: 'right' }}>
+                  {spend} / {budget}
+                  <div style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>{Math.round(spendPct)}% of budget</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Total bar */}
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1.5px solid #f0f0f0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#333' }}>Total credits consumed</div>
+            <div style={{ fontWeight: 900, fontSize: 18, color: simColor }}>
+              {simTotal} / {budget}
+              <span style={{ fontWeight: 500, fontSize: 13, color: '#aaa', marginLeft: 6 }}>
+                ({Math.round(simPct * 100)}%)
+              </span>
+            </div>
+          </div>
+          <div style={{ height: 12, background: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${simPct * 100}%`, background: simColor, borderRadius: 10, transition: 'width 0.3s ease' }} />
+          </div>
+          {simTotal > budget && (
+            <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>
+              ⚠️ This usage mix would exceed the monthly budget by {simTotal - budget} credits. Consider raising the budget or reducing some feature costs.
+            </div>
+          )}
+          {simTotal <= budget && simTotal > 0 && (
+            <div style={{ marginTop: 8, fontSize: 13, color: '#888' }}>
+              ✅ This mix fits within the budget with {budget - simTotal} credits to spare.
+            </div>
+          )}
+        </div>
+
+        <button onClick={() => setMix(DEFAULT_MIX)}
+          style={{ marginTop: 12, padding: '6px 16px', borderRadius: 8, border: '1px solid #ddd', background: '#f8f8f8', fontSize: 12, cursor: 'pointer', color: '#666' }}>
+          Reset to default mix
         </button>
       </div>
 
-      {/* Agent cards */}
-      <div style={{ fontWeight: 800, fontSize: 15, color: '#333' }}>Active Agents</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {agents.map(a => (
-          <div key={a.name} style={{ background: 'white', borderRadius: 14, padding: '16px 20px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', gap: 14, alignItems: 'flex-start', borderLeft: `4px solid ${a.color}` }}>
-            <span style={{ fontSize: 26, flexShrink: 0 }}>{a.icon}</span>
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{a.name}</div>
-              <div style={{ fontSize: 13, color: '#777', marginTop: 4, lineHeight: 1.5 }}>{a.desc}</div>
-            </div>
-            <span style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 50, background: '#e8f5e9', color: '#2e7d32' }}>Active</span>
+      {/* Info box */}
+      <div style={{ background: '#f8f9fa', borderRadius: 14, padding: '16px 20px', fontSize: 13, color: '#666', lineHeight: 1.8 }}>
+        <div style={{ fontWeight: 700, color: '#333', marginBottom: 8 }}>ℹ️ Guide to setting credit costs</div>
+        <div>• <strong>AI Load (Complexity):</strong> This tells you how much work the AI has to do for each feature. Features with <span style={{ color: '#e74c3c', fontWeight: 700 }}>High</span> AI load generate a lot of content (like a full story or a multi-question quiz) and cost the most. <span style={{ color: '#e67e22', fontWeight: 700 }}>Medium</span> features produce moderate output, and <span style={{ color: '#27ae60', fontWeight: 700 }}>Low</span> features give short, quick responses. Higher AI load = higher running cost for the platform = should cost users more credits.</div>
+        <div>• <strong>Suggested cost:</strong> The recommended credit value based on how much AI work each feature requires. A ⚠ icon appears if you have set a cost that differs from the suggestion — this is just a reminder, not an error. You are free to override it.</div>
+        <div>• <strong>Uses / {budget} credits column:</strong> If a user spent ALL their monthly credits on just this one feature, this is how many times they could use it. It helps you sense-check whether a feature feels too cheap or too expensive.</div>
+        <div>• <strong>Budget Simulator:</strong> Use this to test a realistic mix of feature usage before changing any costs. Enter how many times a typical child might use each feature in a month, and see whether the total fits within the monthly credit allowance.</div>
+        <div>• <strong>Changes take effect immediately</strong> — as soon as you click + or −, the new cost is saved and applied to all users from their next use.</div>
+        <div>• <strong>Individual user overrides:</strong> You can give a specific user more or fewer credits than the global default. Go to the Users section, find the user, and click <em>Set Quota Limit</em>. Their personal limit will always override the global default.</div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Scheduler run history popup ─────────────────────────────────────────────
+function SchedulerHistoryModal({ scheduler, onClose }) {
+  const [history, setHistory] = useState(null)
+  const [error, setError]     = useState('')
+
+  useEffect(() => {
+    adminApi.schedulerHistory(scheduler.id)
+      .then(d => setHistory(d.history ?? []))
+      .catch(e => setError(e.message))
+  }, [scheduler.id])
+
+  const isNotifications = scheduler.id === 'weekly-notifications'
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
+      <div style={{ background: 'white', borderRadius: 20, padding: 28, width: '100%', maxWidth: 600, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.22)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <h3 style={{ margin: 0, fontSize: 17 }}>📋 Run History — {scheduler.label}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#aaa', lineHeight: 1 }}>✕</button>
+        </div>
+        <p style={{ margin: '0 0 16px', fontSize: 12, color: '#aaa' }}>Showing up to 50 most recent runs, newest first.</p>
+
+        {error && <div style={{ color: '#e74c3c', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+        {!history && !error && <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>Loading…</div>}
+
+        {history && history.length === 0 && (
+          <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>📭</div>
+            <div>No runs recorded yet. Trigger the scheduler manually or wait for it to run on schedule.</div>
           </div>
-        ))}
+        )}
+
+        {history && history.length > 0 && (
+          <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {history.map((run, i) => {
+              const ok  = run.success !== false
+              const ran     = run.agentsRan     ?? []
+              const skipped = run.agentsSkipped ?? []
+              const errors  = run.errors        ?? []
+              return (
+                <div key={i} style={{
+                  borderRadius: 12, border: `1.5px solid ${ok ? '#c3e6cb' : '#f5c6cb'}`,
+                  background: ok ? '#f0fff4' : '#fff5f5', padding: '12px 16px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 16 }}>{ok ? '✅' : '❌'}</span>
+                    <span style={{ fontWeight: 800, fontSize: 13, color: ok ? '#2e7d32' : '#c62828' }}>
+                      {ok ? 'Success' : 'Failed'}
+                    </span>
+                    <span style={{ flex: 1 }} />
+                    <span style={{ fontSize: 11, color: '#888', fontWeight: 700 }}>{run.startedAt}</span>
+                  </div>
+
+                  {/* Duration */}
+                  {run.finishedAt && run.startedAt && (() => {
+                    try {
+                      const diff = Math.round((new Date(run.finishedAt.replace(' ', 'T')) - new Date(run.startedAt.replace(' ', 'T'))) / 1000)
+                      return diff > 0
+                        ? <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Duration: {diff < 60 ? diff + 's' : Math.round(diff / 60) + 'm ' + (diff % 60) + 's'}</div>
+                        : null
+                    } catch { return null }
+                  })()}
+
+                  {/* Notifications-specific detail */}
+                  {isNotifications && (
+                    <div style={{ fontSize: 12, color: '#555', display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {run.childrenProcessed != null && (
+                        <div><span style={{ fontWeight: 700 }}>Children:</span> {run.childrenProcessed} processed</div>
+                      )}
+                      {ran.length > 0 && (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, color: '#2e7d32' }}>Ran:</span>
+                          {ran.map(n => <span key={n} style={{ background: '#e8f5e9', color: '#2e7d32', borderRadius: 50, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{n}</span>)}
+                        </div>
+                      )}
+                      {skipped.length > 0 && (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 700, color: '#e67e22' }}>Skipped:</span>
+                          {skipped.map(n => <span key={n} style={{ background: '#fff3e0', color: '#e67e22', borderRadius: 50, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{n}</span>)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Credit reset-specific detail */}
+                  {!isNotifications && run.usersReset != null && (
+                    <div style={{ fontSize: 12, color: '#555' }}>
+                      <span style={{ fontWeight: 700 }}>Users reset:</span> {run.usersReset}
+                    </div>
+                  )}
+
+                  {/* Errors */}
+                  {errors.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: '#c62828', marginBottom: 3 }}>Errors ({errors.length}):</div>
+                      <div style={{ fontSize: 11, color: '#c62828', background: 'rgba(231,76,60,0.06)', borderRadius: 6, padding: '4px 8px', fontFamily: 'monospace', lineHeight: 1.6, maxHeight: 80, overflowY: 'auto' }}>
+                        {errors.slice(0, 3).map((e, j) => <div key={j}>{e}</div>)}
+                        {errors.length > 3 && <div style={{ color: '#aaa' }}>…and {errors.length - 3} more</div>}
+                      </div>
+                    </div>
+                  )}
+
+                  {run.error && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: '#c62828', fontFamily: 'monospace', background: 'rgba(231,76,60,0.06)', borderRadius: 6, padding: '4px 8px' }}>{run.error}</div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <button onClick={onClose} style={{ marginTop: 16, padding: '10px', borderRadius: 10, border: '1.5px solid #eee', background: '#f5f5f5', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+          Close
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Schedulers section ───────────────────────────────────────────────────────
+function LastRunLog({ log }) {
+  if (!log || !log.startedAt) return null
+  const ran     = log.agentsRan     ?? []
+  const skipped = log.agentsSkipped ?? []
+  const errors  = log.errors        ?? []
+  return (
+    <div style={{ marginTop: 16, background: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: 10, padding: '14px 18px', fontSize: 13 }}>
+      <div style={{ fontWeight: 700, color: '#333', marginBottom: 8 }}>📋 Last Run Log</div>
+      <div style={{ color: '#555', marginBottom: 6 }}>
+        <span style={{ fontWeight: 700 }}>Started:</span> {log.startedAt}
+        {log.finishedAt && <span> &nbsp;→&nbsp; <span style={{ fontWeight: 700 }}>Finished:</span> {log.finishedAt}</span>}
+      </div>
+      {log.childrenProcessed != null && (
+        <div style={{ color: '#555', marginBottom: 8 }}>
+          <span style={{ fontWeight: 700 }}>Children processed:</span> {log.childrenProcessed}
+        </div>
+      )}
+      {ran.length > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          <span style={{ fontWeight: 700, color: '#27ae60' }}>✅ Agents ran:</span>{' '}
+          {ran.map(n => <span key={n} style={{ display: 'inline-block', background: '#e8f5e9', color: '#2e7d32', borderRadius: 50, padding: '1px 10px', marginRight: 4, fontSize: 12, fontWeight: 700 }}>{n}</span>)}
+        </div>
+      )}
+      {skipped.length > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          <span style={{ fontWeight: 700, color: '#e67e22' }}>⏭️ Agents skipped (disabled):</span>{' '}
+          {skipped.map(n => <span key={n} style={{ display: 'inline-block', background: '#fff3e0', color: '#e67e22', borderRadius: 50, padding: '1px 10px', marginRight: 4, fontSize: 12, fontWeight: 700 }}>{n}</span>)}
+        </div>
+      )}
+      {errors.length > 0 && (
+        <div>
+          <span style={{ fontWeight: 700, color: '#e74c3c' }}>❌ Errors ({errors.length}):</span>
+          <div style={{ marginTop: 4, fontSize: 12, color: '#c0392b', background: '#fff5f5', borderRadius: 6, padding: '6px 10px', fontFamily: 'monospace', lineHeight: 1.6 }}>
+            {errors.slice(0, 5).map((e, i) => <div key={i}>{e}</div>)}
+            {errors.length > 5 && <div style={{ color: '#aaa' }}>…and {errors.length - 5} more</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Schedulers() {
+  const [schedulers, setSchedulers]       = useState([])
+  const [triggered, setTriggered]         = useState({}) // id → triggeredAt string
+  const [historyScheduler, setHistorySch] = useState(null)
+  const [msg, setMsg]                     = useState('')
+
+  const loadStatus = useCallback(() => {
+    adminApi.schedulerStatus()
+      .then(data => setSchedulers(data.schedulers ?? []))
+      .catch(() => setMsg('Failed to load scheduler info'))
+  }, [])
+
+  useEffect(() => { loadStatus() }, [loadStatus])
+
+  function handleRun(scheduler) {
+    // Fire and forget — backend runs async, we don't wait
+    if (scheduler.id === 'weekly-notifications') {
+      adminApi.runNotifications().catch(() => {})
+    } else {
+      adminApi.runScheduler(scheduler.id).catch(() => {})
+    }
+    setTriggered(prev => ({ ...prev, [scheduler.id]: new Date().toLocaleString() }))
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {historyScheduler && <SchedulerHistoryModal scheduler={historyScheduler} onClose={() => setHistorySch(null)} />}
+
+      <div>
+        <div style={{ fontWeight: 900, fontSize: 20, color: '#1a1a2e', marginBottom: 4 }}>⏰ Schedulers</div>
+        <div style={{ fontSize: 13, color: '#aaa' }}>Manually trigger background jobs that normally run on a schedule. Useful when the server was asleep and missed a scheduled run.</div>
       </div>
 
-      {/* Schedule info */}
-      <div style={{ background: '#f8f9fa', borderRadius: 14, padding: '16px 20px', fontSize: 13, color: '#666', lineHeight: 1.7 }}>
-        <div style={{ fontWeight: 700, color: '#333', marginBottom: 6 }}>⏰ Schedule</div>
-        <div>• Runs automatically every <strong>Sunday at 8:00 AM UTC</strong></div>
-        <div>• Only generates notifications for children who had activity in the past 7 days</div>
-        <div>• Learning Insight uses a 14-day window for better trend detection</div>
+      {msg && <div style={{ fontSize: 13, color: '#e74c3c', background: '#fff5f5', borderRadius: 10, padding: '10px 14px' }}>{msg}</div>}
 
+      <div style={{ background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#795548', lineHeight: 1.7 }}>
+        <strong>⚠️ Important:</strong> These jobs run immediately and affect all users. For example, triggering <em>Monthly Credit Reset</em> will reset every user's usage counter to 0 right now — even if it's mid-month. Only run these if the automatic schedule was missed.
       </div>
+
+      {schedulers.map(s => {
+        const triggeredAt = triggered[s.id]
+        const lastRun = s.lastRun
+        const lastRunOk = lastRun?.startedAt ? lastRun.success !== false : null
+        return (
+          <div key={s.id} style={{ background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '20px 24px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e' }}>{s.label}</div>
+                  {lastRunOk !== null && (
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 50,
+                      background: lastRunOk ? '#e8f5e9' : '#fff0f0',
+                      color: lastRunOk ? '#2e7d32' : '#c62828',
+                    }}>
+                      {lastRunOk ? '✅ Last run OK' : '❌ Last run failed'}
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 13, color: '#666', lineHeight: 1.7, marginBottom: 8 }}>{s.description}</div>
+                <div style={{ fontSize: 12, color: '#aaa' }}>
+                  <span style={{ fontWeight: 700, color: '#888' }}>Normal schedule: </span>{s.schedule}
+                </div>
+                {lastRun?.startedAt && (
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
+                    Last run: {lastRun.startedAt}
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end', flexShrink: 0 }}>
+                <button
+                  onClick={() => handleRun(s)}
+                  style={{
+                    padding: '10px 22px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13,
+                    cursor: 'pointer',
+                    background: 'linear-gradient(135deg,#667eea,#764ba2)',
+                    color: 'white',
+                  }}>
+                  ▶ Run Now
+                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={loadStatus}
+                    style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid #e0e0e0', background: '#f8f8f8', fontSize: 12, cursor: 'pointer', color: '#777', fontWeight: 700 }}>
+                    🔄 Refresh
+                  </button>
+                  <button onClick={() => setHistorySch(s)}
+                    style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid #d0d4ff', background: '#f0f2ff', fontSize: 12, cursor: 'pointer', color: '#667eea', fontWeight: 700 }}>
+                    📋 History
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {triggeredAt && (
+              <div style={{ marginTop: 16, background: '#f0fff4', border: '1px solid #c3e6cb', borderRadius: 10, padding: '12px 16px', fontSize: 13 }}>
+                <div style={{ fontWeight: 700, color: '#2e7d32', marginBottom: 4 }}>✅ Triggered at {triggeredAt}</div>
+                <div style={{ color: '#555' }}>
+                  The job is running in the background. Click <strong>Refresh</strong> after a minute, then <strong>History</strong> to see the full run log.
+                </div>
+              </div>
+            )}
+
+            <LastRunLog log={lastRun} />
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
 export default function AdminPage({ onBack, onLogout }) {
-  const [active, setActive]     = useState('dashboard')
+  const navigate     = useNavigate()
+  const location     = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const isMobile = window.innerWidth < 640
 
-  const section = { dashboard: <Dashboard />, users: <Users />, agents: <Agents /> }
+  // Derive active section from URL: /admin/users → 'users', /admin → 'dashboard'
+  const pathSegment = location.pathname.split('/').filter(Boolean)[1] // segment after 'admin'
+  const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
+
+  const section = { dashboard: <Dashboard />, users: <Users />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers /> }
   const current = NAV.find(n => n.id === active)
 
   return (
@@ -798,7 +1649,7 @@ export default function AdminPage({ onBack, onLogout }) {
         {/* Nav */}
         <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {NAV.map(item => (
-            <button key={item.id} onClick={() => { setActive(item.id); setSidebarOpen(false) }}
+            <button key={item.id} onClick={() => { navigate(`/admin/${item.id}`); setSidebarOpen(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',

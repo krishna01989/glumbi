@@ -44,6 +44,9 @@ public class AdminController {
     private final AppSettingRepository          appSettingRepo;
     private final SchedulerRunRepository        schedulerRunRepo;
     private final ObjectMapper                  objectMapper;
+    private final FlashcardSetRepository        flashcardSetRepo;
+    private final WordOfDayRepository           wordOfDayRepo;
+    private final MemoryMatchRepository         memoryMatchRepo;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(@RequestParam(defaultValue = "7d") String range) {
@@ -97,10 +100,17 @@ public class AdminController {
         // Feature usage — filtered by selected range
         boolean isAllTime = range.equals("all");
         Map<String, Long> featureUsage = new LinkedHashMap<>();
-        featureUsage.put("Stories",    isAllTime ? totalStories    : storyRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Quizzes",    isAllTime ? totalQuizzes    : quizRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Writing",    isAllTime ? totalWritings   : writingRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Activities", isAllTime ? totalActivities : activityRepo.countByCreatedAtAfter(since));
+        long totalFlashcards = flashcardSetRepo.count();
+        long totalWordOfDay  = wordOfDayRepo.count();
+        long totalMemMatch   = memoryMatchRepo.count();
+
+        featureUsage.put("Stories",       isAllTime ? totalStories    : storyRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Quizzes",       isAllTime ? totalQuizzes    : quizRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Writing",       isAllTime ? totalWritings   : writingRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Activities",    isAllTime ? totalActivities : activityRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Flashcards",    isAllTime ? totalFlashcards : flashcardSetRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Word of Day",   isAllTime ? totalWordOfDay  : wordOfDayRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Memory Match",  isAllTime ? totalMemMatch   : memoryMatchRepo.countByCreatedAtAfter(since));
 
         // Quiz score distribution — filtered by selected range
         Map<String, Long> quizScores = new LinkedHashMap<>();
@@ -176,6 +186,27 @@ public class AdminController {
             a.put("label", "Activity: " + act.getTitle());
             a.put("childName", act.getChild() != null ? act.getChild().getName() : "");
             a.put("createdAt", act.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        flashcardSetRepo.findTop5ByOrderByCreatedAtDesc().forEach(f -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "flashcards"); a.put("icon", "🧠");
+            a.put("label", "Flashcards: " + f.getTopic());
+            a.put("childName", f.getChild() != null ? f.getChild().getName() : "");
+            a.put("createdAt", f.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        wordOfDayRepo.findTop5ByOrderByCreatedAtDesc().forEach(w -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "wordofday"); a.put("icon", "📘");
+            a.put("label", "Word of Day: " + w.getWord());
+            a.put("childName", w.getChild() != null ? w.getChild().getName() : "");
+            a.put("createdAt", w.getCreatedAt().toString()); recentActivity.add(a);
+        });
+        memoryMatchRepo.findTop5ByOrderByCreatedAtDesc().forEach(m -> {
+            Map<String, Object> a = new LinkedHashMap<>();
+            a.put("type", "memorymatch"); a.put("icon", "🃏");
+            a.put("label", "Memory Match: " + m.getTheme());
+            a.put("childName", m.getChild() != null ? m.getChild().getName() : "");
+            a.put("createdAt", m.getCreatedAt().toString()); recentActivity.add(a);
         });
         recentActivity.sort((x, y) -> y.get("createdAt").toString().compareTo(x.get("createdAt").toString()));
         List<Map<String, Object>> recentActivityTrimmed = recentActivity.stream().limit(15).collect(Collectors.toList());
@@ -547,7 +578,8 @@ public class AdminController {
         Map.of("id", NotificationScheduler.AGENT_MILESTONE, "label", "Milestone Detection",    "description", "Scans all-time activity to detect achievements (e.g. first story, 10 quizzes) and sends a congratulatory notification."),
         Map.of("id", NotificationScheduler.AGENT_STORY_REC, "label", "Story Recommendation",   "description", "Analyses a child's reading history and suggests a new story theme tailored to their interests."),
         Map.of("id", NotificationScheduler.AGENT_LEARNING,  "label", "Learning Insight",       "description", "Reviews the last two weeks of quizzes and writing to surface patterns and tips for the parent."),
-        Map.of("id", NotificationScheduler.AGENT_LEARN_WRITE, "label", "Learn to Write",       "description", "Summarises the letters and words a child practised writing this week and suggests what to try next.")
+        Map.of("id", NotificationScheduler.AGENT_LEARN_WRITE, "label", "Learn to Write",       "description", "Summarises the letters and words a child practised writing this week and suggests what to try next."),
+        Map.of("id", NotificationScheduler.AGENT_MEMORY,      "label", "Memory Play",           "description", "Reviews the child's flashcard sessions and words of the day from the past week and sends an encouraging memory activity summary.")
     );
 
     @GetMapping("/agents")

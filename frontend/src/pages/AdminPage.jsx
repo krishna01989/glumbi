@@ -164,7 +164,11 @@ const FEATURE_DISPLAY_MAP = {
   'draw':           { label: 'Drawing',        icon: '🎨' },
   'learn-validate': { label: 'Letter Validate',icon: '🔤' },
   'learn-word':     { label: 'Learn Word',     icon: '✏️'  },
-  'story-listen':   { label: 'Story Audio',    icon: '🔊' },
+  'story-listen':        { label: 'Story Audio',    icon: '🔊' },
+  'memory':              { label: 'Memory Play',     icon: '🧠' },
+  'memory-flashcards':   { label: 'Flashcards',      icon: '📇' },
+  'word-of-day':         { label: 'Word of the Day', icon: '📘' },
+  'memory-match':        { label: 'Memory Match',    icon: '🃏' },
 }
 
 function FeatureAccessModal({ user, onClose }) {
@@ -970,7 +974,11 @@ const FEATURE_META = {
   'draw':           { label: 'Drawing',         icon: '🎨', desc: "Identify a child's drawing",            maxTokens: 256,  suggestedCost: 1 },
   'learn-validate': { label: 'Letter Validate', icon: '🔤', desc: 'Validate a letter drawing',             maxTokens: 200,  suggestedCost: 1 },
   'learn-word':     { label: 'Learn Word',      icon: '✏️',  desc: 'Identify a written word',              maxTokens: 400,  suggestedCost: 2 },
-  'story-listen':   { label: 'Story Audio',     icon: '🔊', desc: 'First-time TTS synthesis (cache miss)',  maxTokens: 0,    suggestedCost: 1 },
+  'story-listen':        { label: 'Story Audio',     icon: '🔊', desc: 'First-time TTS synthesis (cache miss)',  maxTokens: 0,   suggestedCost: 1 },
+  'memory':              { label: 'Memory Play',     icon: '🧠', desc: 'Parent gate — enables all Memory Play sub-features', maxTokens: 0, suggestedCost: 0 },
+  'memory-flashcards':   { label: 'Flashcards',      icon: '📇', desc: 'Generate a flashcard set',               maxTokens: 512, suggestedCost: 1 },
+  'word-of-day':         { label: 'Word of the Day', icon: '📘', desc: 'Generate word of the day',               maxTokens: 300, suggestedCost: 1 },
+  'memory-match':        { label: 'Memory Match',    icon: '🃏', desc: 'Generate a memory match game',           maxTokens: 300, suggestedCost: 1 },
 }
 
 const MAX_TOKENS_OVERALL = 2048  // translation is the ceiling
@@ -985,6 +993,7 @@ function complexityLabel(maxTokens) {
 const DEFAULT_MIX = {
   'story': 3, 'activity': 3, 'curiosity': 5, 'read-quiz': 2,
   'writing-coach': 3, 'translation': 1, 'draw': 3, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
+  'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2,
 }
 
 function FeatureCredits() {

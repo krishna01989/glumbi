@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react'
-import { storyApi, journalApi, activityApi, curiosityApi, readQuizApi, writingApi } from '../api/client'
+import { storyApi, journalApi, activityApi, curiosityApi, readQuizApi, writingApi, memoryApi } from '../api/client'
 
 const TYPE_META = {
-  story:    { label: '📖 Story',       dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },
-  journal:  { label: '📝 Journal',     dot: '#6bcb77', textColor: '#27ae60',  feature: 'journal' },
-  activity: { label: '🎮 Activity',    dot: '#4d96ff', textColor: '#2980b9',  feature: 'activities' },
-  learn:    { label: '✏️ Learn',       dot: '#f97316', textColor: '#ea580c',  feature: 'learn' },
-  curiosity:{ label: '🔍 Curiosity',   dot: '#c77dff', textColor: '#8e44ad',  feature: 'curiosity' },
-  readquiz: { label: '📚 Read & Quiz', dot: '#f39c12', textColor: '#e67e22',  feature: 'readquiz' },
-  writing:  { label: '✍️ My Writing',  dot: '#2ecc71', textColor: '#27ae60',  feature: 'mywriting' },
+  story:      { label: '📖 Story',        dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },
+  journal:    { label: '📝 Journal',      dot: '#6bcb77', textColor: '#27ae60',  feature: 'journal' },
+  activity:   { label: '🎮 Activity',     dot: '#4d96ff', textColor: '#2980b9',  feature: 'activities' },
+  learn:      { label: '✏️ Learn',        dot: '#f97316', textColor: '#ea580c',  feature: 'learn' },
+  curiosity:  { label: '🔍 Curiosity',    dot: '#c77dff', textColor: '#8e44ad',  feature: 'curiosity' },
+  readquiz:   { label: '📚 Read & Quiz',  dot: '#f39c12', textColor: '#e67e22',  feature: 'readquiz' },
+  writing:    { label: '✍️ My Writing',   dot: '#2ecc71', textColor: '#27ae60',  feature: 'mywriting' },
+  flashcards: { label: '📇 Flashcards',   dot: '#14b8a6', textColor: '#0d9488',  feature: 'memory' },
+  wordofday:  { label: '📘 Word of Day',  dot: '#6366f1', textColor: '#4f46e5',  feature: 'memory' },
+  memorymatch:{ label: '🎴 Memory Match', dot: '#ec4899', textColor: '#db2777',  feature: 'memory' },
 }
 
 const PAGE_SIZE = 25
@@ -81,6 +84,11 @@ export default function Timeline({ child }) {
     if (!enabled || enabled.has('curiosity'))  fetches.push(curiosityApi.getByChild(child.id, params).then(r => r.map(c => ({ ...c, type: 'curiosity' }))))
     if (!enabled || enabled.has('readquiz'))   fetches.push(readQuizApi.getByChild(child.id, params).then(r => r.map(q => ({ ...q, type: 'readquiz' }))))
     if (!enabled || enabled.has('mywriting'))  fetches.push(writingApi.getByChild(child.id, params).then(r => r.map(w => ({ ...w, type: 'writing' }))))
+    if (!enabled || enabled.has('memory')) {
+      fetches.push(memoryApi.getFlashcards(child.id).then(r => r.map(f => ({ ...f, type: 'flashcards', createdAt: f.createdAt }))))
+      fetches.push(memoryApi.getWordOfDayHistory(child.id).then(r => r.map(w => ({ ...w, type: 'wordofday', createdAt: w.createdAt }))))
+      fetches.push(memoryApi.getMatches(child.id).then(r => r.map(m => ({ ...m, type: 'memorymatch', createdAt: m.createdAt }))))
+    }
 
     const results = await Promise.allSettled(fetches)
     const merged = results
@@ -163,6 +171,26 @@ export default function Timeline({ child }) {
               {item.starWord && <span style={{ color: '#888' }}>⭐ Star word: <em>{item.starWord}</em></span>}
             </div>
           )}
+        </>
+      case 'flashcards':
+        return <>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>📇 {item.topic}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+            {(() => { try { return JSON.parse(item.cards).length } catch { return 0 } })()} cards generated
+          </div>
+        </>
+      case 'wordofday':
+        return <>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{item.emoji} {item.word}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>{item.meaning}</div>
+          {item.exampleSentence && <div style={{ fontSize: 12, color: '#888', marginTop: 4, fontStyle: 'italic' }}>"{item.exampleSentence}"</div>}
+        </>
+      case 'memorymatch':
+        return <>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>🎴 {item.theme}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+            {(() => { try { return JSON.parse(item.pairs).length } catch { return 0 } })()} pairs to match
+          </div>
         </>
       default: return null
     }

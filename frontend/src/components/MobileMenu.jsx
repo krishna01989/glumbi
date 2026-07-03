@@ -89,7 +89,7 @@ const INFO_ITEMS = [
   { emoji: '⚖️', label: 'Terms of Service', path: '/terms' },
 ]
 
-export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, featureConfig = [], theme, onTour, offlineMode, onToggleOffline }) {
+export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, featureConfig = [], theme, onTour, offlineMode, onToggleOffline, wotd }) {
   const navigate = useNavigate()
 
   function go(path) {
@@ -156,6 +156,32 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {wotd && (
+            <div style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 12, padding: '10px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🧠 Memory Play</div>
+              <button onClick={() => go(`/child/${child?.id}/memory?tab=wordofday`)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', marginBottom: 8, padding: 0 }}>
+                <span style={{ fontSize: 24 }}>{wotd.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Word of the Day</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'white', fontFamily: 'Nunito, sans-serif' }}>{wotd.word}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wotd.meaning}</div>
+                </div>
+                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>›</span>
+              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { tab: 'flashcards', label: '📇 Flashcards' },
+                  { tab: 'match',      label: '🎴 Match' },
+                ].map(({ tab, label }) => (
+                  <button key={tab} onClick={() => go(`/child/${child?.id}/memory?tab=${tab}`)}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {quota && <MobileQuotaBar quota={quota} featureConfig={featureConfig} />}
           <button onClick={onToggleOffline}
             style={{ padding: '11px', borderRadius: 50, border: offlineMode ? '1.5px solid rgba(255,255,255,0.5)' : 'none', background: offlineMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>

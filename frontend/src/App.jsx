@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { THEMES, THEME_GROUPS, applyTheme } from './themes'
-import { childApi, userApi } from './api/client'
+import { childApi, userApi, memoryApi } from './api/client'
 import { startTour } from './tour'
 import AuthPage    from './pages/AuthPage'
 import AdminPage   from './pages/AdminPage'
@@ -16,6 +16,7 @@ import Timeline    from './pages/Timeline'
 import Draw        from './pages/Draw'
 import ReadQuiz    from './pages/ReadQuiz'
 import MyWriting   from './pages/MyWriting'
+import MemoryPlay  from './pages/MemoryPlay'
 import DemoPage    from './pages/DemoPage'
 import LearnPage   from './pages/LearnPage'
 import ProfilePage from './pages/ProfilePage'
@@ -46,6 +47,7 @@ const ALL_NAV = [
   { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab' },
   { path: 'readquiz',   label: 'Read & Quiz',emoji: '📚', id: 'tour-readquiz-tab' },
   { path: 'mywriting',  label: 'My Writing', emoji: '✍️', id: 'tour-writing-tab'  },
+  { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab' },
   { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab' },
 ]
 
@@ -191,6 +193,7 @@ const FEATURE_DISPLAY = {
   'draw':           { label: 'Drawing',       icon: '🎨' },
   'learn-validate': { label: 'Letter Check',  icon: '🔤' },
   'learn-word':     { label: 'Learn Word',    icon: '✏️'  },
+  'memory-flashcards': { label: 'Memory Play', icon: '🧠' },
 }
 
 // Guards a feature route — shows unavailable screen if the feature is disabled for this user
@@ -280,6 +283,7 @@ export default function App() {
   const [toasts, setToasts]       = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [offlineMode, setOfflineMode] = useState(() => localStorage.getItem('glm_offline') === '1')
+  const [sidebarWotd, setSidebarWotd] = useState(null)
 
   function toggleOffline() {
     setOfflineMode(v => {
@@ -351,6 +355,16 @@ export default function App() {
   }, [])
 
   function dismissToast(id) { setToasts(t => t.filter(x => x.id !== id)) }
+
+  // Fetch Word of Day for sidebar widget when child is loaded and has memory feature
+  useEffect(() => {
+    if (!child) return
+    try {
+      const enabled = child.enabledFeatures ? JSON.parse(child.enabledFeatures) : null
+      if (enabled && !enabled.includes('memory')) return
+    } catch {}
+    memoryApi.getWordOfDay(child.id).then(setSidebarWotd).catch(() => {})
+  }, [child?.id])
 
   // Expose addToast so quota refreshes after API calls
   useEffect(() => { window.__glumbiRefreshQuota = () => userApi.quota().then(setQuota).catch(() => {}) }, [])
@@ -518,6 +532,38 @@ export default function App() {
           ))}
         </nav>
 
+        {/* Word of Day widget */}
+        {sidebarWotd && !collapsed && (() => {
+          try {
+            const enabled = child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null
+            if (enabled && !enabled.includes('memory')) return null
+          } catch {}
+          return (
+            <div style={{ margin: '0 12px 8px', background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🧠 Memory Play</div>
+              <div onClick={() => navigate(`/child/${child.id}/memory?tab=wordofday`)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer' }}>
+                <span style={{ fontSize: 20 }}>{sidebarWotd.emoji}</span>
+                <div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Word of the Day</div>
+                  <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 900, color: 'white' }}>{sidebarWotd.word}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { tab: 'flashcards', label: '📇 Cards' },
+                  { tab: 'match',      label: '🎴 Match' },
+                ].map(({ tab, label }) => (
+                  <button key={tab} onClick={() => navigate(`/child/${child.id}/memory?tab=${tab}`)}
+                    style={{ flex: 1, padding: '5px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Usage bar */}
         {quota && !collapsed && (
           <QuotaBar quota={quota} featureConfig={featureConfig} />
@@ -680,7 +726,7 @@ export default function App() {
         <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} featureConfig={featureConfig} theme={theme}
           onSwitchChild={() => { setChild(null); navigate('/child') }}
           onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
-          offlineMode={offlineMode} onToggleOffline={toggleOffline} />
+          offlineMode={offlineMode} onToggleOffline={toggleOffline} wotd={sidebarWotd} />
 
         {/* ── Offline banner ── */}
         {offlineMode && (
@@ -710,6 +756,7 @@ export default function App() {
               <Route path="/child/:childId/readquiz"   element={<FeatureGuard featureName="read-quiz"     featureConfig={featureConfig}><ReadQuiz   child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/memory"    element={<FeatureGuard featureName="memory-flashcards" featureConfig={featureConfig}><MemoryPlay child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/profile"             element={<ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage inApp />} />
               <Route path="/terms"               element={<TermsPage inApp />} />

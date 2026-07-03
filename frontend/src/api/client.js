@@ -152,6 +152,17 @@ export const notificationApi = {
   markAllRead: () => api.put('/notifications/mark-read'),
 }
 
+export const memoryApi = {
+  generateFlashcards: (childId, topic) => api.post('/memory/flashcards', { childId, topic }).then(r => r.data),
+  getFlashcards: (childId) => api.get(`/memory/flashcards/child/${childId}`).then(r => r.data),
+  deleteFlashcards: (id) => api.delete(`/memory/flashcards/${id}`),
+  getWordOfDay: (childId) => api.get(`/memory/word-of-day/child/${childId}`).then(r => r.data),
+  getWordOfDayHistory: (childId) => api.get(`/memory/word-of-day/child/${childId}/history`).then(r => r.data),
+  generateMatch: (childId, theme) => api.post('/memory/match', { childId, theme }).then(r => r.data),
+  getMatches: (childId) => api.get(`/memory/match/child/${childId}`).then(r => r.data),
+  deleteMatch: (id) => api.delete(`/memory/match/${id}`),
+}
+
 export const adminApi = {
   getStats:          (range = '7d') => api.get('/admin/stats', { params: { range } }).then(r => r.data),
   getUsers:          ()             => api.get('/admin/users').then(r => r.data),

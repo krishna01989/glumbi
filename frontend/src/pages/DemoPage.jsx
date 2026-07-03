@@ -209,7 +209,7 @@ export default function DemoPage() {
               You loved it!
             </h2>
             <p style={{ color: '#888', fontSize: 15, marginBottom: 24, lineHeight: 1.7 }}>
-              You've used your 2 free demo stories for today. Create a free account to get unlimited stories, activities, curiosity answers, learn-to-write with Glumbi AI feedback, and more!
+              You've used your 2 free demo stories for today. Create a free account to unlock everything Glumbi has to offer — all personalised to your child's age.
             </p>
             <button onClick={() => navigate('/login')}
               style={{
@@ -273,7 +273,7 @@ export default function DemoPage() {
                   Want personalized stories like this every day?
                 </div>
                 <p style={{ fontSize: 13, color: '#888', marginBottom: 16, lineHeight: 1.6 }}>
-                  Create a free account and unlock Glumbi AI — personalized stories, daily activities, curiosity answers, learn-to-write (English &amp; Tamil), drawing canvas, growth journal, read &amp; quiz, writing coach — all tailored to your child's age and interests.
+                  Create a free account and unlock everything Glumbi has to offer — stories, activities, learning, creativity, and more, all personalised to your child's age.
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                   <button onClick={() => navigate('/login')}
@@ -297,22 +297,18 @@ export default function DemoPage() {
 
         {/* Feature teaser */}
         {!story && !limitHit && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12 }}>
-            {[
-              { emoji: '🎮', label: 'Daily Activities',  desc: 'Age-perfect ideas for today',        color: '#fff0f8' },
-              { emoji: '🔍', label: 'Curiosity Corner',  desc: 'Answer every "Why?"',                color: '#f0f8ff' },
-              { emoji: '✏️', label: 'Learn to Write',    desc: 'English & Tamil letters + Glumbi AI check', color: '#fff7ed' },
-              { emoji: '🎨', label: 'Drawing Canvas',    desc: 'Glumbi AI guesses what they drew',          color: '#fff8f0' },
-              { emoji: '📝', label: 'Growth Journal',    desc: 'Capture precious moments',           color: '#f0fff4' },
-              { emoji: '📚', label: 'Read & Quiz',       desc: 'Stories with comprehension quizzes', color: '#fdf0ff' },
-              { emoji: '✍️', label: 'My Writing',        desc: 'Glumbi AI writing coach for young authors', color: '#fffff0' },
-            ].map(f => (
-              <div key={f.label} style={{ background: f.color, borderRadius: 16, padding: '16px 14px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.06)', border: '1.5px solid rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: 28, marginBottom: 6 }}>{f.emoji}</div>
-                <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>{f.label}</div>
-                <div style={{ fontSize: 11, color: '#999', lineHeight: 1.5 }}>{f.desc}</div>
-              </div>
-            ))}
+          <div style={{ background: 'white', borderRadius: 20, padding: 'clamp(20px,4vw,28px)', boxShadow: '0 4px 24px rgba(255,107,107,0.08)', border: '1.5px solid #ffe4d6', textAlign: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#ff6b6b', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 12 }}>
+              But that's just the start
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+              {['🎮 Activities', '🔍 Curiosity', '✏️ Learn to Write', '🎨 Draw', '📚 Read & Quiz', '🧠 Memory Play'].map(f => (
+                <span key={f} style={{ background: '#fff0f0', color: '#f4845f', fontWeight: 700, fontSize: 13, padding: '6px 14px', borderRadius: 50, border: '1.5px solid #ffcdb8' }}>{f}</span>
+              ))}
+            </div>
+            <p style={{ fontSize: 13, color: '#aaa', margin: 0, lineHeight: 1.7 }}>
+              Sign up free and explore everything — all features adapt to your child's age and grow with them.
+            </p>
           </div>
         )}
       </div>

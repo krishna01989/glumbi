@@ -1,0 +1,3 @@
+Create 6 emoji+label pairs for a "%s" themed memory match game for %s (age %d). Return ONLY this JSON:
+[{"emoji":"🐶","label":"Dog"},...]
+Make sure all 6 pairs are distinct. Use simple, recognizable emojis.

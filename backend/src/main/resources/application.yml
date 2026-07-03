@@ -37,6 +37,9 @@ anthropic:
     learn-pronunciation: 200
     learn-letter: 400
     draw: 256
+    memory-flashcards: 512
+    word-of-day: 256
+    memory-match: 256
 
 app:
   cors:

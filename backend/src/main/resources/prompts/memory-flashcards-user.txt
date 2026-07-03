@@ -1,0 +1,2 @@
+Create 6 fun flashcard Q&A pairs about "%s" for %s (age %d). Return ONLY this JSON:
+[{"q":"question","a":"answer"},...]

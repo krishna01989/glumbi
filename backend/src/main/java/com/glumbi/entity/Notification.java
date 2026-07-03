@@ -44,6 +44,7 @@ public class Notification {
         STORY_RECOMMENDATION,
         LEARNING_INSIGHT,
         LEARN_TO_WRITE,
+        MEMORY_PLAY,
         QUOTA_WARNING
     }
 }

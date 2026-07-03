@@ -69,9 +69,9 @@ public class ChildService {
     private String defaultFeatures(Integer birthYear) {
         int age = ageFromBirthYear(birthYear);
         if (age >= 7) {
-            return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"timeline\",\"readquiz\",\"mywriting\"]";
+            return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"memory\",\"timeline\",\"readquiz\",\"mywriting\"]";
         }
-        return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"timeline\"]";
+        return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"memory\",\"timeline\"]";
     }
 
     public void delete(Long id, Long ownerId) {

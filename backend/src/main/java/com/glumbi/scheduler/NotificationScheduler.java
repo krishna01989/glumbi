@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -29,6 +30,7 @@ public class NotificationScheduler {
     public static final String AGENT_STORY_REC   = "story-recommendation";
     public static final String AGENT_LEARNING    = "learning-insight";
     public static final String AGENT_LEARN_WRITE = "learn-to-write";
+    public static final String AGENT_MEMORY      = "memory-play";
 
     private final UserRepository           userRepository;
     private final ChildRepository          childRepository;
@@ -45,6 +47,10 @@ public class NotificationScheduler {
     private final StoryRecommendationAgent storyRecommendationAgent;
     private final LearningInsightAgent     learningInsightAgent;
     private final LearnToWriteAgent        learnToWriteAgent;
+    private final MemoryPlayAgent          memoryPlayAgent;
+
+    private final FlashcardSetRepository   flashcardSetRepo;
+    private final WordOfDayRepository      wordOfDayRepo;
 
     private final ObjectMapper objectMapper;
 
@@ -80,12 +86,14 @@ public class NotificationScheduler {
         boolean runStoryRec   = isAgentEnabled(AGENT_STORY_REC);
         boolean runLearning   = isAgentEnabled(AGENT_LEARNING);
         boolean runLearnWrite = isAgentEnabled(AGENT_LEARN_WRITE);
+        boolean runMemory     = isAgentEnabled(AGENT_MEMORY);
 
         if (!runProgress)   { skipped.add("Progress Report");      System.out.println("[Scheduler] SKIP Progress Report — disabled by admin"); }
         if (!runMilestone)  { skipped.add("Milestone");            System.out.println("[Scheduler] SKIP Milestone — disabled by admin"); }
         if (!runStoryRec)   { skipped.add("Story Recommendation"); System.out.println("[Scheduler] SKIP Story Recommendation — disabled by admin"); }
         if (!runLearning)   { skipped.add("Learning Insight");     System.out.println("[Scheduler] SKIP Learning Insight — disabled by admin"); }
         if (!runLearnWrite) { skipped.add("Learn to Write");       System.out.println("[Scheduler] SKIP Learn to Write — disabled by admin"); }
+        if (!runMemory)     { skipped.add("Memory Play");          System.out.println("[Scheduler] SKIP Memory Play — disabled by admin"); }
 
         LocalDateTime weekAgo     = LocalDateTime.now().minusDays(7);
         LocalDateTime twoWeeksAgo = LocalDateTime.now().minusDays(14);
@@ -101,7 +109,7 @@ public class NotificationScheduler {
                     try {
                         boolean processed = runAgentsForChild(
                             user, child, weekAgo, twoWeeksAgo,
-                            runProgress, runMilestone, runStoryRec, runLearning, runLearnWrite
+                            runProgress, runMilestone, runStoryRec, runLearning, runLearnWrite, runMemory
                         );
                         if (processed) childrenProcessed++;
                     } catch (Exception e) {
@@ -117,6 +125,7 @@ public class NotificationScheduler {
             if (runStoryRec)   ran.add("Story Recommendation");
             if (runLearning)   ran.add("Learning Insight");
             if (runLearnWrite) ran.add("Learn to Write");
+            if (runMemory)     ran.add("Memory Play");
 
         } catch (Exception e) {
             errors.add("Fatal: " + e.getMessage());
@@ -142,7 +151,7 @@ public class NotificationScheduler {
                                       LocalDateTime weekAgo, LocalDateTime twoWeeksAgo,
                                       boolean runProgress, boolean runMilestone,
                                       boolean runStoryRec, boolean runLearning,
-                                      boolean runLearnWrite) {
+                                      boolean runLearnWrite, boolean runMemory) {
         Long childId = child.getId();
 
         List<Story>         weekStories  = storyRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, LocalDateTime.now());
@@ -187,6 +196,14 @@ public class NotificationScheduler {
         if (runLearnWrite) {
             String learnMsg = learnToWriteAgent.generate(child, weekLearn);
             if (learnMsg != null) notificationService.save(user, child, NotificationType.LEARN_TO_WRITE, learnMsg);
+        }
+
+        if (runMemory) {
+            int flashcardSets = flashcardSetRepo.findByChildIdAndCreatedAtBetween(childId, weekAgo, LocalDateTime.now()).size();
+            long wordsLearned = wordOfDayRepo.countByChildIdAndDateBetween(childId, weekAgo.toLocalDate(), LocalDate.now());
+            int childAge = child.getBirthYear() != null ? LocalDate.now().getYear() - child.getBirthYear() : 5;
+            String memMsg = memoryPlayAgent.generateWeeklyInsight(child.getName(), childAge, flashcardSets, (int) wordsLearned);
+            if (memMsg != null) notificationService.save(user, child, NotificationType.MEMORY_PLAY, memMsg);
         }
 
         return true;

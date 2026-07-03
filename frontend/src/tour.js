@@ -77,6 +77,15 @@ const NAV_STEPS = [
     },
   },
   {
+    feature: 'memory',
+    element: '#tour-memory-tab',
+    popover: {
+      title: '🧠 Memory Play',
+      description: 'Flashcards, Word of the Day, and Memory Match games — all powered by AI to make learning stick!',
+      side: 'right',
+    },
+  },
+  {
     feature: 'timeline',
     element: '#tour-timeline-tab',
     popover: {
@@ -285,6 +294,24 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
       })
     }
 
+    const memoryStep = {
+      popover: {
+        title: '🧠 Memory Play',
+        description: 'Inside the ☰ menu you\'ll find <strong>Memory Play</strong> — three fun ways to boost memory: flip through AI flashcards, discover a new Word of the Day, and play a memory match game!',
+        side: 'over', align: 'center',
+        onPopoverRender: (el) => {
+          el.style.position = 'fixed'
+          el.style.bottom = '90px'
+          el.style.top = 'auto'
+          el.style.left = '50%'
+          el.style.transform = 'translateX(-50%)'
+          el.style.maxWidth = '320px'
+          el.style.width = 'calc(100vw - 32px)'
+        },
+      },
+      onHighlightStarted: openMenu,
+    }
+
     const steps = [
       {
         popover: {
@@ -297,11 +324,12 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
         element: '#tour-mobile-menu',
         popover: {
           title: '☰ Menu & AI Credits',
-          description: 'Tap to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, and more. The menu also shows your <strong>monthly AI credit balance</strong> so you always know how many you have left.',
+          description: 'Tap to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, Memory Play, and more. The menu also shows your <strong>monthly AI credit balance</strong> so you always know how many you have left.',
           side: 'bottom', align: 'end',
         },
         onHighlightStarted: closeMenu,
       },
+      memoryStep,
       ...headerSteps,
       ...menuSteps,
       {

@@ -14,6 +14,7 @@ import java.util.List;
 public class JournalAgent {
 
     private final AnthropicClient anthropicClient;
+    private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${anthropic.model}")              private String model;
@@ -28,22 +29,8 @@ public class JournalAgent {
             ? "No specific activities recorded today."
             : String.join("\n", capped.stream().map(a -> "- " + a).toList());
 
-        String system = """
-            You are a journal assistant. Always respond with a single valid JSON object — no markdown, no explanation, nothing else.
-            The JSON must have exactly three fields: content (string), mood (string), milestone (string).
-            Keep content to 2-3 warm sentences written from a parent's perspective. Be concise.
-            """;
-
-        String prompt = String.format("""
-            Child: %s (age %d)
-            Today's activities:
-            %s
-
-            Return JSON with:
-            - content: 2-3 sentence heartfelt journal entry, first person (e.g. "Today %s...")
-            - mood: exactly one of: happy, excited, proud, curious, calm, tired, sad, grumpy, silly
-            - milestone: short tag if something notable happened, else empty string
-            """, childName, age, activitiesText, childName);
+        String system = promptLoader.load("journal-system");
+        String prompt = String.format(promptLoader.load("journal-user"), childName, age, activitiesText, childName);
 
         try {
             ObjectNode body = mapper.createObjectNode();

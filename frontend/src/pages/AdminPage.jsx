@@ -170,6 +170,7 @@ const FEATURE_DISPLAY_MAP = {
   'word-of-day':         { label: 'Word of the Day', icon: '📘' },
   'memory-match':        { label: 'Memory Match',    icon: '🃏' },
   'journal-ai':          { label: 'Journal AI',      icon: '📝' },
+  'draw-guide':          { label: 'Drawing Guide',   icon: '🎨' },
 }
 
 function FeatureAccessModal({ user, onClose }) {
@@ -972,7 +973,7 @@ const FEATURE_META = {
   'read-quiz':      { label: 'Read & Quiz',     icon: '📚', desc: 'Generate a read & quiz session',        maxTokens: 1024, suggestedCost: 3 },
   'writing-coach':  { label: 'Writing Coach',   icon: '✍️',  desc: 'Writing coach feedback',               maxTokens: 300,  suggestedCost: 1 },
   'translation':    { label: 'Translation',     icon: '🌐', desc: 'Translate a passage',                   maxTokens: 2048, suggestedCost: 5 },
-  'draw':           { label: 'Drawing',         icon: '🎨', desc: "Identify a child's drawing",            maxTokens: 256,  suggestedCost: 1 },
+  'draw':           { label: 'Drawing',         icon: '🎨', desc: "React to a child's drawing with AI praise (guesses or gives contextual feedback when a guide is active)", maxTokens: 256,  suggestedCost: 1 },
   'learn-validate': { label: 'Letter Validate', icon: '🔤', desc: 'Validate a letter drawing',             maxTokens: 200,  suggestedCost: 1 },
   'learn-word':     { label: 'Learn Word',      icon: '✏️',  desc: 'Identify a written word',              maxTokens: 400,  suggestedCost: 2 },
   'story-listen':        { label: 'Story Audio',     icon: '🔊', desc: 'First-time TTS synthesis (cache miss)',  maxTokens: 0,   suggestedCost: 1 },
@@ -981,6 +982,7 @@ const FEATURE_META = {
   'word-of-day':         { label: 'Word of the Day', icon: '📘', desc: 'Generate word of the day',               maxTokens: 300, suggestedCost: 1 },
   'memory-match':        { label: 'Memory Match',    icon: '🃏', desc: 'Generate a memory match game',           maxTokens: 300, suggestedCost: 1 },
   'journal-ai':          { label: 'Journal AI',      icon: '📝', desc: "AI-generated journal entry from child's daily activity", maxTokens: 400, suggestedCost: 2 },
+  'draw-guide':          { label: 'Drawing Guide',   icon: '🎨', desc: 'Step-by-step AI drawing guide for a chosen subject',     maxTokens: 300, suggestedCost: 1 },
 }
 
 const MAX_TOKENS_OVERALL = 2048  // translation is the ceiling
@@ -995,7 +997,7 @@ function complexityLabel(maxTokens) {
 const DEFAULT_MIX = {
   'story': 3, 'activity': 3, 'curiosity': 5, 'read-quiz': 2,
   'writing-coach': 3, 'translation': 1, 'draw': 3, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
-  'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2, 'journal-ai': 3,
+  'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2, 'journal-ai': 3, 'draw-guide': 4,
 }
 
 function FeatureCredits() {

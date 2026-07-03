@@ -22,7 +22,7 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"read-quiz",     3, "Generate a read & quiz session"},
         new Object[]{"writing-coach", 1, "Writing coach feedback"},
         new Object[]{"translation",   5, "Translate a passage"},
-        new Object[]{"draw",          1, "Identify a child's drawing"},
+        new Object[]{"draw",          1, "React to a child's drawing with AI praise"},
         new Object[]{"learn-validate",1, "Validate a letter drawing"},
         new Object[]{"learn-word",    2, "Identify a written word"},
         new Object[]{"story-listen",    1, "First listen of a story (TTS synthesis)"},
@@ -30,7 +30,8 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"memory-flashcards", 1, "Generate a flashcard set"},
         new Object[]{"word-of-day",       1, "Generate word of the day"},
         new Object[]{"memory-match",      1, "Generate a memory match game"},
-        new Object[]{"journal-ai",        2, "AI-generated journal entry from child's daily activity"}
+        new Object[]{"journal-ai",        2, "AI-generated journal entry from child's daily activity"},
+        new Object[]{"draw-guide",         1, "AI step-by-step drawing guide for a chosen subject"}
     );
 
     @Override

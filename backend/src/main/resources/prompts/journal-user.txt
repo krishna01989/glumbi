@@ -1,0 +1,8 @@
+Child: %s (age %d)
+Today's activities:
+%s
+
+Return JSON with:
+- content: 2-3 sentence heartfelt journal entry, first person (e.g. "Today %s...")
+- mood: exactly one of: happy, excited, proud, curious, calm, tired, sad, grumpy, silly
+- milestone: short tag if something notable happened, else empty string

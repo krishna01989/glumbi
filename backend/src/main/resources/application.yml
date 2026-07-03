@@ -41,6 +41,7 @@ anthropic:
     word-of-day: 256
     memory-match: 256
     journal: 600
+    draw-guide: 300
 
 app:
   cors:

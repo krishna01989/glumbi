@@ -103,8 +103,10 @@ export const curiosityApi = {
 }
 
 export const drawApi = {
-  identify: (imageData, childName, childAge) =>
-    api.post('/draw/identify', { imageData, childName, childAge: String(childAge) }).then(r => r.data),
+  identify: (imageData, childName, childAge, subject = '') =>
+    api.post('/draw/identify', { imageData, childName, childAge: String(childAge), subject }).then(r => r.data),
+  guide: (subject, childName, childAge) =>
+    api.post('/draw/guide', { subject, childName, childAge: String(childAge) }).then(r => r.data),
 }
 
 export const learnApi = {

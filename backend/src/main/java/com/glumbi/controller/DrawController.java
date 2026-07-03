@@ -1,14 +1,9 @@
 package com.glumbi.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.glumbi.agent.AnthropicClient;
+import com.glumbi.agent.DrawAgent;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +15,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DrawController {
 
-    private final AnthropicClient  anthropicClient;
-    private final ApiQuotaService  quotaService;
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    @Value("${anthropic.fast-model}")      private String fastModel;
-    @Value("${anthropic.max-tokens.draw}") private int maxTokens;
+    private final DrawAgent       drawAgent;
+    private final ApiQuotaService quotaService;
 
     @PostMapping("/identify")
     public ResponseEntity<?> identify(@RequestBody Map<String, String> body,
@@ -33,56 +24,40 @@ public class DrawController {
         String imageData = body.get("imageData");
         String childName = body.getOrDefault("childName", "you");
         int childAge     = Integer.parseInt(body.getOrDefault("childAge", "4"));
+        String subject   = body.getOrDefault("subject", "").trim();
 
-        if (imageData == null || imageData.isBlank()) {
+        if (imageData == null || imageData.isBlank())
             return ResponseEntity.badRequest().body(Map.of("error", "No image provided"));
-        }
-        if (!quotaService.isFeatureEnabled(authUser.id(), "draw")) {
-            return ResponseEntity.status(403).body(Map.of("error", "Drawing is currently unavailable."));
-        }
-        if (!quotaService.tryConsume(authUser.id(), "draw")) {
+        if (!quotaService.isFeatureEnabled(authUser.id(), "draw"))
+            return ResponseEntity.status(403).body(Map.of("error", "Drawing is currently unavailable"));
+        if (!quotaService.tryConsume(authUser.id(), "draw"))
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
-        }
 
-        try {
-            ObjectNode request = mapper.createObjectNode();
-            request.put("model", fastModel);
-            request.put("max_tokens", maxTokens);
-            request.put("system", String.format(
-                "You are a warm, encouraging art teacher talking to %s who is %d years old. " +
-                "Look at their drawing and respond with pure joy and imagination. " +
-                "Guess what it might be (even if it's just scribbles — be creative!). " +
-                "Keep your response to 2-3 short, excited sentences. Use simple words. " +
-                "Add a relevant emoji at the end. Never say 'I can see' — just dive straight in.",
-                childName, childAge
-            ));
+        String response = drawAgent.identifyDrawing(imageData, childName, childAge, subject);
+        if (response == null)
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not identify drawing"));
+        return ResponseEntity.ok(Map.of("response", response));
+    }
 
-            ArrayNode messages = request.putArray("messages");
-            ObjectNode msg = messages.addObject();
-            msg.put("role", "user");
+    @PostMapping("/guide")
+    public ResponseEntity<?> drawingGuide(@RequestBody Map<String, String> body,
+                                          @AuthenticationPrincipal AuthUser authUser) {
+        String subject   = body.getOrDefault("subject", "").trim();
+        String childName = body.getOrDefault("childName", "you");
+        int childAge     = Integer.parseInt(body.getOrDefault("childAge", "5"));
 
-            ArrayNode content = msg.putArray("content");
+        if (subject.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "No subject provided"));
+        if (!quotaService.isFeatureEnabled(authUser.id(), "draw"))
+            return ResponseEntity.status(403).body(Map.of("error", "Drawing features are currently unavailable"));
+        if (!quotaService.isFeatureEnabled(authUser.id(), "draw-guide"))
+            return ResponseEntity.status(403).body(Map.of("error", "Drawing guide is not enabled"));
+        if (!quotaService.tryConsume(authUser.id(), "draw-guide"))
+            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
 
-            // Image block
-            ObjectNode imgBlock = content.addObject();
-            imgBlock.put("type", "image");
-            ObjectNode source = imgBlock.putObject("source");
-            source.put("type", "base64");
-            source.put("media_type", "image/png");
-            source.put("data", imageData);
-
-            // Text block
-            content.addObject().put("type", "text").put("text", "What did I draw?");
-
-            String raw = anthropicClient.call(request);
-
-            JsonNode root = mapper.readTree(raw);
-            String response = root.path("content").get(0).path("text").asText();
-            return ResponseEntity.ok(Map.of("response", response));
-
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Could not identify drawing"));
-        }
+        String guide = drawAgent.generateGuide(subject, childName, childAge);
+        if (guide == null)
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate guide"));
+        return ResponseEntity.ok(Map.of("guide", guide));
     }
 }

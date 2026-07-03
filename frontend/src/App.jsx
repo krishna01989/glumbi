@@ -754,7 +754,7 @@ export default function App() {
               <Route path="/child/:childId/stories"    element={<FeatureGuard featureName="story"         featureConfig={featureConfig}><Stories    child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/activities" element={<FeatureGuard featureName="activity"      featureConfig={featureConfig}><Activities child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/curiosity"  element={<FeatureGuard featureName="curiosity"     featureConfig={featureConfig}><Curiosity  child={child} quota={quota} /></FeatureGuard>} />
-              <Route path="/child/:childId/draw"       element={<FeatureGuard featureName="draw"          featureConfig={featureConfig}><Draw       child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/draw"       element={<FeatureGuard featureName="draw"          featureConfig={featureConfig}><Draw       child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
               <Route path="/child/:childId/journal"    element={<Journal    child={child} featureConfig={featureConfig} />} />
               <Route path="/child/:childId/timeline"   element={<Timeline   child={child} />} />
               <Route path="/child/:childId/readquiz"   element={<FeatureGuard featureName="read-quiz"     featureConfig={featureConfig}><ReadQuiz   child={child} quota={quota} /></FeatureGuard>} />

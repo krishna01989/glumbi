@@ -1,17 +1,18 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { drawApi } from '../../api/client'
-import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 
-function useIsMobile() {
-  const [m, setM] = useState(window.innerWidth < 640)
+function useBreakpoint() {
+  const get = () => window.innerWidth < 640 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
+  const [bp, setBp] = useState(get)
   useEffect(() => {
-    const h = () => setM(window.innerWidth < 640)
+    const h = () => setBp(get())
     window.addEventListener('resize', h)
     return () => window.removeEventListener('resize', h)
   }, [])
-  return m
+  return bp
 }
 
 const PRESET_COLORS = [
@@ -30,6 +31,32 @@ const PRESET_COLORS = [
   // Browns & skin tones
   '#4e342e','#6d4c41','#8d5524','#c68642','#f1c27d','#ffdbac',
 ]
+
+const CURSOR_OPTIONS = [
+  { emoji: null,  title: 'Pencil',     icon: '✏️' },
+  { emoji: '🐱',  title: 'Cat',        icon: '🐱' },
+  { emoji: '🦄',  title: 'Unicorn',    icon: '🦄' },
+  { emoji: '🦊',  title: 'Fox',        icon: '🦊' },
+  { emoji: '🐙',  title: 'Octopus',    icon: '🐙' },
+  { emoji: '🚀',  title: 'Rocket',     icon: '🚀' },
+  { emoji: '⚡',  title: 'Lightning',  icon: '⚡' },
+  { emoji: '🌟',  title: 'Star',       icon: '🌟' },
+  { emoji: '🦋',  title: 'Butterfly',  icon: '🦋' },
+  { emoji: '🐶',  title: 'Dog',        icon: '🐶' },
+]
+
+function makeEmojiCursor(emoji, size = 36) {
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = size; canvas.height = size
+    const ctx = canvas.getContext('2d')
+    ctx.font = `${size - 2}px serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(emoji, size / 2, size / 2)
+    return `url(${canvas.toDataURL()}) ${size / 2} ${size / 2}, auto`
+  } catch { return 'crosshair' }
+}
 
 const BRUSHES = [
   { size: 3,  label: '·',  title: 'Extra thin' },
@@ -51,7 +78,7 @@ function Divider() {
   return <div style={{ width: '80%', height: 1, background: '#f0f0f0' }} />
 }
 
-export default function Draw({ child, quota }) {
+export default function Draw({ child, quota, featureConfig }) {
   const offline = useOffline()
   const canvasRef  = useRef(null)
   const colorInput = useRef(null)
@@ -61,15 +88,39 @@ export default function Draw({ child, quota }) {
   const [color, setColor]         = useState('#000000')
   const [brush, setBrush]         = useState(14)
   const [eraser, setEraser]       = useState(false)
+  const [cursorEmoji, setCursorEmoji] = useState(null)
   const [aiReply, setAiReply]     = useState('')
   const [loading, setLoading]     = useState(false)
   const [isEmpty, setIsEmpty]     = useState(true)
+  const [guide, setGuide]         = useState('')
+  const [guideSubject, setGuideSubject] = useState('')
+  const [guideInput, setGuideInput]     = useState('')
+  const [guideLoading, setGuideLoading] = useState(false)
   const [showDemo, setShowDemo]   = useState(() => !localStorage.getItem('glm_draw_seen'))
+
+  const drawAiEnabled = (() => {
+    if (!featureConfig) return true
+    const fc = featureConfig.find(f => f.featureName === 'draw')
+    return !fc || fc.enabled !== false
+  })()
+  const guideEnabled = (() => {
+    if (!drawAiEnabled) return false
+    if (!featureConfig) return true
+    const fc = featureConfig.find(f => f.featureName === 'draw-guide')
+    return !fc || fc.enabled !== false
+  })()
   const [showPalette, setShowPalette] = useState(false)
   const [palettePos, setPalettePos]   = useState({ x: 0, y: 0 })
   const [recentColors, setRecentColors] = useState([])
   const swatchRef = useRef(null)
-  const isMobile = useIsMobile()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
+  const isCompact = bp === 'mobile' || bp === 'tablet'
+  const canvasCursor = useMemo(() => {
+    if (eraser) return 'cell'
+    if (cursorEmoji) return makeEmojiCursor(cursorEmoji)
+    return 'crosshair'
+  }, [eraser, cursorEmoji])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -170,13 +221,28 @@ export default function Draw({ child, quota }) {
     setLoading(true)
     setAiReply('')
     try {
-      const { response } = await drawApi.identify(imageData, child?.name || 'you', age)
+      const { response } = await drawApi.identify(imageData, child?.name || 'you', age, guideSubject)
       setAiReply(response)
     } catch {
       setAiReply('Wow, what an amazing drawing! 🌟')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleGuide(e) {
+    e.preventDefault()
+    if (!guideInput.trim() || offline || !guideEnabled) return
+    setGuideLoading(true); setGuide('')
+    const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
+    try {
+      const { guide: text } = await drawApi.guide(guideInput.trim(), child?.name || 'you', age)
+      setGuide(text)
+      setGuideSubject(guideInput.trim())
+      setGuideInput('')
+      window.__glumbiRefreshQuota?.()
+    } catch { setGuide('') }
+    finally { setGuideLoading(false) }
   }
 
   function downloadDrawing() {
@@ -187,44 +253,46 @@ export default function Draw({ child, quota }) {
   }
 
   const toolbarStyle = {
-    width: isMobile ? '100%' : 96,
+    width: isCompact ? '100%' : 96,
     flexShrink: 0,
     display: 'flex',
-    flexDirection: isMobile ? 'row' : 'column',
-    flexWrap: isMobile ? 'wrap' : undefined,
-    gap: isMobile ? 8 : 12,
+    flexDirection: isCompact ? 'row' : 'column',
+    flexWrap: isCompact ? 'wrap' : undefined,
+    gap: isCompact ? 8 : 12,
     background: 'white',
     borderRadius: 20,
-    padding: isMobile ? '12px 16px' : '16px 10px',
+    padding: isCompact ? '12px 16px' : '16px 10px',
     boxShadow: 'var(--shadow)',
     alignItems: 'center',
-    justifyContent: isMobile ? 'space-between' : 'flex-start',
-    overflowY: isMobile ? undefined : 'auto',
+    justifyContent: isCompact ? 'space-between' : 'flex-start',
+    overflowY: isCompact ? undefined : 'auto',
     position: 'relative',
   }
 
   return (
     <>
-    {loading && <ThemeLoader theme={child.theme} label="Guessing your drawing…" />}
+    {(loading || guideLoading) && (
+      <ThemeLoader theme={child.theme} label={loading ? 'Guessing your drawing…' : 'Building your drawing guide…'} />
+    )}
     <div style={{
       display: 'flex',
-      flexDirection: isMobile ? 'column' : 'row',
-      gap: isMobile ? 12 : 20,
-      height: isMobile ? 'auto' : 'calc(100vh - 160px)',
+      flexDirection: isCompact ? 'column' : 'row',
+      gap: isCompact ? 12 : 20,
+      height: isCompact ? 'auto' : 'calc(100vh - 160px)',
     }}>
 
       {/* ── Toolbar ── */}
       <div style={toolbarStyle}>
 
         {/* ── COLOUR section ── */}
-        {!isMobile && <SectionLabel>Colour</SectionLabel>}
+        {!isCompact && <SectionLabel>Colour</SectionLabel>}
 
         {/* Active color swatch + palette trigger */}
         <div style={{ position: 'relative' }}>
           <button ref={swatchRef} className="palette-trigger"
             onClick={() => {
               const rect = swatchRef.current.getBoundingClientRect()
-              setPalettePos(isMobile
+              setPalettePos(isCompact
                 ? { x: rect.left, y: rect.bottom + 8 }
                 : { x: rect.right + 10, y: rect.top }
               )
@@ -316,16 +384,16 @@ export default function Draw({ child, quota }) {
           ))}
         </div>
 
-        {!isMobile && <Divider />}
+        {!isCompact && <Divider />}
 
         {/* ── SIZE section ── */}
-        {!isMobile && <SectionLabel>Size</SectionLabel>}
+        {!isCompact && <SectionLabel>Size</SectionLabel>}
 
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
           {BRUSHES.map(b => (
             <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
               style={{
-                width: isMobile ? 34 : 72, height: isMobile ? 32 : 28,
+                width: isCompact ? 34 : 72, height: isCompact ? 32 : 28,
                 borderRadius: 8, border: 'none', cursor: 'pointer',
                 background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
                 outline: brush === b.size ? '2px solid var(--primary)' : 'none',
@@ -338,60 +406,123 @@ export default function Draw({ child, quota }) {
                 background: brush === b.size ? 'var(--primary)' : '#aaa',
                 flexShrink: 0,
               }} />
-              {!isMobile && <span style={{ fontSize: 10, fontWeight: 700, color: brush === b.size ? 'var(--primary)' : '#aaa' }}>{b.title}</span>}
+              {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: brush === b.size ? 'var(--primary)' : '#aaa' }}>{b.title}</span>}
             </button>
           ))}
         </div>
 
-        {!isMobile && <Divider />}
+        {!isCompact && <Divider />}
 
         {/* ── TOOLS section ── */}
-        {!isMobile && <SectionLabel>Tools</SectionLabel>}
+        {!isCompact && <SectionLabel>Tools</SectionLabel>}
 
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
           <button onClick={() => setEraser(e => !e)} title="Eraser"
             style={{
-              width: isMobile ? 40 : 72, height: isMobile ? 38 : 32,
+              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer',
               background: eraser ? '#fff0f0' : '#f5f5f5',
               outline: eraser ? '2px solid var(--primary)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
             <span style={{ fontSize: 16 }}>🧹</span>
-            {!isMobile && <span style={{ fontSize: 10, fontWeight: 700, color: eraser ? 'var(--primary)' : '#aaa' }}>Eraser</span>}
+            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: eraser ? 'var(--primary)' : '#aaa' }}>Eraser</span>}
           </button>
 
           <button onClick={clearCanvas} title="Clear canvas"
             style={{
-              width: isMobile ? 40 : 72, height: isMobile ? 38 : 32,
+              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer', background: '#f5f5f5',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
             <span style={{ fontSize: 16 }}>🗑️</span>
-            {!isMobile && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Clear</span>}
+            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Clear</span>}
           </button>
 
           <button onClick={downloadDrawing} title="Save drawing"
             style={{
-              width: isMobile ? 40 : 72, height: isMobile ? 38 : 32,
+              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer', background: '#f5f5f5',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
             <span style={{ fontSize: 16 }}>💾</span>
-            {!isMobile && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Save</span>}
+            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Save</span>}
           </button>
+        </div>
+
+        {!isCompact && <Divider />}
+
+        {/* ── CURSOR section ── */}
+        {!isCompact && <SectionLabel>Pointer</SectionLabel>}
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isCompact ? undefined : 76 }}>
+          {CURSOR_OPTIONS.map(c => (
+            <button key={c.title} onClick={() => setCursorEmoji(c.emoji)} title={c.title}
+              style={{
+                width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer',
+                fontSize: 16, background: cursorEmoji === c.emoji ? 'var(--primary-lt)' : '#f5f5f5',
+                outline: cursorEmoji === c.emoji ? '2px solid var(--primary)' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transform: cursorEmoji === c.emoji ? 'scale(1.15)' : 'scale(1)',
+                transition: 'all 0.12s',
+              }}>
+              {c.icon}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* ── Canvas area ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
+        {/* Guide prompt */}
+        {guideEnabled && (
+          <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
+              borderRadius: 50, padding: '8px 16px', boxShadow: 'var(--shadow)' }}>
+              <span style={{ fontSize: 18 }}>🎨</span>
+              <input
+                value={guideInput}
+                onChange={e => setGuideInput(e.target.value)}
+                placeholder={`Hey ${child?.name || 'there'}, what do you want to draw today?`}
+                disabled={offline || quota?.used >= quota?.limit}
+                style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14,
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 600, background: 'transparent',
+                  color: '#333' }}
+              />
+            </div>
+            <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
+              style={{ padding: '9px 20px', borderRadius: 50, border: 'none', fontWeight: 700,
+                fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
+                background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
+                color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
+              {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ AI is off' : '✨ Show me how!'}
+            </button>
+          </form>
+        )}
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && guide ? 'column' : 'row',
+          gap: 16, minHeight: isCompact ? 340 : undefined }}>
+        {/* Guide panel */}
+        {guide && (
+          <div style={{ width: isCompact ? '100%' : 220, flexShrink: 0, background: 'white',
+            borderRadius: 20, boxShadow: 'var(--shadow)', padding: '16px', overflowY: 'auto',
+            display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 14,
+                color: 'var(--primary)' }}>🖼️ Draw a {guideSubject}</div>
+              <button onClick={() => setGuide('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 16 }}>✕</button>
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.8, color: '#444', whiteSpace: 'pre-wrap' }}>{guide}</div>
+          </div>
+        )}
+
         <div style={{
           flex: 1, borderRadius: 20, overflow: 'hidden',
           boxShadow: 'var(--shadow)', position: 'relative',
-          cursor: eraser ? 'cell' : 'crosshair',
+          cursor: canvasCursor,
           background: 'white',
-          minHeight: isMobile ? 320 : undefined,
         }}>
           <canvas
             ref={canvasRef}
@@ -414,12 +545,19 @@ export default function Draw({ child, quota }) {
             </div>
           )}
         </div>
+        </div>{/* end canvas+guide row */}
 
         <QuotaBanner quota={quota} />
         {/* AI section */}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <button onClick={handleIdentify} disabled={loading || isEmpty || quota?.used >= quota?.limit || offline}
+          {!drawAiEnabled && (
+            <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
+              ✈️ AI drawing features are currently off
+            </div>
+          )}
+          <button onClick={handleIdentify} disabled={!drawAiEnabled || loading || isEmpty || quota?.used >= quota?.limit || offline}
             style={{
+              display: drawAiEnabled ? undefined : 'none',
               padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
               background: 'linear-gradient(135deg,var(--primary),var(--accent))',
               color: 'white', border: 'none', cursor: (isEmpty || offline) ? 'not-allowed' : 'pointer',
@@ -427,7 +565,7 @@ export default function Draw({ child, quota }) {
               boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
               whiteSpace: 'nowrap',
             }}>
-            {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : '✨ What did I draw?'}
+            {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
           </button>
           {aiReply && (
             <div style={{

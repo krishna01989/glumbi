@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { drawApi } from '../api/client'
 import QuotaBanner from '../components/QuotaBanner'
 import { useOffline } from '../contexts/OfflineContext'
+import ThemeLoader from '../components/ThemeLoader'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -203,6 +204,8 @@ export default function Draw({ child, quota }) {
   }
 
   return (
+    <>
+    {loading && <ThemeLoader theme={child.theme} label="Guessing your drawing…" />}
     <div style={{
       display: 'flex',
       flexDirection: isMobile ? 'column' : 'row',
@@ -490,5 +493,6 @@ export default function Draw({ child, quota }) {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       `}</style>
     </div>
+    </>
   )
 }

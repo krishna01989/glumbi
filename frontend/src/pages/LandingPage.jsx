@@ -27,62 +27,6 @@ function FaqItem({ q, a }) {
   )
 }
 
-const FEATURES = [
-  {
-    emoji: '📖',
-    title: 'Bedtime Stories',
-    desc: 'Glumbi AI creates personalized stories where your child is the hero. Choose a theme and watch the magic unfold.',
-    color: '#ff6b6b', bg: '#fff0f0',
-  },
-  {
-    emoji: '🎮',
-    title: 'Daily Activities',
-    desc: 'Age-perfect activity suggestions tailored to the time of day and weather. Never run out of fun ideas.',
-    color: '#4d96ff', bg: '#f0f6ff',
-  },
-  {
-    emoji: '🔍',
-    title: 'Curiosity Corner',
-    desc: 'Your child asked "why is the sky blue?" — get fun, age-appropriate answers with a mini quiz and sticker reward.',
-    color: '#8e44ad', bg: '#f8f0ff',
-  },
-  {
-    emoji: '📚',
-    title: 'Read & Quiz',
-    desc: 'Longer reading stories with comprehension questions — builds reading skills and makes learning feel like an adventure.',
-    color: '#c0392b', bg: '#fff5f5',
-  },
-  {
-    emoji: '✍️',
-    title: 'My Writing',
-    desc: 'Children write their own stories and get warm, encouraging feedback from Glumbi AI — celebrating creativity, not correcting it.',
-    color: '#d68910', bg: '#fffbf0',
-  },
-  {
-    emoji: '📝',
-    title: 'Growth Journal',
-    desc: 'Capture precious milestones, moods, and memories. Build a timeline of your little one growing up.',
-    color: '#2d9a4e', bg: '#f0fff4',
-  },
-  {
-    emoji: '🎨',
-    title: 'Drawing Canvas',
-    desc: 'A full drawing canvas with a rich colour palette and brush sizes — pure creative free play.',
-    color: '#e67e22', bg: '#fff8f0',
-  },
-  {
-    emoji: '✏️',
-    title: 'Learn to Write',
-    desc: 'Practice English and Tamil letters, numbers, and words on a drawing canvas. Glumbi AI checks each attempt, celebrates progress, and translates words into 4 languages.',
-    color: '#f97316', bg: '#fff7ed',
-  },
-  {
-    emoji: '🛡️',
-    title: 'Safe & Guarded',
-    desc: 'Every prompt is filtered through 4 layers of content safety. Only age-appropriate, child-friendly content gets through.',
-    color: '#636e72', bg: '#f5f5f5',
-  },
-]
 
 const STEPS = [
   { step: '01', title: 'Create your account', desc: 'Sign up with email or continue with Google in seconds.' },
@@ -92,26 +36,14 @@ const STEPS = [
 ]
 
 // Maps feature names to landing page display config
-const CREDIT_DISPLAY = [
-  { featureName: 'story',          icon: '📖', label: 'Stories'         },
-  { featureName: 'activity',       icon: '🎮', label: 'Activities'      },
-  { featureName: 'curiosity',      icon: '🔍', label: 'Curiosity'       },
-  { featureName: 'read-quiz',      icon: '📚', label: 'Read & Quiz'     },
-  { featureName: 'draw',           icon: '🎨', label: 'Drawing'         },
-  { featureName: 'learn-word',     icon: '✏️',  label: 'Learn to Write'  },
-  { featureName: 'story-listen',   icon: '🔊', label: 'Story Audio'     },
-]
-
 export default function LandingPage() {
   const navigate = useNavigate()
-  const [featureCredits, setFeatureCredits] = useState([])
   const [defaultCredits, setDefaultCredits] = useState(null)
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/public/feature-credits`)
       .then(r => r.json())
       .then(data => {
-        setFeatureCredits(data.features ?? [])
         setDefaultCredits(data.defaultCredits ?? 200)
       })
       .catch(() => {})
@@ -226,28 +158,14 @@ export default function LandingPage() {
               Everything your child needs to thrive 🌱
             </h2>
             <p style={{ fontSize: 17, color: '#888', maxWidth: 520, margin: '0 auto' }}>
-              Nine features designed for children aged 1–10, guarded with Glumbi AI safety at every step.
+              Built for children aged 1–10, with Glumbi AI safety at every step.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
-            {FEATURES.map(f => (
-              <div key={f.title} style={{
-                background: 'white', borderRadius: 20, padding: '28px 24px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
-                border: `2px solid ${f.bg}`,
-                transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.1)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.06)' }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: f.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 16 }}>
-                  {f.emoji}
-                </div>
-                <h3 style={{ fontSize: 18, fontWeight: 800, color: f.color, marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ fontSize: 14, color: '#777', lineHeight: 1.7 }}>{f.desc}</p>
-              </div>
-            ))}
-          </div>
+          <p style={{ textAlign: 'center', fontSize: 18, color: '#888', lineHeight: 1.9, maxWidth: 640, margin: '0 auto' }}>
+            Stories · Activities · Curiosity · Drawing · Journaling · Reading · Writing · and more —
+            <strong style={{ color: '#3d3d3d' }}> all personalised to your child's age, all in one place.</strong>
+          </p>
         </div>
       </section>
 
@@ -370,39 +288,23 @@ export default function LandingPage() {
             Every account gets {defaultCredits ?? '…'} credits automatically each month. No card needed, no trial period — just magic, every single month.
           </p>
 
-          {/* Credit breakdown cards — live from API */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 48 }}>
-            {CREDIT_DISPLAY.map(({ featureName, icon, label }) => {
-              const fc = featureCredits.find(f => f.featureName === featureName)
-              const cost = fc?.creditCost ?? null
-              const budget = defaultCredits ?? 100
-              const uses = cost ? Math.floor(budget / cost) : null
-              return (
-                <div key={featureName} style={{
-                  background: '#fafafa', borderRadius: 16, padding: '20px 16px', textAlign: 'center',
-                  border: '1.5px solid #f0f0f0',
-                }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>{icon}</div>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: '#333', marginBottom: 4 }}>{label}</div>
-                  {cost != null ? (
-                    <>
-                      <div style={{
-                        display: 'inline-block',
-                        background: cost >= 3 ? '#fff3cd' : cost >= 2 ? '#e8f4fd' : '#e8f5e9',
-                        color: cost >= 3 ? '#856404' : cost >= 2 ? '#0277bd' : '#2e7d32',
-                        fontWeight: 800, fontSize: 13, padding: '3px 12px', borderRadius: 50, marginBottom: 8,
-                      }}>
-                        {cost} {cost === 1 ? 'credit' : 'credits'}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#aaa' }}>up to {uses}× per month</div>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: 12, color: '#ccc' }}>Loading…</div>
-                  )}
-                </div>
-              )
-            })}
+          {/* Credit concept */}
+          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
+            {[
+              { icon: '📖', label: 'A story', cost: 'a few credits' },
+              { icon: '🔍', label: 'A curiosity answer', cost: 'just 1 credit' },
+              { icon: '🎨', label: 'Drawing & journal', cost: 'always free' },
+            ].map(item => (
+              <div key={item.label} style={{ background: '#fafafa', borderRadius: 16, padding: '20px 24px', textAlign: 'center', border: '1.5px solid #f0f0f0', minWidth: 140 }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>{item.icon}</div>
+                <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>{item.label}</div>
+                <div style={{ fontSize: 12, color: '#888' }}>{item.cost}</div>
+              </div>
+            ))}
           </div>
+          <p style={{ fontSize: 13, color: '#bbb', marginBottom: 48 }}>
+            Different features use different amounts. Sign in and open Help to see the full breakdown.
+          </p>
 
           {/* How credits reset */}
           <div style={{

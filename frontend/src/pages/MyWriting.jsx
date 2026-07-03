@@ -4,6 +4,7 @@ import ErrorBox from '../components/ErrorBox'
 import ConfirmDialog from '../components/ConfirmDialog'
 import QuotaBanner from '../components/QuotaBanner'
 import { useOffline } from '../contexts/OfflineContext'
+import ThemeLoader from '../components/ThemeLoader'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)
@@ -96,7 +97,9 @@ export default function MyWriting({ child, quota }) {
       }
       setEntries(prev => {
         const exists = prev.find(e => e.id === saved.id)
-        return exists ? prev.map(e => e.id === saved.id ? saved : e) : [saved, ...prev]
+        if (!exists) return [saved, ...prev]
+        // preserve feedbackReceived — backend clears it on update but UI shouldn't reflect that until reload
+        return prev.map(e => e.id === saved.id ? { ...saved, feedbackReceived: e.feedbackReceived } : e)
       })
     } catch (e) { if (!silent) setError(e.message) }
     finally { if (!silent) setSaving(false) }
@@ -145,6 +148,7 @@ export default function MyWriting({ child, quota }) {
 
   return (
     <>
+    {fbLoading && <ThemeLoader theme={child.theme} label="Reading your story…" />}
     <ConfirmDialog
       open={!!confirmDelete}
       title="Delete Story?"
@@ -203,9 +207,7 @@ export default function MyWriting({ child, quota }) {
             }}>
             {/* Header */}
             <div style={{
-              background: e.feedbackReceived
-                ? 'var(--primary)'
-                : 'var(--primary-lt)',
+              background: 'var(--primary)',
               height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
             }}>
               <span style={{ fontSize: 22 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
@@ -219,7 +221,7 @@ export default function MyWriting({ child, quota }) {
               <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
               {e.feedbackReceived
                 ? <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
-                : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Draft</span>
+                : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Saved</span>
               }
             </div>
           </div>
@@ -288,7 +290,9 @@ export default function MyWriting({ child, quota }) {
 
             {/* Feedback card */}
             {feedback && (
-              <div style={{ animation: 'fadeIn 0.5s ease' }} className="card">
+              <div style={{ animation: 'fadeIn 0.5s ease' }}>
+              <p style={{ fontSize: 11, color: '#aaa', fontWeight: 600, textAlign: 'center', margin: '0 0 8px' }}>✅ Feedback saved automatically</p>
+              <div className="card">
                 <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 40 }}>{feedback.badge}</span>
                   <div>
@@ -311,6 +315,7 @@ export default function MyWriting({ child, quota }) {
                     {feedback.encouragement}
                   </div>
                 </div>
+              </div>
               </div>
             )}
           </div>

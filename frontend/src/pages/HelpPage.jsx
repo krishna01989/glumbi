@@ -12,7 +12,11 @@ const SECTIONS = [
       },
       {
         q: 'What are credits?',
-        a: 'Credits are used each time Glumbi calls an AI to generate content — stories, activities, quizzes, curiosity questions, and so on. You get a monthly allowance that resets on the 1st of every month. The credit bar at the top of each section shows how many you have left.',
+        a: 'Credits are used each time Glumbi calls an AI to generate content. You get a monthly allowance that resets automatically on the 1st of every month. The credit bar in the menu shows your balance at any time.',
+      },
+      {
+        q: 'How many credits does each feature use?',
+        a: 'Lighter features like answering a curiosity question or checking a letter cost just 1 credit. Richer features like generating a full story or a read & quiz session cost a few more. Simple things like drawing, journaling, and browsing saved content are always free — they never use credits.',
       },
       {
         q: 'What happens when I run out of credits?',

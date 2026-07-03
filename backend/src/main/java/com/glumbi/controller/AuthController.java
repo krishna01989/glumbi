@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.entity.AppUser;
 import com.glumbi.repository.UserRepository;
 import com.glumbi.security.JwtUtil;
+import com.glumbi.service.ApiQuotaService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -27,6 +28,7 @@ public class AuthController {
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtil;
     private final WebClient.Builder webClientBuilder;
+    private final ApiQuotaService quotaService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${app.google.token-info-url}") private String googleTokenInfoUrl;
@@ -39,6 +41,7 @@ public class AuthController {
         AppUser user = new AppUser();
         user.setEmail(req.getEmail().toLowerCase().trim());
         user.setPasswordHash(encoder.encode(req.getPassword()));
+        user.setQuotaLimit(quotaService.getDefaultMonthlyCredits());
         userRepo.save(user);
         return ResponseEntity.ok(Map.of("token", jwtUtil.generate(user), "role", user.getRole().name()));
     }
@@ -90,6 +93,7 @@ public class AuthController {
                 user = new AppUser();
                 user.setEmail(email);
                 user.setDisplayName(name);
+                user.setQuotaLimit(quotaService.getDefaultMonthlyCredits());
             }
             // Always keep sub up to date
             user.setGoogleSub(sub);

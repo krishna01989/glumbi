@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page Not Found · Glumbi</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 32px 20px;
+      font-family: 'Nunito', system-ui, sans-serif;
+      background: #fff5f3;
+      text-align: center;
+    }
+    .circle {
+      width: 120px; height: 120px; border-radius: 50%;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 52px;
+      margin: 0 auto 28px;
+      box-shadow: 0 16px 48px rgba(255, 107, 107, 0.35);
+    }
+    .badge {
+      display: inline-block;
+      background: #ffe0db; color: #e8503a;
+      border-radius: 50px; padding: 4px 18px;
+      font-size: 12px; font-weight: 800; letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .code {
+      display: inline-block;
+      background: rgba(232, 80, 58, 0.1); color: #e8503a;
+      border-radius: 50px; padding: 4px 16px;
+      font-size: 12px; font-weight: 800; letter-spacing: 1px;
+      margin-bottom: 16px; text-transform: uppercase;
+    }
+    h1 {
+      font-size: clamp(24px, 4vw, 32px);
+      color: #2d2d2d; font-weight: 800;
+      margin-bottom: 12px; line-height: 1.2;
+    }
+    p {
+      font-size: 16px; color: #888;
+      line-height: 1.8; max-width: 420px;
+      margin: 0 auto 32px;
+    }
+    .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 13px 36px; border-radius: 50px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #ff6b6b, #ff8e53); color: white;
+      font-size: 15px; font-weight: 800; font-family: inherit;
+      box-shadow: 0 6px 24px rgba(255, 107, 107, 0.4);
+      text-decoration: none; display: inline-block;
+    }
+    .btn-secondary {
+      padding: 13px 28px; border-radius: 50px; border: none; cursor: pointer;
+      background: #f0f0f0; color: #555;
+      font-size: 15px; font-weight: 700; font-family: inherit;
+      text-decoration: none; display: inline-block;
+    }
+    .footer-note {
+      margin-top: 40px; font-size: 12px; color: #ccc;
+    }
+    .footer-note a { color: #ffb3a7; }
+  </style>
+</head>
+<body>
+  <div class="circle">🗺️</div>
+  <div class="badge">GLUMBI</div>
+  <div class="code">Error 404</div>
+  <h1>Page not found</h1>
+  <p>Hmm, we looked everywhere but couldn't find this page. Maybe it moved, or the link was a little off!</p>
+  <div class="actions">
+    <a href="/" class="btn-primary">Take Me Home</a>
+    <a href="javascript:history.back()" class="btn-secondary">← Go Back</a>
+  </div>
+  <p class="footer-note">
+    Still stuck? Email us at <a href="mailto:hello@glumbi.com">hello@glumbi.com</a>
+  </p>
+</body>
+</html>

@@ -1,3 +1,7 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "errors": [
+    { "statusCode": 404, "redirect": "/404.html" },
+    { "statusCode": 500, "redirect": "/500.html" }
+  ]
 }

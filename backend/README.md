@@ -54,7 +54,7 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 
 | Controller | Base Path | Notes |
 |---|---|---|
-| `AuthController` | `/api/auth` | Register, login, Google OAuth, health check |
+| `AuthController` | `/api/auth` | Register, login, Google OAuth, health check. Sets `quotaLimit` to current global default on new user creation. |
 | `StoryController` | `/api/stories` | CRUD + `/listen` audio endpoint with HTTP Range support and optional `?voice=` param |
 | `ActivityController` | `/api/activities` | Generate and list activities |
 | `CuriosityController` | `/api/curiosity` | Daily curiosity questions |
@@ -62,8 +62,9 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 | `WritingController` | `/api/writing` | Submit writing, get feedback |
 | `LearnController` | `/api/learn` | Letter validation (vision AI), word identification, TTS audio for letters |
 | `ChildController` | `/api/children` | Child profile management |
+| `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`) |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
-| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history |
+| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. |
 
 ---
 
@@ -171,6 +172,14 @@ This lets the admin panel show live job state rather than only completed runs.
 
 ---
 
+## Error Handling
+
+- `GlobalExceptionHandler` catches `RelevanceException`, `SafetyException`, `MethodArgumentNotValidException`, `IllegalArgumentException`, `RuntimeException`, and `Exception` — all return a sanitised `{"error": "..."}` JSON body, never a stack trace or class name
+- `application.yml` sets `server.error.include-message: never`, `include-stacktrace: never`, `include-exception: false`, `whitelabel.enabled: false` — Spring's default error endpoint is fully locked down
+- Raw Apache/Nginx error pages, exception class names, and host details are never visible to the user
+
+---
+
 ## Authentication Flow
 
 1. **Email/password** — `POST /api/auth/register` or `/api/auth/login` → returns JWT
@@ -189,6 +198,12 @@ Schema is managed by JPA `ddl-auto: update` — tables are created/altered autom
 `SchedulerRun` — one row per scheduler job execution; columns: `scheduler_id`, `started_at`, `finished_at`, `status` (`RUNNING` / `SUCCESS` / `FAILED`), `children_processed`, `agents_ran`, `agents_skipped`, `errors`
 
 `AppSetting` — key/value store for feature flags and agent enabled states; `value` column is `TEXT` (widened from `VARCHAR(500)` to accommodate JSON history payloads)
+
+`AiUsageLog` — permanent audit trail; one row per credit deduction with `user_id`, `child_id` (nullable), `feature_name`, `credits_used`, `used_at`. Never deleted on quota reset. Indexed on `(user_id, used_at)` and `(child_id, used_at)`. Admin dashboard and per-child breakdown read from this table so reset does not zero displayed totals.
+
+> **Quota design:** `AppUser.monthlyApiCalls` is used for fast enforcement (incremented on every `tryConsume`). `AiUsageLog` is the source of truth for display — parent credit header reads the counter (reflects resets), admin dashboard and per-child breakdown read the log (permanent history).
+
+> **New user quota:** `quotaLimit` is set to the current global default at registration time (not 0). Users without a personal override inherit the default stored at signup; changing the global default only affects future signups. To migrate existing users: `UPDATE app_user SET quota_limit = <new> WHERE quota_limit = <old>`.
 
 > **Note:** the `notifications.type` column has a CHECK constraint. When adding new `NotificationType` enum values, run:
 > ```sql

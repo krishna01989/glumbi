@@ -117,6 +117,22 @@ All API calls go through the Axios instance in `client.js`. It:
 - Sets `baseURL` from `VITE_API_URL` env var (falls back to localhost)
 - Attaches the JWT `Authorization: Bearer` header from `localStorage` on every request
 - Exposes typed helper functions for each feature (`storyApi`, `activityApi`, `quizApi`, etc.)
+- Intercepts all errors and sanitises them — raw server messages, stack traces, and host details are never surfaced to the user; 401 → `/error/401`, 403 → `/error/403`, 502/503 → `/error/502`, no-response (server down) → `/error/502`
+
+### Error pages
+
+- `ErrorPage.jsx` handles 401, 403, 404, 429, 500, 502, 503 with coral-themed friendly pages
+- `public/404.html` and `public/500.html` are static coral-themed pages served by Vercel CDN for route-level errors or when the React app itself fails to load
+- `index.html` includes an inline fallback rendered inside `#root` that stays visible if the JS bundle errors before React mounts; disappears automatically once React takes over
+- `vercel.json` wires `404.html` and `500.html` as Vercel error pages
+
+### Parental Lock
+
+- Parents set a 4-digit PIN + optional time limit on the child list page before handing the device over
+- Lock state is session-based (`sessionStorage`); PIN is never sent to the server
+- Session keys (`glm_session_start_<childId>`, `glm_snooze_count_<childId>`) are cleared on every new lock so re-locking the same child always starts fresh
+- Unlock access modal follows the child's colour theme (`THEMES[child.theme]`)
+- Up to 2 snoozes allowed per session; after 2 the PIN is required to continue
 
 ### Authentication
 
@@ -160,6 +176,8 @@ The listen button opens a language picker popup that includes:
 
 ### Admin panel (`AdminPage.jsx`)
 
+- **Dashboard**: manual 🔄 refresh + auto-refresh interval dropdown (Off / 1 min / 5 min / 15 min / 30 min); AI Credits total sourced from `ai_usage_log`, not the resettable counter
+- **Users**: quota bar and label colour reflect urgency — green (<50%) → blue (50–79%) → amber (80–99%) → red (100%); same palette as the parent-facing `QuotaBadge`
 - **AI Agents** section: toggle individual weekly-notification agents on/off; all toggles use unified green (enabled) / grey (disabled) colours
 - **Scheduler History** modal: live run history from the DB — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ status, started/finished timestamps, duration, children processed, agents ran/skipped, and errors
 

@@ -18,7 +18,8 @@ Live at **[glumbi.com](https://glumbi.com)**
 | 🎨 **Draw** | Free-draw canvas for kids to illustrate their stories. |
 | 📓 **Journal** | A private journal for kids to record their thoughts. |
 | ✏️ **Learn to Write** | Guided letter and word tracing in English, Tamil, and Hindi. Canvas drawing validated by AI — any visible stroke counts as correct to encourage effort. Completed letters and words appear in the Timeline. |
-| 🔒 **Safe & Private** | All content passes a safety guard before being shown to kids. |
+| 🔐 **Parental Lock** | Parents set a 4-digit PIN and optional time limit (15 min / 30 min / 1 hr) before handing the device to their child. Locked mode prevents profile switching and access to parent settings. Supports up to 2 snoozes when time runs out. |
+| 🔒 **Safe & Private** | All content passes a safety guard before being shown to kids. Raw server errors, stack traces, and host details are never exposed to users. Static coral-themed error pages served by Vercel CDN for 404/500 even when the app is down. |
 | 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. Runtime voice picker lets kids choose accent (US, India, British, Australian) and gender (♀/♂) while listening. |
 | 🔔 **Smart Notifications** | Weekly AI-generated notifications per child: Progress Reports, Milestones, Story Recommendations, Learning Insights, and Learn-to-Write summaries of letters and words practised that week. |
 
@@ -119,10 +120,10 @@ Accessible at `/admin` by users with the `ADMIN` role.
 
 | Section | Description |
 |---|---|
-| 📊 **Stats** | Usage metrics across users and children. |
-| 👥 **Users** | View, hold, release, reset passwords, adjust quotas, manage feature overrides. |
+| 📊 **Dashboard** | Usage metrics across users and children. Manual 🔄 refresh button + auto-refresh interval dropdown (1 min / 5 min / 15 min / 30 min). AI Credits this month sourced from `ai_usage_log` (never zeroed by quota reset). |
+| 👥 **Users** | View, hold, release, reset passwords, adjust quotas, manage feature overrides. Quota bar and text colour reflect urgency: green → blue → amber → red based on usage %. |
 | 🤖 **AI Agents** | Toggle individual weekly-notification agents on/off per agent type (Progress Report, Milestone, Story Recommendation, Learning Insight, Learn to Write). All toggles use a unified green/grey colour. |
-| ⚙️ **Feature Config** | Enable/disable features and set per-feature credit costs. |
+| ⚙️ **Feature Credits** | Enable/disable features and set per-feature credit costs. Changing the global default applies immediately to all users without a personal override. |
 | 🕒 **Scheduler History** | Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
 
 ---

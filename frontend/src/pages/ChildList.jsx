@@ -135,8 +135,15 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
             )})}
 
           </div>
-          <button className="btn-secondary" style={{ width: '100%', marginTop: 12 }}
-            onClick={() => navigate('/child/new')}>
+          <button
+            onClick={() => navigate('/child/new')}
+            style={{
+              width: '100%', marginTop: 12,
+              padding: '12px 20px', borderRadius: 50, border: 'none', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #ff6b6b, #ff8e53)', color: 'white',
+              fontWeight: 800, fontSize: 14, fontFamily: 'Nunito, sans-serif',
+              boxShadow: '0 4px 16px rgba(255,107,107,0.3)',
+            }}>
             + Add another child
           </button>
         </div>
@@ -155,7 +162,17 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
               background: 'white', borderRadius: 20, padding: '28px 24px',
               maxWidth: 360, width: '100%', textAlign: 'center',
               boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+              position: 'relative',
             }}>
+              <button onClick={() => setPendingChild(null)}
+                style={{
+                  position: 'absolute', top: 14, right: 14,
+                  width: 30, height: 30, borderRadius: '50%',
+                  border: '1.5px solid #eee', background: '#f9f9f9',
+                  fontSize: 14, color: '#aaa', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  lineHeight: 1,
+                }}>✕</button>
               <div style={{ fontSize: 48, marginBottom: 10 }}>🔓</div>
               <div style={{ fontWeight: 800, fontSize: 17, color: pt.primary, marginBottom: 8, fontFamily: 'Nunito, sans-serif' }}>
                 Opening without child lock
@@ -183,11 +200,6 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                     fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
                   }}>
                   Continue in parent mode
-                </button>
-                <button
-                  onClick={() => setPendingChild(null)}
-                  style={{ background: 'none', border: 'none', color: '#bbb', fontSize: 12, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', padding: '4px' }}>
-                  Cancel
                 </button>
               </div>
             </div>

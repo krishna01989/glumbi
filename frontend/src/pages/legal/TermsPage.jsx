@@ -62,19 +62,27 @@ export default function TermsPage({ inApp = false }) {
         <li>We may suspend or terminate accounts that violate these Terms, with or without notice.</li>
       </ul>
 
-      <h2>9. Disclaimer of warranties</h2>
+      <h2>9. Parental controls and device responsibility</h2>
+      <ul>
+        <li>Glumbi provides an in-app parental lock (PIN and session time limit) as a convenience feature to help parents manage screen time. This lock operates within the browser and cannot prevent access to browser-level settings or controls.</li>
+        <li>Clearing browser cookies or cache will remove the active login session. Children who do so will be unable to log back in without the parent's credentials.</li>
+        <li>Glumbi is not responsible for a child bypassing the in-app lock by accessing device or browser settings. Parents are solely responsible for configuring appropriate device-level parental controls (such as iOS Screen Time, Android Family Link, or browser-managed profiles) to supplement Glumbi's in-app features.</li>
+        <li>We strongly recommend enabling device-level restrictions on any device used by a child.</li>
+      </ul>
+
+      <h2>10. Disclaimer of warranties</h2>
       <p>Glumbi is provided "as is" without warranties of any kind. We do not guarantee uninterrupted availability of the service. AI-generated content is not a substitute for professional educational, medical, or psychological advice.</p>
 
-      <h2>10. Limitation of liability</h2>
+      <h2>11. Limitation of liability</h2>
       <p>To the fullest extent permitted by applicable law, Glumbi shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service.</p>
 
-      <h2>11. Governing law</h2>
+      <h2>12. Governing law</h2>
       <p>These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts of Bengaluru, India.</p>
 
-      <h2>12. Changes to these Terms</h2>
+      <h2>13. Changes to these Terms</h2>
       <p>We may update these Terms from time to time. Continued use of the service after changes are posted constitutes acceptance of the new Terms. We will notify you of material changes via email.</p>
 
-      <h2>13. Contact</h2>
+      <h2>14. Contact</h2>
       <p>For any questions about these Terms, email us at <a href="mailto:legal@glumbi.com">legal@glumbi.com</a>.</p>
     </LegalLayout>
   )

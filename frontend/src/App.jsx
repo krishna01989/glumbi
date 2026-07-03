@@ -241,6 +241,7 @@ export default function App() {
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
   const [snoozeCount, setSnoozeCount]           = useState(0)
+  const prevChildId = useRef(null) // track whether child→null was a deliberate navigation or initial mount
   const [childLocked, setChildLocked]           = useState(() => sessionStorage.getItem('glm_child_locked') === '1')
   const [lockModal, setLockModal]               = useState(null)  // 'setup' | 'confirm' | 'unlock'
   const [lockPin, setLockPin]                   = useState('')
@@ -379,13 +380,18 @@ export default function App() {
   useEffect(() => {
     if (!child) {
       applyTheme('coral')
-      // Clear all per-child session keys so next open always starts fresh
-      Object.keys(sessionStorage)
-        .filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_'))
-        .forEach(k => sessionStorage.removeItem(k))
+      // Only clear timer keys if we had a child before (deliberate navigation back to child list)
+      // On initial page load prevChildId.current is null — don't clear so refresh preserves the timer
+      if (prevChildId.current !== null) {
+        Object.keys(sessionStorage)
+          .filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_'))
+          .forEach(k => sessionStorage.removeItem(k))
+      }
+      prevChildId.current = null
       setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null); setSnoozeCount(0)
       return
     }
+    prevChildId.current = child.id
     const startKey  = `glm_session_start_${child.id}`
     const snoozeKey = `glm_snooze_count_${child.id}`
 
@@ -876,7 +882,7 @@ export default function App() {
 
         {/* Utility links — Profile */}
         <div style={{ padding: collapsed ? '8px' : '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-          {!childLocked && <button onClick={() => navigate('/profile')}
+          {!childLocked && <button onClick={() => navigate(`/child/${child.id}/profile`)}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 12,
               padding: collapsed ? '10px 0' : '10px 14px',
@@ -953,7 +959,7 @@ export default function App() {
             {!childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
             {!childLocked && <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
               style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>}
-            {!childLocked && <button id="tour-profile" onClick={() => navigate('/profile')} title="My Account"
+            {!childLocked && <button id="tour-profile" onClick={() => navigate(`/child/${child.id}/profile`)} title="My Account"
               style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</button>}
             {!childLocked && <button onClick={handleLogout}
               style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#fff0f0', color: '#cc0033', border: '1.5px solid #fcc', cursor: 'pointer' }}>
@@ -1044,6 +1050,7 @@ export default function App() {
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/memory"    element={<FeatureGuard featureName="memory-flashcards" featureConfig={featureConfig}><MemoryPlay child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/profile" element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />
               <Route path="/profile"             element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage inApp />} />
               <Route path="/terms"               element={<TermsPage inApp />} />

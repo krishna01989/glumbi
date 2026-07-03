@@ -204,6 +204,10 @@ const SECTIONS = [
         q: 'Can the child snooze the time limit on their own?',
         a: 'Yes, up to 2 snoozes per session. After 2 snoozes the session ends and the PIN is required to continue. This gives children a little grace while still keeping parents in control.',
       },
+      {
+        q: 'What if my child clears the browser cookies or cache?',
+        a: 'Clearing browser data removes the login session, so the app will ask for your email and password again — which your child should not know. However, Glumbi\'s in-app lock operates within the browser and cannot prevent a child from accessing browser settings. For complete protection, we strongly recommend using your device\'s built-in parental controls alongside Glumbi\'s lock feature:\n\n• iPhone / iPad: Settings → Screen Time → Content & Privacy Restrictions → disable Safari or set a Screen Time passcode\n• Android: Google Family Link → app controls and browser restrictions\n• Shared devices: Use a dedicated child profile in the browser (e.g. Chrome managed profile) which restricts access to settings\n\nGlumbi\'s lock is designed as a convenience layer, not a replacement for device-level parental controls.',
+      },
     ],
   },
   {

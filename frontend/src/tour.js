@@ -96,42 +96,9 @@ const NAV_STEPS = [
   },
 ]
 
-function featureCostSummary(featureConfig) {
-  if (!featureConfig || featureConfig.length === 0)
-    return 'Different features use different amounts — a curiosity question costs 1 credit, a story costs 2, a read &amp; quiz session costs 3.'
-  const LABELS = {
-    'story': 'Story', 'activity': 'Activity', 'curiosity': 'Curiosity',
-    'read-quiz': 'Read &amp; Quiz', 'writing-coach': 'Writing Coach',
-    'translation': 'Translation', 'draw': 'Drawing',
-    'learn-validate': 'Letter Check', 'learn-word': 'Learn Word',
-  }
-  return featureConfig
-    .filter(fc => LABELS[fc.featureName])
-    .sort((a, b) => b.creditCost - a.creditCost)
-    .map(fc => `<strong>${LABELS[fc.featureName]}</strong>: ${fc.creditCost} cr`)
-    .join(' · ')
-}
 
-function desktopQuotaStep(limit, featureConfig) {
-  return {
-    element: '#tour-quota',
-    popover: {
-      title: '🤖 Monthly AI Credits',
-      description: `You get <strong>${limit} AI credits every month</strong>. ${featureCostSummary(featureConfig)} The bar turns yellow near the limit and red when credits run out. Resets on the 1st.`,
-      side: 'right', align: 'end',
-    },
-  }
-}
 
 const DESKTOP_UTILITY_STEPS = [
-  {
-    element: '#tour-help-btn',
-    popover: {
-      title: '💡 Help',
-      description: 'New to Glumbi or stuck on something? Tap Help to open the full guide — covers every feature with answers to common questions.',
-      side: 'right', align: 'start',
-    },
-  },
   {
     element: '#tour-theme-btn',
     popover: {
@@ -141,19 +108,10 @@ const DESKTOP_UTILITY_STEPS = [
     },
   },
   {
-    element: '#tour-offline-toggle',
     popover: {
-      title: '✈️ Practice Mode',
-      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode, all AI features are paused — kids can still draw, write, and browse freely without using any AI credits. Listening to stories and words always works regardless. Great for credit-free practice sessions!',
-      side: 'bottom', align: 'end',
-    },
-  },
-  {
-    element: '#tour-notifications',
-    popover: {
-      title: '🔔 Notifications',
-      description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
-      side: 'bottom', align: 'end',
+      title: '🏠 Child Selection Page',
+      description: 'Head back to the child selection page to find: <strong>🤖 AI / Practice mode</strong> per child, <strong>🔔 Notifications</strong>, <strong>monthly AI credit balance</strong>, and the <strong>💡 Help</strong> guide — all in one place.',
+      side: 'over', align: 'center',
     },
   },
   {
@@ -194,22 +152,6 @@ const MOBILE_STEPS = [
     },
   },
   {
-    element: '#tour-mobile-notifications',
-    popover: {
-      title: '🔔 Notifications',
-      description: 'Get weekly insights about your child\'s progress — milestones reached, story recommendations, and learning highlights.',
-      side: 'bottom', align: 'end',
-    },
-  },
-  {
-    element: '#tour-mobile-offline',
-    popover: {
-      title: '✈️ Practice Mode',
-      description: 'Toggle between <strong>🤖 AI On</strong> and <strong>✈️ Practice</strong> mode. In practice mode all AI features pause — kids can still draw, write, and browse freely without spending credits. Listening always works. Tap again to turn AI back on.',
-      side: 'bottom', align: 'end',
-    },
-  },
-  {
     element: '#tour-mobile-switch',
     popover: {
       title: '🔀 Switch Child',
@@ -219,24 +161,6 @@ const MOBILE_STEPS = [
   },
 ]
 
-function mobileQuotaStep(limit, featureConfig) {
-  return {
-    popover: {
-      title: '🤖 Monthly AI Credits',
-      description: `You get <strong>${limit} AI credits every month</strong>. ${featureCostSummary(featureConfig)} The bar at the top of this menu shows your usage — resets on the 1st.`,
-      side: 'over', align: 'center',
-      onPopoverRender: (el) => {
-        el.style.position = 'fixed'
-        el.style.bottom = '90px'
-        el.style.top = 'auto'
-        el.style.left = '50%'
-        el.style.transform = 'translateX(-50%)'
-        el.style.maxWidth = '320px'
-        el.style.width = 'calc(100vw - 32px)'
-      },
-    },
-  }
-}
 
 // ── Shared launcher ────────────────────────────────────────────────────────────
 
@@ -261,19 +185,17 @@ function makeDriver(steps) {
 
 // enabledFeatures: string[] of feature keys or null = show all
 // quota: { used, limit } — the user's actual quota object
-// featureConfig: [{ featureName, creditCost }] — live feature costs from backend
-export function startTour(enabledFeatures, quota, featureConfig = []) {
+export function startTour(enabledFeatures, quota, featureConfig = []) { // featureConfig kept for backwards compat
   function present(el) { return !!document.querySelector(el) }
-  const creditLimit = quota?.limit ?? 100
 
   if (isMobileView()) {
     const openMenu  = () => window.dispatchEvent(new CustomEvent('glumbi:mobile-menu', { detail: true }))
     const closeMenu = () => window.dispatchEvent(new CustomEvent('glumbi:mobile-menu', { detail: false }))
 
     // Elements in the mobile header (always visible — menu must be closed)
-    const HEADER_IDS = ['#tour-mobile-theme', '#tour-mobile-notifications', '#tour-mobile-offline']
+    const HEADER_IDS = ['#tour-mobile-theme']
     // Elements inside the hamburger menu (menu must be open)
-    const MENU_IDS   = ['#tour-mobile-switch', '#tour-mobile-help']
+    const MENU_IDS   = ['#tour-mobile-switch']
 
     const headerSteps = MOBILE_STEPS
       .filter(s => HEADER_IDS.includes(s.element) && present(s.element))
@@ -282,17 +204,6 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
     const menuSteps = MOBILE_STEPS
       .filter(s => MENU_IDS.includes(s.element) && present(s.element))
       .map((s, i) => ({ ...s, onHighlightStarted: i === 0 ? openMenu : undefined }))
-
-    if (present('#tour-mobile-help')) {
-      menuSteps.push({
-        element: '#tour-mobile-help',
-        popover: {
-          title: '💡 Help',
-          description: 'New to Glumbi or need a hand? Tap Help to open the full guide — covers every feature with answers to common questions.',
-          side: 'top', align: 'center',
-        },
-      })
-    }
 
     const memoryStep = {
       popover: {
@@ -334,6 +245,14 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
       ...menuSteps,
       {
         popover: {
+          title: '🏠 Child Selection Page',
+          description: 'Head back to the child selection page to find: <strong>🤖 AI / Practice mode</strong> per child, <strong>🔔 Notifications</strong>, <strong>monthly AI credit balance</strong>, and <strong>💡 Help</strong> — all parent tools in one place.',
+          side: 'over', align: 'center',
+          onPopoverRender: closeMenu,
+        },
+      },
+      {
+        popover: {
           title: '🌟 You\'re all set!',
           description: 'Tap ☰ to pick a feature and start the magic. Try generating your first story!',
           side: 'over', align: 'center',
@@ -351,7 +270,6 @@ export function startTour(enabledFeatures, quota, featureConfig = []) {
       .map(({ element, popover }) => ({ element, popover }))
 
     const utilitySteps = [
-      desktopQuotaStep(creditLimit, featureConfig),
       ...DESKTOP_UTILITY_STEPS.filter(s => present(s.element)),
     ]
 

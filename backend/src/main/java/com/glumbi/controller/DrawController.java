@@ -30,7 +30,8 @@ public class DrawController {
             return ResponseEntity.badRequest().body(Map.of("error", "No image provided"));
         if (!quotaService.isFeatureEnabled(authUser.id(), "draw"))
             return ResponseEntity.status(403).body(Map.of("error", "Drawing is currently unavailable"));
-        if (!quotaService.tryConsume(authUser.id(), "draw"))
+        Long drawChildId = body.containsKey("childId") ? Long.parseLong(body.get("childId")) : null;
+        if (!quotaService.tryConsume(authUser.id(), "draw", drawChildId))
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
 
         String response = drawAgent.identifyDrawing(imageData, childName, childAge, subject);
@@ -52,7 +53,8 @@ public class DrawController {
             return ResponseEntity.status(403).body(Map.of("error", "Drawing features are currently unavailable"));
         if (!quotaService.isFeatureEnabled(authUser.id(), "draw-guide"))
             return ResponseEntity.status(403).body(Map.of("error", "Drawing guide is not enabled"));
-        if (!quotaService.tryConsume(authUser.id(), "draw-guide"))
+        Long guideChildId = body.containsKey("childId") ? Long.parseLong(body.get("childId")) : null;
+        if (!quotaService.tryConsume(authUser.id(), "draw-guide", guideChildId))
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
 
         String guide = drawAgent.generateGuide(subject, childName, childAge);

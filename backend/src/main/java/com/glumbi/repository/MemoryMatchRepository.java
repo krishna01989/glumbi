@@ -10,6 +10,7 @@ public interface MemoryMatchRepository extends JpaRepository<MemoryMatch, Long> 
     List<MemoryMatch> findByChildIdOrderByCreatedAtDesc(Long childId);
     List<MemoryMatch> findTop10ByChildIdOrderByCreatedAtDesc(Long childId);
     long countByCreatedAtAfter(LocalDateTime since);
+    long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<MemoryMatch> findTop5ByOrderByCreatedAtDesc();
     List<MemoryMatch> findByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
 }

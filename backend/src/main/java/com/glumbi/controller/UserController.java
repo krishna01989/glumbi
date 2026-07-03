@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ public class UserController {
     private final ApiQuotaService         quotaService;
     private final JournalRepository       journalRepository;
     private final CuriosityRepository     curiosityRepository;
+    private final AiUsageLogRepository    usageLogRepository;
     private final PasswordEncoder         encoder;
     private final FeatureConfigRepository       featureConfigRepo;
     private final UserFeatureOverrideRepository overrideRepo;
@@ -43,14 +45,12 @@ public class UserController {
         AppUser user = userRepository.findById(authUser.id())
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String thisMonth = YearMonth.now().toString();
-        int used = thisMonth.equals(user.getApiCallMonth()) ? user.getMonthlyApiCalls() : 0;
-
         int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
+        long used = user.getMonthlyApiCalls();
         return ResponseEntity.ok(Map.of(
             "used",  used,
             "limit", limit,
-            "month", thisMonth
+            "month", YearMonth.now().toString()
         ));
     }
 
@@ -116,6 +116,80 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "Password updated"));
     }
 
+    @GetMapping("/me/credit-breakdown")
+    public ResponseEntity<?> getCreditBreakdown(@AuthenticationPrincipal AuthUser authUser) {
+        List<Child> children = childRepository.findByOwnerId(authUser.id());
+
+        YearMonth now = YearMonth.now();
+        LocalDateTime monthStart = now.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd   = now.atEndOfMonth().atTime(23, 59, 59);
+
+        // Build lookup: childId → featureName → {credits, count}
+        var rows = usageLogRepository.sumByChildAndFeature(authUser.id(), monthStart, monthEnd);
+        // rows: [childId, featureName, sumCredits, count]
+        java.util.Map<Long, java.util.Map<String, long[]>> logMap = new java.util.HashMap<>();
+        for (Object[] row : rows) {
+            Long cid     = ((Number) row[0]).longValue();
+            String feat  = (String) row[1];
+            long credits = ((Number) row[2]).longValue();
+            long count   = ((Number) row[3]).longValue();
+            logMap.computeIfAbsent(cid, k -> new java.util.HashMap<>()).put(feat, new long[]{credits, count});
+        }
+
+        // Feature display metadata
+        record FeatMeta(String label, String icon) {}
+        java.util.Map<String, FeatMeta> meta = java.util.Map.of(
+            "story",             new FeatMeta("Stories",      "📖"),
+            "story-listen",      new FeatMeta("Story Listen", "🔊"),
+            "activity",          new FeatMeta("Activities",   "🎮"),
+            "curiosity",         new FeatMeta("Curiosity",    "🔍"),
+            "read-quiz",         new FeatMeta("Read & Quiz",  "📚"),
+            "writing-coach",     new FeatMeta("My Writing",   "✍️"),
+            "draw",              new FeatMeta("Drawing",      "🎨"),
+            "memory-flashcards", new FeatMeta("Flashcards",   "🧠"),
+            "memory-match",      new FeatMeta("Memory Match", "🃏"),
+            "word-of-day",       new FeatMeta("Word of Day",  "✏️")
+        );
+        java.util.Map<String, FeatMeta> meta2 = new java.util.HashMap<>(meta);
+        meta2.put("draw-guide",      new FeatMeta("Draw Guide",    "🖌️"));
+        meta2.put("learn-validate",  new FeatMeta("Letter Check",  "🔤"));
+        meta2.put("learn-word",      new FeatMeta("Learn Word",    "✏️"));
+        meta2.put("journal-ai",      new FeatMeta("Journal AI",    "📓"));
+
+        var breakdown = children.stream().map(child -> {
+            var childLog = logMap.getOrDefault(child.getId(), java.util.Map.of());
+            long total = childLog.values().stream().mapToLong(v -> v[0]).sum();
+
+            var features = childLog.entrySet().stream()
+                .sorted(java.util.Map.Entry.<String, long[]>comparingByValue(
+                    (a, b) -> Long.compare(b[0], a[0])))
+                .map(e -> {
+                    FeatMeta m = meta2.getOrDefault(e.getKey(), new FeatMeta(e.getKey(), "⚙️"));
+                    return Map.of(
+                        "feature", (Object) e.getKey(),
+                        "label",   (Object) m.label(),
+                        "icon",    (Object) m.icon(),
+                        "count",   (Object) e.getValue()[1],
+                        "credits", (Object) e.getValue()[0]
+                    );
+                }).toList();
+
+            return Map.of(
+                "childId",      (Object) child.getId(),
+                "name",         (Object) child.getName(),
+                "avatarEmoji",  (Object) (child.getAvatarEmoji() != null ? child.getAvatarEmoji() : "🌟"),
+                "theme",        (Object) (child.getTheme() != null ? child.getTheme() : "coral"),
+                "totalCredits", (Object) total,
+                "features",     (Object) features
+            );
+        }).toList();
+
+        return ResponseEntity.ok(Map.of(
+            "month",    now.toString(),
+            "children", breakdown
+        ));
+    }
+
     @DeleteMapping("/me")
     @Transactional
     public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal AuthUser authUser) {
@@ -127,6 +201,7 @@ public class UserController {
             curiosityRepository.deleteByChildId(child.getId());
             childRepository.delete(child);
         }
+        usageLogRepository.deleteByUserId(authUser.id());
         userRepository.deleteById(authUser.id());
         return ResponseEntity.noContent().build();
     }

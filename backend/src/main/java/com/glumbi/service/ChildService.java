@@ -46,6 +46,7 @@ public class ChildService {
                 ? req.getEnabledFeatures()
                 : defaultFeatures(req.getBirthYear()));
         child.setScreenTimeLimitMinutes(req.getScreenTimeLimitMinutes() != null ? req.getScreenTimeLimitMinutes() : 45);
+        child.setMaxSnoozeCount(req.getMaxSnoozeCount() != null ? req.getMaxSnoozeCount() : 2);
         return repo.save(child);
     }
 
@@ -61,6 +62,9 @@ public class ChildService {
         }
         if (req.getScreenTimeLimitMinutes() != null) {
             child.setScreenTimeLimitMinutes(req.getScreenTimeLimitMinutes());
+        }
+        if (req.getMaxSnoozeCount() != null) {
+            child.setMaxSnoozeCount(req.getMaxSnoozeCount());
         }
         return repo.save(child);
     }

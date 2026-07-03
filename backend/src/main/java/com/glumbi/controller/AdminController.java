@@ -47,6 +47,7 @@ public class AdminController {
     private final FlashcardSetRepository        flashcardSetRepo;
     private final WordOfDayRepository           wordOfDayRepo;
     private final MemoryMatchRepository         memoryMatchRepo;
+    private final AiUsageLogRepository          usageLogRepo;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(@RequestParam(defaultValue = "7d") String range) {
@@ -213,9 +214,10 @@ public class AdminController {
 
         // Quota overview — current month usage across all users
         String thisMonth = YearMonth.now().toString();
-        long totalQuotaCalls = userRepo.findAll().stream()
-            .filter(u -> thisMonth.equals(u.getApiCallMonth()))
-            .mapToLong(u -> u.getMonthlyApiCalls()).sum();
+        YearMonth nowMonth = YearMonth.now();
+        LocalDateTime monthStart = nowMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd   = nowMonth.atEndOfMonth().atTime(23, 59, 59);
+        long totalQuotaCalls = usageLogRepo.sumCreditsInPeriod(monthStart, monthEnd);
         long usersAtLimit   = userRepo.findAll().stream()
             .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
             .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits(); return u.getMonthlyApiCalls() >= lim; })

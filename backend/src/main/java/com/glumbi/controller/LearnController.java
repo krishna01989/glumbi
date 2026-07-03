@@ -53,7 +53,7 @@ public class LearnController {
         if (!quotaService.isFeatureEnabled(authUser.id(), "learn-validate")) {
             return ResponseEntity.status(403).body(Map.of("error", "Learn to Write is currently unavailable."));
         }
-        if (!quotaService.tryConsume(authUser.id(), "learn-validate")) {
+        if (!quotaService.tryConsume(authUser.id(), "learn-validate", childId)) {
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 
@@ -139,7 +139,7 @@ public class LearnController {
         if (!quotaService.isFeatureEnabled(authUser.id(), "learn-word")) {
             return ResponseEntity.status(403).body(Map.of("error", "Learn to Write is currently unavailable."));
         }
-        if (!quotaService.tryConsume(authUser.id(), "learn-word")) {
+        if (!quotaService.tryConsume(authUser.id(), "learn-word", childId)) {
             return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 

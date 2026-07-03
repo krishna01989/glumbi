@@ -3,6 +3,7 @@ package com.glumbi.controller;
 import com.glumbi.agent.SafetyGuard;
 import com.glumbi.dto.WritingRequest;
 import com.glumbi.entity.WritingEntry;
+import com.glumbi.repository.WritingRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.RateLimitService;
@@ -24,6 +25,7 @@ import java.util.Map;
 public class WritingController {
 
     private final WritingService service;
+    private final WritingRepository writingRepository;
     private final RateLimitService rateLimiter;
     private final ApiQuotaService quotaService;
 
@@ -53,7 +55,9 @@ public class WritingController {
             return ResponseEntity.status(403).body(Map.of("error", "Writing Coach is currently unavailable."));
         if (!rateLimiter.tryConsume(user.id(), Endpoint.WRITING))
             return ResponseEntity.status(429).body(Map.of("error", "Too many feedback requests this hour. Try again later!"));
-        if (!quotaService.tryConsume(user.id(), "writing-coach"))
+        Long writingChildId = writingRepository.findById(id)
+            .map(e -> e.getChild() != null ? e.getChild().getId() : null).orElse(null);
+        if (!quotaService.tryConsume(user.id(), "writing-coach", writingChildId))
             return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
         try {
             return ResponseEntity.ok(service.getFeedback(id));

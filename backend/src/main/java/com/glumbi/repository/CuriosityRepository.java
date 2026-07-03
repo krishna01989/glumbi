@@ -10,5 +10,6 @@ public interface CuriosityRepository extends JpaRepository<CuriosityEntry, Long>
     List<CuriosityEntry> findByChildIdOrderByCreatedAtDesc(Long childId);
     List<CuriosityEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     void deleteByChildId(Long childId);
+    long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<CuriosityEntry> findTop5ByOrderByCreatedAtDesc();
 }

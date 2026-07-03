@@ -37,7 +37,7 @@ public class CuriosityController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many questions this hour. Come back soon!"));
         }
-        if (!quotaService.tryConsume(user.id(), "curiosity")) {
+        if (!quotaService.tryConsume(user.id(), "curiosity", req.getChildId())) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }

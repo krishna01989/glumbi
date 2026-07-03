@@ -142,8 +142,9 @@ export const writingApi = {
 }
 
 export const userApi = {
-  quota:          ()                           => api.get('/users/me/quota').then(r => r.data),
-  featureCredits: ()                           => api.get('/users/me/feature-credits').then(r => r.data),
+  quota:           ()                          => api.get('/users/me/quota').then(r => r.data),
+  featureCredits:  ()                          => api.get('/users/me/feature-credits').then(r => r.data),
+  creditBreakdown: ()                          => api.get('/users/me/credit-breakdown').then(r => r.data),
   getProfile:     ()                           => api.get('/users/me').then(r => r.data),
   changePassword: (currentPassword, newPassword) => api.patch('/users/me/password', { currentPassword, newPassword }).then(r => r.data),
   deleteAccount:  ()                           => api.delete('/users/me'),

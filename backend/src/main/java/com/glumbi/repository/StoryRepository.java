@@ -13,6 +13,7 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     List<Story> findByChildIdAndFavoriteTrueOrderByCreatedAtDesc(Long childId);
     void deleteByChildId(Long childId);
     long countByCreatedAtAfter(LocalDateTime since);
+    long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<Story> findTop10ByOrderByCreatedAtDesc();
 
     @Query("SELECT s.child.id, COUNT(s) FROM Story s GROUP BY s.child.id")

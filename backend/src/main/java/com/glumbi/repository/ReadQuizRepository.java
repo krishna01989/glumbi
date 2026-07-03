@@ -11,6 +11,7 @@ public interface ReadQuizRepository extends JpaRepository<ReadQuizEntry, Long> {
     List<ReadQuizEntry> findByChildIdOrderByCreatedAtDesc(Long childId);
     List<ReadQuizEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     long countByCreatedAtAfter(LocalDateTime since);
+    long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
 
     @Query("SELECT q.score, COUNT(q) FROM ReadQuizEntry q WHERE q.completed = true AND q.score IS NOT NULL GROUP BY q.score")
     List<Object[]> countByScore();

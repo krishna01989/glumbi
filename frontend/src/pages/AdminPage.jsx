@@ -421,21 +421,41 @@ const RANGES = [
   { value: 'all', label: 'All Time' },
 ]
 
+const AUTO_REFRESH_OPTIONS = [
+  { label: 'Off',    value: 0      },
+  { label: '1 min',  value: 60000  },
+  { label: '5 min',  value: 300000 },
+  { label: '15 min', value: 900000 },
+  { label: '30 min', value: 1800000},
+]
+
 // ─── Dashboard section ────────────────────────────────────────────────────────
 function Dashboard() {
-  const [range, setRange]     = useState('7d')
-  const [stats, setStats]     = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState('')
+  const [range, setRange]         = useState('7d')
+  const [stats, setStats]         = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState('')
+  const [autoInterval, setAutoInterval] = useState(0)
+  const timerRef = useRef(null)
 
-  useEffect(() => {
+  const fetchStats = useCallback((r) => {
     setLoading(true)
     setError('')
-    adminApi.getStats(range)
+    adminApi.getStats(r || range)
       .then(setStats)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [range])
+
+  useEffect(() => { fetchStats(range) }, [range]) // eslint-disable-line
+
+  useEffect(() => {
+    if (timerRef.current) clearInterval(timerRef.current)
+    if (autoInterval > 0) {
+      timerRef.current = setInterval(() => fetchStats(range), autoInterval)
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [autoInterval, range]) // eslint-disable-line
 
   const rangeLabel = RANGES.find(r => r.value === range)?.label || '7 Days'
 
@@ -466,7 +486,7 @@ function Dashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-      {/* Range selector */}
+      {/* Range selector + refresh controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#999', marginRight: 4 }}>RANGE</span>
         {RANGES.map(r => (
@@ -481,7 +501,21 @@ function Dashboard() {
             {r.label}
           </button>
         ))}
-        {loading && <span style={{ fontSize: 12, color: '#aaa', marginLeft: 8 }}>Refreshing…</span>}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => fetchStats(range)} disabled={loading} title="Refresh now"
+            style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
+            {loading ? '…' : '🔄'}
+          </button>
+          <select
+            value={autoInterval}
+            onChange={e => setAutoInterval(Number(e.target.value))}
+            title="Auto-refresh interval"
+            style={{ fontSize: 12, fontWeight: 600, color: autoInterval > 0 ? '#667eea' : '#999', border: '1.5px solid #e0e0e0', borderRadius: 8, padding: '4px 8px', background: autoInterval > 0 ? '#f0f0ff' : '#fafafa', cursor: 'pointer' }}>
+            {AUTO_REFRESH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.value === 0 ? '↺ Off' : `↺ ${o.label}`}</option>)}
+          </select>
+        </div>
+        {loading && <span style={{ fontSize: 12, color: '#aaa', marginLeft: 4 }}>Refreshing…</span>}
       </div>
 
       {!stats && loading && <div style={{ padding: 48, textAlign: 'center', color: '#aaa' }}>Loading dashboard…</div>}
@@ -757,8 +791,9 @@ function Users() {
             value={search} onChange={e => setSearch(e.target.value)}
             style={{ padding: '8px 14px', borderRadius: 50, border: '1.5px solid #eee', fontSize: 13, width: 220, outline: 'none' }}
           />
-          <button onClick={load} style={{ padding: '8px 18px', borderRadius: 50, background: '#f0f0f0', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer' }}>
-            🔄 Refresh
+          <button onClick={load} disabled={loading} title="Refresh users"
+            style={{ width: 34, height: 34, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
+            {loading ? '…' : '🔄'}
           </button>
         </div>
       </div>
@@ -801,13 +836,14 @@ function Users() {
                   {/* Quota bar */}
                   {user.role !== 'ADMIN' && (() => {
                     const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 100), 1)
-                    const color = pct >= 1 ? '#e74c3c' : pct >= 0.8 ? '#f57f17' : '#43e97b'
+                    const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f59e0b' : pct >= 0.5 ? '#3b82f6' : '#6bcb77'
+                    const textColor = pct >= 1 ? '#cc0033' : pct >= 0.8 ? '#b45309' : pct >= 0.5 ? '#1d4ed8' : '#15803d'
                     return (
                       <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ flex: 1, height: 5, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
                           <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
                         </div>
-                        <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
                           {user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
                         </span>
                       </div>

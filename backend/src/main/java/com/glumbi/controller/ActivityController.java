@@ -38,7 +38,7 @@ public class ActivityController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many activity requests this hour. Try again later!"));
         }
-        if (!quotaService.tryConsume(user.id(), "activity")) {
+        if (!quotaService.tryConsume(user.id(), "activity", req.getChildId())) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }

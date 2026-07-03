@@ -49,7 +49,7 @@ public class StoryController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've generated too many stories this hour. Please try again later!"));
         }
-        if (!quotaService.tryConsume(user.id(), "story")) {
+        if (!quotaService.tryConsume(user.id(), "story", req.getChildId())) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly story limit. It resets at the start of next month!"));
         }
@@ -96,12 +96,13 @@ public class StoryController {
                 if (authUser != null && !quotaService.isFeatureEnabled(authUser.id(), "story-listen")) {
                     return ResponseEntity.status(403).body(null);
                 }
+                Story story = service.getById(id);
                 // Charge 1 credit for first-time TTS synthesis (cache miss only)
-                if (authUser != null && !quotaService.tryConsume(authUser.id(), "story-listen")) {
+                if (authUser != null && !quotaService.tryConsume(authUser.id(), "story-listen",
+                        story.getChild() != null ? story.getChild().getId() : null)) {
                     return ResponseEntity.status(429)
                             .body(null);
                 }
-                Story story = service.getById(id);
                 String title, content;
                 if ("english".equalsIgnoreCase(language)) {
                     title   = story.getTitle();

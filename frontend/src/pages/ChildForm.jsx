@@ -14,7 +14,14 @@ const SCREEN_TIME_OPTIONS = [
   { value: 120, label: '2 hours' },
 ]
 
-const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null, screenTimeLimitMinutes: 45 }
+const SNOOZE_OPTIONS = [
+  { value: 0, label: 'Unlimited' },
+  { value: 1, label: '1 time' },
+  { value: 2, label: '2 times' },
+  { value: 3, label: '3 times' },
+]
+
+const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null, screenTimeLimitMinutes: 45, maxSnoozeCount: 2 }
 
 const CURRENT_YEAR = new Date().getFullYear()
 // age 1 (youngest) to age 10 (oldest)
@@ -56,7 +63,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
     if (!isEdit) { applyTheme('coral'); return }
     childApi.get(id).then(child => {
       applyTheme(child.theme || 'coral')
-      setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral', screenTimeLimitMinutes: child.screenTimeLimitMinutes ?? 45 })
+      setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral', screenTimeLimitMinutes: child.screenTimeLimitMinutes ?? 45, maxSnoozeCount: child.maxSnoozeCount ?? 2 })
       setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
       setFetching(false)
     })
@@ -78,7 +85,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
     if (ageTooOld || ageTooYoung) return
     setLoading(true)
     try {
-      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null, screenTimeLimitMinutes: form.screenTimeLimitMinutes }
+      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null, screenTimeLimitMinutes: form.screenTimeLimitMinutes, maxSnoozeCount: form.maxSnoozeCount }
       if (isEdit) {
         const updated = await childApi.update(id, payload)
         if (onChildUpdated) onChildUpdated(updated)
@@ -277,6 +284,30 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
           </div>
           <div style={{ fontSize: 11, color: '#bbb', marginTop: 8 }}>
             Child will be shown an alert when they reach this limit. Default is 45 minutes.
+          </div>
+        </div>
+
+        <div>
+          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 10, fontWeight: 700 }}>
+            😴 Snooze Limit <span style={{ fontWeight: 400, color: '#bbb' }}>(how many times they can extend)</span>
+          </label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {SNOOZE_OPTIONS.map(opt => (
+              <button key={opt.value} type="button"
+                onClick={() => setForm(f => ({ ...f, maxSnoozeCount: opt.value }))}
+                style={{
+                  padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer',
+                  background: form.maxSnoozeCount === opt.value ? 'var(--primary-lt)' : '#f5f5f5',
+                  border: form.maxSnoozeCount === opt.value ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: form.maxSnoozeCount === opt.value ? 'var(--primary)' : '#aaa',
+                }}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: '#bbb', marginTop: 8 }}>
+            After this many snoozes only "I'm done" will remain. Default is 2.
           </div>
         </div>
 

@@ -1,10 +1,12 @@
 package com.glumbi.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.glumbi.entity.AiUsageLog;
 import com.glumbi.entity.AppSetting;
 import com.glumbi.entity.AppUser;
 import com.glumbi.entity.Notification.NotificationType;
 import com.glumbi.entity.UserFeatureOverride;
+import com.glumbi.repository.AiUsageLogRepository;
 import com.glumbi.repository.AppSettingRepository;
 import com.glumbi.repository.FeatureConfigRepository;
 import com.glumbi.repository.UserFeatureOverrideRepository;
@@ -39,26 +41,41 @@ public class ApiQuotaService {
     private final UserFeatureOverrideRepository overrideRepo;
     private final ObjectMapper                  objectMapper;
     private final SchedulerRunRepository        schedulerRunRepo;
+    private final AiUsageLogRepository          usageLogRepo;
 
     @Value("${app.quota.default-monthly-credits:200}")
     private int defaultMonthlyCreditsYaml;
 
     /**
-     * Deduct the credit cost of a feature from the user's monthly balance.
-     * Returns true if the user had enough credits; false if they hit the limit.
+     * Deduct the credit cost of a feature and log usage against a specific child.
      */
     @Transactional
-    public boolean tryConsume(Long userId, String feature) {
+    public boolean tryConsume(Long userId, String feature, Long childId) {
         int cost = featureConfigRepo.findById(feature)
             .map(fc -> fc.getCreditCost())
             .orElse(1);
-        return consumeCredits(userId, cost);
+        boolean ok = consumeCredits(userId, cost);
+        if (ok) {
+            AiUsageLog log = new AiUsageLog();
+            log.setUserId(userId);
+            log.setChildId(childId);
+            log.setFeatureName(feature);
+            log.setCreditsUsed(cost);
+            usageLogRepo.save(log);
+        }
+        return ok;
+    }
+
+    /** Overload without childId — logs with null child (feature not child-specific). */
+    @Transactional
+    public boolean tryConsume(Long userId, String feature) {
+        return tryConsume(userId, feature, null);
     }
 
     /** Fallback for call sites that don't yet specify a feature (costs 1 credit). */
     @Transactional
     public boolean tryConsume(Long userId) {
-        return consumeCredits(userId, 1);
+        return tryConsume(userId, "unknown", null);
     }
 
     private boolean consumeCredits(Long userId, int cost) {

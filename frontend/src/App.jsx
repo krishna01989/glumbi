@@ -27,6 +27,7 @@ import ContactPage from './pages/legal/ContactPage'
 import HelpPage    from './pages/HelpPage'
 import MobileMenu  from './components/MobileMenu'
 import NotificationBell from './components/NotificationBell'
+import QuotaBadge from './components/QuotaBadge'
 import { OfflineContext } from './contexts/OfflineContext'
 import AppFooter   from './components/AppFooter'
 import PublicHeader from './components/PublicHeader'
@@ -47,8 +48,8 @@ const ALL_NAV = [
   { path: 'readquiz',   label: 'Read & Quiz',emoji: '📚', id: 'tour-readquiz-tab' },
   { path: 'mywriting',  label: 'My Writing', emoji: '✍️', id: 'tour-writing-tab'  },
   { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab' },
-  { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab' },
-  { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab' },
+  { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
+  { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
 ]
 
 function calcChildAge(birthYear) {
@@ -56,12 +57,16 @@ function calcChildAge(birthYear) {
   return new Date().getFullYear() - parseInt(birthYear)
 }
 
-function navForChild(child) {
-  if (!child?.enabledFeatures) return ALL_NAV
-  try {
-    const enabled = JSON.parse(child.enabledFeatures)
-    return ALL_NAV.filter(n => enabled.includes(n.path))
-  } catch { return ALL_NAV }
+function navForChild(child, locked = false) {
+  let nav = ALL_NAV
+  if (child?.enabledFeatures) {
+    try {
+      const enabled = JSON.parse(child.enabledFeatures)
+      nav = nav.filter(n => enabled.includes(n.path))
+    } catch {}
+  }
+  if (locked) nav = nav.filter(n => !n.parentOnly)
+  return nav
 }
 
 function useBreakpoint() {
@@ -213,91 +218,41 @@ function FeatureGuard({ featureName, featureConfig, children }) {
   )
 }
 
-function QuotaBar({ quota, featureConfig }) {
-  const [showInfo, setShowInfo] = useState(false)
-  const pct   = Math.min(quota.used / quota.limit, 1)
-  const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : 'rgba(255,255,255,0.7)'
-  return (
-    <div id="tour-quota" style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.15)', position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Monthly AI credits</span>
-          <button
-            onClick={() => setShowInfo(v => !v)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontSize: 12, padding: 0, lineHeight: 1 }}
-            title="What counts?">ⓘ</button>
-        </div>
-        <span style={{ fontSize: 10, fontWeight: 800, color }}>{quota.used}/{quota.limit}</span>
-      </div>
-      <div style={{ height: 5, background: 'rgba(255,255,255,0.2)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct * 100}%`, background: color, borderRadius: 10, transition: 'width 0.4s ease' }} />
-      </div>
-      {pct >= 0.8 && (
-        <div style={{ fontSize: 10, color, marginTop: 4, fontWeight: 700 }}>
-          {pct >= 1 ? '🚫 Limit reached — resets on 1st' : '⚠️ Almost at your monthly limit'}
-        </div>
-      )}
-      {showInfo && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 6px)', left: 8, right: 8,
-          background: '#1e2a3a', borderRadius: 12, padding: '12px 14px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 999,
-          fontSize: 11, color: 'rgba(255,255,255,0.82)', lineHeight: 1.7,
-        }}>
-          <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6, color: 'white' }}>🤖 How do AI credits work?</div>
-          <div>Each feature uses a different number of credits. You get <strong style={{ color: '#6bcb77' }}>{quota.limit} credits per month</strong>, shared across all features.</div>
-          {featureConfig.length > 0 && (
-            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {featureConfig.map(fc => {
-                const meta = FEATURE_DISPLAY[fc.featureName]
-                if (!meta) return null
-                return (
-                  <div key={fc.featureName} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{meta.icon} {meta.label}</span>
-                    <span style={{ fontWeight: 800, color: fc.creditCost >= 3 ? '#ffd93d' : fc.creditCost >= 2 ? '#74b9ff' : '#6bcb77' }}>
-                      {fc.creditCost} cr
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          <div style={{ marginTop: 8, color: 'rgba(255,255,255,0.5)' }}>Resets on the 1st of each month.</div>
-          <button onClick={() => setShowInfo(false)} style={{ marginTop: 10, background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>Close</button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function App() {
   const [authed, setAuthed]       = useState(!!getStoredToken())
   const [role, setRole]           = useState(getStoredRole())
   const [child, setChild]         = useState(null)
   const [restoring, setRestoring] = useState(
-    () => !!getStoredToken() && /^\/child\/\d+\//.test(window.location.pathname)
+    () => !!getStoredToken() && (
+      /^\/child\/\d+\//.test(window.location.pathname) ||
+      (sessionStorage.getItem('glm_child_locked') === '1' && !!sessionStorage.getItem('glm_locked_child_id'))
+    )
   )
   const [collapsed, setCollapsed] = useState(false)
   const [quota, setQuota]               = useState(null)   // { used, limit }
   const [featureConfig, setFeatureConfig] = useState([])    // [{ featureName, creditCost }]
   const [toasts, setToasts]       = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [offlineMode, setOfflineMode] = useState(() => localStorage.getItem('glm_offline') === '1')
+  const [offlineMode, setOfflineMode] = useState(false)
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
   const [sessionMinutes, setSessionMinutes]     = useState(0)
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
+  const [snoozeCount, setSnoozeCount]           = useState(0)
   const [childLocked, setChildLocked]           = useState(() => sessionStorage.getItem('glm_child_locked') === '1')
   const [lockModal, setLockModal]               = useState(null)  // 'setup' | 'confirm' | 'unlock'
   const [lockPin, setLockPin]                   = useState('')
   const [lockPinError, setLockPinError]         = useState('')
   const [pendingLockedChild, setPendingLockedChild] = useState(null)
 
-  function toggleOffline() {
+  function toggleOffline(childId) {
+    const id = childId ?? child?.id
+    if (!id) return
     setOfflineMode(v => {
       const next = !v
-      localStorage.setItem('glm_offline', next ? '1' : '0')
+      localStorage.setItem(`glm_offline_${id}`, next ? '1' : '0')
       return next
     })
   }
@@ -346,13 +301,23 @@ export default function App() {
     }
   }, [quota])
 
-  // Restore child from URL on hard refresh
+  // Restore child from URL on hard refresh, or from locked-child sessionStorage
   useEffect(() => {
     if (!authed || role === 'ADMIN' || child) { setRestoring(false); return }
-    const m = window.location.pathname.match(/^\/child\/(\d+)\//)
-    if (!m) { setRestoring(false); return }
-    childApi.get(m[1])
-      .then(c => { applyTheme(c.theme); setChild(c) })
+    // Prefer URL-based restore, fall back to locked child ID
+    const urlMatch = window.location.pathname.match(/^\/child\/(\d+)\//)
+    const lockedId = sessionStorage.getItem('glm_locked_child_id')
+    const idToRestore = urlMatch?.[1] || (sessionStorage.getItem('glm_child_locked') === '1' && lockedId)
+    if (!idToRestore) { setRestoring(false); return }
+    childApi.get(idToRestore)
+      .then(c => {
+        applyTheme(c.theme); setChild(c)
+        setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
+        // If restoring a locked session and not already on child route, navigate there
+        if (!urlMatch && sessionStorage.getItem('glm_child_locked') === '1') {
+          navigate(`/child/${c.id}/stories`, { replace: true })
+        }
+      })
       .catch(() => navigate('/child', { replace: true }))
       .finally(() => setRestoring(false))
   }, []) // intentionally run only on mount
@@ -364,6 +329,12 @@ export default function App() {
   }, [])
 
   function dismissToast(id) { setToasts(t => t.filter(x => x.id !== id)) }
+
+  // Reset to neutral theme on management routes (child list, edit, new, help, profile)
+  useEffect(() => {
+    const managementRoute = /^\/child(\/new|\/\d+\/edit)?$|^\/(profile|help|privacy|terms|contact)/.test(location.pathname)
+    if (managementRoute && !child) applyTheme('coral')
+  }, [location.pathname])
 
   // Prefetch Word of Day when a child is selected — only if memory is on globally AND for this child
   useEffect(() => {
@@ -396,8 +367,9 @@ export default function App() {
   function handleLogout() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
-    Object.keys(sessionStorage).filter(k => k.startsWith('glm_session_start_')).forEach(k => sessionStorage.removeItem(k))
+    Object.keys(sessionStorage).filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_')).forEach(k => sessionStorage.removeItem(k))
     sessionStorage.removeItem('glm_child_locked')
+    sessionStorage.removeItem('glm_locked_child_id')
     setChildLocked(false)
     navigate('/', { replace: true })
     setAuthed(false); setRole(null); setChild(null)
@@ -406,8 +378,8 @@ export default function App() {
   // Start session timer when child is selected — persist across refreshes via sessionStorage
   useEffect(() => {
     if (!child) {
-      sessionStorage.removeItem('glm_session_start')
-      setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null)
+      applyTheme('coral') // reset to neutral parent theme on child list
+      setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null); setSnoozeCount(0)
       return
     }
     const key = `glm_session_start_${child.id}`
@@ -415,9 +387,28 @@ export default function App() {
     const storedTs = stored ? parseInt(stored) : null
     const isToday = storedTs && new Date(storedTs).toDateString() === new Date().toDateString()
     const start = isToday ? storedTs : Date.now()
+    if (!isToday) sessionStorage.removeItem(`glm_snooze_count_${child.id}`)
     sessionStorage.setItem(key, String(start))
     setSessionStart(start)
-    setSessionMinutes(Math.floor((Date.now() - start) / 60000))
+    const elapsed = Math.floor((Date.now() - start) / 60000)
+    setSessionMinutes(elapsed)
+
+    // Restore persisted snooze count for today
+    const snoozeKey = `glm_snooze_count_${child.id}`
+    const savedSnooze = sessionStorage.getItem(snoozeKey)
+    const restoredSnoozeCount = savedSnooze ? parseInt(savedSnooze) : 0
+    setSnoozeCount(restoredSnoozeCount)
+
+    // Immediately check if already over the limit on restore
+    const limit = child.screenTimeLimitMinutes
+    if (limit && limit > 0 && elapsed >= limit) {
+      const maxSnooze = child.maxSnoozeCount ?? 2
+      if (maxSnooze > 0 && restoredSnoozeCount >= maxSnooze) {
+        setScreenTimeAlert('force-end')
+      } else {
+        setScreenTimeAlert(true)
+      }
+    }
   }, [child?.id])
 
   // Tick every minute — check against limit
@@ -430,14 +421,40 @@ export default function App() {
       if (!limit || limit === 0) return
       if (elapsed >= limit) {
         if (snoozedUntil && Date.now() < snoozedUntil) return
-        setScreenTimeAlert(true)
+        // If snooze limit exhausted, auto-end instead of showing popup again
+        const maxSnooze = child?.maxSnoozeCount ?? 2
+        setSnoozeCount(current => {
+          if (maxSnooze > 0 && current >= maxSnooze) {
+            // Snoozes used up — trigger end automatically via a deferred action
+            setTimeout(() => setScreenTimeAlert('force-end'), 0)
+            return current
+          }
+          setScreenTimeAlert(true)
+          return current
+        })
       }
     }, 60000)
     return () => clearInterval(interval)
-  }, [sessionStart, child?.screenTimeLimitMinutes, snoozedUntil])
+  }, [sessionStart, child?.screenTimeLimitMinutes, child?.maxSnoozeCount, snoozedUntil])
+
+  // Auto-end when snoozes exhausted (no popup)
+  useEffect(() => {
+    if (screenTimeAlert !== 'force-end') return
+    setScreenTimeAlert(false)
+    if (childLocked) {
+      setLockPin(''); setLockPinError(''); setLockModal('unlock')
+    } else {
+      handleLogout()
+    }
+  }, [screenTimeAlert])
 
   function handleScreenTimeSnooze(extraMinutes) {
     setSnoozedUntil(Date.now() + extraMinutes * 60000)
+    setSnoozeCount(n => {
+      const next = n + 1
+      if (child?.id) sessionStorage.setItem(`glm_snooze_count_${child.id}`, String(next))
+      return next
+    })
     setScreenTimeAlert(false)
   }
 
@@ -456,9 +473,13 @@ export default function App() {
 
   function handleLockSetup() {
     if (lockPin.length !== 4 || !/^\d{4}$/.test(lockPin)) { setLockPinError('Enter a 4-digit PIN'); return }
-    const childId = (pendingLockedChild || child)?.id
+    const activeChild = pendingLockedChild || child
+    const childId = activeChild?.id
     if (childId) localStorage.setItem(`glm_lock_pin_${childId}`, lockPin)
+    // Fresh lock session — reset timer so old elapsed time & snooze count don't carry over
+    if (childId) { sessionStorage.removeItem(`glm_session_start_${childId}`); sessionStorage.removeItem(`glm_snooze_count_${childId}`) }
     sessionStorage.setItem('glm_child_locked', '1')
+    if (childId) sessionStorage.setItem('glm_locked_child_id', String(childId))
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
@@ -468,10 +489,14 @@ export default function App() {
   }
 
   function handleLockVerify() {
-    const childId = (pendingLockedChild || child)?.id
+    const activeChild = pendingLockedChild || child
+    const childId = activeChild?.id
     const saved = localStorage.getItem(`glm_lock_pin_${childId}`)
     if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
+    // Fresh lock session — reset timer so old elapsed time & snooze count don't carry over
+    if (childId) { sessionStorage.removeItem(`glm_session_start_${childId}`); sessionStorage.removeItem(`glm_snooze_count_${childId}`) }
     sessionStorage.setItem('glm_child_locked', '1')
+    if (childId) sessionStorage.setItem('glm_locked_child_id', String(childId))
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
@@ -484,6 +509,7 @@ export default function App() {
     const saved = localStorage.getItem(`glm_lock_pin_${child?.id}`)
     if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
     sessionStorage.removeItem('glm_child_locked')
+    sessionStorage.removeItem('glm_locked_child_id')
     setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError('')
     setChild(null); navigate('/child')
   }
@@ -501,6 +527,7 @@ export default function App() {
   function handleChildSelected(c) {
     applyTheme(c.theme)
     setChild(c)
+    setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
     navigate(`/child/${c.id}/stories`)
     if (!localStorage.getItem('glm_tour_done')) {
       localStorage.setItem('glm_tour_done', '1')
@@ -629,6 +656,10 @@ export default function App() {
       </div>
     )
   }
+  // When locked with a child active, block management routes — bounce back to child session
+  if (childLocked && child && isChildManagementRoute) {
+    return <Navigate to={`/child/${child.id}/stories`} replace />
+  }
   if (isChildManagementRoute || !child) {
     const isManage = isChildManagementRoute
     return (
@@ -645,23 +676,29 @@ export default function App() {
             <img src="/icon.svg" alt="Glumbi" style={{ width: 32, height: 32 }} />
             <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {quota && <QuotaBadge quota={quota} featureConfig={featureConfig} />}
+            <button id="tour-help-btn" onClick={() => navigate('/help')}
+              style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #eee', background: '#fafafa', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Help">💡</button>
+            <span id="tour-notifications"><NotificationBell /></span>
             <button onClick={() => navigate('/profile')}
-              style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
-              👤 Account
-            </button>
+              style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #eee', background: '#fafafa', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="My Account">👤</button>
             <button onClick={handleLogout}
-              style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 700, color: '#999', cursor: 'pointer', padding: '6px 12px' }}>
-              Sign out
+              title="Sign out"
+              style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #eee', background: '#fafafa', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              🚪
             </button>
           </div>
         </header>
         <div style={{ flex: 1 }}>
           <Routes>
-            <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} />} />
+            <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
-            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate('/child') }} enabledFeatureConfig={featureConfig} />} />
+            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
             <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
+            <Route path="/help"           element={<HelpPage />} />
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
             <Route path="/contact"        element={<ContactPage />} />
@@ -675,14 +712,14 @@ export default function App() {
 
   const theme = THEMES[child.theme] || THEMES.coral
   const SW = isTV ? 260 : collapsed ? 64 : 220
-  const NAV = navForChild(child)
+  const NAV = navForChild(child, childLocked)
   const childAge = calcChildAge(child.birthYear)
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
 
       {/* ── Screen time alert modal ── */}
-      {screenTimeAlert && (
+      {screenTimeAlert === true && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
@@ -701,7 +738,12 @@ export default function App() {
               <strong style={{ color: theme.primary }}>{formatElapsed(sessionMinutes)}</strong>.
               {' '}Want to keep going or take a break?
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(() => {
+              const maxSnooze = child.maxSnoozeCount ?? 2
+              const snoozesLeft = maxSnooze === 0 ? Infinity : Math.max(0, maxSnooze - snoozeCount)
+              return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {snoozesLeft > 0 ? (<>
               <button onClick={() => handleScreenTimeSnooze(15)}
                 style={{
                   padding: '14px', borderRadius: 50, border: 'none', cursor: 'pointer',
@@ -718,15 +760,33 @@ export default function App() {
                 }}>
                 🕐 30 more minutes
               </button>
-              <button onClick={() => { setScreenTimeAlert(false); handleLogout() }}
+              {maxSnooze > 0 && <div style={{ fontSize: 12, color: '#bbb', textAlign: 'center' }}>
+                {snoozesLeft} snooze{snoozesLeft !== 1 ? 's' : ''} left
+              </div>}
+              </>) : (
+              <div style={{ padding: '14px', borderRadius: 16, background: '#fff3cd', color: '#856404', fontSize: 14, fontWeight: 700, textAlign: 'center' }}>
+                No more snoozes — time to wrap up! 🌙
+              </div>
+              )}
+              <button onClick={() => {
+                  setScreenTimeAlert(false)
+                  if (childLocked) {
+                    // Locked session: don't log out — show the unlock PIN modal for parent to take back
+                    setLockPin(''); setLockPinError(''); setLockModal('unlock')
+                  } else {
+                    handleLogout()
+                  }
+                }}
                 style={{
                   padding: '14px', borderRadius: 50, border: 'none',
                   background: '#f5f5f5', color: '#aaa', cursor: 'pointer',
                   fontSize: 14, fontWeight: 700,
                 }}>
-                I'm done for now 👋
+                {childLocked ? "I'm done — lock 🔒" : "I'm done for now 👋"}
               </button>
             </div>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -807,12 +867,7 @@ export default function App() {
           )
         })()}
 
-        {/* Usage bar */}
-        {quota && !collapsed && (
-          <QuotaBar quota={quota} featureConfig={featureConfig} />
-        )}
-
-        {/* Utility links — Profile + Help */}
+        {/* Utility links — Profile */}
         <div style={{ padding: collapsed ? '8px' : '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
           {!childLocked && <button onClick={() => navigate('/profile')}
             style={{
@@ -827,19 +882,6 @@ export default function App() {
             <span style={{ fontSize: 18, flexShrink: 0 }}>👤</span>
             {!collapsed && <span>My Account</span>}
           </button>}
-          <button id="tour-help-btn" onClick={() => navigate('/help')}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-              padding: collapsed ? '10px 0' : '10px 14px',
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              borderRadius: 12, border: 'none', background: 'transparent',
-              color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: 14,
-              cursor: 'pointer',
-            }}
-            title={collapsed ? 'Help' : undefined}>
-            <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
-            {!collapsed && <span>Help</span>}
-          </button>
         </div>
 
         {/* Collapse toggle (not on TV) */}
@@ -902,21 +944,8 @@ export default function App() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
-            <button id="tour-offline-toggle" onClick={toggleOffline} title={offlineMode ? 'AI is off — click to turn on' : 'Turn off AI (practice mode)'}
-              style={{
-                height: 38, padding: '0 12px', borderRadius: 10, cursor: 'pointer',
-                fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6,
-                background: offlineMode ? '#f5f5f5' : '#f0fff4',
-                color:      offlineMode ? '#999'    : '#27ae60',
-                border:     offlineMode ? '1.5px solid #e0e0e0' : '1.5px solid #a8e6b0',
-                transition: 'all 0.2s',
-              }}>
-              <span style={{ fontSize: 15 }}>{offlineMode ? '✈️' : '🤖'}</span>
-              {offlineMode ? 'Practice' : 'AI On'}
-            </button>
             {!childLocked && <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
               style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>}
-            <span id="tour-notifications"><NotificationBell /></span>
             {!childLocked && <button id="tour-profile" onClick={() => navigate('/profile')} title="My Account"
               style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</button>}
             {!childLocked && <button onClick={handleLogout}
@@ -964,15 +993,6 @@ export default function App() {
               }
             </div>
             <span id="tour-mobile-theme"><ThemePicker child={child} onThemeChange={handleThemeChange} /></span>
-            <span id="tour-mobile-notifications"><NotificationBell isMobile /></span>
-            <button id="tour-mobile-offline" onClick={toggleOffline} title={offlineMode ? 'Practice mode — tap to enable AI' : 'Tap to switch to practice mode'}
-              style={{
-                width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 18,
-                background: offlineMode ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-              {offlineMode ? '✈️' : '🤖'}
-            </button>
             <button id="tour-mobile-menu" onClick={() => setMobileMenuOpen(true)}
               style={{
                 width: 36, height: 36, borderRadius: 10, padding: 0,
@@ -981,10 +1001,10 @@ export default function App() {
               }}>☰</button>
           </div>
         </header>
-        <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} featureConfig={featureConfig} theme={theme}
+        <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} theme={theme}
           onSwitchChild={() => { setChild(null); navigate('/child') }}
           onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
-          offlineMode={offlineMode} onToggleOffline={toggleOffline} wotd={sidebarWotd}
+          wotd={sidebarWotd}
           childLocked={childLocked}
           onUnlock={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }} />
 
@@ -1011,13 +1031,13 @@ export default function App() {
               <Route path="/child/:childId/activities" element={<FeatureGuard featureName="activity"      featureConfig={featureConfig}><Activities child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/curiosity"  element={<FeatureGuard featureName="curiosity"     featureConfig={featureConfig}><Curiosity  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/draw"       element={<FeatureGuard featureName="draw"          featureConfig={featureConfig}><Draw       child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
-              <Route path="/child/:childId/journal"    element={<Journal    child={child} featureConfig={featureConfig} />} />
-              <Route path="/child/:childId/timeline"   element={<Timeline   child={child} />} />
+              <Route path="/child/:childId/journal"    element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <Journal    child={child} featureConfig={featureConfig} />} />
+              <Route path="/child/:childId/timeline"   element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <Timeline   child={child} />} />
               <Route path="/child/:childId/readquiz"   element={<FeatureGuard featureName="read-quiz"     featureConfig={featureConfig}><ReadQuiz   child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/memory"    element={<FeatureGuard featureName="memory-flashcards" featureConfig={featureConfig}><MemoryPlay child={child} quota={quota} /></FeatureGuard>} />
-              <Route path="/profile"             element={<ProfilePage onLogout={handleLogout} />} />
+              <Route path="/profile"             element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage inApp />} />
               <Route path="/terms"               element={<TermsPage inApp />} />
               <Route path="/contact"             element={<ContactPage inApp />} />

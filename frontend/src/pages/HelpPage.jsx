@@ -249,6 +249,19 @@ export default function HelpPage() {
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 48px' }}>
+      <button onClick={() => navigate(-1)}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-lt)'; e.currentTarget.style.transform = 'translateX(-2px)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+        style={{
+          background: 'transparent', border: '1.5px solid var(--primary-lt)', color: 'var(--primary)',
+          fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          transition: 'all 0.15s ease',
+        }}>
+        ← Back
+      </button>
+
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontSize: 52, marginBottom: 10 }}>🌟</div>

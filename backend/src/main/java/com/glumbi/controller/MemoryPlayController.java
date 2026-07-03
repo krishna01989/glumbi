@@ -43,12 +43,11 @@ public class MemoryPlayController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many Memory Play requests this hour. Come back soon!"));
         }
-        if (!quotaService.tryConsume(user.id(), "memory-flashcards")) {
+        Long childId = Long.valueOf(body.get("childId").toString());
+        if (!quotaService.tryConsume(user.id(), "memory-flashcards", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-
-        Long childId = Long.valueOf(body.get("childId").toString());
         String topic = body.get("topic").toString();
         return ResponseEntity.ok(service.generateFlashcards(childId, topic));
     }
@@ -82,7 +81,7 @@ public class MemoryPlayController {
                 // Feature disabled but we already generated — just return it without consuming
                 return ResponseEntity.ok(result.word());
             }
-            quotaService.tryConsume(user.id(), "word-of-day");
+            quotaService.tryConsume(user.id(), "word-of-day", childId);
         }
 
         return ResponseEntity.ok(result.word());
@@ -105,12 +104,11 @@ public class MemoryPlayController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many Memory Play requests this hour. Come back soon!"));
         }
-        if (!quotaService.tryConsume(user.id(), "memory-match")) {
+        Long childId = Long.valueOf(body.get("childId").toString());
+        if (!quotaService.tryConsume(user.id(), "memory-match", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-
-        Long childId = Long.valueOf(body.get("childId").toString());
         String theme = body.get("theme").toString();
         return ResponseEntity.ok(service.generateMemoryMatch(childId, theme));
     }

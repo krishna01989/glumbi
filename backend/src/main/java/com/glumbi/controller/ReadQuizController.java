@@ -35,7 +35,7 @@ public class ReadQuizController {
             return ResponseEntity.status(403).body(Map.of("error", "Read & Quiz is currently unavailable."));
         if (!rateLimiter.tryConsume(user.id(), Endpoint.READ_QUIZ))
             return ResponseEntity.status(429).body(Map.of("error", "Too many requests this hour. Try again later!"));
-        if (!quotaService.tryConsume(user.id(), "read-quiz"))
+        if (!quotaService.tryConsume(user.id(), "read-quiz", req.getChildId()))
             return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
         try {
             return ResponseEntity.ok(service.generate(req));

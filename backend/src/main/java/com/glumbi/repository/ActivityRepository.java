@@ -16,5 +16,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
     void deleteByChildId(Long childId);
     void deleteByChildIdAndCompletedFalse(Long childId);
     long countByCreatedAtAfter(LocalDateTime since);
+    long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<Activity> findTop5ByCategoryNotOrderByCreatedAtDesc(String category);
 }

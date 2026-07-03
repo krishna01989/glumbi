@@ -284,6 +284,10 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [offlineMode, setOfflineMode] = useState(() => localStorage.getItem('glm_offline') === '1')
   const [sidebarWotd, setSidebarWotd] = useState(null)
+  const [sessionStart, setSessionStart]         = useState(null)
+  const [sessionMinutes, setSessionMinutes]     = useState(0)
+  const [screenTimeAlert, setScreenTimeAlert]   = useState(false) // modal visible
+  const [snoozedUntil, setSnoozedUntil]         = useState(null)  // Date when snooze expires
 
   function toggleOffline() {
     setOfflineMode(v => {
@@ -387,8 +391,54 @@ export default function App() {
   function handleLogout() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
+    Object.keys(sessionStorage).filter(k => k.startsWith('glm_session_start_')).forEach(k => sessionStorage.removeItem(k))
     navigate('/', { replace: true })
     setAuthed(false); setRole(null); setChild(null)
+  }
+
+  // Start session timer when child is selected — persist across refreshes via sessionStorage
+  useEffect(() => {
+    if (!child) {
+      sessionStorage.removeItem('glm_session_start')
+      setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null)
+      return
+    }
+    const key = `glm_session_start_${child.id}`
+    const stored = sessionStorage.getItem(key)
+    const storedTs = stored ? parseInt(stored) : null
+    const isToday = storedTs && new Date(storedTs).toDateString() === new Date().toDateString()
+    const start = isToday ? storedTs : Date.now()
+    sessionStorage.setItem(key, String(start))
+    setSessionStart(start)
+    setSessionMinutes(Math.floor((Date.now() - start) / 60000))
+  }, [child?.id])
+
+  // Tick every minute — check against limit
+  useEffect(() => {
+    if (!sessionStart) return
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - sessionStart) / 60000)
+      setSessionMinutes(elapsed)
+      const limit = child?.screenTimeLimitMinutes
+      if (!limit || limit === 0) return
+      if (elapsed >= limit) {
+        if (snoozedUntil && Date.now() < snoozedUntil) return
+        setScreenTimeAlert(true)
+      }
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [sessionStart, child?.screenTimeLimitMinutes, snoozedUntil])
+
+  function handleScreenTimeSnooze(extraMinutes) {
+    setSnoozedUntil(Date.now() + extraMinutes * 60000)
+    setScreenTimeAlert(false)
+  }
+
+  function formatElapsed(minutes) {
+    if (minutes < 60) return `${minutes}m`
+    const h = Math.floor(minutes / 60)
+    const m = minutes % 60
+    return m > 0 ? `${h}h ${m}m` : `${h}h`
   }
 
   function handleThemeChange(key) { setChild(c => ({ ...c, theme: key })) }
@@ -473,7 +523,7 @@ export default function App() {
           <Routes>
             <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onLogout={handleLogout} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
-            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { setChild(c); navigate('/child') }} enabledFeatureConfig={featureConfig} />} />
+            <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate('/child') }} enabledFeatureConfig={featureConfig} />} />
             <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
             <Route path="/privacy"        element={<PrivacyPage />} />
             <Route path="/terms"          element={<TermsPage />} />
@@ -493,6 +543,56 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+
+      {/* ── Screen time alert modal ── */}
+      {screenTimeAlert && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 28, padding: '36px 32px', maxWidth: 380, width: '100%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)', textAlign: 'center', fontFamily: 'Nunito, sans-serif',
+          }}>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>⏰</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#333', marginBottom: 8 }}>
+              Screen time check!
+            </div>
+            <div style={{ fontSize: 15, color: '#777', lineHeight: 1.6, marginBottom: 28 }}>
+              Hey {child.name}! You've been learning for{' '}
+              <strong style={{ color: theme.primary }}>{formatElapsed(sessionMinutes)}</strong>.
+              {' '}Want to keep going or take a break?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button onClick={() => handleScreenTimeSnooze(15)}
+                style={{
+                  padding: '14px', borderRadius: 50, border: 'none', cursor: 'pointer',
+                  background: theme.headerGrad, color: 'white',
+                  fontSize: 15, fontWeight: 800, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                }}>
+                ✅ 15 more minutes!
+              </button>
+              <button onClick={() => handleScreenTimeSnooze(30)}
+                style={{
+                  padding: '14px', borderRadius: 50, border: `2px solid ${theme.primary}`,
+                  background: 'white', color: theme.primary, cursor: 'pointer',
+                  fontSize: 15, fontWeight: 800,
+                }}>
+                🕐 30 more minutes
+              </button>
+              <button onClick={() => { setScreenTimeAlert(false); handleLogout() }}
+                style={{
+                  padding: '14px', borderRadius: 50, border: 'none',
+                  background: '#f5f5f5', color: '#aaa', cursor: 'pointer',
+                  fontSize: 14, fontWeight: 700,
+                }}>
+                I'm done for now 👋
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Sidebar (tablet / desktop / TV) ── */}
       <aside className="app-sidebar" style={{
@@ -642,10 +742,18 @@ export default function App() {
                   ✏️ Edit
                 </button>
               </div>
-              <button onClick={() => { setChild(null); navigate('/child') }}
-                style={{ fontSize: isTV ? 13 : 11, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}>
-                Switch child →
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button onClick={() => { setChild(null); navigate('/child') }}
+                  style={{ fontSize: isTV ? 13 : 11, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}>
+                  Switch child →
+                </button>
+                {sessionStart && (
+                  <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700,
+                    color: sessionMinutes >= (child.screenTimeLimitMinutes || Infinity) ? '#cc0033' : '#aaa' }}>
+                    ⏱️ {formatElapsed(sessionMinutes)}{child.screenTimeLimitMinutes > 0 ? ` / ${formatElapsed(child.screenTimeLimitMinutes)}` : ''}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -707,7 +815,12 @@ export default function App() {
             <span id="tour-child-name" style={{ fontSize: 24 }}>{child.avatarEmoji}</span>
             <div style={{ lineHeight: 1.2 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</div>
-              {childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>}
+              {sessionStart
+                ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>
+                    ⏱️ {formatElapsed(sessionMinutes)}{child.screenTimeLimitMinutes > 0 ? ` / ${formatElapsed(child.screenTimeLimitMinutes)}` : ''}
+                  </div>
+                : childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>
+              }
             </div>
             <span id="tour-mobile-theme"><ThemePicker child={child} onThemeChange={handleThemeChange} /></span>
             <span id="tour-mobile-notifications"><NotificationBell isMobile /></span>

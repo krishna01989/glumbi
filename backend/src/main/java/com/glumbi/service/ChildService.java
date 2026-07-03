@@ -45,6 +45,7 @@ public class ChildService {
         child.setEnabledFeatures(req.getEnabledFeatures() != null
                 ? req.getEnabledFeatures()
                 : defaultFeatures(req.getBirthYear()));
+        child.setScreenTimeLimitMinutes(req.getScreenTimeLimitMinutes() != null ? req.getScreenTimeLimitMinutes() : 45);
         return repo.save(child);
     }
 
@@ -57,6 +58,9 @@ public class ChildService {
         child.setTheme(req.getTheme() != null ? req.getTheme() : "coral");
         if (req.getEnabledFeatures() != null) {
             child.setEnabledFeatures(req.getEnabledFeatures());
+        }
+        if (req.getScreenTimeLimitMinutes() != null) {
+            child.setScreenTimeLimitMinutes(req.getScreenTimeLimitMinutes());
         }
         return repo.save(child);
     }

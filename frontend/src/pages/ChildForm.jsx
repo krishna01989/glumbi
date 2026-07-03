@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { childApi } from '../api/client'
-import { THEMES, THEME_GROUPS } from '../themes'
+import { THEMES, THEME_GROUPS, applyTheme } from '../themes'
 
 const AVATARS = ['🧒','👧','👦','🧒🏽','👧🏽','👦🏽','🧒🏿','👧🏿','👦🏿']
-const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null }
+const SCREEN_TIME_OPTIONS = [
+  { value: 0,   label: 'No limit' },
+  { value: 15,  label: '15 minutes' },
+  { value: 30,  label: '30 minutes' },
+  { value: 45,  label: '45 minutes' },
+  { value: 60,  label: '1 hour' },
+  { value: 90,  label: '1.5 hours' },
+  { value: 120, label: '2 hours' },
+]
+
+const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null, screenTimeLimitMinutes: 45 }
 
 const CURRENT_YEAR = new Date().getFullYear()
 // age 1 (youngest) to age 10 (oldest)
@@ -43,13 +53,11 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   const [fetching, setFetching] = useState(isEdit)
 
   useEffect(() => {
-    if (!isEdit) return
-    childApi.getAll().then(children => {
-      const child = children.find(c => String(c.id) === id)
-      if (child) {
-        setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral' })
-        setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
-      }
+    if (!isEdit) { applyTheme('coral'); return }
+    childApi.get(id).then(child => {
+      applyTheme(child.theme || 'coral')
+      setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral', screenTimeLimitMinutes: child.screenTimeLimitMinutes ?? 45 })
+      setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
       setFetching(false)
     })
   }, [id])
@@ -70,7 +78,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
     if (ageTooOld || ageTooYoung) return
     setLoading(true)
     try {
-      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null }
+      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null, screenTimeLimitMinutes: form.screenTimeLimitMinutes }
       if (isEdit) {
         const updated = await childApi.update(id, payload)
         if (onChildUpdated) onChildUpdated(updated)
@@ -96,7 +104,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
         onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
         style={{
-          background: 'transparent', border: '1.5px solid #ffcdb8', color: '#ff6b6b',
+          background: 'transparent', border: '1.5px solid var(--primary-lt)', color: 'var(--primary)',
           fontWeight: 700, fontSize: 13, cursor: 'pointer',
           padding: '6px 14px', marginBottom: 20, borderRadius: 50,
           display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -104,7 +112,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
         }}>
         ← Back
       </button>
-      <h1 style={{ fontSize: 22, color: '#f4845f', margin: '0 0 28px' }}>
+      <h1 style={{ fontSize: 22, color: 'var(--primary)', margin: '0 0 28px' }}>
         {isEdit ? '✏️ Edit Child' : '🌟 Add Your Child'}
       </h1>
 
@@ -124,8 +132,8 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                 onClick={() => setForm(f => ({ ...f, gender: g.val }))}
                 style={{
                   flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 15, fontWeight: 700,
-                  background: form.gender === g.val ? '#ffeee8' : '#f5f5f5',
-                  border: form.gender === g.val ? '2px solid #f4845f' : '2px solid transparent',
+                  background: form.gender === g.val ? 'var(--primary-lt)' : '#f5f5f5',
+                  border: form.gender === g.val ? '2px solid var(--primary)' : '2px solid transparent',
                   cursor: 'pointer',
                 }}>{g.label}</button>
             ))}
@@ -158,8 +166,8 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                 onClick={() => setForm(f => ({ ...f, avatarEmoji: a }))}
                 style={{
                   fontSize: 28, padding: '8px 12px', borderRadius: 12,
-                  background: form.avatarEmoji === a ? '#ffeee8' : '#f5f5f5',
-                  border: form.avatarEmoji === a ? '2px solid #f4845f' : '2px solid transparent',
+                  background: form.avatarEmoji === a ? 'var(--primary-lt)' : '#f5f5f5',
+                  border: form.avatarEmoji === a ? '2px solid var(--primary)' : '2px solid transparent',
                   cursor: 'pointer',
                 }}>{a}</button>
             ))}
@@ -230,9 +238,9 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                     style={{
                       padding: '8px 14px', borderRadius: 50, fontSize: 13, fontWeight: 700,
                       cursor: adminDisabled ? 'not-allowed' : 'pointer',
-                      background: adminDisabled ? '#f0f0f0' : enabled ? '#ffeee8' : '#f5f5f5',
-                      border: adminDisabled ? '2px solid #e0e0e0' : enabled ? '2px solid #f4845f' : '2px solid transparent',
-                      color: adminDisabled ? '#ccc' : enabled ? '#f4845f' : '#aaa',
+                      background: adminDisabled ? '#f0f0f0' : enabled ? 'var(--primary-lt)' : '#f5f5f5',
+                      border: adminDisabled ? '2px solid #e0e0e0' : enabled ? '2px solid var(--primary)' : '2px solid transparent',
+                      color: adminDisabled ? '#ccc' : enabled ? 'var(--primary)' : '#aaa',
                       opacity: tooYoung ? 0.5 : 1,
                     }}>
                     {f.emoji} {f.label}
@@ -247,6 +255,30 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
             </div>
           </div>
         )}
+
+        <div>
+          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 10, fontWeight: 700 }}>
+            ⏱️ Daily Screen Time Limit
+          </label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {SCREEN_TIME_OPTIONS.map(opt => (
+              <button key={opt.value} type="button"
+                onClick={() => setForm(f => ({ ...f, screenTimeLimitMinutes: opt.value }))}
+                style={{
+                  padding: '8px 16px', borderRadius: 50, fontSize: 13, fontWeight: 700,
+                  cursor: 'pointer',
+                  background: form.screenTimeLimitMinutes === opt.value ? 'var(--primary-lt)' : '#f5f5f5',
+                  border: form.screenTimeLimitMinutes === opt.value ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: form.screenTimeLimitMinutes === opt.value ? 'var(--primary)' : '#aaa',
+                }}>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: '#bbb', marginTop: 8 }}>
+            Child will be shown an alert when they reach this limit. Default is 45 minutes.
+          </div>
+        </div>
 
         <button type="submit" className="btn-primary" style={{ padding: '14px', fontSize: 16 }} disabled={loading || ageTooOld || ageTooYoung}>
           {loading

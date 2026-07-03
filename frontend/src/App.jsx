@@ -356,15 +356,19 @@ export default function App() {
 
   function dismissToast(id) { setToasts(t => t.filter(x => x.id !== id)) }
 
-  // Fetch Word of Day for sidebar widget when child is loaded and has memory feature
+  // Prefetch Word of Day when a child is selected — only if memory is on globally AND for this child
   useEffect(() => {
-    if (!child) return
+    if (!child) { setSidebarWotd(null); return }
+    // Global admin gate
+    const globalFc = featureConfig.find(f => f.featureName === 'memory')
+    if (globalFc && globalFc.enabled === false) { setSidebarWotd(null); return }
+    // Parent gate — child must have 'memory' in their enabled features
     try {
-      const enabled = child.enabledFeatures ? JSON.parse(child.enabledFeatures) : null
-      if (enabled && !enabled.includes('memory')) return
-    } catch {}
+      const enabled = child.enabledFeatures ? JSON.parse(child.enabledFeatures) : []
+      if (!enabled.includes('memory')) { setSidebarWotd(null); return }
+    } catch { return }
     memoryApi.getWordOfDay(child.id).then(setSidebarWotd).catch(() => {})
-  }, [child?.id])
+  }, [child?.id, featureConfig])
 
   // Expose addToast so quota refreshes after API calls
   useEffect(() => { window.__glumbiRefreshQuota = () => userApi.quota().then(setQuota).catch(() => {}) }, [])

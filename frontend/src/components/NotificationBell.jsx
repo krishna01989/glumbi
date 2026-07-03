@@ -7,6 +7,7 @@ const TYPE_ICON = {
   STORY_RECOMMENDATION: '✨',
   LEARNING_INSIGHT:     '💡',
   LEARN_TO_WRITE:       '✏️',
+  MEMORY_PLAY:          '🧠',
 }
 
 const TYPE_LABEL = {
@@ -15,6 +16,7 @@ const TYPE_LABEL = {
   STORY_RECOMMENDATION: 'Story Idea',
   LEARNING_INSIGHT:     'Learning Insight',
   LEARN_TO_WRITE:       'Learn to Write',
+  MEMORY_PLAY:          'Memory Play',
 }
 
 export default function NotificationBell({ isMobile = false }) {

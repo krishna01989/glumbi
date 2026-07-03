@@ -228,10 +228,17 @@ function WordOfDayTab({ child }) {
 
 // ── Memory Match tab ──────────────────────────────────────────────────────────
 
-function MatchGame({ pairs }) {
-  // pairs = [{emoji, label}, ...]  — 6 pairs → 12 cards
+const DIFFICULTIES = [
+  { key: 'easy',   label: '🟢 Easy',   pairs: 2, cols: 2 },
+  { key: 'medium', label: '🟡 Medium', pairs: 4, cols: 4 },
+  { key: 'hard',   label: '🔴 Hard',   pairs: 6, cols: 4 },
+]
+
+function MatchGame({ pairs, difficulty = 'hard' }) {
+  const diff = DIFFICULTIES.find(d => d.key === difficulty) || DIFFICULTIES[2]
+  const slicedPairs = pairs.slice(0, diff.pairs)
   const [cards, setCards] = useState(() => {
-    const all = [...pairs, ...pairs].map((p, i) => ({ ...p, id: i, matched: false, flipped: false }))
+    const all = [...slicedPairs, ...slicedPairs].map((p, i) => ({ ...p, id: i, matched: false, flipped: false }))
     return all.sort(() => Math.random() - 0.5)
   })
   const [flippedIds, setFlippedIds] = useState([])
@@ -276,15 +283,18 @@ function MatchGame({ pairs }) {
   )
 
   const isMobileGrid = window.innerWidth < 480
+  const cols = isMobileGrid && diff.cols > 2 ? Math.min(diff.cols, 3) : diff.cols
+  const emojiSize = diff.pairs <= 2 ? 72 : diff.pairs <= 4 ? 52 : 40
+  const labelSize = diff.pairs <= 2 ? 20 : diff.pairs <= 4 ? 15 : 13
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: isMobileGrid ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)', gap: isMobileGrid ? 8 : 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileGrid ? 8 : 12, maxWidth: cols <= 2 ? 320 : '100%', margin: '0 auto', width: '100%' }}>
         {cards.map(card => (
           <div key={card.id} onClick={() => flip(card)}
             style={{
               aspectRatio: '3/4',
-              borderRadius: 14,
+              borderRadius: 16,
               cursor: (card.flipped || card.matched || locked) ? 'default' : 'pointer',
               perspective: 600,
             }}>
@@ -299,10 +309,10 @@ function MatchGame({ pairs }) {
               <div style={{
                 position: 'absolute', inset: 0,
                 backfaceVisibility: 'hidden',
-                borderRadius: 14,
+                borderRadius: 16,
                 background: card.matched ? '#e8f8e8' : 'var(--primary)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 28, color: 'white',
+                fontSize: emojiSize, color: 'white', fontWeight: 900,
                 boxShadow: 'var(--shadow)',
               }}>
                 {card.matched ? '✅' : '?'}
@@ -312,14 +322,16 @@ function MatchGame({ pairs }) {
                 position: 'absolute', inset: 0,
                 backfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)',
-                borderRadius: 14,
+                borderRadius: 16,
                 background: card.matched ? '#e8f8e8' : 'var(--primary-lt)',
                 border: card.matched ? '2px solid #6bcb77' : '2px solid transparent',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: 8,
                 boxShadow: 'var(--shadow)',
+                overflow: 'hidden',
               }}>
-                <span style={{ fontSize: 28 }}>{card.emoji}</span>
-                <span style={{ fontSize: 11, fontWeight: 800, color: card.matched ? '#27ae60' : 'var(--primary)', textAlign: 'center', padding: '0 4px' }}>{card.label}</span>
+                <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{card.emoji}</span>
+                <span style={{ fontSize: labelSize, fontWeight: 800, color: card.matched ? '#27ae60' : 'var(--primary)', textAlign: 'center', wordBreak: 'break-word', lineHeight: 1.2, width: '100%' }}>{card.label}</span>
               </div>
             </div>
           </div>
@@ -338,6 +350,7 @@ function MemoryMatchTab({ child, quota }) {
   const [matches, setMatches] = useState([])
   const [activeMatch, setActiveMatch] = useState(null)
   const [activePairs, setActivePairs] = useState(null)
+  const [difficulty, setDifficulty] = useState('hard')
 
   useEffect(() => {
     memoryApi.getMatches(child.id).then(setMatches).catch(() => {})
@@ -374,6 +387,20 @@ function MemoryMatchTab({ child, quota }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Difficulty — persistent setting, applies to new games and replays */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#888' }}>DIFFICULTY:</span>
+        {DIFFICULTIES.map(d => (
+          <button key={d.key} type="button" onClick={() => setDifficulty(d.key)}
+            style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, borderRadius: 50, border: '2px solid', cursor: 'pointer',
+              borderColor: difficulty === d.key ? 'var(--primary)' : '#e0e0e0',
+              background: difficulty === d.key ? 'var(--primary)' : 'white',
+              color: difficulty === d.key ? 'white' : '#666' }}>
+            {d.label}
+          </button>
+        ))}
+      </div>
+
       <form onSubmit={handleGenerate} className="card"
         style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -405,9 +432,9 @@ function MemoryMatchTab({ child, quota }) {
       {activePairs && activeMatch && (
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--primary)' }}>
-            🎴 {activeMatch.theme} — Find the Pairs!
+            🎴 {activeMatch.theme} — Find the Pairs! <span style={{ fontSize: 13, fontWeight: 600, color: '#999', marginLeft: 6 }}>{DIFFICULTIES.find(d => d.key === difficulty)?.label}</span>
           </div>
-          <MatchGame key={activeMatch.id + '_' + Date.now()} pairs={activePairs} />
+          <MatchGame key={activeMatch.id + '_' + difficulty} pairs={activePairs} difficulty={difficulty} />
         </div>
       )}
 
@@ -418,7 +445,7 @@ function MemoryMatchTab({ child, quota }) {
             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
               <button onClick={() => startMatch(m)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
-                🎴 {m.theme}
+                🔁 Replay: {m.theme}
               </button>
               <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(m.createdAt).toLocaleDateString()}</span>
               <button className="btn-danger" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => handleDelete(m.id)}>✕</button>

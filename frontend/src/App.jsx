@@ -726,9 +726,9 @@ export default function App() {
 
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
-      {/* ── Bottom nav (mobile only) ── */}
+      {/* ── Bottom nav (mobile only) — pinned favourites + menu ── */}
       <nav className="bottom-nav">
-        {NAV.map(n => (
+        {NAV.slice(0, 4).map(n => (
           <NavLink key={n.path} to={`/child/${child.id}/${n.path}`}
             style={({ isActive }) => ({
               flex: 1, display: 'flex', flexDirection: 'column',
@@ -743,6 +743,16 @@ export default function App() {
             <span>{n.label}</span>
           </NavLink>
         ))}
+        <button onClick={() => setMobileMenuOpen(true)}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 2,
+            background: 'none', border: 'none', fontSize: 9, fontWeight: 700,
+            color: '#bbb', borderTop: '3px solid transparent', paddingTop: 4, cursor: 'pointer',
+          }}>
+          <span style={{ fontSize: 22 }}>☰</span>
+          <span>More</span>
+        </button>
       </nav>
     </div>
   )

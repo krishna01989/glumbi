@@ -717,7 +717,7 @@ export default function App() {
             <Route path="*"               element={<Navigate to="/child" replace />} />
           </Routes>
         </div>
-        <AppFooter />
+        {location.pathname !== '/child' && <AppFooter />}
       </div>
     )
   }

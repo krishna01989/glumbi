@@ -375,22 +375,51 @@ export default function App() {
     setAuthed(false); setRole(null); setChild(null)
   }
 
-  // Start session timer when child is selected — always fresh, resets when returning to child list
+  // Start session timer when child is selected — persists across refreshes, resets when returning to child list
   useEffect(() => {
     if (!child) {
       applyTheme('coral')
+      // Clear all per-child session keys so next open always starts fresh
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_'))
+        .forEach(k => sessionStorage.removeItem(k))
       setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null); setSnoozeCount(0)
       return
     }
-    const key = `glm_session_start_${child.id}`
-    const start = Date.now()
-    sessionStorage.setItem(key, String(start))
-    sessionStorage.removeItem(`glm_snooze_count_${child.id}`)
+    const startKey  = `glm_session_start_${child.id}`
+    const snoozeKey = `glm_snooze_count_${child.id}`
+
+    const stored = sessionStorage.getItem(startKey)
+    const start  = stored ? parseInt(stored) : Date.now()
+    if (!stored) {
+      // Fresh session — clear any leftover snooze count
+      sessionStorage.setItem(startKey, String(start))
+      sessionStorage.removeItem(snoozeKey)
+      setSnoozeCount(0)
+    } else {
+      // Restore snooze count from sessionStorage (survives refresh)
+      const saved = sessionStorage.getItem(snoozeKey)
+      setSnoozeCount(saved ? parseInt(saved) : 0)
+    }
+
+    const elapsed = Math.floor((Date.now() - start) / 60000)
     setSessionStart(start)
-    setSessionMinutes(0)
-    setSnoozeCount(0)
+    setSessionMinutes(elapsed)
     setSnoozedUntil(null)
     setScreenTimeAlert(false)
+
+    // Check immediately if already over limit on restore
+    const limit = child.screenTimeLimitMinutes
+    if (limit && limit > 0 && elapsed >= limit) {
+      const maxSnooze = child.maxSnoozeCount ?? 2
+      const savedSnooze = sessionStorage.getItem(snoozeKey)
+      const currentSnooze = savedSnooze ? parseInt(savedSnooze) : 0
+      if (maxSnooze > 0 && currentSnooze >= maxSnooze) {
+        setScreenTimeAlert('force-end')
+      } else {
+        setScreenTimeAlert(true)
+      }
+    }
   }, [child?.id])
 
   // Tick every minute — check against limit

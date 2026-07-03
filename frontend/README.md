@@ -135,8 +135,10 @@ All API calls go through the Axios instance in `client.js`. It:
 **Session timer (per child, applies regardless of lock state):**
 - Each child has its own independent timer, keyed by child ID (`glm_session_start_<childId>`, `glm_snooze_count_<childId>`)
 - Timer starts fresh at 0 every time that child's profile is opened — locked or unlocked
-- Returning to the child list (via unlock or switching child) resets that child's timer; next open starts from 0 again
-- Snooze count also resets to 0 on every fresh open — no carry-over between sessions
+- **Page refresh** → timer resumes from where it left off; snooze count is also restored from sessionStorage
+- **Back to child list** → all `glm_session_start_*` and `glm_snooze_count_*` keys are cleared from sessionStorage when `child` becomes `null`
+- **Reselecting the same child** from the list → no stored key found → fresh timer from 0 (not the old count)
+- **Switching to a different child** → same clear happens; new child always starts from 0
 - While inside a child session, the child can extend time N times (configured per child via `maxSnoozeCount`)
 - Once all snoozes are used up: locked session → shows PIN unlock modal; unlocked session → navigates back to child list (no forced logout)
 

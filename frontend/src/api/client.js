@@ -47,6 +47,11 @@ api.interceptors.response.use(
       if (!alreadyOnErrorPage) window.location.href = `/error/${status}`
       return new Promise(() => {})
     }
+    // No response at all = network error / server not reachable
+    if (!err.response) {
+      if (!alreadyOnErrorPage) window.location.href = '/error/502'
+      return new Promise(() => {})
+    }
     const data = err.response?.data
     return Promise.reject(new Error(data?.error || 'Something went wrong. Please try again!'))
   }

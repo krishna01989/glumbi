@@ -375,40 +375,22 @@ export default function App() {
     setAuthed(false); setRole(null); setChild(null)
   }
 
-  // Start session timer when child is selected — persist across refreshes via sessionStorage
+  // Start session timer when child is selected — always fresh, resets when returning to child list
   useEffect(() => {
     if (!child) {
-      applyTheme('coral') // reset to neutral parent theme on child list
+      applyTheme('coral')
       setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null); setSnoozeCount(0)
       return
     }
     const key = `glm_session_start_${child.id}`
-    const stored = sessionStorage.getItem(key)
-    const storedTs = stored ? parseInt(stored) : null
-    const isToday = storedTs && new Date(storedTs).toDateString() === new Date().toDateString()
-    const start = isToday ? storedTs : Date.now()
-    if (!isToday) sessionStorage.removeItem(`glm_snooze_count_${child.id}`)
+    const start = Date.now()
     sessionStorage.setItem(key, String(start))
+    sessionStorage.removeItem(`glm_snooze_count_${child.id}`)
     setSessionStart(start)
-    const elapsed = Math.floor((Date.now() - start) / 60000)
-    setSessionMinutes(elapsed)
-
-    // Restore persisted snooze count for today
-    const snoozeKey = `glm_snooze_count_${child.id}`
-    const savedSnooze = sessionStorage.getItem(snoozeKey)
-    const restoredSnoozeCount = savedSnooze ? parseInt(savedSnooze) : 0
-    setSnoozeCount(restoredSnoozeCount)
-
-    // Immediately check if already over the limit on restore
-    const limit = child.screenTimeLimitMinutes
-    if (limit && limit > 0 && elapsed >= limit) {
-      const maxSnooze = child.maxSnoozeCount ?? 2
-      if (maxSnooze > 0 && restoredSnoozeCount >= maxSnooze) {
-        setScreenTimeAlert('force-end')
-      } else {
-        setScreenTimeAlert(true)
-      }
-    }
+    setSessionMinutes(0)
+    setSnoozeCount(0)
+    setSnoozedUntil(null)
+    setScreenTimeAlert(false)
   }, [child?.id])
 
   // Tick every minute — check against limit
@@ -437,14 +419,14 @@ export default function App() {
     return () => clearInterval(interval)
   }, [sessionStart, child?.screenTimeLimitMinutes, child?.maxSnoozeCount, snoozedUntil])
 
-  // Auto-end when snoozes exhausted (no popup)
+  // Auto-end when snoozes exhausted
   useEffect(() => {
     if (screenTimeAlert !== 'force-end') return
     setScreenTimeAlert(false)
     if (childLocked) {
       setLockPin(''); setLockPinError(''); setLockModal('unlock')
     } else {
-      handleLogout()
+      setChild(null); navigate('/child')
     }
   }, [screenTimeAlert])
 
@@ -476,8 +458,6 @@ export default function App() {
     const activeChild = pendingLockedChild || child
     const childId = activeChild?.id
     if (childId) localStorage.setItem(`glm_lock_pin_${childId}`, lockPin)
-    // Fresh lock session — reset timer so old elapsed time & snooze count don't carry over
-    if (childId) { sessionStorage.removeItem(`glm_session_start_${childId}`); sessionStorage.removeItem(`glm_snooze_count_${childId}`) }
     sessionStorage.setItem('glm_child_locked', '1')
     if (childId) sessionStorage.setItem('glm_locked_child_id', String(childId))
     setChildLocked(true); setLockModal(null); setLockPin('')
@@ -493,8 +473,6 @@ export default function App() {
     const childId = activeChild?.id
     const saved = localStorage.getItem(`glm_lock_pin_${childId}`)
     if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
-    // Fresh lock session — reset timer so old elapsed time & snooze count don't carry over
-    if (childId) { sessionStorage.removeItem(`glm_session_start_${childId}`); sessionStorage.removeItem(`glm_snooze_count_${childId}`) }
     sessionStorage.setItem('glm_child_locked', '1')
     if (childId) sessionStorage.setItem('glm_locked_child_id', String(childId))
     setChildLocked(true); setLockModal(null); setLockPin('')

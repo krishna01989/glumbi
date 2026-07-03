@@ -126,13 +126,18 @@ All API calls go through the Axios instance in `client.js`. It:
 - `index.html` includes an inline fallback rendered inside `#root` that stays visible if the JS bundle errors before React mounts; disappears automatically once React takes over
 - `vercel.json` wires `404.html` and `500.html` as Vercel error pages
 
-### Parental Lock
+### Parental Lock & Session Timer
 
 - Parents set a 4-digit PIN + optional time limit on the child list page before handing the device over
 - Lock state is session-based (`sessionStorage`); PIN is never sent to the server
-- Session keys (`glm_session_start_<childId>`, `glm_snooze_count_<childId>`) are cleared on every new lock so re-locking the same child always starts fresh
 - Unlock access modal follows the child's colour theme (`THEMES[child.theme]`)
-- Up to 2 snoozes allowed per session; after 2 the PIN is required to continue
+
+**Session timer (applies regardless of lock state):**
+- Timer starts fresh at 0 every time a child profile is opened — locked or unlocked
+- Returning to the child list (via unlock or switching child) resets the timer for that child; next open starts from 0 again
+- Snooze count also resets to 0 on every fresh child open
+- While inside a child session, the child can extend time N times (configured per child via `maxSnoozeCount`)
+- Once all snoozes are used up: locked session → shows PIN unlock modal; unlocked session → navigates back to child list (no forced logout)
 
 ### Authentication
 

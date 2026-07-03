@@ -132,10 +132,11 @@ All API calls go through the Axios instance in `client.js`. It:
 - Lock state is session-based (`sessionStorage`); PIN is never sent to the server
 - Unlock access modal follows the child's colour theme (`THEMES[child.theme]`)
 
-**Session timer (applies regardless of lock state):**
-- Timer starts fresh at 0 every time a child profile is opened — locked or unlocked
-- Returning to the child list (via unlock or switching child) resets the timer for that child; next open starts from 0 again
-- Snooze count also resets to 0 on every fresh child open
+**Session timer (per child, applies regardless of lock state):**
+- Each child has its own independent timer, keyed by child ID (`glm_session_start_<childId>`, `glm_snooze_count_<childId>`)
+- Timer starts fresh at 0 every time that child's profile is opened — locked or unlocked
+- Returning to the child list (via unlock or switching child) resets that child's timer; next open starts from 0 again
+- Snooze count also resets to 0 on every fresh open — no carry-over between sessions
 - While inside a child session, the child can extend time N times (configured per child via `maxSnoozeCount`)
 - Once all snoozes are used up: locked session → shows PIN unlock modal; unlocked session → navigates back to child list (no forced logout)
 

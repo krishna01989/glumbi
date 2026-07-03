@@ -169,6 +169,7 @@ const FEATURE_DISPLAY_MAP = {
   'memory-flashcards':   { label: 'Flashcards',      icon: '📇' },
   'word-of-day':         { label: 'Word of the Day', icon: '📘' },
   'memory-match':        { label: 'Memory Match',    icon: '🃏' },
+  'journal-ai':          { label: 'Journal AI',      icon: '📝' },
 }
 
 function FeatureAccessModal({ user, onClose }) {
@@ -979,6 +980,7 @@ const FEATURE_META = {
   'memory-flashcards':   { label: 'Flashcards',      icon: '📇', desc: 'Generate a flashcard set',               maxTokens: 512, suggestedCost: 1 },
   'word-of-day':         { label: 'Word of the Day', icon: '📘', desc: 'Generate word of the day',               maxTokens: 300, suggestedCost: 1 },
   'memory-match':        { label: 'Memory Match',    icon: '🃏', desc: 'Generate a memory match game',           maxTokens: 300, suggestedCost: 1 },
+  'journal-ai':          { label: 'Journal AI',      icon: '📝', desc: "AI-generated journal entry from child's daily activity", maxTokens: 400, suggestedCost: 2 },
 }
 
 const MAX_TOKENS_OVERALL = 2048  // translation is the ceiling
@@ -993,7 +995,7 @@ function complexityLabel(maxTokens) {
 const DEFAULT_MIX = {
   'story': 3, 'activity': 3, 'curiosity': 5, 'read-quiz': 2,
   'writing-coach': 3, 'translation': 1, 'draw': 3, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
-  'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2,
+  'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2, 'journal-ai': 3,
 }
 
 function FeatureCredits() {
@@ -1019,7 +1021,8 @@ function FeatureCredits() {
     try {
       await adminApi.setFeatureEnabled(featureName, next)
       setFeatures(prev => prev.map(f => f.featureName === featureName ? { ...f, enabled: next } : f))
-      setMsg(next ? `✅ ${featureName} enabled globally` : `🔒 ${featureName} disabled globally`)
+      const label = FEATURE_META[featureName]?.label || FEATURE_DISPLAY_MAP[featureName]?.label || featureName
+      setMsg(next ? `✅ ${label} enabled globally` : `🔒 ${label} disabled globally`)
     } catch (e) {
       setMsg('❌ ' + e.message)
     }

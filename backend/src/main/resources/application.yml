@@ -40,6 +40,7 @@ anthropic:
     memory-flashcards: 512
     word-of-day: 256
     memory-match: 256
+    journal: 600
 
 app:
   cors:

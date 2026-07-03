@@ -178,18 +178,27 @@ function FlashcardsTab({ child, quota }) {
 // ── Word of Day tab ────────────────────────────────────────────────────────────
 
 function WordOfDayTab({ child }) {
+  const offline = useOffline()
   const [word, setWord] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!offline)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (offline) return
     setLoading(true)
     memoryApi.getWordOfDay(child.id)
       .then(setWord)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false))
     window.__glumbiRefreshQuota?.()
-  }, [child.id])
+  }, [child.id, offline])
+
+  if (offline) return (
+    <div className="card" style={{ textAlign: 'center', padding: 40 }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>✈️</div>
+      <div style={{ fontWeight: 700, color: '#888' }}>Word of Day is unavailable in offline mode</div>
+    </div>
+  )
 
   if (loading) return <ThemeLoader theme={child.theme} />
 

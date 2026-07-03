@@ -44,10 +44,10 @@ const ALL_NAV = [
   { path: 'learn',      label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
   { path: 'curiosity',  label: 'Curiosity',  emoji: '🔍', id: 'tour-curiosity-tab' },
   { path: 'draw',       label: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
-  { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab' },
   { path: 'readquiz',   label: 'Read & Quiz',emoji: '📚', id: 'tour-readquiz-tab' },
   { path: 'mywriting',  label: 'My Writing', emoji: '✍️', id: 'tour-writing-tab'  },
   { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab' },
+  { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab' },
   { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab' },
 ]
 
@@ -755,7 +755,7 @@ export default function App() {
               <Route path="/child/:childId/activities" element={<FeatureGuard featureName="activity"      featureConfig={featureConfig}><Activities child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/curiosity"  element={<FeatureGuard featureName="curiosity"     featureConfig={featureConfig}><Curiosity  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/draw"       element={<FeatureGuard featureName="draw"          featureConfig={featureConfig}><Draw       child={child} quota={quota} /></FeatureGuard>} />
-              <Route path="/child/:childId/journal"    element={<Journal    child={child} />} />
+              <Route path="/child/:childId/journal"    element={<Journal    child={child} featureConfig={featureConfig} />} />
               <Route path="/child/:childId/timeline"   element={<Timeline   child={child} />} />
               <Route path="/child/:childId/readquiz"   element={<FeatureGuard featureName="read-quiz"     featureConfig={featureConfig}><ReadQuiz   child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />

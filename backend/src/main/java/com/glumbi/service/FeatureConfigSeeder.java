@@ -29,7 +29,8 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"memory",            0, "Memory Play feature gate (enables all memory sub-features)"},
         new Object[]{"memory-flashcards", 1, "Generate a flashcard set"},
         new Object[]{"word-of-day",       1, "Generate word of the day"},
-        new Object[]{"memory-match",      1, "Generate a memory match game"}
+        new Object[]{"memory-match",      1, "Generate a memory match game"},
+        new Object[]{"journal-ai",        2, "AI-generated journal entry from child's daily activity"}
     );
 
     @Override

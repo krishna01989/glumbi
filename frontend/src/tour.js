@@ -50,15 +50,6 @@ const NAV_STEPS = [
     },
   },
   {
-    feature: 'journal',
-    element: '#tour-journal-tab',
-    popover: {
-      title: '📝 Journal',
-      description: 'Record milestones, moods, and precious moments. Build a memory book as your child grows.',
-      side: 'right',
-    },
-  },
-  {
     feature: 'readquiz',
     element: '#tour-readquiz-tab',
     popover: {
@@ -82,6 +73,15 @@ const NAV_STEPS = [
     popover: {
       title: '🧠 Memory Play',
       description: 'Flashcards, Word of the Day, and Memory Match games — all powered by AI to make learning stick!',
+      side: 'right',
+    },
+  },
+  {
+    feature: 'journal',
+    element: '#tour-journal-tab',
+    popover: {
+      title: '📝 Journal',
+      description: 'A parent diary for your child\'s learning journey. Log moods, milestones, and memories — or let AI write a heartfelt entry from today\'s activities.',
       side: 'right',
     },
   },
@@ -181,7 +181,7 @@ const MOBILE_STEPS = [
     element: '#tour-mobile-menu',
     popover: {
       title: '☰ All Your Features',
-      description: 'Tap the menu to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, Journal, Read & Quiz, My Writing, and Timeline.',
+      description: 'Tap the menu to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, Read & Quiz, My Writing, Memory Play, Journal, and Timeline.',
       side: 'bottom', align: 'end',
     },
   },

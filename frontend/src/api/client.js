@@ -82,9 +82,10 @@ export const storyApi = {
 }
 
 export const journalApi = {
-  create:     (data)           => api.post('/journal', data).then(r => r.data),
-  getByChild: (childId, params) => api.get(`/journal/child/${childId}`, { params }).then(r => r.data),
-  delete:     (id)      => api.delete(`/journal/${id}`),
+  create:         (data)     => api.post('/journal', data).then(r => r.data),
+  getByChild:     (childId, params) => api.get(`/journal/child/${childId}`, { params }).then(r => r.data),
+  generateAiEntry:(childId)  => api.post(`/journal/ai-entry/child/${childId}`).then(r => r.data),
+  delete:         (id)       => api.delete(`/journal/${id}`),
 }
 
 export const activityApi = {

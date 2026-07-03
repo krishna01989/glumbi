@@ -7,9 +7,9 @@ import QuotaBanner from '../components/QuotaBanner'
 import { useOffline } from '../contexts/OfflineContext'
 
 function useIsMobile() {
-  const [m, setM] = useState(window.innerWidth < 640)
+  const [m, setM] = useState(window.innerWidth < 1024)
   useEffect(() => {
-    const h = () => setM(window.innerWidth < 640)
+    const h = () => setM(window.innerWidth < 1024)
     window.addEventListener('resize', h)
     return () => window.removeEventListener('resize', h)
   }, [])

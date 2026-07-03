@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { storyApi, journalApi, activityApi, curiosityApi, readQuizApi, writingApi, memoryApi } from '../api/client'
+import { storyApi, journalApi, activityApi, curiosityApi, readQuizApi, writingApi, memoryApi } from '../../api/client'
 
 const TYPE_META = {
   story:      { label: '📖 Story',        dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },

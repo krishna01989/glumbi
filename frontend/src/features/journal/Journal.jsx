@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { journalApi } from '../api/client'
+import { journalApi } from '../../api/client'
 
 const MOODS = [
   { value: 'happy',   label: '😄 Happy' },

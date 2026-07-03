@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
-import { readQuizApi } from '../api/client'
-import ErrorBox from '../components/ErrorBox'
-import ThemeLoader from '../components/ThemeLoader'
-import ConfirmDialog from '../components/ConfirmDialog'
-import QuotaBanner from '../components/QuotaBanner'
-import { useOffline } from '../contexts/OfflineContext'
+import { readQuizApi } from '../../api/client'
+import ErrorBox from '../../components/ErrorBox'
+import ThemeLoader from '../../components/ThemeLoader'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import QuotaBanner from '../../components/QuotaBanner'
+import { useOffline } from '../../contexts/OfflineContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)

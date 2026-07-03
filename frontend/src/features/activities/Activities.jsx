@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { activityApi } from '../api/client'
-import ThemeLoader from '../components/ThemeLoader'
-import QuotaBanner from '../components/QuotaBanner'
-import { useOffline } from '../contexts/OfflineContext'
+import { activityApi } from '../../api/client'
+import ThemeLoader from '../../components/ThemeLoader'
+import QuotaBanner from '../../components/QuotaBanner'
+import { useOffline } from '../../contexts/OfflineContext'
 
 const TIMES   = [{ value: 'morning', label: '🌅 Morning' }, { value: 'afternoon', label: '☀️ Afternoon' }, { value: 'evening', label: '🌙 Evening' }]
 const WEATHERS = [{ value: 'sunny', label: '☀️ Sunny' }, { value: 'cloudy', label: '⛅ Cloudy' }, { value: 'rainy', label: '🌧️ Rainy' }, { value: 'windy', label: '💨 Windy' }, { value: 'snowy', label: '❄️ Snowy' }]

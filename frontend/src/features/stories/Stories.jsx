@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { storyApi } from '../api/client'
-import ThemeLoader from '../components/ThemeLoader'
-import AudioPlayer from '../components/AudioPlayer'
-import ConfirmDialog from '../components/ConfirmDialog'
-import ErrorBox from '../components/ErrorBox'
-import QuotaBanner from '../components/QuotaBanner'
-import { useOffline } from '../contexts/OfflineContext'
+import { storyApi } from '../../api/client'
+import ThemeLoader from '../../components/ThemeLoader'
+import AudioPlayer from '../../components/AudioPlayer'
+import ConfirmDialog from '../../components/ConfirmDialog'
+import ErrorBox from '../../components/ErrorBox'
+import QuotaBanner from '../../components/QuotaBanner'
+import { useOffline } from '../../contexts/OfflineContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)

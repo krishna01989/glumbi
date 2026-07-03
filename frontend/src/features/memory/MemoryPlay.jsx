@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { memoryApi } from '../api/client'
-import ErrorBox from '../components/ErrorBox'
-import ThemeLoader from '../components/ThemeLoader'
-import QuotaBanner from '../components/QuotaBanner'
-import { useOffline } from '../contexts/OfflineContext'
+import { memoryApi } from '../../api/client'
+import ErrorBox from '../../components/ErrorBox'
+import ThemeLoader from '../../components/ThemeLoader'
+import QuotaBanner from '../../components/QuotaBanner'
+import { useOffline } from '../../contexts/OfflineContext'
 
 const TABS = [
   { key: 'flashcards', label: '📇 Flashcards' },

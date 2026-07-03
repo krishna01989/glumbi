@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { learnApi } from '../api/client'
-import QuotaBanner from '../components/QuotaBanner'
-import ThemeLoader from '../components/ThemeLoader'
-import { useOffline } from '../contexts/OfflineContext'
+import { learnApi } from '../../api/client'
+import QuotaBanner from '../../components/QuotaBanner'
+import ThemeLoader from '../../components/ThemeLoader'
+import { useOffline } from '../../contexts/OfflineContext'
 
 // ── Tamil data ─────────────────────────────────────────────────────────────────
 

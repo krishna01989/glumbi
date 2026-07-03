@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from 'react'
-import { drawApi } from '../api/client'
-import QuotaBanner from '../components/QuotaBanner'
-import { useOffline } from '../contexts/OfflineContext'
-import ThemeLoader from '../components/ThemeLoader'
+import { drawApi } from '../../api/client'
+import QuotaBanner from '../../components/QuotaBanner'
+import { useOffline } from '../../contexts/OfflineContext'
+import ThemeLoader from '../../components/ThemeLoader'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 640)

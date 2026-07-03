@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { curiosityApi } from '../api/client'
-import ErrorBox from '../components/ErrorBox'
-import ThemeLoader from '../components/ThemeLoader'
-import QuotaBanner from '../components/QuotaBanner'
-import { useOffline } from '../contexts/OfflineContext'
+import { curiosityApi } from '../../api/client'
+import ErrorBox from '../../components/ErrorBox'
+import ThemeLoader from '../../components/ThemeLoader'
+import QuotaBanner from '../../components/QuotaBanner'
+import { useOffline } from '../../contexts/OfflineContext'
 
 const SAMPLE_QUESTIONS = [
   'Why is the sky blue?', 'Why do stars shine?', 'Why do we dream?',

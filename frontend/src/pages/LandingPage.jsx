@@ -226,6 +226,10 @@ export default function LandingPage() {
               a: 'Absolutely. Every piece of AI-generated content passes a multi-layer Safety Guard before it reaches your child. Anything flagged as inappropriate is silently discarded and never shown. Glumbi was built by a parent, for parents.',
             },
             {
+              q: 'Can I lock the app before handing the device to my child?',
+              a: 'Yes — Glumbi has a built-in Parental Lock. Set a 4-digit PIN and an optional time limit (15 min, 30 min, or 1 hour) before opening your child\'s profile. While locked, the child cannot switch profiles or access parent settings. When time runs out, a friendly screen appears and requires your PIN to continue.',
+            },
+            {
               q: 'Can I add more than one child?',
               a: 'Yes — you can add up to 3 children under one account, each with their own profile, theme, interests, and learning history. Switch between children from the sidebar in seconds.',
             },

@@ -173,6 +173,40 @@ const SECTIONS = [
     ],
   },
   {
+    emoji: '🔐',
+    title: 'Parental Lock',
+    items: [
+      {
+        q: 'What is the Parental Lock?',
+        a: 'Parental Lock lets you set a 4-digit PIN on any child\'s profile before handing the device over. Once locked, the child can only use Glumbi — they cannot go back to the child list, switch profiles, or access parent settings. The lock expires automatically when the session ends.',
+      },
+      {
+        q: 'How do I set a lock before handing the device to my child?',
+        a: 'On the child list page, tap the 🔒 lock icon on the child\'s card. Choose an optional time limit (15 min, 30 min, 1 hour, or unlimited), enter and confirm a 4-digit PIN, then tap "Lock & Open". The app opens in locked mode immediately.',
+      },
+      {
+        q: 'What happens when the time limit runs out?',
+        a: 'A friendly screen appears telling the child that time is up. They can tap "Snooze" to ask for a little more time (up to twice), or the parent can unlock by entering their PIN. No content is lost — everything is saved automatically.',
+      },
+      {
+        q: 'How do I unlock the session?',
+        a: 'Tap the 🔒 lock icon in the top-right corner of the child\'s screen at any time. Enter your 4-digit PIN and the app returns to the child list where you can switch profiles or adjust settings.',
+      },
+      {
+        q: 'What if I forget my PIN?',
+        a: 'Close and reopen the browser tab — the lock is session-based and will be cleared. You can then enter the child\'s profile and set a new lock. For security, we do not store PINs on our servers.',
+      },
+      {
+        q: 'Will the child be shown a lock reminder if I forget to set one?',
+        a: 'Yes. If you open a child\'s profile without setting a lock, a friendly reminder appears suggesting you might want to lock it before handing the device to your child. You can proceed without locking if you prefer.',
+      },
+      {
+        q: 'Can the child snooze the time limit on their own?',
+        a: 'Yes, up to 2 snoozes per session. After 2 snoozes the session ends and the PIN is required to continue. This gives children a little grace while still keeping parents in control.',
+      },
+    ],
+  },
+  {
     emoji: '🔒',
     title: 'Safety & Privacy',
     items: [

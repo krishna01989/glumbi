@@ -236,7 +236,7 @@ export default function Stories({ child, quota }) {
       flexDirection: isMobile ? 'column' : undefined,
       gridTemplateColumns: isMobile ? undefined : '320px 1fr',
       gap: isMobile ? 16 : 24,
-      height: isMobile ? 'auto' : 'calc(100vh - 116px)',
+      height: isMobile ? 'auto' : '100%',
     }}>
       {/* Mobile back button */}
       {isMobile && selected && (
@@ -247,7 +247,7 @@ export default function Stories({ child, quota }) {
       )}
 
       {/* ── Sidebar ── */}
-      <div style={{ display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', padding: '4px 6px 4px 2px', margin: '0 -6px 0 -2px' }}>
+      <div style={{ display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', minHeight: 0, padding: '4px 6px 4px 2px', margin: '0 -6px 0 -2px' }}>
 
         {/* Generator card */}
         <QuotaBanner quota={quota} />
@@ -459,14 +459,10 @@ export default function Stories({ child, quota }) {
           </div>
         </div>
       ) : (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 16, color: 'var(--muted)',
-          background: 'white', borderRadius: 20, boxShadow: 'var(--shadow)',
-        }}>
-          <div style={{ fontSize: 72 }}>📚</div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: '#ccc' }}>Pick a story to read!</div>
-          <div style={{ fontSize: 13 }}>or generate a brand new one ✨</div>
+        <div style={{ textAlign: 'center', padding: '80px 20px', color: '#ccc' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>📚</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Pick a story to read!</div>
+          <div style={{ fontSize: 14 }}>or generate a brand new one ✨</div>
         </div>
       )}
     </div>

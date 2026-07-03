@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { storyApi, journalApi, activityApi, curiosityApi, readQuizApi, writingApi, memoryApi } from '../../api/client'
+import { timelineApi } from '../../api/client'
 
 const TYPE_META = {
   story:      { label: '📖 Story',        dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },
@@ -14,7 +14,7 @@ const TYPE_META = {
   memorymatch:{ label: '🎴 Memory Match', dot: '#ec4899', textColor: '#db2777',  feature: 'memory' },
 }
 
-const PAGE_SIZE = 25
+const PAGE_SIZE = 15
 
 const DATE_PRESETS = [
   { key: 'all',       label: '🌈 All time' },
@@ -29,18 +29,12 @@ function presetToRange(key) {
   const now = new Date()
   const y = now.getFullYear(), m = now.getMonth()
   switch (key) {
-    case 'week':
-      return { from: new Date(now - 7 * 86400000), to: now }
-    case 'thisMonth':
-      return { from: new Date(y, m, 1), to: now }
-    case 'lastMonth':
-      return { from: new Date(y, m - 1, 1), to: new Date(y, m, 0, 23, 59, 59) }
-    case 'thisYear':
-      return { from: new Date(y, 0, 1), to: now }
-    case 'lastYear':
-      return { from: new Date(y - 1, 0, 1), to: new Date(y - 1, 11, 31, 23, 59, 59) }
-    default:
-      return { from: null, to: null }
+    case 'week':      return { from: new Date(now - 7 * 86400000), to: now }
+    case 'thisMonth': return { from: new Date(y, m, 1),            to: now }
+    case 'lastMonth': return { from: new Date(y, m - 1, 1),        to: new Date(y, m, 0, 23, 59, 59) }
+    case 'thisYear':  return { from: new Date(y, 0, 1),            to: now }
+    case 'lastYear':  return { from: new Date(y - 1, 0, 1),        to: new Date(y - 1, 11, 31, 23, 59, 59) }
+    default:          return { from: null, to: null }
   }
 }
 
@@ -52,11 +46,13 @@ function enabledFeatureSet(child) {
 }
 
 export default function Timeline({ child }) {
-  const [items, setItems]       = useState([])
-  const [loading, setLoading]   = useState(false)
+  const [items, setItems]           = useState([])
+  const [loading, setLoading]       = useState(false)
+  const [page, setPage]             = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
   const [typeFilter, setTypeFilter] = useState('all')
   const [datePreset, setDatePreset] = useState('all')
-  const [visible, setVisible]   = useState(PAGE_SIZE)
 
   const enabled = enabledFeatureSet(child)
   const visibleTypes = Object.entries(TYPE_META)
@@ -64,45 +60,31 @@ export default function Timeline({ child }) {
     .map(([type]) => type)
 
   useEffect(() => {
-    setVisible(PAGE_SIZE)
-    loadAll()
-  }, [child.id, datePreset])
+    setPage(0)
+    setItems([])
+  }, [child.id, datePreset, typeFilter])
 
-  async function loadAll() {
+  useEffect(() => {
+    load(page)
+  }, [child.id, page, datePreset, typeFilter])
+
+  async function load(p) {
     setLoading(true)
     const { from, to } = presetToRange(datePreset)
-    const params = { from: toIso(from), to: toIso(to) }
-
-    const fetches = []
-    if (!enabled || enabled.has('stories'))    fetches.push(storyApi.getByChild(child.id, params).then(r => r.map(s => ({ ...s, type: 'story' }))))
-    if (!enabled || enabled.has('journal'))    fetches.push(journalApi.getByChild(child.id, params).then(r => r.map(j => ({ ...j, type: 'journal' }))))
-    if (!enabled || enabled.has('activities') || enabled.has('learn')) fetches.push(activityApi.getByChild(child.id, { ...params, includeLearn: true }).then(r => r.filter(a => {
-        if (a.category === 'learn') return !enabled || enabled.has('learn')
-        return !enabled || enabled.has('activities')
-      }).map(a => ({ ...a, type: a.category === 'learn' ? 'learn' : 'activity' }))))
-
-    if (!enabled || enabled.has('curiosity'))  fetches.push(curiosityApi.getByChild(child.id, params).then(r => r.map(c => ({ ...c, type: 'curiosity' }))))
-    if (!enabled || enabled.has('readquiz'))   fetches.push(readQuizApi.getByChild(child.id, params).then(r => r.map(q => ({ ...q, type: 'readquiz' }))))
-    if (!enabled || enabled.has('mywriting'))  fetches.push(writingApi.getByChild(child.id, params).then(r => r.map(w => ({ ...w, type: 'writing' }))))
-    if (!enabled || enabled.has('memory')) {
-      fetches.push(memoryApi.getFlashcards(child.id).then(r => r.map(f => ({ ...f, type: 'flashcards', createdAt: f.createdAt }))))
-      fetches.push(memoryApi.getWordOfDayHistory(child.id).then(r => r.map(w => ({ ...w, type: 'wordofday', createdAt: w.createdAt }))))
-      fetches.push(memoryApi.getMatches(child.id).then(r => r.map(m => ({ ...m, type: 'memorymatch', createdAt: m.createdAt }))))
+    try {
+      const data = await timelineApi.getPage(child.id, p, PAGE_SIZE, toIso(from), toIso(to))
+      const filtered = typeFilter === 'all'
+        ? data.items
+        : data.items.filter(i => i.type === typeFilter)
+      setItems(prev => p === 0 ? filtered : [...prev, ...filtered])
+      setTotalPages(data.totalPages)
+      setTotalItems(data.totalItems)
+    } finally {
+      setLoading(false)
     }
-
-    const results = await Promise.allSettled(fetches)
-    const merged = results
-      .flatMap(r => r.status === 'fulfilled' ? r.value : [])
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    setItems(merged)
-    setLoading(false)
   }
 
-  const activeType = typeFilter === 'all' || visibleTypes.includes(typeFilter) ? typeFilter : 'all'
-  const filtered = activeType === 'all' ? items : items.filter(i => i.type === activeType)
-  const paged    = filtered.slice(0, visible)
-
-  const grouped = paged.reduce((acc, item) => {
+  const grouped = items.reduce((acc, item) => {
     const key = new Date(item.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     if (!acc[key]) acc[key] = []
     acc[key].push(item)
@@ -140,11 +122,11 @@ export default function Timeline({ child }) {
             <span style={{ fontSize: 24 }}>{item.emoji}</span>
             <span style={{ fontWeight: 700 }}>{item.title}</span>
           </div>
-          {item.description && <p style={{ color: '#888', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{item.description}</p>}
+          {item.content && <p style={{ color: '#888', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{item.content}</p>}
         </>
       case 'curiosity':
         return <>
-          <div style={{ fontWeight: 700, color: '#8e44ad', marginBottom: 4 }}>{item.sticker} {item.question}</div>
+          <div style={{ fontWeight: 700, color: '#8e44ad', marginBottom: 4 }}>{item.sticker} {item.title}</div>
           <p style={{ color: '#888', fontSize: 13, lineHeight: 1.6 }}>{item.funFact1?.slice(0, 120)}…</p>
         </>
       case 'readquiz':
@@ -174,23 +156,19 @@ export default function Timeline({ child }) {
         </>
       case 'flashcards':
         return <>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>📇 {item.topic}</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-            {(() => { try { return JSON.parse(item.cards).length } catch { return 0 } })()} cards generated
-          </div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>📇 {item.title}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Flashcard set</div>
         </>
       case 'wordofday':
         return <>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>{item.emoji} {item.word}</div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{item.emoji} {item.title}</div>
           <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>{item.meaning}</div>
           {item.exampleSentence && <div style={{ fontSize: 12, color: '#888', marginTop: 4, fontStyle: 'italic' }}>"{item.exampleSentence}"</div>}
         </>
       case 'memorymatch':
         return <>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>🎴 {item.theme}</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-            {(() => { try { return JSON.parse(item.pairs).length } catch { return 0 } })()} pairs to match
-          </div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>🎴 {item.title}</div>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Memory match game</div>
         </>
       default: return null
     }
@@ -217,29 +195,29 @@ export default function Timeline({ child }) {
       {/* Type filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         {['all', ...visibleTypes].map(f => (
-          <button key={f} onClick={() => { setTypeFilter(f); setVisible(PAGE_SIZE) }}
+          <button key={f} onClick={() => setTypeFilter(f)}
             style={{
               padding: '6px 16px', borderRadius: 50, fontSize: 13, fontWeight: 700,
               border: 'none', cursor: 'pointer',
-              background: activeType === f ? 'var(--primary)' : '#f0ebe6',
-              color: activeType === f ? 'white' : '#777',
+              background: typeFilter === f ? 'var(--primary)' : '#f0ebe6',
+              color: typeFilter === f ? 'white' : '#777',
             }}>
             {f === 'all' ? '🌈 All' : TYPE_META[f].label}
           </button>
         ))}
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--muted)', alignSelf: 'center' }}>
-          {loading ? '…' : `${filtered.length} moments`}
+          {loading && page === 0 ? '…' : `${totalItems} moments`}
         </span>
       </div>
 
-      {loading && (
+      {loading && page === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
           <div style={{ fontWeight: 700 }}>Loading your moments…</div>
         </div>
       )}
 
-      {!loading && Object.keys(grouped).length === 0 && (
+      {!loading && items.length === 0 && (
         <div style={{ textAlign: 'center', color: 'var(--muted)', padding: 60 }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🌈</div>
           <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>Nothing here yet!</div>
@@ -251,7 +229,7 @@ export default function Timeline({ child }) {
         </div>
       )}
 
-      {!loading && Object.entries(grouped).map(([month, monthItems]) => (
+      {Object.entries(grouped).map(([month, monthItems]) => (
         <div key={month} style={{ marginBottom: 36 }}>
           <h3 style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>
             {month} · {monthItems.length} moments
@@ -282,19 +260,25 @@ export default function Timeline({ child }) {
       ))}
 
       {/* Load more */}
-      {!loading && filtered.length > visible && (
+      {!loading && page + 1 < totalPages && (
         <div style={{ textAlign: 'center', paddingBottom: 32 }}>
-          <button onClick={() => setVisible(v => v + PAGE_SIZE)}
+          <button onClick={() => setPage(p => p + 1)}
             style={{
               padding: '12px 32px', borderRadius: 50, fontWeight: 800, fontSize: 14,
               background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
             }}>
-            Load {Math.min(PAGE_SIZE, filtered.length - visible)} more moments
+            Load more moments
           </button>
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
-            Showing {visible} of {filtered.length}
+            Showing {items.length} of {totalItems}
           </div>
+        </div>
+      )}
+
+      {loading && page > 0 && (
+        <div style={{ textAlign: 'center', padding: 24, color: 'var(--muted)', fontWeight: 700 }}>
+          Loading…
         </div>
       )}
     </div>

@@ -172,6 +172,11 @@ export const memoryApi = {
   deleteMatch: (id) => api.delete(`/memory/match/${id}`),
 }
 
+export const timelineApi = {
+  getPage: (childId, page, size, from, to) =>
+    api.get(`/timeline/${childId}`, { params: { page, size, from, to } }).then(r => r.data),
+}
+
 export const adminApi = {
   getStats:          (range = '7d') => api.get('/admin/stats', { params: { range } }).then(r => r.data),
   getUsers:          ()             => api.get('/admin/users').then(r => r.data),

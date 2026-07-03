@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { memoryApi } from '../../api/client'
+import { memoryApi, learnApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import QuotaBanner from '../../components/QuotaBanner'
@@ -121,8 +121,8 @@ function FlashcardsTab({ child, quota }) {
       <form onSubmit={handleGenerate} className="card"
         style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 32 }}>📇</span>
-          <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>Generate Flashcards for {child.name}</h3>
+          <span style={{ fontSize: 28, flexShrink: 0 }}>📇</span>
+          <h3 style={{ fontSize: 16, color: 'var(--primary)', margin: 0 }}>Generate Flashcards for {child.name}</h3>
         </div>
         <input placeholder="Enter a topic… e.g. Solar System, Animals, Colors"
           value={topic} onChange={e => setTopic(e.target.value)} required />
@@ -182,6 +182,8 @@ function WordOfDayTab({ child }) {
   const [word, setWord] = useState(null)
   const [loading, setLoading] = useState(!offline)
   const [error, setError] = useState('')
+  const [speaking, setSpeaking] = useState(false)
+  const audioRef = useRef(null)
 
   useEffect(() => {
     if (offline) return
@@ -212,16 +214,28 @@ function WordOfDayTab({ child }) {
 
   const isMobile = window.innerWidth < 768
 
+  function playWord() {
+    if (speaking || offline) return
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
+    setSpeaking(true)
+    const audio = new Audio(learnApi.audioUrl(word.word, 'en-US'))
+    audioRef.current = audio
+    audio.onended = () => setSpeaking(false)
+    audio.onerror = () => setSpeaking(false)
+    audio.play().catch(() => setSpeaking(false))
+  }
+
   return (
-    <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary-lt), white)', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', textAlign: 'center', padding: isMobile ? '24px 20px' : 40 }}>
         <div style={{ fontSize: isMobile ? 56 : 80 }}>{word.emoji}</div>
         <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 28 : 40, fontWeight: 900, color: 'var(--primary)' }}>
           {word.word}
         </div>
-        <div style={{ background: 'rgba(0,0,0,0.06)', borderRadius: 50, padding: '5px 14px', fontSize: 13, fontWeight: 700, color: '#666', letterSpacing: 0.5 }}>
-          🔉 {word.pronunciation}
-        </div>
+        <button onClick={playWord} disabled={speaking || offline}
+          style={{ background: speaking ? 'var(--primary)' : 'rgba(0,0,0,0.06)', borderRadius: 50, padding: '7px 18px', fontSize: 13, fontWeight: 700, color: speaking ? 'white' : '#666', letterSpacing: 0.5, border: 'none', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}>
+          {speaking ? <><span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> Playing…</> : <>🔊 {word.pronunciation}</>}
+        </button>
         <div style={{ fontSize: isMobile ? 14 : 16, color: '#444', lineHeight: 1.7, fontWeight: 600 }}>{word.meaning}</div>
         <div style={{ background: 'var(--primary-lt)', borderRadius: 14, padding: '12px 16px', fontSize: isMobile ? 13 : 15, color: '#333', lineHeight: 1.7, width: '100%', textAlign: 'left', boxSizing: 'border-box' }}>
           <span style={{ fontWeight: 800, color: 'var(--primary)' }}>Example: </span>
@@ -413,8 +427,8 @@ function MemoryMatchTab({ child, quota }) {
       <form onSubmit={handleGenerate} className="card"
         style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 32 }}>🎴</span>
-          <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>Memory Match for {child.name}</h3>
+          <span style={{ fontSize: 28, flexShrink: 0 }}>🎴</span>
+          <h3 style={{ fontSize: 16, color: 'var(--primary)', margin: 0 }}>Memory Match for {child.name}</h3>
         </div>
         <input placeholder="Enter a theme… e.g. Animals, Space, Food"
           value={theme} onChange={e => setTheme(e.target.value)} required />
@@ -482,30 +496,33 @@ export default function MemoryPlay({ child, quota }) {
     ? searchParams.get('tab')
     : 'flashcards'
 
+  const isMobile = window.innerWidth < 600
+
   function selectTab(key) {
     setSearchParams({ tab: key }, { replace: true })
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', padding: isMobile ? '0 12px' : '0 24px', display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24, boxSizing: 'border-box' }}>
       <QuotaBanner quota={quota} />
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <span style={{ fontSize: 48 }}>🧠</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: isMobile ? 32 : 48, flexShrink: 0 }}>🧠</span>
         <div>
-          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, fontWeight: 900, color: 'var(--primary)', margin: 0 }}>Memory Play</h2>
-          <div style={{ fontSize: 14, color: '#888', marginTop: 2 }}>Flashcards · Word of the Day · Memory Match</div>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 20 : 26, fontWeight: 900, color: 'var(--primary)', margin: 0 }}>Memory Play</h2>
+          <div style={{ fontSize: isMobile ? 12 : 14, color: '#888', marginTop: 2 }}>Flashcards · Word of the Day · Memory Match</div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, background: '#f5f5f5', padding: 6, borderRadius: 14 }}>
+      <div style={{ display: 'flex', gap: isMobile ? 6 : 10, background: '#f5f5f5', padding: isMobile ? 6 : 8, borderRadius: 16 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => selectTab(t.key)}
             style={{
-              flex: 1, padding: '10px 8px', borderRadius: 10, border: 'none',
-              fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              flex: 1, padding: isMobile ? '10px 6px' : '12px 16px', borderRadius: 12, border: 'none',
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 12 : 14, fontWeight: 700, cursor: 'pointer',
               background: tab === t.key ? 'white' : 'transparent',
               color: tab === t.key ? 'var(--primary)' : '#888',
               boxShadow: tab === t.key ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
@@ -517,9 +534,11 @@ export default function MemoryPlay({ child, quota }) {
       </div>
 
       {/* Tab content */}
-      {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} />}
-      {tab === 'wordofday'  && <WordOfDayTab  child={child} />}
-      {tab === 'match'      && <MemoryMatchTab child={child} quota={quota} />}
+      <div style={{ flex: 1, minHeight: 400 }}>
+        {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} />}
+        {tab === 'wordofday'  && <WordOfDayTab  child={child} />}
+        {tab === 'match'      && <MemoryMatchTab child={child} quota={quota} />}
+      </div>
     </div>
   )
 }

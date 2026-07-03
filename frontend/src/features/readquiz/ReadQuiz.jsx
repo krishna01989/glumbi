@@ -117,7 +117,7 @@ export default function ReadQuiz({ child, quota }) {
       )}
 
       {/* ── Left panel ── */}
-      <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 16, marginBottom: isMobile ? 16 : 0 }}>
+      <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column', gap: 16, marginBottom: isMobile ? 16 : 0, overflowY: isMobile ? undefined : 'auto', minHeight: 0 }}>
 
         <QuotaBanner quota={quota} />
         {/* Generate form */}
@@ -162,7 +162,7 @@ export default function ReadQuiz({ child, quota }) {
 
         {/* History */}
         {entries.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>History</div>
             {entries.map(e => {
               const scoreColor = e.score === 3 ? '#27ae60' : e.score >= 2 ? '#f39c12' : '#e74c3c'
@@ -214,7 +214,7 @@ export default function ReadQuiz({ child, quota }) {
       </div>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {loading ? (
           <ThemeLoader theme={child.theme} label="Crafting your story & questions…" />
         ) : !selected ? (

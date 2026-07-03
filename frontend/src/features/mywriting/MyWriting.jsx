@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { writingApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ConfirmDialog from '../../components/ConfirmDialog'
-import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
 import ThemeLoader from '../../components/ThemeLoader'
 
@@ -158,7 +157,6 @@ export default function MyWriting({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
-      <QuotaBanner quota={quota} />
 
       {/* Mobile top bar */}
       {isMobile && (
@@ -178,7 +176,7 @@ export default function MyWriting({ child, quota }) {
       )}
 
       {/* ── Left panel ── */}
-      <div style={{ width: isMobile ? '100%' : 280, flexShrink: 0, display: isMobile && showingContent ? 'none' : 'flex', flexDirection: 'column', gap: 12, marginBottom: isMobile ? 16 : 0 }}>
+      <div style={{ width: isMobile ? '100%' : 280, flexShrink: 0, display: isMobile && showingContent ? 'none' : 'flex', flexDirection: 'column', gap: 12, marginBottom: isMobile ? 16 : 0, overflowY: isMobile ? undefined : 'auto', minHeight: 0 }}>
         {!isMobile && (
           <button onClick={startNew}
             style={{
@@ -197,7 +195,9 @@ export default function MyWriting({ child, quota }) {
           </div>
         )}
 
-        {entries.length > 0 && <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Stories</div>}
+        {entries.length > 0 && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Stories</div>
         {entries.map(e => (
           <div key={e.id} onClick={() => openEntry(e)}
             style={{
@@ -226,10 +226,11 @@ export default function MyWriting({ child, quota }) {
             </div>
           </div>
         ))}
+        </div>)}
       </div>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
         {/* Editor */}
         {editing && (

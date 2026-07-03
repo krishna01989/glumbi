@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { childApi, userApi } from '../api/client'
 import { THEMES } from '../themes'
+import QuotaBadge from '../components/QuotaBadge'
 
 function calcAge(birthYear) {
   return !birthYear ? null : new Date().getFullYear() - parseInt(birthYear)
 }
 
 
-export default function ChildList({ onChildSelected, onLogout, onChildSelectedLocked, onToggleOffline }) {
+export default function ChildList({ onChildSelected, onLogout, onChildSelectedLocked, onToggleOffline, quota, featureConfig }) {
   const [children, setChildren] = useState([])
   const [loading, setLoading]   = useState(true)
   const [offlineModes, setOfflineModes] = useState({})
@@ -48,6 +49,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
   )
 
   return (
+    <>
     <div style={{ maxWidth: 480, margin: '48px auto', padding: '0 20px' }}>
 
       {children.length === 0 ? (
@@ -61,7 +63,10 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
         </div>
       ) : (
         <div>
-          <h2 style={{ fontSize: 16, color: '#888', marginBottom: 12 }}>Choose a child</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 16, color: '#888', margin: 0 }}>Choose a child</h2>
+            {quota && <QuotaBadge quota={quota} featureConfig={featureConfig || []} />}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {children.map(c => {
               const t = THEMES[c.theme] || THEMES.coral
@@ -73,9 +78,9 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
                 {/* Main row */}
                 <div className="card" onClick={() => setPendingChild(c)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', padding: 0, margin: 0, boxShadow: 'none', border: 'none', borderRadius: 0 }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: 0, margin: 0, boxShadow: 'none', border: 'none', borderRadius: 0 }}>
                   <div style={{ width: 6, alignSelf: 'stretch', background: t.headerGrad, flexShrink: 0 }} />
-                  <span style={{ fontSize: 36, padding: '14px 0 14px 8px' }}>{c.avatarEmoji}</span>
+                  <span style={{ fontSize: 32, padding: '12px 0 12px 6px', flexShrink: 0 }}>{c.avatarEmoji}</span>
                   <div style={{ flex: 1, padding: '14px 0' }}>
                     <div style={{ fontWeight: 800, fontSize: 18, color: t.primary }}>{c.name}</div>
                     <div style={{ color: '#aaa', fontSize: 13 }}>
@@ -85,7 +90,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                   <button onClick={e => handleToggleOffline(e, c)}
                     title={offlineModes[c.id] ? 'Practice mode (AI off) — tap to enable AI' : 'AI on — tap for practice mode'}
                     style={{
-                      padding: '6px 10px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0,
+                      padding: '6px 8px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0,
                       background: offlineModes[c.id] ? '#f5f5f5' : '#f0fff4',
                       color:      offlineModes[c.id] ? '#999'    : '#27ae60',
                     }}>
@@ -93,17 +98,17 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                   </button>
                   <button onClick={e => { e.stopPropagation(); onChildSelectedLocked(c) }}
                     title="Hand to child (locked)"
-                    style={{ background: t.primaryLt, color: t.primary, padding: '6px 12px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>
+                    style={{ background: t.primaryLt, color: t.primary, padding: '6px 8px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>
                     🔒
                   </button>
                   <button onClick={e => { e.stopPropagation(); navigate(`/child/${c.id}/edit`) }}
-                    style={{ background: '#f0ebe6', color: '#888', padding: '6px 12px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+                    style={{ background: '#f0ebe6', color: '#888', padding: '6px 8px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', flexShrink: 0 }}>
                     ✏️
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); setExpandedChild(expanded ? null : c.id) }}
                     title="Credit usage"
-                    style={{ background: expanded ? t.primaryLt : 'transparent', color: expanded ? t.primary : '#bbb', padding: '6px 10px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', flexShrink: 0, marginRight: 10, fontWeight: 700 }}>
+                    style={{ background: expanded ? t.primaryLt : 'transparent', color: expanded ? t.primary : '#bbb', padding: '6px 8px', fontSize: 13, borderRadius: 8, border: 'none', cursor: 'pointer', flexShrink: 0, marginRight: 6, fontWeight: 700 }}>
                     📊
                   </button>
                 </div>
@@ -149,63 +154,66 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
         </div>
       )}
 
-      {/* Unlocked-access reminder */}
-      {pendingChild && (() => {
-        const pt = THEMES[pendingChild.theme] || THEMES.coral
-        return (
+    </div>
+
+    {/* Unlocked-access reminder — outside the maxWidth container so fixed positioning works on mobile */}
+    {pendingChild && (() => {
+      const pt = THEMES[pendingChild.theme] || THEMES.coral
+      return (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.45)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 2000, padding: 16,
+        }}>
           <div style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 2000, padding: 20,
+            background: 'white', borderRadius: 20, padding: '28px 24px',
+            maxWidth: 380, width: '100%', textAlign: 'center',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
+            position: 'relative', boxSizing: 'border-box',
           }}>
-            <div style={{
-              background: 'white', borderRadius: 20, padding: '28px 24px',
-              maxWidth: 360, width: '100%', textAlign: 'center',
-              boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
-              position: 'relative',
-            }}>
-              <button onClick={() => setPendingChild(null)}
+            <button onClick={() => setPendingChild(null)}
+              style={{
+                position: 'absolute', top: 14, right: 14,
+                width: 30, height: 30, borderRadius: '50%',
+                border: '1.5px solid #eee', background: '#f9f9f9',
+                fontSize: 14, color: '#aaa', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: 1,
+              }}>✕</button>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>🔓</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: pt.primary, marginBottom: 8, fontFamily: 'Nunito, sans-serif' }}>
+              Opening without child lock
+            </div>
+            <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 20, fontFamily: 'Nunito, sans-serif', wordBreak: 'break-word' }}>
+              <strong>{pendingChild.name}</strong>'s profile will open in <strong>parent mode</strong> — all features visible, no restrictions.
+              <br /><br />
+              If you're handing the device to {pendingChild.name}, use the <strong>🔒 lock button</strong> instead so they stay in a safe, focused experience.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => { onChildSelectedLocked(pendingChild); setPendingChild(null) }}
                 style={{
-                  position: 'absolute', top: 14, right: 14,
-                  width: 30, height: 30, borderRadius: '50%',
-                  border: '1.5px solid #eee', background: '#f9f9f9',
-                  fontSize: 14, color: '#aaa', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  lineHeight: 1,
-                }}>✕</button>
-              <div style={{ fontSize: 48, marginBottom: 10 }}>🔓</div>
-              <div style={{ fontWeight: 800, fontSize: 17, color: pt.primary, marginBottom: 8, fontFamily: 'Nunito, sans-serif' }}>
-                Opening without child lock
-              </div>
-              <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 20, fontFamily: 'Nunito, sans-serif' }}>
-                <strong>{pendingChild.name}</strong>'s profile will open in <strong>parent mode</strong> — all features visible, no restrictions.
-                <br /><br />
-                If you're handing the device to {pendingChild.name}, use the <strong>🔒 lock button</strong> instead so they stay in a safe, focused experience.
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button
-                  onClick={() => { onChildSelectedLocked(pendingChild); setPendingChild(null) }}
-                  style={{
-                    background: pt.headerGrad, color: 'white',
-                    border: 'none', borderRadius: 50, padding: '12px 20px',
-                    fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
-                  }}>
-                  🔒 Lock & hand to {pendingChild.name}
-                </button>
-                <button
-                  onClick={() => { onChildSelected(pendingChild); setPendingChild(null) }}
-                  style={{
-                    background: pt.primaryLt, color: pt.primary,
-                    border: 'none', borderRadius: 50, padding: '12px 20px',
-                    fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
-                  }}>
-                  Continue in parent mode
-                </button>
-              </div>
+                  background: pt.headerGrad, color: 'white',
+                  border: 'none', borderRadius: 50, padding: '12px 20px',
+                  fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
+                }}>
+                🔒 Lock & hand to {pendingChild.name}
+              </button>
+              <button
+                onClick={() => { onChildSelected(pendingChild); setPendingChild(null) }}
+                style={{
+                  background: pt.primaryLt, color: pt.primary,
+                  border: 'none', borderRadius: 50, padding: '12px 20px',
+                  fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
+                }}>
+                Continue in parent mode
+              </button>
             </div>
           </div>
-        )
-      })()}
-    </div>
+        </div>
+      )
+    })()}
+    </>
   )
 }

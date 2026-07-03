@@ -19,11 +19,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/learn")
 @RequiredArgsConstructor
 public class LearnController {
+
+    private final ConcurrentHashMap<String, byte[]> audioCache = new ConcurrentHashMap<>();
 
     private final AnthropicClient anthropicClient;
     private final TextToSpeechService ttsService;
@@ -237,13 +240,16 @@ public class LearnController {
             @RequestParam String text,
             @RequestParam(defaultValue = "english") String language) {
         try {
-            // Map script names to TTS language codes
             String lang = switch (language.toLowerCase()) {
                 case "tamil"   -> "tamil";
                 case "hindi"   -> "hindi";
                 default        -> "english";
             };
-            byte[] audio = ttsService.synthesize(text, lang);
+            String cacheKey = text.toLowerCase().trim() + ":" + lang;
+            byte[] audio = audioCache.computeIfAbsent(cacheKey, k -> {
+                try { return ttsService.synthesize(text, lang); }
+                catch (Exception e) { throw new RuntimeException(e); }
+            });
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
                     .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")

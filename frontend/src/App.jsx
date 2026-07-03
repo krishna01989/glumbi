@@ -47,7 +47,7 @@ const ALL_NAV = [
   { path: 'draw',       label: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
   { path: 'readquiz',   label: 'Read & Quiz',emoji: '📚', id: 'tour-readquiz-tab' },
   { path: 'mywriting',  label: 'My Writing', emoji: '✍️', id: 'tour-writing-tab'  },
-  { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab' },
+  { path: 'memory',     label: 'Memory Play', emoji: '🧠', id: 'tour-memory-tab' },
   { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
   { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
 ]
@@ -226,7 +226,7 @@ export default function App() {
   const [restoring, setRestoring] = useState(
     () => !!getStoredToken() && (
       /^\/child\/\d+\//.test(window.location.pathname) ||
-      (sessionStorage.getItem('glm_child_locked') === '1' && !!sessionStorage.getItem('glm_locked_child_id'))
+      (localStorage.getItem('glm_child_locked') === '1' && !!localStorage.getItem('glm_locked_child_id'))
     )
   )
   const [collapsed, setCollapsed] = useState(false)
@@ -242,7 +242,7 @@ export default function App() {
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
   const [snoozeCount, setSnoozeCount]           = useState(0)
   const prevChildId = useRef(null) // track whether child→null was a deliberate navigation or initial mount
-  const [childLocked, setChildLocked]           = useState(() => sessionStorage.getItem('glm_child_locked') === '1')
+  const [childLocked, setChildLocked]           = useState(() => localStorage.getItem('glm_child_locked') === '1')
   const [lockModal, setLockModal]               = useState(null)  // 'setup' | 'confirm' | 'unlock'
   const [lockPin, setLockPin]                   = useState('')
   const [lockPinError, setLockPinError]         = useState('')
@@ -307,15 +307,15 @@ export default function App() {
     if (!authed || role === 'ADMIN' || child) { setRestoring(false); return }
     // Prefer URL-based restore, fall back to locked child ID
     const urlMatch = window.location.pathname.match(/^\/child\/(\d+)\//)
-    const lockedId = sessionStorage.getItem('glm_locked_child_id')
-    const idToRestore = urlMatch?.[1] || (sessionStorage.getItem('glm_child_locked') === '1' && lockedId)
+    const lockedId = localStorage.getItem('glm_locked_child_id')
+    const idToRestore = urlMatch?.[1] || (localStorage.getItem('glm_child_locked') === '1' && lockedId)
     if (!idToRestore) { setRestoring(false); return }
     childApi.get(idToRestore)
       .then(c => {
         applyTheme(c.theme); setChild(c)
         setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
         // If restoring a locked session and not already on child route, navigate there
-        if (!urlMatch && sessionStorage.getItem('glm_child_locked') === '1') {
+        if (!urlMatch && localStorage.getItem('glm_child_locked') === '1') {
           navigate(`/child/${c.id}/stories`, { replace: true })
         }
       })
@@ -369,8 +369,8 @@ export default function App() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
     Object.keys(sessionStorage).filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_')).forEach(k => sessionStorage.removeItem(k))
-    sessionStorage.removeItem('glm_child_locked')
-    sessionStorage.removeItem('glm_locked_child_id')
+    localStorage.removeItem('glm_child_locked')
+    localStorage.removeItem('glm_locked_child_id')
     setChildLocked(false)
     navigate('/', { replace: true })
     setAuthed(false); setRole(null); setChild(null)
@@ -493,8 +493,8 @@ export default function App() {
     const activeChild = pendingLockedChild || child
     const childId = activeChild?.id
     if (childId) localStorage.setItem(`glm_lock_pin_${childId}`, lockPin)
-    sessionStorage.setItem('glm_child_locked', '1')
-    if (childId) sessionStorage.setItem('glm_locked_child_id', String(childId))
+    localStorage.setItem('glm_child_locked', '1')
+    if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
@@ -508,8 +508,8 @@ export default function App() {
     const childId = activeChild?.id
     const saved = localStorage.getItem(`glm_lock_pin_${childId}`)
     if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
-    sessionStorage.setItem('glm_child_locked', '1')
-    if (childId) sessionStorage.setItem('glm_locked_child_id', String(childId))
+    localStorage.setItem('glm_child_locked', '1')
+    if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
@@ -521,8 +521,8 @@ export default function App() {
   function handleUnlock() {
     const saved = localStorage.getItem(`glm_lock_pin_${child?.id}`)
     if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
-    sessionStorage.removeItem('glm_child_locked')
-    sessionStorage.removeItem('glm_locked_child_id')
+    localStorage.removeItem('glm_child_locked')
+    localStorage.removeItem('glm_locked_child_id')
     setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError('')
     setChild(null); navigate('/child')
   }
@@ -690,7 +690,6 @@ export default function App() {
             <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {quota && <QuotaBadge quota={quota} featureConfig={featureConfig} />}
             <button id="tour-help-btn" onClick={() => navigate('/help')}
               style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #eee', background: '#fafafa', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Help">💡</button>
@@ -707,7 +706,7 @@ export default function App() {
         </header>
         <div style={{ flex: 1 }}>
           <Routes>
-            <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} />} />
+            <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
             <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
             <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
@@ -1036,9 +1035,11 @@ export default function App() {
           flex: 1,
           padding: isMobile ? '16px 12px' : isTV ? '32px 40px' : '24px',
           overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         }}>
           <OfflineContext.Provider value={offlineMode}>
-          <div className="page-content">
+          <div className="page-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <Routes>
               <Route path="/child/:childId/stories"    element={<FeatureGuard featureName="story"         featureConfig={featureConfig}><Stories    child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/activities" element={<FeatureGuard featureName="activity"      featureConfig={featureConfig}><Activities child={child} quota={quota} /></FeatureGuard>} />

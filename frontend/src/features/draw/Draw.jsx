@@ -276,10 +276,39 @@ export default function Draw({ child, quota, featureConfig }) {
     )}
     <div style={{
       display: 'flex',
-      flexDirection: isCompact ? 'column' : 'row',
-      gap: isCompact ? 12 : 20,
-      height: isCompact ? 'auto' : 'calc(100vh - 160px)',
+      flexDirection: 'column',
+      gap: isCompact ? 12 : 16,
+      height: isCompact ? 'auto' : '100%',
     }}>
+
+      {/* ── Guide prompt (top, full width) ── */}
+      {!isCompact && guideEnabled && (
+        <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
+            borderRadius: 50, padding: '8px 16px', boxShadow: 'var(--shadow)' }}>
+            <span style={{ fontSize: 18 }}>🎨</span>
+            <input
+              value={guideInput}
+              onChange={e => setGuideInput(e.target.value)}
+              placeholder={`Hey ${child?.name || 'there'}, what do you want to draw today?`}
+              disabled={offline || quota?.used >= quota?.limit}
+              style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14,
+                fontFamily: 'Nunito, sans-serif', fontWeight: 600, background: 'transparent',
+                color: '#333' }}
+            />
+          </div>
+          <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
+            style={{ padding: '9px 20px', borderRadius: 50, border: 'none', fontWeight: 700,
+              fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
+              background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
+              color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
+            {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ AI is off' : '✨ Show me how!'}
+          </button>
+        </form>
+      )}
+
+      {/* ── Middle: toolbar + drawing area ── */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? 12 : 20, minHeight: 0 }}>
 
       {/* ── Toolbar ── */}
       <div style={toolbarStyle}>
@@ -473,10 +502,10 @@ export default function Draw({ child, quota, featureConfig }) {
       </div>
 
       {/* ── Canvas area ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
 
-        {/* Guide prompt */}
-        {guideEnabled && (
+        {/* Guide prompt — mobile only (desktop version rendered above) */}
+        {isCompact && guideEnabled && (
           <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
               borderRadius: 50, padding: '8px 16px', boxShadow: 'var(--shadow)' }}>
@@ -502,7 +531,7 @@ export default function Draw({ child, quota, featureConfig }) {
         )}
 
         <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && guide ? 'column' : 'row',
-          gap: 16, minHeight: isCompact ? 340 : undefined }}>
+          gap: 16, minHeight: isCompact ? 340 : 0 }}>
         {/* Guide panel */}
         {guide && (
           <div style={{ width: isCompact ? '100%' : 220, flexShrink: 0, background: 'white',
@@ -546,38 +575,40 @@ export default function Draw({ child, quota, featureConfig }) {
           )}
         </div>
         </div>{/* end canvas+guide row */}
+      </div>
 
-        <QuotaBanner quota={quota} />
-        {/* AI section */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          {!drawAiEnabled && (
-            <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
-              ✈️ AI drawing features are currently off
-            </div>
-          )}
-          <button onClick={handleIdentify} disabled={!drawAiEnabled || loading || isEmpty || quota?.used >= quota?.limit || offline}
-            style={{
-              display: drawAiEnabled ? undefined : 'none',
-              padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
-              background: 'linear-gradient(135deg,var(--primary),var(--accent))',
-              color: 'white', border: 'none', cursor: (isEmpty || offline) ? 'not-allowed' : 'pointer',
-              opacity: (isEmpty || offline) ? 0.5 : 1,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-              whiteSpace: 'nowrap',
-            }}>
-            {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
-          </button>
-          {aiReply && (
-            <div style={{
-              flex: 1, background: 'var(--primary-lt)',
-              borderRadius: 16, padding: '14px 20px',
-              border: '2px solid var(--primary-lt)', fontSize: 15, fontWeight: 600, color: '#444',
-              animation: 'fadeIn 0.4s ease',
-            }}>
-              {aiReply}
-            </div>
-          )}
-        </div>
+      </div>{/* end middle row */}
+
+      {/* ── AI section (below toolbar+canvas on desktop) ── */}
+      <QuotaBanner quota={quota} />
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
+        {!drawAiEnabled && (
+          <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
+            ✈️ AI drawing features are currently off
+          </div>
+        )}
+        <button onClick={handleIdentify} disabled={!drawAiEnabled || loading || isEmpty || quota?.used >= quota?.limit || offline}
+          style={{
+            display: drawAiEnabled ? undefined : 'none',
+            padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
+            background: 'linear-gradient(135deg,var(--primary),var(--accent))',
+            color: 'white', border: 'none', cursor: (isEmpty || offline) ? 'not-allowed' : 'pointer',
+            opacity: (isEmpty || offline) ? 0.5 : 1,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+            whiteSpace: 'nowrap',
+          }}>
+          {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
+        </button>
+        {aiReply && (
+          <div style={{
+            flex: 1, background: 'var(--primary-lt)',
+            borderRadius: 16, padding: '14px 20px',
+            border: '2px solid var(--primary-lt)', fontSize: 15, fontWeight: 600, color: '#444',
+            animation: 'fadeIn 0.4s ease',
+          }}>
+            {aiReply}
+          </div>
+        )}
       </div>
 
       {/* ── First-visit demo popup ── */}

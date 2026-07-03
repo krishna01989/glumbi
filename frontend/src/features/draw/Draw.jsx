@@ -3,6 +3,7 @@ import { drawApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
+import FeatureBanner from '../../components/FeatureBanner'
 
 function useBreakpoint() {
   const get = () => window.innerWidth < 640 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
@@ -280,7 +281,7 @@ export default function Draw({ child, quota, featureConfig }) {
       gap: isCompact ? 12 : 16,
       height: isCompact ? 'auto' : '100%',
     }}>
-
+      <FeatureBanner feature="draw" child={child} isMobile={isMobile} />
       {/* ── Guide prompt (top, full width) ── */}
       {!isCompact && guideEnabled && (
         <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>

@@ -3,6 +3,7 @@ import { curiosityApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import QuotaBanner from '../../components/QuotaBanner'
+import FeatureBanner from '../../components/FeatureBanner'
 import { useOffline } from '../../contexts/OfflineContext'
 
 const SAMPLE_QUESTIONS = [
@@ -147,8 +148,8 @@ export default function Curiosity({ child, quota }) {
   }
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <FeatureBanner feature="curiosity" child={child} isMobile={window.innerWidth < 1024} />
       <QuotaBanner quota={quota} />
       {/* Ask box */}
       <form className="card" onSubmit={handleAsk}

@@ -3,6 +3,7 @@ import { readQuizApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
 
@@ -106,6 +107,7 @@ export default function ReadQuiz({ child, quota }) {
       onConfirm={confirmDeleteEntry}
       onCancel={() => setConfirmDelete(null)}
     />
+    <FeatureBanner feature="readquiz" child={child} isMobile={isMobile} />
     <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
 
       {/* Mobile back button */}

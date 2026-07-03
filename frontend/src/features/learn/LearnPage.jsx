@@ -3,6 +3,7 @@ import { learnApi } from '../../api/client'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 import { useOffline } from '../../contexts/OfflineContext'
+import FeatureBanner from '../../components/FeatureBanner'
 
 // ── Tamil data ─────────────────────────────────────────────────────────────────
 
@@ -736,7 +737,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
       {/* Big letter */}
       <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif'), fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif'), fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1.2, paddingTop:8, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
           {selected.char}
         </div>
         {selected.roman && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
@@ -1098,15 +1099,10 @@ export default function LearnPage({ child, quota }) {
   }
 
   return (
-    <div style={{ fontFamily:'Nunito,sans-serif', maxWidth:860, margin:'0 auto' }}>
+    <div style={{ fontFamily:'Nunito,sans-serif' }}>
+      <FeatureBanner feature="learn" child={child} isMobile={window.innerWidth < 1024} />
       <audio ref={audioRef} />
       <QuotaBanner quota={quota} />
-
-      {/* Header */}
-      <div style={{ marginBottom:20 }}>
-        <h2 style={{ fontSize:22, color:'var(--primary)', margin:'0 0 4px' }}>Learn to Write ✏️</h2>
-        <p style={{ margin:0, fontSize:14, color:'var(--muted)' }}>Tap a letter to hear it, draw it, or practise writing words!</p>
-      </div>
 
       {/* Script + mode bar */}
       <div style={{ display:'flex', gap:8, marginBottom: isEng ? 10 : 18, flexWrap:'wrap', alignItems:'center' }}>
@@ -1185,7 +1181,7 @@ export default function LearnPage({ child, quota }) {
             </div>
 
             {/* Practice panel */}
-            <div style={{ overflow:'hidden' }}>
+            <div>
               <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota}
                 engFontFamily={isEng ? engFontFamily : null} />
             </div>

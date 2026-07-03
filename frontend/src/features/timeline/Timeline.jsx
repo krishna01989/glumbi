@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { timelineApi } from '../../api/client'
+import FeatureBanner from '../../components/FeatureBanner'
 
 const TYPE_META = {
   story:      { label: '📖 Story',        dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },
@@ -175,7 +176,8 @@ export default function Timeline({ child }) {
   }
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+    <div>
+      <FeatureBanner feature="timeline" child={child} isMobile={window.innerWidth < 1024} />
 
       {/* Date preset filter */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>

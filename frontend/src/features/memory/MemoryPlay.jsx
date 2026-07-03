@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { memoryApi, learnApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
+import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
 
@@ -503,17 +504,9 @@ export default function MemoryPlay({ child, quota }) {
   }
 
   return (
-    <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', padding: isMobile ? '0 12px' : '0 24px', display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24, boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24, boxSizing: 'border-box' }}>
+      <FeatureBanner feature="memory" child={child} isMobile={isMobile} />
       <QuotaBanner quota={quota} />
-
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: isMobile ? 32 : 48, flexShrink: 0 }}>🧠</span>
-        <div>
-          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 20 : 26, fontWeight: 900, color: 'var(--primary)', margin: 0 }}>Memory Play</h2>
-          <div style={{ fontSize: isMobile ? 12 : 14, color: '#888', marginTop: 2 }}>Flashcards · Word of the Day · Memory Match</div>
-        </div>
-      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: isMobile ? 6 : 10, background: '#f5f5f5', padding: isMobile ? 6 : 8, borderRadius: 16 }}>

@@ -3,6 +3,7 @@ import { writingApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useOffline } from '../../contexts/OfflineContext'
+import FeatureBanner from '../../components/FeatureBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 
 function useIsMobile() {
@@ -156,6 +157,7 @@ export default function MyWriting({ child, quota }) {
       onConfirm={confirmDeleteEntry}
       onCancel={() => setConfirmDelete(null)}
     />
+    <FeatureBanner feature="mywriting" child={child} isMobile={isMobile} />
     <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
 
       {/* Mobile top bar */}

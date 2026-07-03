@@ -141,4 +141,5 @@ export function applyTheme(themeKey) {
   root.style.setProperty('--primary-lt', t.primaryLt)
   root.style.setProperty('--accent',     t.accent)
   root.style.setProperty('--bg',         t.bg)
+  root.style.setProperty('--header-grad', t.headerGrad)
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { journalApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import ThemeLoader from '../../components/ThemeLoader'
+import FeatureBanner from '../../components/FeatureBanner'
 
 const MOODS = [
   { value: 'happy',   emoji: '😄', label: 'Happy',   color: '#f59e0b', bg: '#fffbeb' },
@@ -70,8 +71,8 @@ export default function Journal({ child, featureConfig }) {
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
-
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <FeatureBanner feature="journal" child={child} isMobile={window.innerWidth < 1024} />
       {aiLoading && <ThemeLoader theme={child.theme} />}
 
       {/* Compose area */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { storyApi } from '../../api/client'
 import ThemeLoader from '../../components/ThemeLoader'
+import FeatureBanner from '../../components/FeatureBanner'
 import AudioPlayer from '../../components/AudioPlayer'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ErrorBox from '../../components/ErrorBox'
@@ -231,6 +232,7 @@ export default function Stories({ child, quota }) {
       onConfirm={confirmDeleteStory}
       onCancel={() => setConfirmDelete(null)}
     />
+    <FeatureBanner feature="stories" child={child} isMobile={isMobile} />
     <div style={{
       display: isMobile ? 'flex' : 'grid',
       flexDirection: isMobile ? 'column' : undefined,

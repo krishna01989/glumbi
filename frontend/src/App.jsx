@@ -286,8 +286,13 @@ export default function App() {
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
   const [sessionMinutes, setSessionMinutes]     = useState(0)
-  const [screenTimeAlert, setScreenTimeAlert]   = useState(false) // modal visible
-  const [snoozedUntil, setSnoozedUntil]         = useState(null)  // Date when snooze expires
+  const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
+  const [snoozedUntil, setSnoozedUntil]         = useState(null)
+  const [childLocked, setChildLocked]           = useState(() => sessionStorage.getItem('glm_child_locked') === '1')
+  const [lockModal, setLockModal]               = useState(null)  // 'setup' | 'confirm' | 'unlock'
+  const [lockPin, setLockPin]                   = useState('')
+  const [lockPinError, setLockPinError]         = useState('')
+  const [pendingLockedChild, setPendingLockedChild] = useState(null)
 
   function toggleOffline() {
     setOfflineMode(v => {
@@ -392,6 +397,8 @@ export default function App() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
     Object.keys(sessionStorage).filter(k => k.startsWith('glm_session_start_')).forEach(k => sessionStorage.removeItem(k))
+    sessionStorage.removeItem('glm_child_locked')
+    setChildLocked(false)
     navigate('/', { replace: true })
     setAuthed(false); setRole(null); setChild(null)
   }
@@ -441,7 +448,55 @@ export default function App() {
     return m > 0 ? `${h}h ${m}m` : `${h}h`
   }
 
+  function engageLock() {
+    const hasPin = !!localStorage.getItem(`glm_lock_pin_${child?.id}`)
+    setLockPin(''); setLockPinError('')
+    setLockModal(hasPin ? 'lock-verify' : 'setup')
+  }
+
+  function handleLockSetup() {
+    if (lockPin.length !== 4 || !/^\d{4}$/.test(lockPin)) { setLockPinError('Enter a 4-digit PIN'); return }
+    const childId = (pendingLockedChild || child)?.id
+    if (childId) localStorage.setItem(`glm_lock_pin_${childId}`, lockPin)
+    sessionStorage.setItem('glm_child_locked', '1')
+    setChildLocked(true); setLockModal(null); setLockPin('')
+    if (pendingLockedChild) {
+      setChild(pendingLockedChild)
+      navigate(`/child/${pendingLockedChild.id}/stories`)
+      setPendingLockedChild(null)
+    }
+  }
+
+  function handleLockVerify() {
+    const childId = (pendingLockedChild || child)?.id
+    const saved = localStorage.getItem(`glm_lock_pin_${childId}`)
+    if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
+    sessionStorage.setItem('glm_child_locked', '1')
+    setChildLocked(true); setLockModal(null); setLockPin('')
+    if (pendingLockedChild) {
+      setChild(pendingLockedChild)
+      navigate(`/child/${pendingLockedChild.id}/stories`)
+      setPendingLockedChild(null)
+    }
+  }
+
+  function handleUnlock() {
+    const saved = localStorage.getItem(`glm_lock_pin_${child?.id}`)
+    if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
+    sessionStorage.removeItem('glm_child_locked')
+    setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError('')
+    setChild(null); navigate('/child')
+  }
+
   function handleThemeChange(key) { setChild(c => ({ ...c, theme: key })) }
+
+  function handleChildSelectedLocked(c) {
+    applyTheme(c.theme)
+    setPendingLockedChild(c)
+    setLockPin(''); setLockPinError('')
+    const hasPin = !!localStorage.getItem(`glm_lock_pin_${c.id}`)
+    setLockModal(hasPin ? 'lock-verify' : 'setup')
+  }
 
   function handleChildSelected(c) {
     applyTheme(c.theme)
@@ -483,6 +538,87 @@ export default function App() {
     )
   }
 
+  // ── Lock modal — rendered in any layout ──
+  const activeChild = pendingLockedChild || child
+  const lockTheme = activeChild ? (THEMES[activeChild.theme] || THEMES.coral) : THEMES.coral
+  const lockGrad  = lockTheme.headerGrad
+  const lockPrimary = lockTheme.primary
+  const lockModalEl = lockModal ? (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: 'white', borderRadius: 28, padding: '36px 32px', maxWidth: 340, width: '100%',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.25)', textAlign: 'center', fontFamily: 'Nunito, sans-serif' }}>
+        {lockModal === 'setup' && <>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#333', marginBottom: 8 }}>Set a Parent PIN</div>
+          <div style={{ fontSize: 14, color: '#777', marginBottom: 24, lineHeight: 1.5 }}>
+            Choose a 4-digit PIN to lock the app for {(pendingLockedChild || child)?.name}. You'll need this to unlock it.
+          </div>
+          <input type="number" inputMode="numeric" maxLength={4} placeholder="Enter 4 digits"
+            className="pin-input"
+            value={lockPin} onChange={e => { setLockPin(e.target.value.slice(0,4)); setLockPinError('') }}
+            autoFocus
+            style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
+              border: '2px solid #eee', borderRadius: 12, padding: '12px', marginBottom: 8, boxSizing: 'border-box' }} />
+          {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button onClick={() => { setLockModal(null); setLockPin(''); if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) } }}
+              style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+              Cancel
+            </button>
+            <button onClick={handleLockSetup}
+              style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+              Lock App 🔒
+            </button>
+          </div>
+        </>}
+        {lockModal === 'lock-verify' && <>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#333', marginBottom: 8 }}>Lock for {(pendingLockedChild || child)?.name}</div>
+          <div style={{ fontSize: 14, color: '#777', marginBottom: 24, lineHeight: 1.5 }}>Enter your PIN to hand the device to {(pendingLockedChild || child)?.name}</div>
+          <input type="number" inputMode="numeric" maxLength={4} placeholder="Enter your PIN"
+            className="pin-input"
+            value={lockPin} onChange={e => { setLockPin(e.target.value.slice(0,4)); setLockPinError('') }}
+            autoFocus
+            style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
+              border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px', marginBottom: 8, boxSizing: 'border-box' }} />
+          {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button onClick={() => { setLockModal(null); setLockPin(''); if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) } }}
+              style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+              Cancel
+            </button>
+            <button onClick={handleLockVerify}
+              style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+              Lock App 🔒
+            </button>
+          </div>
+        </>}
+        {lockModal === 'unlock' && <>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🔓</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#333', marginBottom: 8 }}>Parent unlock</div>
+          <div style={{ fontSize: 14, color: '#777', marginBottom: 24 }}>Enter your 4-digit PIN to unlock</div>
+          <input type="number" inputMode="numeric" maxLength={4} placeholder="PIN"
+            value={lockPin} onChange={e => { setLockPin(e.target.value.slice(0,4)); setLockPinError('') }}
+            autoFocus
+            style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
+              border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px', marginBottom: 8, boxSizing: 'border-box' }} />
+          {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
+          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+            <button onClick={() => { setLockModal(null); setLockPin(''); setLockPinError('') }}
+              style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+              Cancel
+            </button>
+            <button onClick={handleUnlock}
+              style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+              Unlock 🔓
+            </button>
+          </div>
+        </>}
+      </div>
+    </div>
+  ) : null
+
   // ── Child edit/new — always full-page, even when a child is active ──
   const isChildManagementRoute = /^\/child(\/new|\/\d+\/edit)$/.test(location.pathname)
   if (restoring) {
@@ -497,6 +633,7 @@ export default function App() {
     const isManage = isChildManagementRoute
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fafafa', color: '#3d3d3d' }}>
+        {lockModalEl}
         <header style={{
           position: 'sticky', top: 0, zIndex: 100,
           background: 'white', borderBottom: '1px solid #f0f0f0',
@@ -521,7 +658,7 @@ export default function App() {
         </header>
         <div style={{ flex: 1 }}>
           <Routes>
-            <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onLogout={handleLogout} />} />
+            <Route path="/child"          element={<ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} />} />
             <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
             <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate('/child') }} enabledFeatureConfig={featureConfig} />} />
             <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
@@ -593,6 +730,8 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {lockModalEl}
 
       {/* ── Sidebar (tablet / desktop / TV) ── */}
       <aside className="app-sidebar" style={{
@@ -675,7 +814,7 @@ export default function App() {
 
         {/* Utility links — Profile + Help */}
         <div style={{ padding: collapsed ? '8px' : '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-          <button onClick={() => navigate('/profile')}
+          {!childLocked && <button onClick={() => navigate('/profile')}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 12,
               padding: collapsed ? '10px 0' : '10px 14px',
@@ -687,7 +826,7 @@ export default function App() {
             title={collapsed ? 'My Account' : undefined}>
             <span style={{ fontSize: 18, flexShrink: 0 }}>👤</span>
             {!collapsed && <span>My Account</span>}
-          </button>
+          </button>}
           <button id="tour-help-btn" onClick={() => navigate('/help')}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 12,
@@ -736,17 +875,21 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: '#333' }}>{child.name}</span>
                 {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: '#aaa' }}>{childAge} yrs</span>}
-                <button onClick={() => navigate(`/child/${child.id}/edit`)}
-                  title="Edit child"
-                  style={{ background: '#f5f5f5', border: 'none', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, color: '#888', cursor: 'pointer', lineHeight: '18px' }}>
-                  ✏️ Edit
-                </button>
+                {!childLocked && (
+                  <button onClick={() => navigate(`/child/${child.id}/edit`)}
+                    title="Edit child"
+                    style={{ background: '#f5f5f5', border: 'none', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, color: '#888', cursor: 'pointer', lineHeight: '18px' }}>
+                    ✏️ Edit
+                  </button>
+                )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button onClick={() => { setChild(null); navigate('/child') }}
-                  style={{ fontSize: isTV ? 13 : 11, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}>
-                  Switch child →
-                </button>
+                {!childLocked && (
+                  <button onClick={() => { setChild(null); navigate('/child') }}
+                    style={{ fontSize: isTV ? 13 : 11, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}>
+                    Switch child →
+                  </button>
+                )}
                 {sessionStart && (
                   <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700,
                     color: sessionMinutes >= (child.screenTimeLimitMinutes || Infinity) ? '#cc0033' : '#aaa' }}>
@@ -758,7 +901,7 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <ThemePicker child={child} onThemeChange={handleThemeChange} />
+            {!childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
             <button id="tour-offline-toggle" onClick={toggleOffline} title={offlineMode ? 'AI is off — click to turn on' : 'Turn off AI (practice mode)'}
               style={{
                 height: 38, padding: '0 12px', borderRadius: 10, cursor: 'pointer',
@@ -771,32 +914,23 @@ export default function App() {
               <span style={{ fontSize: 15 }}>{offlineMode ? '✈️' : '🤖'}</span>
               {offlineMode ? 'Practice' : 'AI On'}
             </button>
-            <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
-              style={{
-                width: 38, height: 38, borderRadius: 10,
-                border: '1.5px solid #eee', cursor: 'pointer',
-                fontSize: 18, background: '#fafafa',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>❓</button>
+            {!childLocked && <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
+              style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>}
             <span id="tour-notifications"><NotificationBell /></span>
-            <button id="tour-profile" onClick={() => navigate('/profile')} title="My Account"
-              style={{
-                width: 38, height: 38, borderRadius: 10,
-                border: '1.5px solid #eee', cursor: 'pointer',
-                fontSize: 18, background: '#fafafa',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>👤</button>
-            <button onClick={handleLogout}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                height: 38, padding: '0 14px', borderRadius: 10,
-                fontSize: 13, fontWeight: 700,
-                background: '#fff0f0', color: '#cc0033',
-                border: '1.5px solid #fcc', cursor: 'pointer',
-              }}>
+            {!childLocked && <button id="tour-profile" onClick={() => navigate('/profile')} title="My Account"
+              style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</button>}
+            {!childLocked && <button onClick={handleLogout}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#fff0f0', color: '#cc0033', border: '1.5px solid #fcc', cursor: 'pointer' }}>
               <span style={{ fontSize: 16 }}>🚪</span>
               <span>Sign Out</span>
-            </button>
+            </button>}
+            {childLocked && (
+              <button onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }}
+                title="Parent access"
+                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #fcc', cursor: 'pointer', fontSize: 18, background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                🔒
+              </button>
+            )}
           </div>
         </header>
 
@@ -812,9 +946,16 @@ export default function App() {
             <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'white' }}>Glumbi</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span id="tour-child-name" style={{ fontSize: 24 }}>{child.avatarEmoji}</span>
+            <span id="tour-child-name"
+              onClick={childLocked ? () => { setLockPin(''); setLockPinError(''); setLockModal('unlock') } : undefined}
+              style={{ fontSize: 24, cursor: childLocked ? 'pointer' : 'default', position: 'relative' }}>
+              {child.avatarEmoji}
+              {childLocked && <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>}
+            </span>
             <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>
+                {child.name}
+              </div>
               {sessionStart
                 ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>
                     ⏱️ {formatElapsed(sessionMinutes)}{child.screenTimeLimitMinutes > 0 ? ` / ${formatElapsed(child.screenTimeLimitMinutes)}` : ''}
@@ -843,7 +984,9 @@ export default function App() {
         <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onLogout={handleLogout} child={child} quota={quota} featureConfig={featureConfig} theme={theme}
           onSwitchChild={() => { setChild(null); navigate('/child') }}
           onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
-          offlineMode={offlineMode} onToggleOffline={toggleOffline} wotd={sidebarWotd} />
+          offlineMode={offlineMode} onToggleOffline={toggleOffline} wotd={sidebarWotd}
+          childLocked={childLocked}
+          onUnlock={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }} />
 
         {/* ── Offline banner ── */}
         {offlineMode && (

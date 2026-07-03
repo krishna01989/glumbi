@@ -214,3 +214,5 @@ input:focus, textarea:focus, select:focus {
   border-radius: 18px !important;
   box-shadow: 0 20px 60px rgba(0,0,0,0.15) !important;
 }
+
+.pin-input::placeholder { font-size: 14px; font-weight: 500; letter-spacing: normal; color: #ccc; }

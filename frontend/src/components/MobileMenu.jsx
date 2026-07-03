@@ -89,7 +89,7 @@ const INFO_ITEMS = [
   { emoji: '⚖️', label: 'Terms of Service', path: '/terms' },
 ]
 
-export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, featureConfig = [], theme, onTour, offlineMode, onToggleOffline, wotd }) {
+export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, quota, featureConfig = [], theme, onTour, offlineMode, onToggleOffline, wotd, childLocked, onUnlock }) {
   const navigate = useNavigate()
 
   function go(path) {
@@ -187,26 +187,33 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
             style={{ padding: '11px', borderRadius: 50, border: offlineMode ? '1.5px solid rgba(255,255,255,0.5)' : 'none', background: offlineMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             {offlineMode ? '✈️ Practice mode (AI off) — tap to turn on' : '🤖 AI On — tap for practice mode'}
           </button>
-          <button id="tour-mobile-switch" onClick={() => { onSwitchChild(); onClose() }}
+          {!childLocked && <button id="tour-mobile-switch" onClick={() => { onSwitchChild(); onClose() }}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🔀 Switch Child
-          </button>
-          <button onClick={() => { onClose(); setTimeout(onTour, 300) }}
+          </button>}
+          {!childLocked && <button onClick={() => { onClose(); setTimeout(onTour, 300) }}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🗺️ Take a Tour
-          </button>
-          <button onClick={() => go('/profile')}
+          </button>}
+          {!childLocked && <button onClick={() => go('/profile')}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             👤 My Account
-          </button>
+          </button>}
           <button id="tour-mobile-help" onClick={() => go('/help')}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             💡 Help
           </button>
-          <button onClick={onLogout}
+          {!childLocked && <button onClick={onLogout}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', border: '1.5px solid rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🚪 Sign Out
-          </button>
+          </button>}
+          {childLocked && (
+            <button onClick={() => { onClose(); setTimeout(onUnlock, 100) }}
+              style={{ padding: '11px', borderRadius: 50, fontWeight: 800, fontSize: 14, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.25)', color: 'white', border: '1.5px solid rgba(255,255,255,0.4)' }}>
+              🔒 Parent access
+            </button>
+          )}
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 4 }}>
             {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', '/contact']].map(([l, p]) => (
               <button key={p} onClick={() => go(p)}

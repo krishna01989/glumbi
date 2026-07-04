@@ -99,7 +99,7 @@ function ProfileCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onTog
   return (
     <div
       onMouseEnter={() => !isTouch && setHovered(true)}
-      onMouseLeave={() => { if (!isTouch) { setHovered(false); setShowActions(false) } }}
+      onMouseLeave={() => { if (!isTouch) setHovered(false) }}
       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, position: 'relative' }}>
 
       {/* Avatar circle */}

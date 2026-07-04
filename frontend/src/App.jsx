@@ -237,10 +237,12 @@ export default function App() {
   const [offlineMode, setOfflineMode] = useState(false)
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
+  const sessionStartRef = useRef(null)
   const [sessionMinutes, setSessionMinutes]     = useState(0)
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
   const [snoozeCount, setSnoozeCount]           = useState(0)
+  const [lockModalForced, setLockModalForced]   = useState(false)
   const prevChildId = useRef(null) // track whether child→null was a deliberate navigation or initial mount
   const [childLocked, setChildLocked]           = useState(() => localStorage.getItem('glm_child_locked') === '1')
   const [lockModal, setLockModal]               = useState(null)  // 'setup' | 'confirm' | 'unlock'
@@ -454,11 +456,35 @@ export default function App() {
     return () => clearInterval(interval)
   }, [sessionStart, child?.screenTimeLimitMinutes, child?.maxSnoozeCount, snoozedUntil])
 
+  // Keep ref in sync so visibility handler always has the latest sessionStart
+  useEffect(() => { sessionStartRef.current = sessionStart }, [sessionStart])
+
+  // Pause timer while page is hidden (child walks away / device sleeps)
+  useEffect(() => {
+    let hiddenAt = null
+    function onVisibility() {
+      if (document.hidden) {
+        hiddenAt = Date.now()
+      } else if (hiddenAt !== null && sessionStartRef.current) {
+        const idle = Date.now() - hiddenAt
+        const newStart = sessionStartRef.current + idle
+        sessionStartRef.current = newStart
+        setSessionStart(newStart)
+        if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+        hiddenAt = null
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [child?.id])
+
   // Auto-end when snoozes exhausted
   useEffect(() => {
     if (screenTimeAlert !== 'force-end') return
     setScreenTimeAlert(false)
+    setSnoozedUntil(Date.now() + 365 * 24 * 60 * 60 * 1000) // prevent interval re-triggering
     if (childLocked) {
+      setLockModalForced(true)
       setLockPin(''); setLockPinError(''); setLockModal('unlock')
     } else {
       setChild(null); navigate('/child')
@@ -466,7 +492,12 @@ export default function App() {
   }, [screenTimeAlert])
 
   function handleScreenTimeSnooze(extraMinutes) {
-    setSnoozedUntil(Date.now() + extraMinutes * 60000)
+    // Reset session start so the timer shows 0m again after extending
+    const newStart = Date.now()
+    if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+    setSessionStart(newStart)
+    setSessionMinutes(0)
+    setSnoozedUntil(newStart + extraMinutes * 60000)
     setSnoozeCount(n => {
       const next = n + 1
       if (child?.id) sessionStorage.setItem(`glm_snooze_count_${child.id}`, String(next))
@@ -523,7 +554,7 @@ export default function App() {
     if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
     localStorage.removeItem('glm_child_locked')
     localStorage.removeItem('glm_locked_child_id')
-    setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError('')
+    setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError(''); setLockModalForced(false)
     setChild(null); navigate('/child')
   }
 
@@ -635,9 +666,15 @@ export default function App() {
           </div>
         </>}
         {lockModal === 'unlock' && <>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🔓</div>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#333', marginBottom: 8 }}>Parent unlock</div>
-          <div style={{ fontSize: 14, color: '#777', marginBottom: 24 }}>Enter your 4-digit PIN to unlock</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{lockModalForced ? '⏰' : '🔓'}</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#333', marginBottom: 8 }}>
+            {lockModalForced ? "Time's up!" : 'Parent unlock'}
+          </div>
+          <div style={{ fontSize: 14, color: '#777', marginBottom: 24, lineHeight: 1.5 }}>
+            {lockModalForced
+              ? `Great session, ${child?.name}! 🌟 Ask a parent to enter the PIN to continue.`
+              : 'Enter your 4-digit PIN to unlock'}
+          </div>
           <input type="number" inputMode="numeric" maxLength={4} placeholder="PIN"
             value={lockPin} onChange={e => { setLockPin(e.target.value.slice(0,4)); setLockPinError('') }}
             autoFocus
@@ -645,10 +682,12 @@ export default function App() {
               border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px', marginBottom: 8, boxSizing: 'border-box' }} />
           {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <button onClick={() => { setLockModal(null); setLockPin(''); setLockPinError('') }}
-              style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-              Cancel
-            </button>
+            {!lockModalForced && (
+              <button onClick={() => { setLockModal(null); setLockPin(''); setLockPinError('') }}
+                style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                Cancel
+              </button>
+            )}
             <button onClick={handleUnlock}
               style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
               Unlock 🔓
@@ -753,25 +792,30 @@ export default function App() {
             {(() => {
               const maxSnooze = child.maxSnoozeCount ?? 2
               const snoozesLeft = maxSnooze === 0 ? Infinity : Math.max(0, maxSnooze - snoozeCount)
+              const limit = child.screenTimeLimitMinutes || 30
+              // Snooze options: never exceed the configured limit
+              const opt1 = Math.min(15, limit)
+              const opt2 = Math.min(30, limit)
+              const showTwo = opt2 > opt1
               return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {snoozesLeft > 0 ? (<>
-              <button onClick={() => handleScreenTimeSnooze(15)}
+              <button onClick={() => handleScreenTimeSnooze(opt1)}
                 style={{
                   padding: '14px', borderRadius: 50, border: 'none', cursor: 'pointer',
                   background: theme.headerGrad, color: 'white',
                   fontSize: 15, fontWeight: 800, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
                 }}>
-                ✅ 15 more minutes!
+                ✅ {opt1} more minutes!
               </button>
-              <button onClick={() => handleScreenTimeSnooze(30)}
+              {showTwo && <button onClick={() => handleScreenTimeSnooze(opt2)}
                 style={{
                   padding: '14px', borderRadius: 50, border: `2px solid ${theme.primary}`,
                   background: 'white', color: theme.primary, cursor: 'pointer',
                   fontSize: 15, fontWeight: 800,
                 }}>
-                🕐 30 more minutes
-              </button>
+                🕐 {opt2} more minutes
+              </button>}
               {maxSnooze > 0 && <div style={{ fontSize: 12, color: '#bbb', textAlign: 'center' }}>
                 {snoozesLeft} snooze{snoozesLeft !== 1 ? 's' : ''} left
               </div>}

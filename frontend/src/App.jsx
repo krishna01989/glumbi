@@ -40,16 +40,16 @@ function ErrorPageRoute() {
 }
 
 const ALL_NAV = [
-  { path: 'stories',    label: 'Stories',    emoji: '📖', id: 'tour-stories-tab' },
-  { path: 'activities', label: 'Activities', emoji: '🎮', id: 'tour-activities-tab' },
-  { path: 'learn',      label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
-  { path: 'curiosity',  label: 'Curiosity',  emoji: '🔍', id: 'tour-curiosity-tab' },
-  { path: 'draw',       label: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
-  { path: 'readquiz',   label: 'Read & Quiz',emoji: '📚', id: 'tour-readquiz-tab' },
-  { path: 'mywriting',  label: 'My Writing', emoji: '✍️', id: 'tour-writing-tab'  },
-  { path: 'memory',     label: 'Memory Play', emoji: '🧠', id: 'tour-memory-tab' },
-  { path: 'journal',    label: 'Journal',    emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
-  { path: 'timeline',   label: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
+  { path: 'stories',    label: 'Stories',       mobileLabel: 'Stories',    emoji: '📖', id: 'tour-stories-tab' },
+  { path: 'activities', label: 'Activities',    mobileLabel: 'Activities', emoji: '🎮', id: 'tour-activities-tab' },
+  { path: 'learn',      label: 'Learn to Write',mobileLabel: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
+  { path: 'curiosity',  label: 'Curiosity',     mobileLabel: 'Curiosity',  emoji: '🔍', id: 'tour-curiosity-tab' },
+  { path: 'draw',       label: 'Draw',          mobileLabel: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
+  { path: 'readquiz',   label: 'Read & Quiz',   mobileLabel: 'Read & Quiz',       emoji: '📚', id: 'tour-readquiz-tab' },
+  { path: 'mywriting',  label: 'My Writing',    mobileLabel: 'My Writing',    emoji: '✍️', id: 'tour-writing-tab'  },
+  { path: 'memory',     label: 'Memory Play',   mobileLabel: 'Memory Play',     emoji: '🧠', id: 'tour-memory-tab' },
+  { path: 'journal',    label: 'Journal',       mobileLabel: 'Journal',    emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
+  { path: 'timeline',   label: 'Timeline',      mobileLabel: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
 ]
 
 function calcChildAge(birthYear) {
@@ -965,6 +965,7 @@ export default function App() {
               <span style={{ fontSize: 16 }}>🚪</span>
               <span>Sign Out</span>
             </button>}
+            {childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
             {childLocked && (
               <button onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }}
                 title="Parent access"
@@ -1073,7 +1074,7 @@ export default function App() {
         {NAV.slice(0, 4).map(n => (
           <NavLink key={n.path} to={`/child/${child.id}/${n.path}`}
             style={({ isActive }) => ({
-              flex: 1, display: 'flex', flexDirection: 'column',
+              flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center', gap: 2,
               textDecoration: 'none', fontSize: 9, fontWeight: 700,
               color: isActive ? theme.primary : '#bbb',
@@ -1082,12 +1083,12 @@ export default function App() {
               transition: 'color 0.15s',
             })}>
             <span style={{ fontSize: 22 }}>{n.emoji}</span>
-            <span>{n.label}</span>
+            <span style={{ whiteSpace: 'nowrap' }}>{n.mobileLabel}</span>
           </NavLink>
         ))}
         <button onClick={() => setMobileMenuOpen(true)}
           style={{
-            flex: 1, display: 'flex', flexDirection: 'column',
+            flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 2,
             background: 'none', border: 'none', fontSize: 9, fontWeight: 700,
             color: '#bbb', borderTop: '3px solid transparent', paddingTop: 4, cursor: 'pointer',

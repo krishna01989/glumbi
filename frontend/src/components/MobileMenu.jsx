@@ -15,7 +15,6 @@ const ALL_APP_ITEMS = [
 ]
 
 const INFO_ITEMS = [
-  { emoji: '💡', label: 'About Glumbi',     path: '/about' },
   { emoji: '📬', label: 'Contact Us',       path: '/contact' },
   { emoji: '🔒', label: 'Privacy Policy',   path: '/privacy' },
   { emoji: '⚖️', label: 'Terms of Service', path: '/terms' },

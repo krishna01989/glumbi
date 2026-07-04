@@ -2,13 +2,14 @@ import LegalLayout from './LegalLayout'
 
 export default function PrivacyPage({ inApp = false }) {
   return (
-    <LegalLayout title="Privacy Policy" updated="30 June 2025" inApp={inApp}>
+    <LegalLayout title="Privacy Policy" updated="4 July 2026" inApp={inApp}>
       <p>Glumbi ("we", "us", "our") is committed to protecting the privacy of families who use our service. This policy explains what data we collect, why, and how we protect it.</p>
 
       <h2>1. Who we are</h2>
       <p>Glumbi is a children's storytelling and activity app operated by the Glumbi team. Our website is <strong>glumbi.com</strong>. For any privacy questions, contact us at <a href="mailto:privacy@glumbi.com">privacy@glumbi.com</a>.</p>
 
       <h2>2. What we collect</h2>
+
       <h3>Account information</h3>
       <ul>
         <li><strong>Email address</strong> — used to identify your account and for password resets.</li>
@@ -20,6 +21,13 @@ export default function PrivacyPage({ inApp = false }) {
       <ul>
         <li>Child's first name, age, gender, and avatar preference — used to personalise stories and activities.</li>
         <li>We do not collect any other personal data about your child.</li>
+      </ul>
+      <h3>Voice recordings (optional)</h3>
+      <ul>
+        <li>If you choose to add a custom story voice, we collect an audio recording of your voice (or another family member's voice). This recording is transmitted to a third-party voice synthesis provider to create a voice model.</li>
+        <li>The voice model is stored by that provider and associated only with your account. The original audio file is not retained by Glumbi after processing.</li>
+        <li>Voice data is used solely to narrate stories within your account. It is never used for advertising, profiling, or shared with other users.</li>
+        <li>You can delete any custom voice at any time from My Account → Story Voices. Deletion removes the voice model from both Glumbi and the third-party provider.</li>
       </ul>
       <h3>Generated content</h3>
       <ul>
@@ -57,6 +65,8 @@ export default function PrivacyPage({ inApp = false }) {
       <p>If you use "Continue with Google", the Google Identity Services script runs in your browser and may set a short-lived <code>g_state</code> cookie on Google's domain. We receive only a verified identity token; we never see your Google password. Google's sign-in is governed by <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Google's Privacy Policy</a>.</p>
       <h3>Google Text-to-Speech</h3>
       <p>Story text is sent to the Google Cloud Text-to-Speech API to generate audio. No personal data is included in these requests.</p>
+      <h3>Voice synthesis (custom voices)</h3>
+      <p>If you add a custom story voice, your audio recording is sent to a third-party voice synthesis provider to create a personalised voice model. This provider processes voice data solely to fulfil the narration feature and is contractually prohibited from using it for any other purpose. No child voice data is ever collected — only a parent or guardian may record a custom voice. You may delete your voice model at any time from within the app.</p>
 
       <h2>6. Data retention</h2>
       <ul>

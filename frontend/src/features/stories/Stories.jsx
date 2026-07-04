@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { storyApi } from '../../api/client'
+import { storyApi, voiceApi } from '../../api/client'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import AudioPlayer from '../../components/AudioPlayer'
@@ -106,6 +106,11 @@ export default function Stories({ child, quota }) {
   const [langPickerPos,  setLangPickerPos]  = useState({ top: 0, right: 0 })
   const [selectedAccent, setSelectedAccent] = useState(() => localStorage.getItem('glumbi_accent') || 'en-US')
   const [selectedGender, setSelectedGender] = useState(() => localStorage.getItem('glumbi_gender') || 'F')
+  const [familyVoices,   setFamilyVoices]   = useState([])
+  const [selectedVoiceId, setSelectedVoiceId] = useState(() => {
+    const saved = localStorage.getItem(`glumbi_voice_${child.id}`)
+    return saved ? parseInt(saved, 10) : null  // null = default Google TTS
+  })
   const [error, setError]               = useState('')
   const [audioError, setAudioError]     = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
@@ -135,7 +140,10 @@ export default function Stories({ child, quota }) {
     setLangPickerOpen(o => !o)
   }
 
-  useEffect(() => { loadStories() }, [child.id])
+  useEffect(() => {
+    loadStories()
+    voiceApi.list().then(setFamilyVoices).catch(() => {})
+  }, [child.id])
 
   async function loadStories() {
     const data = await storyApi.getByChild(child.id)
@@ -195,16 +203,25 @@ export default function Stories({ child, quota }) {
     localStorage.setItem('glumbi_gender', g)
   }
 
+  function handleVoiceSelect(id) {
+    setSelectedVoiceId(id)
+    if (id === null) localStorage.removeItem(`glumbi_voice_${child.id}`)
+    else localStorage.setItem(`glumbi_voice_${child.id}`, String(id))
+  }
+
   async function handleListen(story, lang, voice) {
     if (speaking && speakingLang === lang) { stopSpeaking(); return }
     stopSpeaking()
     setAudioError('')
     setTranslating(lang)
     try {
-      const resolvedVoice = lang === 'english'
-        ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
-        : (VOICE_MAP[lang]?.[selectedGender] || null)
-      const url = storyApi.listenUrl(story.id, lang, resolvedVoice)
+      // If custom voice selected, skip Google voice resolution
+      const resolvedVoice = selectedVoiceId ? null : (
+        lang === 'english'
+          ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
+          : (VOICE_MAP[lang]?.[selectedGender] || null)
+      )
+      const url = storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId)
       const audio = new Audio(url)
       audioRef.current = audio
       // play() must be called here — in the click handler — to satisfy browser autoplay policy
@@ -351,35 +368,56 @@ export default function Stories({ child, quota }) {
                         overflowY: 'auto',
                         border: '1px solid #f0f0f0',
                       }}>
-                        {/* Gender toggle — applies to all languages */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', flex: 1 }}>Voice</span>
-                          {[{ g: 'F', label: '♀ Female' }, { g: 'M', label: '♂ Male' }].map(({ g, label }) => (
-                            <button key={g} onClick={e => { e.stopPropagation(); handleGenderChange(g) }}
-                              style={{ padding: '4px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedGender === g ? 'var(--primary)' : '#eee'}`, background: selectedGender === g ? 'var(--primary-lt)' : '#f5f5f5', color: selectedGender === g ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* English accent picker */}
-                        <div style={{ marginBottom: 10 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>🎙 English Accent</div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {[
-                              { id: 'en-US', label: '🇺🇸 US' },
-                              { id: 'en-IN', label: '🇮🇳 India' },
-                              { id: 'en-GB', label: '🇬🇧 British' },
-                              { id: 'en-AU', label: '🇦🇺 Aussie' },
-                            ].map(({ id, label }) => (
-                              <button key={id}
-                                onClick={e => { e.stopPropagation(); setSelectedAccent(id); localStorage.setItem('glumbi_accent', id) }}
-                                style={{ padding: '5px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedAccent === id ? 'var(--primary)' : '#eee'}`, background: selectedAccent === id ? 'var(--primary-lt)' : '#f5f5f5', color: selectedAccent === id ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
-                                {label}
+                        {/* Custom voice selector — only shown if family has voices */}
+                        {familyVoices.length > 0 && (
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>🎙️ Voice</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                              <button onClick={e => { e.stopPropagation(); handleVoiceSelect(null) }}
+                                style={{ padding: '5px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedVoiceId === null ? 'var(--primary)' : '#eee'}`, background: selectedVoiceId === null ? 'var(--primary-lt)' : '#f5f5f5', color: selectedVoiceId === null ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
+                                Default
                               </button>
-                            ))}
+                              {familyVoices.map(v => (
+                                <button key={v.id} onClick={e => { e.stopPropagation(); handleVoiceSelect(v.id) }}
+                                  style={{ padding: '5px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedVoiceId === v.id ? 'var(--primary)' : '#eee'}`, background: selectedVoiceId === v.id ? 'var(--primary-lt)' : '#f5f5f5', color: selectedVoiceId === v.id ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
+                                  {v.name}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
+
+                        {/* Gender + accent — hidden when custom voice is selected */}
+                        {!selectedVoiceId && (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', flex: 1 }}>Voice</span>
+                              {[{ g: 'F', label: '♀ Female' }, { g: 'M', label: '♂ Male' }].map(({ g, label }) => (
+                                <button key={g} onClick={e => { e.stopPropagation(); handleGenderChange(g) }}
+                                  style={{ padding: '4px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedGender === g ? 'var(--primary)' : '#eee'}`, background: selectedGender === g ? 'var(--primary-lt)' : '#f5f5f5', color: selectedGender === g ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                            <div style={{ marginBottom: 10 }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>🎙 English Accent</div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {[
+                                  { id: 'en-US', label: '🇺🇸 US' },
+                                  { id: 'en-IN', label: '🇮🇳 India' },
+                                  { id: 'en-GB', label: '🇬🇧 British' },
+                                  { id: 'en-AU', label: '🇦🇺 Aussie' },
+                                ].map(({ id, label }) => (
+                                  <button key={id}
+                                    onClick={e => { e.stopPropagation(); setSelectedAccent(id); localStorage.setItem('glumbi_accent', id) }}
+                                    style={{ padding: '5px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedAccent === id ? 'var(--primary)' : '#eee'}`, background: selectedAccent === id ? 'var(--primary-lt)' : '#f5f5f5', color: selectedAccent === id ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
                         <div style={{ height: 1, background: '#f0f0f0', marginBottom: 12 }} />
                         {[
                           { group: '🌍 International', langs: [

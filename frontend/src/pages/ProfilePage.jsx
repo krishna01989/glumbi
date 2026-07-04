@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { userApi } from '../api/client'
+import { userApi, voiceApi } from '../api/client'
 
 function PasswordStrength({ password }) {
   const checks = {
@@ -33,6 +33,26 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const [pwError, setPwError]       = useState('')
   const [pwSuccess, setPwSuccess]   = useState(false)
 
+  // multi-voice state
+  const [voices,        setVoices]        = useState([])   // [{id, name}]
+  const [voiceMsg,      setVoiceMsg]      = useState(null) // {type, text}
+  const [addingVoice,   setAddingVoice]   = useState(false)
+  const [newVoiceName,  setNewVoiceName]  = useState('')
+  const [uploading,     setUploading]     = useState(false)
+  const [deletingId,    setDeletingId]    = useState(null)
+  const [renamingId,    setRenamingId]    = useState(null)
+  const [renameValue,   setRenameValue]   = useState('')
+  const voiceInputRef = useRef(null)
+
+  // recording state
+  const [recording,      setRecording]      = useState(false)
+  const [recordedBlob,   setRecordedBlob]   = useState(null)
+  const [recordedUrl,    setRecordedUrl]    = useState(null)
+  const [recordSeconds,  setRecordSeconds]  = useState(0)
+  const mediaRecorderRef = useRef(null)
+  const chunksRef        = useRef([])
+  const timerRef         = useRef(null)
+
   // delete state
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -40,10 +60,98 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const [showDelete, setShowDelete]       = useState(false)
 
   useEffect(() => {
-    userApi.getProfile()
-      .then(setProfile)
-      .finally(() => setLoading(false))
+    userApi.getProfile().then(setProfile).finally(() => setLoading(false))
+    voiceApi.list().then(setVoices).catch(() => {})
   }, [])
+
+  // ── Recording helpers ────────────────────────────────────────────────────
+
+  async function startRecording() {
+    setVoiceMsg(null)
+    setRecordedBlob(null); setRecordedUrl(null); setRecordSeconds(0)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mr = new MediaRecorder(stream)
+      chunksRef.current = []
+      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      mr.onstop = () => {
+        stream.getTracks().forEach(t => t.stop())
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+        setRecordedBlob(blob)
+        setRecordedUrl(URL.createObjectURL(blob))
+        setRecording(false)
+        clearInterval(timerRef.current)
+      }
+      mr.start()
+      mediaRecorderRef.current = mr
+      setRecording(true)
+      timerRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
+    } catch {
+      setVoiceMsg({ type: 'error', text: 'Microphone access denied. Please allow mic access and try again.' })
+    }
+  }
+
+  function stopRecording() { mediaRecorderRef.current?.stop(); clearInterval(timerRef.current) }
+
+  function discardRecording() {
+    if (recordedUrl) URL.revokeObjectURL(recordedUrl)
+    setRecordedBlob(null); setRecordedUrl(null); setRecordSeconds(0); setVoiceMsg(null)
+  }
+
+  function fmtSeconds(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
+
+  // ── Voice CRUD ────────────────────────────────────────────────────────────
+
+  async function submitNewVoice(file) {
+    const name = newVoiceName.trim()
+    if (!name) { setVoiceMsg({ type: 'error', text: 'Please enter a name for this voice (e.g. Mom, Dad).' }); return }
+    setVoiceMsg(null); setUploading(true)
+    try {
+      const saved = await voiceApi.create(file, name)
+      setVoices(v => [...v, saved])
+      setAddingVoice(false); setNewVoiceName('')
+      discardRecording()
+      setVoiceMsg({ type: 'success', text: `"${saved.name}" saved! Select it in the story reader to hear stories in this voice.` })
+    } catch (err) {
+      setVoiceMsg({ type: 'error', text: err.message || 'Upload failed. Please try again.' })
+    } finally {
+      setUploading(false)
+      if (voiceInputRef.current) voiceInputRef.current.value = ''
+    }
+  }
+
+  async function handleFileUpload(e) {
+    const file = e.target.files?.[0]
+    if (file) await submitNewVoice(file)
+  }
+
+  async function handleRecordingUpload() {
+    if (!recordedBlob) return
+    const file = new File([recordedBlob], 'voice-sample.webm', { type: 'audio/webm' })
+    await submitNewVoice(file)
+  }
+
+  async function handleDeleteVoice(id) {
+    setDeletingId(id); setVoiceMsg(null)
+    try {
+      await voiceApi.delete(id)
+      setVoices(v => v.filter(x => x.id !== id))
+    } catch (err) {
+      setVoiceMsg({ type: 'error', text: err.message || 'Could not delete voice.' })
+    } finally { setDeletingId(null) }
+  }
+
+  async function handleRename(id) {
+    const name = renameValue.trim()
+    if (!name) return
+    try {
+      const updated = await voiceApi.rename(id, name)
+      setVoices(v => v.map(x => x.id === id ? { ...x, name: updated.name } : x))
+      setRenamingId(null); setRenameValue('')
+    } catch (err) {
+      setVoiceMsg({ type: 'error', text: err.message || 'Could not rename.' })
+    }
+  }
 
   async function handlePasswordChange(e) {
     e.preventDefault()
@@ -128,6 +236,137 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
           <Row label="Sign-in method" value={isGoogle ? '🔵 Google' : '🔑 Email & password'} />
           <Row label="Member since" value={joinedDate} />
         </div>
+      </div>
+
+      {/* Custom Story Voices */}
+      <div style={card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>
+            🎙️ Story Voices
+          </h3>
+          {voices.length > 0 && voices.length < 5 && !addingVoice && (
+            <button onClick={() => { setAddingVoice(true); setVoiceMsg(null) }}
+              style={{ padding: '5px 14px', borderRadius: 50, fontSize: 12, fontWeight: 800, background: btnGrad, color: 'white', border: 'none', cursor: 'pointer' }}>
+              + Add voice
+            </button>
+          )}
+        </div>
+        <p style={{ fontSize: 13, color: '#888', margin: '0 0 16px', lineHeight: 1.6 }}>
+          Add up to 5 voices (Mom, Dad, Granny…). Choose one when listening to a story.
+        </p>
+
+        {/* Existing voices list */}
+        {voices.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: addingVoice ? 16 : 0 }}>
+            {voices.map(v => (
+              <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f9f9f9', borderRadius: 12, padding: '10px 14px' }}>
+                <span style={{ fontSize: 20 }}>🎙️</span>
+                {renamingId === v.id ? (
+                  <>
+                    <input value={renameValue} onChange={e => setRenameValue(e.target.value)}
+                      autoFocus onKeyDown={e => e.key === 'Enter' && handleRename(v.id)}
+                      style={{ flex: 1, padding: '5px 10px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 13, fontFamily: 'Nunito, sans-serif' }} />
+                    <button onClick={() => handleRename(v.id)}
+                      style={{ padding: '5px 12px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer' }}>Save</button>
+                    <button onClick={() => setRenamingId(null)}
+                      style={{ padding: '5px 10px', borderRadius: 50, fontSize: 12, fontWeight: 700, background: '#f0f0f0', color: '#666', border: 'none', cursor: 'pointer' }}>✕</button>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: '#333' }}>{v.name}</span>
+                    <button onClick={() => { setRenamingId(v.id); setRenameValue(v.name) }}
+                      style={{ padding: '4px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, background: '#f0f0f0', color: '#666', border: 'none', cursor: 'pointer' }}>Rename</button>
+                    <button onClick={() => handleDeleteVoice(v.id)} disabled={deletingId === v.id}
+                      style={{ padding: '4px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, background: '#fff0f0', color: '#e74c3c', border: 'none', cursor: 'pointer' }}>
+                      {deletingId === v.id ? '…' : 'Delete'}
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add voice panel */}
+        {(addingVoice || voices.length === 0) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Field label="Voice name (e.g. Mom, Dad, Granny)">
+              <input value={newVoiceName} onChange={e => setNewVoiceName(e.target.value)}
+                placeholder="Mom" maxLength={50} style={inputStyle} disabled={recording || uploading} />
+            </Field>
+            {!recording && !recordedBlob && (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button onClick={startRecording}
+                  style={{ padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: btnGrad, color: 'white', border: 'none', cursor: 'pointer' }}>
+                  🎙️ Record my voice
+                </button>
+                <button onClick={() => voiceInputRef.current?.click()}
+                  style={{ padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, background: '#f5f5f5', color: '#555', border: '1.5px solid #eee', cursor: 'pointer' }}>
+                  📁 Upload audio file
+                </button>
+                {voices.length > 0 && (
+                  <button onClick={() => { setAddingVoice(false); setNewVoiceName(''); setVoiceMsg(null) }}
+                    style={{ padding: '10px 16px', borderRadius: 50, fontSize: 13, fontWeight: 700, background: '#f5f5f5', color: '#888', border: 'none', cursor: 'pointer' }}>
+                    Cancel
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Recording in progress */}
+        {recording && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 12, height: 12, borderRadius: '50%', background: '#e74c3c', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#e74c3c' }}>Recording… {fmtSeconds(recordSeconds)}</span>
+            </div>
+            <p style={{ fontSize: 12, color: '#aaa', margin: 0 }}>Speak naturally for 1–3 minutes. Read a story, describe your day, anything.</p>
+            <button onClick={stopRecording}
+              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer' }}>
+              ⏹ Stop
+            </button>
+          </div>
+        )}
+
+        {/* Playback + confirm */}
+        {recordedBlob && !recording && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <p style={{ fontSize: 13, color: '#555', fontWeight: 700, margin: 0 }}>Listen back — does it sound good?</p>
+            <audio controls src={recordedUrl} style={{ width: '100%', borderRadius: 8 }} />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button onClick={handleRecordingUpload} disabled={uploading}
+                style={{ padding: '10px 22px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: btnGrad, color: 'white', border: 'none', cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.7 : 1 }}>
+                {uploading ? 'Saving…' : '✅ Use this recording'}
+              </button>
+              <button onClick={discardRecording} disabled={uploading}
+                style={{ padding: '10px 18px', borderRadius: 50, fontSize: 13, fontWeight: 700, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
+                🔄 Re-record
+              </button>
+            </div>
+          </div>
+        )}
+
+        <input ref={voiceInputRef} type="file" accept="audio/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+
+        {uploading && (
+          <div style={{ marginTop: 12, fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+            Cloning your voice… this may take 20–30 seconds.
+          </div>
+        )}
+
+        {voiceMsg && (
+          <div style={{
+            marginTop: 12, borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 600,
+            background: voiceMsg.type === 'success' ? '#f0fff4' : '#fff0f0',
+            border: `1.5px solid ${voiceMsg.type === 'success' ? '#6bcb77' : '#ffb3b3'}`,
+            color: voiceMsg.type === 'success' ? '#1e6b3c' : '#c0392b',
+          }}>
+            {voiceMsg.type === 'success' ? '✅' : '🚫'} {voiceMsg.text}
+          </div>
+        )}
       </div>
 
       {/* Change password — password accounts only */}

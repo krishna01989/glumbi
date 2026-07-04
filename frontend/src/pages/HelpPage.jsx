@@ -38,7 +38,11 @@ const SECTIONS = [
       },
       {
         q: 'How does listening work?',
-        a: 'Tap the 🔊 Listen button on any story. A picker appears where you can choose the language, English accent (US, India, British, Australian), and voice gender (♀ / ♂). Your choices are saved so you don\'t need to pick again next time.',
+        a: 'Tap the 🔊 Listen button on any story. A picker appears where you can choose the language and — if you haven\'t set up a custom voice — the English accent and voice gender. Your choices are saved so you don\'t need to pick again next time.',
+      },
+      {
+        q: 'Can I use my own voice to narrate stories?',
+        a: 'Yes! Go to My Account → Story Voices and add a custom voice for Mom, Dad, Granny, or anyone else. Record a 1–3 minute clip directly in the browser or upload an audio file. Once saved, select it in the 🔊 Listen picker and stories will be read aloud in that person\'s voice. You can add up to 5 voices per family.',
       },
       {
         q: 'Can I listen in other languages?',
@@ -220,7 +224,7 @@ const SECTIONS = [
       },
       {
         q: 'Is my child\'s data private?',
-        a: 'Journal entries are never sent to any AI. All other content is processed by Anthropic\'s Claude AI to generate responses but is not used for training. See our Privacy Policy for full details.',
+        a: 'Journal entries are never sent to any AI. All other content is processed by Anthropic\'s Claude AI to generate responses but is not used for training. Custom voice recordings are processed by a third-party voice synthesis service and stored securely — they are never shared or used for any purpose other than narrating stories in your app. See our Privacy Policy for full details.',
       },
       {
         q: 'Can I delete my account and data?',

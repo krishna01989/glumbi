@@ -77,11 +77,12 @@ export const storyApi = {
   getFavorites:   (childId)           => api.get(`/stories/child/${childId}/favorites`).then(r => r.data),
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
   translate:      (id, language)      => api.get(`/stories/${id}/translate?language=${language}`).then(r => r.data),
-  listenUrl:      (id, language, voice) => {
+  listenUrl:      (id, language, voice, familyVoiceId) => {
     const token = localStorage.getItem('glm_token')
     const base = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
-    const v = voice ? `&voice=${encodeURIComponent(voice)}` : ''
-    return `${base}/stories/${id}/listen?language=${language}${v}&token=${token}`
+    const v  = voice ? `&voice=${encodeURIComponent(voice)}` : ''
+    const fv = familyVoiceId ? `&familyVoiceId=${familyVoiceId}` : ''
+    return `${base}/stories/${id}/listen?language=${language}${v}${fv}&token=${token}`
   },
   delete:         (id)                => api.delete(`/stories/${id}`),
 }
@@ -153,6 +154,18 @@ export const userApi = {
   getProfile:     ()                           => api.get('/users/me').then(r => r.data),
   changePassword: (currentPassword, newPassword) => api.patch('/users/me/password', { currentPassword, newPassword }).then(r => r.data),
   deleteAccount:  ()                           => api.delete('/users/me'),
+}
+
+export const voiceApi = {
+  list:   ()                      => api.get('/voices').then(r => r.data),
+  create: (file, name)            => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('name', name)
+    return api.post('/voices', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+  },
+  rename: (id, name)              => api.patch(`/voices/${id}/name`, { name }).then(r => r.data),
+  delete: (id)                    => api.delete(`/voices/${id}`),
 }
 
 export const notificationApi = {

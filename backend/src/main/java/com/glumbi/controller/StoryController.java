@@ -2,9 +2,12 @@ package com.glumbi.controller;
 
 import com.glumbi.agent.TranslationAgent;
 import com.glumbi.dto.StoryRequest;
+import com.glumbi.entity.FamilyVoice;
 import com.glumbi.entity.Story;
+import com.glumbi.repository.FamilyVoiceRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.ElevenLabsService;
 import com.glumbi.service.RateLimitService;
 import com.glumbi.service.RateLimitService.Endpoint;
 import com.glumbi.service.StoryService;
@@ -32,6 +35,8 @@ public class StoryController {
     private final StoryService service;
     private final TranslationAgent translationAgent;
     private final TextToSpeechService ttsService;
+    private final ElevenLabsService elevenLabsService;
+    private final FamilyVoiceRepository familyVoiceRepository;
     private final RateLimitService rateLimiter;
     private final ApiQuotaService quotaService;
 
@@ -86,11 +91,21 @@ public class StoryController {
             @PathVariable Long id,
             @RequestParam(defaultValue = "english") String language,
             @RequestParam(required = false) String voice,
+            @RequestParam(required = false) Long familyVoiceId,
             @RequestParam(required = false) String token,
             @AuthenticationPrincipal AuthUser authUser,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader) {
         try {
-            String cacheKey = id + ":" + language.toLowerCase() + (voice != null ? ":" + voice : "");
+            // Resolve ElevenLabs voice ID from familyVoiceId param
+            String elVoiceId = null;
+            if (familyVoiceId != null && authUser != null) {
+                FamilyVoice fv = familyVoiceRepository.findById(familyVoiceId).orElse(null);
+                if (fv != null && fv.getUser().getId().equals(authUser.id())) {
+                    elVoiceId = fv.getElevenLabsVoiceId();
+                }
+            }
+            String cacheKey = id + ":" + language.toLowerCase()
+                    + (elVoiceId != null ? ":el:" + elVoiceId : (voice != null ? ":" + voice : ""));
             byte[] audio = audioCache.get(cacheKey);
             if (audio == null) {
                 if (authUser != null && !quotaService.isFeatureEnabled(authUser.id(), "story-listen")) {
@@ -113,7 +128,18 @@ public class StoryController {
                     title   = translated.title();
                     content = translated.content();
                 }
-                audio = ttsService.synthesize(title + ". " + content, language, voice);
+
+                // Use ElevenLabs custom voice if requested, otherwise Google TTS
+                if (elVoiceId != null && elevenLabsService.isConfigured()) {
+                    try {
+                        audio = elevenLabsService.synthesize(title + ". " + content, elVoiceId);
+                    } catch (Exception e) {
+                        System.err.println("[listen] ElevenLabs TTS failed, falling back to Google TTS: " + e.getMessage());
+                        audio = ttsService.synthesize(title + ". " + content, language, voice);
+                    }
+                } else {
+                    audio = ttsService.synthesize(title + ". " + content, language, voice);
+                }
                 audioCache.put(cacheKey, audio);
             }
 

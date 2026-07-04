@@ -235,7 +235,7 @@ export default function LandingPage() {
             },
             {
               q: 'What languages does Glumbi support?',
-              a: 'Stories can be narrated in 12 languages: English (US, Indian, British, and Australian accents), Spanish, French, Italian, Chinese, Japanese, Korean, Tamil, Hindi, Malayalam, Telugu, and Kannada. Learn to Write supports English, Tamil, and Hindi scripts.',
+              a: 'Stories can be narrated in 12 languages: English (US, Indian, British, and Australian accents), Spanish, French, Italian, Chinese, Japanese, Korean, Tamil, Hindi, Malayalam, Telugu, and Kannada. You can also record your own voice — or a family member\'s — so stories are read aloud by someone your child loves. Learn to Write supports English, Tamil, and Hindi scripts.',
             },
             {
               q: 'Do I need to install anything?',
@@ -257,7 +257,7 @@ export default function LandingPage() {
             Speaks your child's language
           </h2>
           <p style={{ fontSize: 16, color: '#777', lineHeight: 1.8, marginBottom: 40 }}>
-            Stories can be listened to in <strong>12 languages</strong> using natural Google WaveNet voices — warm, clear, and perfect for bedtime.
+            Stories can be listened to in <strong>12 languages</strong> using natural voices — warm, clear, and perfect for bedtime. You can even record your own voice so your child hears <em>you</em> reading every story.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 24, textAlign: 'left' }}>
             {[

@@ -63,9 +63,9 @@ export default function FeatureBanner({ feature, child, isMobile }) {
     <div style={{
       position: 'relative', overflow: 'hidden',
       background: 'var(--header-grad)',
-      borderRadius: isMobile ? 0 : '0 0 28px 28px',
+      borderRadius: isMobile ? 16 : 24,
       padding: isMobile ? '20px 20px 24px' : '24px 32px 28px',
-      marginBottom: isMobile ? 0 : 4,
+      marginBottom: isMobile ? 12 : 16,
       flexShrink: 0,
     }}>
       {/* Particle canvas */}

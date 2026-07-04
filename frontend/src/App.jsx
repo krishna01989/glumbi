@@ -395,7 +395,7 @@ export default function App() {
   function handleLogout() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
-    Object.keys(sessionStorage).filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_')).forEach(k => sessionStorage.removeItem(k))
+    Object.keys(localStorage).filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_')).forEach(k => localStorage.removeItem(k))
     localStorage.removeItem('glm_child_locked')
     localStorage.removeItem('glm_locked_child_id')
     setChildLocked(false)
@@ -410,9 +410,9 @@ export default function App() {
       // Only clear timer keys if we had a child before (deliberate navigation back to child list)
       // On initial page load prevChildId.current is null — don't clear so refresh preserves the timer
       if (prevChildId.current !== null) {
-        Object.keys(sessionStorage)
+        Object.keys(localStorage)
           .filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_'))
-          .forEach(k => sessionStorage.removeItem(k))
+          .forEach(k => localStorage.removeItem(k))
       }
       prevChildId.current = null
       setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null); setSnoozeCount(0)
@@ -424,20 +424,20 @@ export default function App() {
     const limitKey   = `glm_session_limit_${child.id}`
     const maxSnoozeKey = `glm_session_max_snooze_${child.id}`
 
-    const stored = sessionStorage.getItem(startKey)
+    const stored = localStorage.getItem(startKey)
     const start  = stored ? parseInt(stored) : Date.now()
     if (!stored) {
-      sessionStorage.setItem(startKey, String(start))
-      sessionStorage.removeItem(snoozeKey)
+      localStorage.setItem(startKey, String(start))
+      localStorage.removeItem(snoozeKey)
       setSnoozeCount(0)
     } else {
-      const saved = sessionStorage.getItem(snoozeKey)
+      const saved = localStorage.getItem(snoozeKey)
       setSnoozeCount(saved ? parseInt(saved) : 0)
     }
 
-    // Restore lock-time limit settings from sessionStorage
-    const storedLimit    = sessionStorage.getItem(limitKey)
-    const storedMaxSnooze = sessionStorage.getItem(maxSnoozeKey)
+    // Restore lock-time limit settings from localStorage
+    const storedLimit    = localStorage.getItem(limitKey)
+    const storedMaxSnooze = localStorage.getItem(maxSnoozeKey)
     const restoredLimit    = storedLimit    ? parseInt(storedLimit)    : 0
     const restoredMaxSnooze = storedMaxSnooze ? parseInt(storedMaxSnooze) : 1
     setLockTimeLimit(restoredLimit)
@@ -451,7 +451,7 @@ export default function App() {
 
     // Check immediately if already over limit on restore
     if (restoredLimit > 0 && elapsed >= restoredLimit) {
-      const savedSnooze = sessionStorage.getItem(snoozeKey)
+      const savedSnooze = localStorage.getItem(snoozeKey)
       const currentSnooze = savedSnooze ? parseInt(savedSnooze) : 0
       if (restoredMaxSnooze > 0 && currentSnooze >= restoredMaxSnooze) {
         setScreenTimeAlert('force-end')
@@ -478,7 +478,7 @@ export default function App() {
         const adjusted = sessionStartRef.current + sleepMs
         sessionStartRef.current = adjusted
         setSessionStart(adjusted)
-        if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(adjusted))
+        if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(adjusted))
       }
 
       if (document.hidden) return
@@ -514,7 +514,7 @@ export default function App() {
         const newStart = sessionStartRef.current + idle
         sessionStartRef.current = newStart
         setSessionStart(newStart)
-        if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+        if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
         lastTickRef.current = Date.now() // reset so interval doesn't also correct for this same sleep
         hiddenAt = null
       }
@@ -539,13 +539,13 @@ export default function App() {
   function handleScreenTimeSnooze(extraMinutes) {
     // Reset session start so the timer shows 0m again after extending
     const newStart = Date.now()
-    if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+    if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
     setSessionStart(newStart)
     setSessionMinutes(0)
     setSnoozedUntil(newStart + extraMinutes * 60000)
     setSnoozeCount(n => {
       const next = n + 1
-      if (child?.id) sessionStorage.setItem(`glm_snooze_count_${child.id}`, String(next))
+      if (child?.id) localStorage.setItem(`glm_snooze_count_${child.id}`, String(next))
       return next
     })
     setScreenTimeAlert(false)
@@ -572,8 +572,8 @@ export default function App() {
     localStorage.setItem('glm_child_locked', '1')
     if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
     if (childId) {
-      sessionStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
-      sessionStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
+      localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
+      localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     }
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
@@ -591,8 +591,8 @@ export default function App() {
     localStorage.setItem('glm_child_locked', '1')
     if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
     if (childId) {
-      sessionStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
-      sessionStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
+      localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
+      localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     }
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
@@ -608,8 +608,8 @@ export default function App() {
     localStorage.removeItem('glm_child_locked')
     localStorage.removeItem('glm_locked_child_id')
     if (child?.id) {
-      sessionStorage.removeItem(`glm_session_limit_${child.id}`)
-      sessionStorage.removeItem(`glm_session_max_snooze_${child.id}`)
+      localStorage.removeItem(`glm_session_limit_${child.id}`)
+      localStorage.removeItem(`glm_session_max_snooze_${child.id}`)
     }
     setLockTimeLimit(0); setLockMaxSnooze(1)
     setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError(''); setLockModalForced(false)

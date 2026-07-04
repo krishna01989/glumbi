@@ -38,7 +38,7 @@ function makeEmojiCursor(emoji, size = 36) {
   try {
     const canvas = document.createElement('canvas')
     canvas.width = size; canvas.height = size
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     ctx.font = `${size - 2}px serif`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
@@ -113,11 +113,12 @@ export default function Draw({ child, quota, featureConfig }) {
     return 'crosshair'
   }, [eraser, fillMode])
 
+  const getCtx = () => canvasRef.current.getContext('2d', { willReadFrequently: true })
+
   useEffect(() => {
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const ctx = getCtx()
     ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height)
   }, [])
 
   // Attach touch listeners as non-passive so preventDefault() works on mobile
@@ -170,7 +171,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function saveSnapshot() {
     const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height)
     historyRef.current = [...historyRef.current.slice(-29), snapshot]
     setCanUndo(true)
@@ -182,14 +183,14 @@ export default function Draw({ child, quota, featureConfig }) {
     const snapshot = newHistory.pop()
     historyRef.current = newHistory
     const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     ctx.putImageData(snapshot, 0, 0)
     setCanUndo(newHistory.length > 0)
     if (newHistory.length === 0) setIsEmpty(true)
   }
 
   function floodFill(canvas, startX, startY, fillHex) {
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     const w = canvas.width, h = canvas.height
     const imageData = ctx.getImageData(0, 0, w, h)
     const data = imageData.data
@@ -236,7 +237,7 @@ export default function Draw({ child, quota, featureConfig }) {
     e.preventDefault()
     if (!drawing.current) return
     const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     const pos = getPos(e, canvas)
     ctx.beginPath()
     ctx.moveTo(lastPos.current.x, lastPos.current.y)
@@ -257,7 +258,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function clearCanvas() {
     const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     setAiReply('')

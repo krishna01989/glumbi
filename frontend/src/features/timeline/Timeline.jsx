@@ -180,7 +180,7 @@ export default function Timeline({ child }) {
       <FeatureBanner feature="timeline" child={child} isMobile={window.innerWidth < 1024} />
 
       {/* Date preset filter */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', marginTop: 16 }}>
         {DATE_PRESETS.map(p => (
           <button key={p.key} onClick={() => setDatePreset(p.key)}
             style={{

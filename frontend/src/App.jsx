@@ -111,7 +111,10 @@ function ThemePicker({ child, onThemeChange }) {
     try {
       await childApi.update(child.id, {
         name: child.name, birthYear: child.birthYear,
-        avatarEmoji: child.avatarEmoji, gender: child.gender, theme: key
+        avatarEmoji: child.avatarEmoji, gender: child.gender, theme: key,
+        screenTimeLimitMinutes: child.screenTimeLimitMinutes,
+        maxSnoozeCount: child.maxSnoozeCount,
+        enabledFeatures: child.enabledFeatures,
       })
     } catch (_) {}
   }
@@ -238,6 +241,7 @@ export default function App() {
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
   const sessionStartRef = useRef(null)
+  const lastTickRef = useRef(null) // shared between interval and visibility handler to avoid double-counting sleep
   const [sessionMinutes, setSessionMinutes]     = useState(0)
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
@@ -432,9 +436,25 @@ export default function App() {
 
   // Tick every minute — check against limit
   useEffect(() => {
-    if (!sessionStart) return
+    if (!sessionStart || !childLocked) return
+    lastTickRef.current = Date.now()
     const interval = setInterval(() => {
-      if (document.hidden) return // page not visible — don't count idle time
+      const now = Date.now()
+      const delta = lastTickRef.current ? now - lastTickRef.current : 60000
+      lastTickRef.current = now
+
+      // Device was locked/asleep if the tick fired much later than expected.
+      // Only correct here if the visibilitychange handler didn't already handle it
+      // (the visibility handler resets lastTickRef.current so delta stays ~60s).
+      if (delta > 90000) {
+        const sleepMs = delta - 60000
+        const adjusted = sessionStartRef.current + sleepMs
+        sessionStartRef.current = adjusted
+        setSessionStart(adjusted)
+        if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(adjusted))
+      }
+
+      if (document.hidden) return
       const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 60000)
       setSessionMinutes(elapsed)
       const limit = child?.screenTimeLimitMinutes
@@ -471,6 +491,7 @@ export default function App() {
         sessionStartRef.current = newStart
         setSessionStart(newStart)
         if (child?.id) sessionStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+        lastTickRef.current = Date.now() // reset so interval doesn't also correct for this same sleep
         hiddenAt = null
       }
     }
@@ -988,7 +1009,7 @@ export default function App() {
                     Switch child →
                   </button>
                 )}
-                {sessionStart && (
+                {sessionStart && childLocked && (
                   <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700,
                     color: sessionMinutes >= (child.screenTimeLimitMinutes || Infinity) ? '#cc0033' : '#aaa' }}>
                     ⏱️ {formatElapsed(sessionMinutes)}{child.screenTimeLimitMinutes > 0 ? ` / ${formatElapsed(child.screenTimeLimitMinutes)}` : ''}
@@ -1042,7 +1063,7 @@ export default function App() {
               <div style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>
                 {child.name}
               </div>
-              {sessionStart
+              {sessionStart && childLocked
                 ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>
                     ⏱️ {formatElapsed(sessionMinutes)}{child.screenTimeLimitMinutes > 0 ? ` / ${formatElapsed(child.screenTimeLimitMinutes)}` : ''}
                   </div>

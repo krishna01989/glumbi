@@ -158,7 +158,7 @@ export default function MyWriting({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <FeatureBanner feature="mywriting" child={child} isMobile={isMobile} />
-    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: 16 }}>
 
       {/* Mobile top bar */}
       {isMobile && (

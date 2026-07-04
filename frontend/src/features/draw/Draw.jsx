@@ -278,7 +278,7 @@ export default function Draw({ child, quota, featureConfig }) {
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: isCompact ? 12 : 16,
+      gap: 16,
       height: isCompact ? 'auto' : '100%',
     }}>
       <FeatureBanner feature="draw" child={child} isMobile={isMobile} />

@@ -111,7 +111,7 @@ export default function Activities({ child, quota }) {
   const completed = activities.filter(a => a.completed)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <FeatureBanner feature="activities" child={child} isMobile={window.innerWidth < 1024} />
 
       {/* Generator */}

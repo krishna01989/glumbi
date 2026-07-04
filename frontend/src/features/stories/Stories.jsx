@@ -236,6 +236,7 @@ export default function Stories({ child, quota }) {
     <div style={{
       display: isMobile ? 'flex' : 'grid',
       flexDirection: isMobile ? 'column' : undefined,
+      marginTop: 16,
       gridTemplateColumns: isMobile ? undefined : '320px 1fr',
       gap: isMobile ? 16 : 24,
       height: isMobile ? 'auto' : '100%',

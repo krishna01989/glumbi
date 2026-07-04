@@ -504,7 +504,7 @@ export default function MemoryPlay({ child, quota }) {
   }
 
   return (
-    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: isMobile ? 16 : 24, boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
       <FeatureBanner feature="memory" child={child} isMobile={isMobile} />
       <QuotaBanner quota={quota} />
 

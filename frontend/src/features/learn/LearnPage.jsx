@@ -1102,6 +1102,7 @@ export default function LearnPage({ child, quota }) {
     <div style={{ fontFamily:'Nunito,sans-serif' }}>
       <FeatureBanner feature="learn" child={child} isMobile={window.innerWidth < 1024} />
       <audio ref={audioRef} />
+      <div style={{ marginTop: 16 }}>
       <QuotaBanner quota={quota} />
 
       {/* Script + mode bar */}
@@ -1188,6 +1189,7 @@ export default function LearnPage({ child, quota }) {
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }

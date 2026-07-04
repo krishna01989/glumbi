@@ -108,7 +108,7 @@ export default function ReadQuiz({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <FeatureBanner feature="readquiz" child={child} isMobile={isMobile} />
-    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif' }}>
+    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: 16 }}>
 
       {/* Mobile back button */}
       {isMobile && selected && (

@@ -148,7 +148,7 @@ export default function Curiosity({ child, quota }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <FeatureBanner feature="curiosity" child={child} isMobile={window.innerWidth < 1024} />
       <QuotaBanner quota={quota} />
       {/* Ask box */}

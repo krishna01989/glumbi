@@ -73,7 +73,7 @@ export default function Journal({ child, featureConfig }) {
   return (
     <>
     <FeatureBanner feature="journal" child={child} isMobile={window.innerWidth < 1024} />
-    <div style={{ maxWidth: 920, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 8 }}>
+    <div style={{ maxWidth: 920, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 16 }}>
       {aiLoading && <ThemeLoader theme={child.theme} />}
 
       {/* Compose area */}

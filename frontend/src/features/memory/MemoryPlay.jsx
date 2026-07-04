@@ -258,17 +258,27 @@ const DIFFICULTIES = [
   { key: 'hard',   label: '🔴 Hard',   pairs: 6, cols: 4 },
 ]
 
-function MatchGame({ pairs, difficulty = 'hard' }) {
+function MatchGame({ pairs, difficulty = 'hard', onReset }) {
   const diff = DIFFICULTIES.find(d => d.key === difficulty) || DIFFICULTIES[2]
   const slicedPairs = pairs.slice(0, diff.pairs)
-  const [cards, setCards] = useState(() => {
+
+  function freshCards() {
     const all = [...slicedPairs, ...slicedPairs].map((p, i) => ({ ...p, id: i, matched: false, flipped: false }))
     return all.sort(() => Math.random() - 0.5)
-  })
+  }
+
+  const [cards, setCards] = useState(freshCards)
   const [flippedIds, setFlippedIds] = useState([])
   const [locked, setLocked] = useState(false)
   const [moves, setMoves] = useState(0)
   const won = cards.every(c => c.matched)
+
+  function resetGame() {
+    setCards(freshCards())
+    setFlippedIds([])
+    setLocked(false)
+    setMoves(0)
+  }
 
   function flip(card) {
     if (locked || card.flipped || card.matched) return
@@ -302,7 +312,13 @@ function MatchGame({ pairs, difficulty = 'hard' }) {
       <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 28, fontWeight: 900, color: 'var(--primary)', marginTop: 16 }}>
         You did it!
       </div>
-      <div style={{ fontSize: 16, color: '#666', marginTop: 8 }}>Matched all pairs in {moves} moves!</div>
+      <div style={{ fontSize: 16, color: '#666', marginTop: 8, marginBottom: 28 }}>Matched all pairs in {moves} moves!</div>
+      <button onClick={resetGame}
+        style={{ padding: '12px 32px', borderRadius: 50, border: 'none', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+          background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
+        🔄 Play Again
+      </button>
     </div>
   )
 
@@ -361,7 +377,14 @@ function MatchGame({ pairs, difficulty = 'hard' }) {
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 14, fontSize: 13, color: '#aaa', textAlign: 'center' }}>Moves: {moves}</div>
+      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <span style={{ fontSize: 13, color: '#aaa' }}>Moves: {moves}</span>
+        <button onClick={resetGame}
+          style={{ padding: '6px 16px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: 'white',
+            fontSize: 12, fontWeight: 700, color: '#888', cursor: 'pointer' }}>
+          🔄 Reset
+        </button>
+      </div>
     </div>
   )
 }

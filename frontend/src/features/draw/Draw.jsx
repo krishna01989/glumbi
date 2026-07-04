@@ -33,18 +33,6 @@ const PRESET_COLORS = [
   '#4e342e','#6d4c41','#8d5524','#c68642','#f1c27d','#ffdbac',
 ]
 
-const CURSOR_OPTIONS = [
-  { emoji: null,  title: 'Pencil',     icon: '✏️' },
-  { emoji: '🐱',  title: 'Cat',        icon: '🐱' },
-  { emoji: '🦄',  title: 'Unicorn',    icon: '🦄' },
-  { emoji: '🦊',  title: 'Fox',        icon: '🦊' },
-  { emoji: '🐙',  title: 'Octopus',    icon: '🐙' },
-  { emoji: '🚀',  title: 'Rocket',     icon: '🚀' },
-  { emoji: '⚡',  title: 'Lightning',  icon: '⚡' },
-  { emoji: '🌟',  title: 'Star',       icon: '🌟' },
-  { emoji: '🦋',  title: 'Butterfly',  icon: '🦋' },
-  { emoji: '🐶',  title: 'Dog',        icon: '🐶' },
-]
 
 function makeEmojiCursor(emoji, size = 36) {
   try {
@@ -86,10 +74,12 @@ export default function Draw({ child, quota, featureConfig }) {
   const drawing    = useRef(false)
   const lastPos    = useRef(null)
 
+  const historyRef = useRef([])
+  const [canUndo, setCanUndo]     = useState(false)
   const [color, setColor]         = useState('#000000')
   const [brush, setBrush]         = useState(14)
   const [eraser, setEraser]       = useState(false)
-  const [cursorEmoji, setCursorEmoji] = useState(null)
+  const [fillMode, setFillMode]       = useState(false)
   const [aiReply, setAiReply]     = useState('')
   const [loading, setLoading]     = useState(false)
   const [isEmpty, setIsEmpty]     = useState(true)
@@ -118,10 +108,10 @@ export default function Draw({ child, quota, featureConfig }) {
   const isMobile = bp === 'mobile'
   const isCompact = bp === 'mobile' || bp === 'tablet'
   const canvasCursor = useMemo(() => {
+    if (fillMode) return makeEmojiCursor('🪣', 40)
     if (eraser) return 'cell'
-    if (cursorEmoji) return makeEmojiCursor(cursorEmoji)
     return 'crosshair'
-  }, [eraser, cursorEmoji])
+  }, [eraser, fillMode])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -178,8 +168,66 @@ export default function Draw({ child, quota, featureConfig }) {
     }
   }
 
+  function saveSnapshot() {
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    historyRef.current = [...historyRef.current.slice(-29), snapshot]
+    setCanUndo(true)
+  }
+
+  function handleUndo() {
+    if (historyRef.current.length === 0) return
+    const newHistory = [...historyRef.current]
+    const snapshot = newHistory.pop()
+    historyRef.current = newHistory
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    ctx.putImageData(snapshot, 0, 0)
+    setCanUndo(newHistory.length > 0)
+    if (newHistory.length === 0) setIsEmpty(true)
+  }
+
+  function floodFill(canvas, startX, startY, fillHex) {
+    const ctx = canvas.getContext('2d')
+    const w = canvas.width, h = canvas.height
+    const imageData = ctx.getImageData(0, 0, w, h)
+    const data = imageData.data
+    const fillR = parseInt(fillHex.slice(1,3), 16)
+    const fillG = parseInt(fillHex.slice(3,5), 16)
+    const fillB = parseInt(fillHex.slice(5,7), 16)
+    const sx = Math.floor(startX), sy = Math.floor(startY)
+    const si = (sy * w + sx) * 4
+    const tR = data[si], tG = data[si+1], tB = data[si+2]
+    if (tR === fillR && tG === fillG && tB === fillB) return
+    const tol = 32
+    const matches = i => Math.abs(data[i]-tR) <= tol && Math.abs(data[i+1]-tG) <= tol && Math.abs(data[i+2]-tB) <= tol
+    const visited = new Uint8Array(w * h)
+    const stack = [sx + sy * w]
+    while (stack.length) {
+      const pos = stack.pop()
+      const x = pos % w, y = (pos / w) | 0
+      if (x < 0 || x >= w || y < 0 || y >= h || visited[pos]) continue
+      const i = pos * 4
+      if (!matches(i)) continue
+      visited[pos] = 1
+      data[i] = fillR; data[i+1] = fillG; data[i+2] = fillB; data[i+3] = 255
+      stack.push(pos+1, pos-1, pos+w, pos-w)
+    }
+    ctx.putImageData(imageData, 0, 0)
+  }
+
   function startDraw(e) {
     e.preventDefault()
+    if (fillMode) {
+      saveSnapshot()
+      const canvas = canvasRef.current
+      const pos = getPos(e, canvas)
+      floodFill(canvas, pos.x, pos.y, color)
+      setIsEmpty(false)
+      return
+    }
+    saveSnapshot()
     drawing.current = true
     lastPos.current = getPos(e, canvasRef.current)
   }
@@ -284,9 +332,9 @@ export default function Draw({ child, quota, featureConfig }) {
       <FeatureBanner feature="draw" child={child} isMobile={isMobile} />
       {/* ── Guide prompt (top, full width) ── */}
       {!isCompact && guideEnabled && (
-        <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+        <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexShrink: 0 }}>
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
-            borderRadius: 50, padding: '8px 16px', boxShadow: 'var(--shadow)' }}>
+            borderRadius: 50, padding: '0 16px', boxShadow: 'var(--shadow)', minHeight: 46 }}>
             <span style={{ fontSize: 18 }}>🎨</span>
             <input
               value={guideInput}
@@ -299,7 +347,7 @@ export default function Draw({ child, quota, featureConfig }) {
             />
           </div>
           <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
-            style={{ padding: '9px 20px', borderRadius: 50, border: 'none', fontWeight: 700,
+            style={{ padding: '0 20px', borderRadius: 50, border: 'none', fontWeight: 700,
               fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
               background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
               color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
@@ -447,7 +495,19 @@ export default function Draw({ child, quota, featureConfig }) {
         {!isCompact && <SectionLabel>Tools</SectionLabel>}
 
         <div style={{ display: 'flex', flexDirection: isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
-          <button onClick={() => setEraser(e => !e)} title="Eraser"
+          <button onClick={() => { setFillMode(f => !f); setEraser(false) }} title="Fill"
+            style={{
+              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: fillMode ? '#fff0f0' : '#f5f5f5',
+              outline: fillMode ? '2px solid var(--primary)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+            <span style={{ fontSize: 16 }}>🪣</span>
+            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: fillMode ? 'var(--primary)' : '#aaa' }}>Fill</span>}
+          </button>
+
+          <button onClick={() => { setEraser(e => !e); setFillMode(false) }} title="Eraser"
             style={{
               width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer',
@@ -457,6 +517,17 @@ export default function Draw({ child, quota, featureConfig }) {
             }}>
             <span style={{ fontSize: 16 }}>🧹</span>
             {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: eraser ? 'var(--primary)' : '#aaa' }}>Eraser</span>}
+          </button>
+
+          <button onClick={handleUndo} title="Undo" disabled={!canUndo}
+            style={{
+              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              borderRadius: 8, border: 'none', cursor: canUndo ? 'pointer' : 'not-allowed', background: '#f5f5f5',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              opacity: canUndo ? 1 : 0.35,
+            }}>
+            <span style={{ fontSize: 16 }}>↩️</span>
+            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Undo</span>}
           </button>
 
           <button onClick={clearCanvas} title="Clear canvas"
@@ -480,26 +551,6 @@ export default function Draw({ child, quota, featureConfig }) {
           </button>
         </div>
 
-        {!isCompact && <Divider />}
-
-        {/* ── CURSOR section ── */}
-        {!isCompact && <SectionLabel>Pointer</SectionLabel>}
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isCompact ? undefined : 76 }}>
-          {CURSOR_OPTIONS.map(c => (
-            <button key={c.title} onClick={() => setCursorEmoji(c.emoji)} title={c.title}
-              style={{
-                width: 28, height: 28, borderRadius: 8, border: 'none', cursor: 'pointer',
-                fontSize: 16, background: cursorEmoji === c.emoji ? 'var(--primary-lt)' : '#f5f5f5',
-                outline: cursorEmoji === c.emoji ? '2px solid var(--primary)' : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transform: cursorEmoji === c.emoji ? 'scale(1.15)' : 'scale(1)',
-                transition: 'all 0.12s',
-              }}>
-              {c.icon}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* ── Canvas area ── */}
@@ -507,9 +558,9 @@ export default function Draw({ child, quota, featureConfig }) {
 
         {/* Guide prompt — mobile only (desktop version rendered above) */}
         {isCompact && guideEnabled && (
-          <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
-              borderRadius: 50, padding: '8px 16px', boxShadow: 'var(--shadow)' }}>
+              borderRadius: 50, padding: '0 16px', boxShadow: 'var(--shadow)', minHeight: 46 }}>
               <span style={{ fontSize: 18 }}>🎨</span>
               <input
                 value={guideInput}
@@ -522,7 +573,7 @@ export default function Draw({ child, quota, featureConfig }) {
               />
             </div>
             <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
-              style={{ padding: '9px 20px', borderRadius: 50, border: 'none', fontWeight: 700,
+              style={{ padding: '0 20px', borderRadius: 50, border: 'none', fontWeight: 700,
                 fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
                 background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
                 color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
@@ -582,7 +633,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
       {/* ── AI section (below toolbar+canvas on desktop) ── */}
       <QuotaBanner quota={quota} />
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
         {!drawAiEnabled && (
           <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
             ✈️ AI drawing features are currently off
@@ -596,7 +647,7 @@ export default function Draw({ child, quota, featureConfig }) {
             color: 'white', border: 'none', cursor: (isEmpty || offline) ? 'not-allowed' : 'pointer',
             opacity: (isEmpty || offline) ? 0.5 : 1,
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-            whiteSpace: 'nowrap',
+            whiteSpace: 'nowrap', alignSelf: 'center',
           }}>
           {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
         </button>

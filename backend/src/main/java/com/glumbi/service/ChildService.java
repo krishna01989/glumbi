@@ -74,6 +74,20 @@ public class ChildService {
         return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"memory\",\"timeline\"]";
     }
 
+    public Child checkin(Long id, Long ownerId) {
+        Child child = getById(id, ownerId);
+        LocalDate today = LocalDate.now();
+        LocalDate last = child.getLastStreakDate();
+        if (last == null || last.isBefore(today.minusDays(1))) {
+            child.setStreakCount(1);
+        } else if (last.isBefore(today)) {
+            child.setStreakCount(child.getStreakCount() + 1);
+        }
+        // same day → no-op on count
+        child.setLastStreakDate(today);
+        return repo.save(child);
+    }
+
     public void delete(Long id, Long ownerId) {
         Child child = getById(id, ownerId);
         repo.delete(child);

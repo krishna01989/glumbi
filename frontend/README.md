@@ -126,6 +126,19 @@ All API calls go through the Axios instance in `client.js`. It:
 - `index.html` includes an inline fallback rendered inside `#root` that stays visible if the JS bundle errors before React mounts; disappears automatically once React takes over
 - `vercel.json` wires `404.html` and `500.html` as Vercel error pages
 
+### Daily Streak
+
+- Every time a child profile is selected (or restored on page load), `App.jsx` calls `POST /api/children/{id}/checkin`
+- Same-day visit → no change; yesterday → streak +1; gap > 1 day → reset to 1
+- The returned `streakCount` is merged into local child state and shown as `🔥 N` in the nav bar
+- Stored on the `Child` entity so streaks persist across devices and tab closes
+
+### Story Continuation
+
+- **Stories page** — any story has a **▶ Continue** button in the action row; calls `POST /api/stories/generate` with `previousStoryId` set; the backend passes the last 600 chars of the original as context to `StoryAgent.continueStory()`. Result is saved as a new story and appears at the top of the list.
+- **My Writing page** — any saved story has a **✨ What happens next?** button; calls `POST /api/writing/{id}/continue`; the backend generates a continuation via the same `StoryAgent.continueStory()` but does **not** save the result — it is shown as inspiration only. The child can adopt it into the editor via "Use this — keep writing!" or regenerate with "Try another idea".
+- Both flows show the themed `ThemeLoader` animation and call `window.__glumbiRefreshQuota?.()` on success to refresh the credit counter
+
 ### Parental Lock & Session Timer
 
 - Parents set a 4-digit PIN + optional time limit on the child list page before handing the device over
@@ -133,10 +146,11 @@ All API calls go through the Axios instance in `client.js`. It:
 - Unlock access modal follows the child's colour theme (`THEMES[child.theme]`)
 
 **Session timer (per child, applies regardless of lock state):**
-- Each child has its own independent timer, keyed by child ID (`glm_session_start_<childId>`, `glm_snooze_count_<childId>`)
+- Each child has its own independent timer, keyed by child ID in `localStorage`: `glm_session_start_<childId>`, `glm_snooze_count_<childId>`, `glm_session_limit_<childId>`, `glm_session_max_snooze_<childId>`
+- `localStorage` is used (not `sessionStorage`) so the timer survives tab close — a child who closes the tab mid-session is still locked out when the tab is reopened
 - Timer starts fresh at 0 every time that child's profile is opened — locked or unlocked
-- **Page refresh** → timer resumes from where it left off; snooze count is also restored from sessionStorage
-- **Back to child list** → all `glm_session_start_*` and `glm_snooze_count_*` keys are cleared from sessionStorage when `child` becomes `null`
+- **Page refresh** → timer resumes from where it left off; snooze count is also restored from localStorage
+- **Back to child list** → all `glm_session_start_*` and `glm_snooze_count_*` keys are cleared from localStorage when `child` becomes `null`
 - **Reselecting the same child** from the list → no stored key found → fresh timer from 0 (not the old count)
 - **Switching to a different child** → same clear happens; new child always starts from 0
 - While inside a child session, the child can extend time N times (configured per child via `maxSnoozeCount`)

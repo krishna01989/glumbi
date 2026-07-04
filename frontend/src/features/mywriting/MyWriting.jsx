@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { writingApi } from '../../api/client'
+import { writingApi, storyApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useOffline } from '../../contexts/OfflineContext'
@@ -43,6 +43,8 @@ export default function MyWriting({ child, quota }) {
   const [saving,   setSaving]   = useState(false)
   const [feedback, setFeedback] = useState(null)
   const [fbLoading,setFbLoading]= useState(false)
+  const [continuation, setContinuation] = useState(null)
+  const [contLoading, setContLoading]   = useState(false)
   const [error,    setError]    = useState('')
   const savedId = useRef(null)  // id of the saved draft being edited
   const autoSaveRef = useRef(null)
@@ -62,12 +64,22 @@ export default function MyWriting({ child, quota }) {
 
   function startNew() {
     savedId.current = null
-    setTitle(''); setContent(''); setFeedback(null); setError('')
+    setTitle(''); setContent(''); setFeedback(null); setError(''); setContinuation(null)
     setSelected(null); setEditing(true)
   }
 
+  async function handleContinue(entry) {
+    setContLoading(true); setContinuation(null)
+    try {
+      const result = await writingApi.continue(entry.id)
+      setContinuation(result)
+      window.__glumbiRefreshQuota?.()
+    } catch (e) { setError(e.message) }
+    finally { setContLoading(false) }
+  }
+
   function openEntry(e) {
-    setSelected(e); setEditing(false)
+    setSelected(e); setEditing(false); setContinuation(null)
     setFeedback(e.feedbackReceived ? {
       praise: e.feedbackPraise,
       suggestion: e.feedbackSuggestion,
@@ -80,7 +92,7 @@ export default function MyWriting({ child, quota }) {
   function editEntry(e) {
     savedId.current = e.id
     setTitle(e.title); setContent(e.content)
-    setFeedback(null); setError(''); setEditing(true); setSelected(null)
+    setFeedback(null); setError(''); setEditing(true); setSelected(null); setContinuation(null)
   }
 
   async function handleSave(silent = false) {
@@ -148,7 +160,7 @@ export default function MyWriting({ child, quota }) {
 
   return (
     <>
-    {fbLoading && <ThemeLoader theme={child.theme} label="Reading your story…" />}
+    {(fbLoading || contLoading) && <ThemeLoader theme={child.theme} label={contLoading ? 'Imagining what happens next…' : 'Reading your story…'} />}
     <ConfirmDialog
       open={!!confirmDelete}
       title="Delete Story?"
@@ -379,6 +391,61 @@ export default function MyWriting({ child, quota }) {
                 </div>
               </div>
             )}
+
+            {/* Continue story suggestion */}
+            <div style={{ marginTop: 16 }}>
+              {!continuation && (
+                <button
+                  onClick={() => handleContinue(selected)}
+                  disabled={contLoading || offline || quota?.used >= quota?.limit}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: 50, fontWeight: 800, fontSize: 14,
+                    background: contLoading ? '#f5f5f5' : 'linear-gradient(135deg,#8e44ad,#3498db)',
+                    color: contLoading ? '#aaa' : 'white', border: 'none',
+                    cursor: contLoading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
+                    opacity: offline || quota?.used >= quota?.limit ? 0.6 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}>
+                  {contLoading
+                    ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(0,0,0,0.15)', borderTopColor: '#aaa', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Imagining what happens next…</>
+                    : offline ? '✈️ AI is off' : '✨ What happens next?'}
+                </button>
+              )}
+              {continuation && (
+                <div className="card" style={{ animation: 'fadeIn 0.5s ease' }}>
+                  <div style={{ background: 'linear-gradient(135deg,#8e44ad22,#3498db22)', borderRadius: '20px 20px 0 0', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 13, fontWeight: 800, color: '#8e44ad' }}>✨ Story continues…</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: '#333', marginTop: 2 }}>{continuation.title}</div>
+                    </div>
+                    <button onClick={() => setContinuation(null)}
+                      style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#aaa', padding: 4 }}>✕</button>
+                  </div>
+                  <div style={{ padding: '16px 24px' }}>
+                    <div style={{ lineHeight: 1.9, fontSize: 14, color: '#444', whiteSpace: 'pre-wrap', background: '#fafafa', borderRadius: 12, padding: 16, border: '1.5px solid #f0f0f0', marginBottom: 12 }}>
+                      {continuation.content}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => {
+                          setTitle(continuation.title)
+                          setContent(continuation.content)
+                          savedId.current = null
+                          setEditing(true); setSelected(null); setContinuation(null)
+                        }}
+                        style={{ padding: '10px 20px', borderRadius: 50, background: 'linear-gradient(135deg,#8e44ad,#3498db)', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                        📝 Use this — keep writing!
+                      </button>
+                      <button onClick={() => handleContinue(selected)}
+                        style={{ padding: '10px 20px', borderRadius: 50, background: '#f5f5f5', color: '#555', border: 'none', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                        🔄 Try another idea
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <ErrorBox msg={error} />
+            </div>
           </div>
         )}
 

@@ -45,6 +45,34 @@ public class StoryAgent {
         return result;
     }
 
+    public StoryResult continueStory(String childName, int childAge, String gender,
+                                      String previousTitle, String previousContent) {
+        String pronoun = "girl".equalsIgnoreCase(gender) ? "she/her" : "he/him";
+        String snippet = previousContent.length() > 600
+                ? previousContent.substring(previousContent.length() - 600) : previousContent;
+
+        String systemPrompt = safety.safetySystemPreamble() + String.format(
+                promptLoader.load("story-system"),
+                childName, childAge, pronoun, childName, pronoun, childAge, storyGuidance(childAge));
+
+        String userMsg = String.format(
+                "Continue this story for %s. Here is what happened so far:\n\nTitle: %s\n\n...%s\n\n" +
+                "Write the NEXT chapter. Keep the same characters and world. Give it a new chapter title.",
+                childName, previousTitle, snippet);
+
+        ObjectNode body = mapper.createObjectNode();
+        body.put("model", model);
+        body.put("max_tokens", maxTokens);
+        body.put("system", systemPrompt);
+        body.putArray("messages").addObject().put("role", "user").put("content", userMsg);
+
+        String response = anthropicClient.call(body);
+        StoryResult result = parseResponse(response);
+        if (!safety.isOutputSafe(result.content()))
+            return new StoryResult("A Magical Story", safety.safeFallback("story"));
+        return result;
+    }
+
     private String storyGuidance(int age) {
         if (age <= 3) return "Very short sentences (5–8 words). Repetition is great. Only 1–2 characters. Focus on a single simple feeling or action. Max 100 words.";
         if (age <= 5) return "Short sentences, simple words. One small adventure with a clear beginning, middle, and happy end. 100–150 words.";

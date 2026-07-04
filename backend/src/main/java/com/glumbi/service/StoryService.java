@@ -23,9 +23,18 @@ public class StoryService {
         Child child = childService.getByIdUnchecked(req.getChildId());
         int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
-        StoryAgent.StoryResult result = storyAgent.generateStory(
-                child.getName(), age, child.getGender(), req.getKeywords()
-        );
+        StoryAgent.StoryResult result;
+        if (req.getPreviousStoryId() != null) {
+            Story prev = repo.findById(req.getPreviousStoryId())
+                    .orElseThrow(() -> new RuntimeException("Previous story not found"));
+            result = storyAgent.continueStory(
+                    child.getName(), age, child.getGender(), prev.getTitle(), prev.getContent()
+            );
+        } else {
+            result = storyAgent.generateStory(
+                    child.getName(), age, child.getGender(), req.getKeywords()
+            );
+        }
 
         Story story = new Story();
         story.setChild(child);

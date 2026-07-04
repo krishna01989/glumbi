@@ -64,15 +64,17 @@ export const authApi = {
 }
 
 export const childApi = {
-  getAll: ()             => api.get('/children').then(r => r.data),
-  get:    (id)           => api.get(`/children/${id}`).then(r => r.data),
-  create: (data)         => api.post('/children', data).then(r => r.data),
-  update: (id, data)     => api.put(`/children/${id}`, data).then(r => r.data),
-  delete: (id)           => api.delete(`/children/${id}`),
+  getAll:   ()           => api.get('/children').then(r => r.data),
+  get:      (id)         => api.get(`/children/${id}`).then(r => r.data),
+  create:   (data)       => api.post('/children', data).then(r => r.data),
+  update:   (id, data)   => api.put(`/children/${id}`, data).then(r => r.data),
+  delete:   (id)         => api.delete(`/children/${id}`),
+  checkin:  (id)         => api.post(`/children/${id}/checkin`).then(r => r.data),
 }
 
 export const storyApi = {
   generate:       (data)              => api.post('/stories/generate', data).then(r => r.data),
+  continue:       (childId, previousStoryId) => api.post('/stories/generate', { childId, keywords: 'continue', previousStoryId }).then(r => r.data),
   getByChild:     (childId, params)   => api.get(`/stories/child/${childId}`, { params }).then(r => r.data),
   getFavorites:   (childId)           => api.get(`/stories/child/${childId}/favorites`).then(r => r.data),
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
@@ -143,6 +145,7 @@ export const writingApi = {
   save:      (data)              => api.post('/writing', data).then(r => r.data),
   update:    (id, data)          => api.put(`/writing/${id}`, data).then(r => r.data),
   feedback:  (id)                => api.post(`/writing/${id}/feedback`).then(r => r.data),
+  continue:  (id)                => api.post(`/writing/${id}/continue`).then(r => r.data),
   getByChild:(childId, params)   => api.get(`/writing/child/${childId}`, { params }).then(r => r.data),
   delete:    (id)               => api.delete(`/writing/${id}`),
 }

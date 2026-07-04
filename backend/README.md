@@ -35,7 +35,7 @@ src/main/java/com/glumbi/
 
 | Agent | Purpose |
 |---|---|
-| `StoryAgent` | Generates personalised stories for a child |
+| `StoryAgent` | Generates personalised stories; also has `continueStory()` which takes the last 600 chars of a previous story as context and generates a next chapter |
 | `ActivityAgent` | Generates activity suggestions from a story |
 | `CuriosityAgent` | Generates daily curiosity / wonder questions |
 | `ReadQuizAgent` | Generates comprehension quiz questions |
@@ -60,9 +60,9 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 | `ActivityController` | `/api/activities` | Generate and list activities |
 | `CuriosityController` | `/api/curiosity` | Daily curiosity questions |
 | `ReadQuizController` | `/api/readquiz` | Quiz generation and history |
-| `WritingController` | `/api/writing` | Submit writing, get feedback |
+| `WritingController` | `/api/writing` | Submit writing, get feedback, `POST /{id}/continue` generates a story continuation suggestion (not saved) |
 | `LearnController` | `/api/learn` | Letter validation (vision AI), word identification, TTS audio for letters |
-| `ChildController` | `/api/children` | Child profile management |
+| `ChildController` | `/api/children` | Child profile management; `POST /{id}/checkin` updates the daily streak counter |
 | `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`) |
 | `FamilyVoiceController` | `/api/voices` | CRUD for custom story voices — list, create (upload + clone via ElevenLabs), rename, delete. Capped at 5 voices per family. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
@@ -207,6 +207,8 @@ This lets the admin panel show live job state rather than only completed runs.
 Schema is managed by JPA `ddl-auto: update` — tables are created/altered automatically on startup. Main entities:
 
 `AppUser` → `Child` → `Story`, `Activity`, `CuriosityEntry`, `ReadQuizEntry`, `WritingEntry`, `JournalEntry`, `Notification`
+
+`Child` has two streak fields: `streak_count` (integer, default 0) and `last_streak_date` (date). `ChildService.checkin()` implements the streak logic: same day → no-op; yesterday → increment; gap > 1 day → reset to 1. Called on every child profile open via `POST /api/children/{id}/checkin`.
 
 `SchedulerRun` — one row per scheduler job execution; columns: `scheduler_id`, `started_at`, `finished_at`, `status` (`RUNNING` / `SUCCESS` / `FAILED`), `children_processed`, `agents_ran`, `agents_skipped`, `errors`
 

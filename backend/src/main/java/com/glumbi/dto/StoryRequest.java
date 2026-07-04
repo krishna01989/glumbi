@@ -13,4 +13,6 @@ public class StoryRequest {
     @NotBlank
     @Size(max = 120, message = "Story keywords must be 120 characters or fewer")
     private String keywords;
+
+    private Long previousStoryId; // optional — when set, generates a continuation
 }

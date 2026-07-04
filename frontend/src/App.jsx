@@ -322,6 +322,7 @@ export default function App() {
       .then(c => {
         applyTheme(c.theme); setChild(c)
         setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
+        childApi.checkin(c.id).then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev)).catch(() => {})
         // If restoring a locked session and not already on child route, navigate there
         if (!urlMatch && localStorage.getItem('glm_child_locked') === '1') {
           navigate(`/child/${c.id}/stories`, { replace: true })
@@ -630,6 +631,7 @@ export default function App() {
     applyTheme(c.theme)
     setChild(c)
     setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
+    childApi.checkin(c.id).then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev)).catch(() => {})
     navigate(`/child/${c.id}/stories`)
     if (!localStorage.getItem('glm_tour_done')) {
       localStorage.setItem('glm_tour_done', '1')
@@ -1082,6 +1084,11 @@ export default function App() {
                   <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700,
                     color: lockTimeLimit > 0 && sessionMinutes >= lockTimeLimit ? '#cc0033' : '#aaa' }}>
                     ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ''}
+                  </span>
+                )}
+                {child?.streakCount > 0 && (
+                  <span title={`${child.streakCount}-day streak!`} style={{ fontSize: isTV ? 13 : 11, fontWeight: 800, color: '#f7a800', display: 'flex', alignItems: 'center', gap: 2 }}>
+                    🔥 {child.streakCount}
                   </span>
                 )}
               </div>

@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -35,6 +36,9 @@ public class Child {
 
     @Column(columnDefinition = "TEXT")
     private String enabledFeatures; // JSON array e.g. ["stories","activities","curiosity"]
+
+    private Integer streakCount = 0;
+    private LocalDate lastStreakDate;
 
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

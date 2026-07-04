@@ -23,6 +23,9 @@ Live at **[glumbi.com](https://glumbi.com)**
 | 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. Runtime voice picker lets kids choose accent (US, India, British, Australian) and gender (♀/♂) while listening. |
 | 🎙️ **Custom Story Voices** | Parents can record their own voice (or a family member's) directly in the browser, or upload an audio file. Up to 5 named voices per family (Mom, Dad, Granny…). Stories are narrated in the selected voice across all languages. Voice selection is remembered per child. |
 | 🔔 **Smart Notifications** | Weekly AI-generated notifications per child: Progress Reports, Milestones, Story Recommendations, Learning Insights, and Learn-to-Write summaries of letters and words practised that week. |
+| 🔥 **Daily Streak** | A streak counter in the nav rewards kids for opening Glumbi on consecutive days. Visiting on consecutive days increments the streak; missing a day resets it to 1. Streaks are stored per child so each profile has its own counter. |
+| ▶ **Story Continuation** | Any AI-generated story can be continued as a new chapter. Open a story → click **Continue** — Glumbi generates a follow-on story using the same characters and world. The continuation is saved as a new story. |
+| ✨ **"What happens next?" (My Writing)** | After reading a child's own written story, tap **What happens next?** to get an AI-suggested next chapter as inspiration. The child can adopt the suggestion into the editor and keep writing, or request a fresh idea. The suggestion is not saved automatically. |
 
 ---
 

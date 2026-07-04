@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/children")
@@ -44,5 +45,15 @@ public class ChildController {
     public ResponseEntity<Void> delete(@PathVariable Long id, @AuthenticationPrincipal AuthUser user) {
         service.delete(id, user.id());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/checkin")
+    public ResponseEntity<Map<String, Object>> checkin(@PathVariable Long id,
+                                                       @AuthenticationPrincipal AuthUser user) {
+        Child child = service.checkin(id, user.id());
+        return ResponseEntity.ok(Map.of(
+            "streakCount", child.getStreakCount(),
+            "lastStreakDate", child.getLastStreakDate().toString()
+        ));
     }
 }

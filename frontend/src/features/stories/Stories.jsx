@@ -167,6 +167,19 @@ export default function Stories({ child, quota }) {
     } finally { setLoading(false) }
   }
 
+  async function handleContinue(story) {
+    setLoading(true)
+    setError('')
+    try {
+      const continued = await storyApi.continue(child.id, story.id)
+      setStories(prev => [continued, ...prev])
+      setSelected(continued)
+      window.__glumbiRefreshQuota?.()
+    } catch (e) {
+      setError(e.message)
+    } finally { setLoading(false) }
+  }
+
   async function handleDelete(storyId) {
     setConfirmDelete(storyId)
   }
@@ -456,6 +469,11 @@ export default function Stories({ child, quota }) {
                 <button onClick={() => toggleFav(selected.id)}
                   style={{ padding: '8px 14px', fontSize: 18, background: selected.favorite ? '#fff3cd' : '#f5f5f5', borderRadius: 50 }}>
                   {selected.favorite ? '⭐' : '☆'}
+                </button>
+                <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
+                  title="Continue this story"
+                  style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700, borderRadius: 50, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: 'var(--primary-lt)', color: 'var(--primary)', opacity: loading ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                  ▶ Continue
                 </button>
                 <button onClick={() => handleDelete(selected.id)}
                   className="btn-danger" style={{ padding: '8px 14px', fontSize: 13 }}>

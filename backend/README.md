@@ -10,7 +10,8 @@ Spring Boot 3.2.5 REST API powering the Glumbi kids learning app.
 - **Spring Security** — stateless JWT authentication
 - **Spring Data JPA** — PostgreSQL via Hibernate
 - **WebFlux (WebClient)** — async calls to Anthropic Claude API
-- **Google Cloud TTS** — audio narration with WaveNet voices
+- **Google Cloud TTS** — audio narration with WaveNet voices (default)
+- **ElevenLabs API** — custom voice cloning for parent-recorded voices
 - **Lombok** — boilerplate reduction
 - **JJWT 0.11.5** — JWT signing and verification
 
@@ -63,6 +64,7 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 | `LearnController` | `/api/learn` | Letter validation (vision AI), word identification, TTS audio for letters |
 | `ChildController` | `/api/children` | Child profile management |
 | `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`) |
+| `FamilyVoiceController` | `/api/voices` | CRUD for custom story voices — list, create (upload + clone via ElevenLabs), rename, delete. Capped at 5 voices per family. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
 | `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. |
 
@@ -83,6 +85,7 @@ Set these in your shell (local) or in Railway dashboard (production).
 | `JWT_SECRET` | Random string ≥ 32 chars for signing JWTs |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID (ends in `.apps.googleusercontent.com`) |
 | `GOOGLE_CREDENTIALS_JSON` | Full Google service account JSON as a single line (for TTS) |
+| `ELEVENLABS_API_KEY` | ElevenLabs API key for custom voice cloning |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (server-side verification) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins e.g. `https://glumbi.com,https://www.glumbi.com` |
 | `PORT` | Auto-set by Railway — do not set manually |
@@ -147,6 +150,16 @@ docker run -p 8080:8080 --env-file backend/.env glumbi-backend
 - Generated audio is cached in-memory (`ConcurrentHashMap`) keyed by `storyId:language:voice` — different voice selections each get their own cache entry
 - `TextToSpeechService` uses WaveNet voices; speaking rate is `0.90` (slightly slower for kids)
 - Language → voice mapping lives in `TextToSpeechService.buildVoice()`; falls back to language-based defaults when no voice name is supplied
+
+## Custom Voice Cloning (ElevenLabs)
+
+- Parents can record or upload an audio sample and save it as a named voice (Mom, Dad, Granny…) — up to 5 per family
+- `FamilyVoiceController.create()` sends the audio to ElevenLabs `POST /v1/voices/add` and stores the returned `voice_id` in the `family_voices` table
+- Voice names in ElevenLabs are formatted as `Glumbi | {name} | User{id} | {timestamp}` to ensure uniqueness across users
+- `GET /api/stories/{id}/listen?familyVoiceId=123` looks up the ElevenLabs `voice_id` for that record and calls `ElevenLabsService.synthesize()` using the `eleven_multilingual_v2` model — works for all 12 supported languages
+- If ElevenLabs fails, the endpoint silently falls back to Google TTS
+- `ElevenLabsService` is a no-dependency HTTP client using Java's built-in `HttpClient` — no extra libraries needed
+- `ELEVENLABS_API_KEY` env var must be set; if absent, `ElevenLabsService.isConfigured()` returns false and voice cloning endpoints return 503
 
 ## Schedulers
 

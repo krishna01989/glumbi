@@ -168,11 +168,21 @@ Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` re
 ### Voice / accent picker (`Stories.jsx`)
 
 The listen button opens a language picker popup that includes:
-- **Voice toggle** — ♀ Female / ♂ Male applies to every language
-- **English Accent** — US 🇺🇸 / India 🇮🇳 / British 🇬🇧 / Australian 🇦🇺; combined with the gender toggle to pick the exact WaveNet voice (e.g. `en-IN-Wavenet-B`)
-- **Language buttons** — English + 6 international + 5 Indian regional; non-English languages use the gender toggle to pick Wavenet A (female) or B (male)
+- **Custom voice chips** — shown only when the family has saved custom voices; chips for Default + each named voice (Mom, Dad, Granny…). Selection saved to `localStorage` keyed by child ID (`glumbi_voice_{childId}`)
+- **Voice toggle** — ♀ Female / ♂ Male — hidden when a custom voice is selected
+- **English Accent** — US 🇺🇸 / India 🇮🇳 / British 🇬🇧 / Australian 🇦🇺 — hidden when a custom voice is selected
+- **Language buttons** — English + 6 international + 5 Indian regional
 - Selections persist in `localStorage` (`glumbi_accent`, `glumbi_gender`)
-- The voice name is passed to the backend as `?voice=<wavenet-name>` on the listen URL
+- When a custom voice is selected, `?familyVoiceId=<id>` is passed to the backend listen URL instead of a WaveNet voice name
+
+### Custom Story Voices (`ProfilePage.jsx`)
+
+Parents manage up to 5 named voices from My Account → Story Voices:
+- **Record** — uses browser `MediaRecorder` API; live timer shown during recording; playback before confirming
+- **Upload** — file picker accepting any audio format
+- Name field (e.g. Mom, Dad) stays visible during recording and playback — disabled to prevent accidental edits
+- Voice list supports inline rename and delete
+- `voiceApi` in `client.js` covers `list`, `create` (multipart upload), `rename`, `delete`
 
 ### Learn to Write (`LearnPage.jsx`)
 

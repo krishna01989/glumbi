@@ -21,6 +21,7 @@ Live at **[glumbi.com](https://glumbi.com)**
 | 🔐 **Parental Lock & Session Timer** | Parents set a 4-digit PIN and optional time limit before handing the device over. Timer starts the moment a child profile is opened (locked or unlocked) and resets whenever the parent returns to the child list. Children can extend time N configurable times (snoozes); once snoozes are exhausted, locked sessions require the PIN to continue and unlocked sessions return to the child list. |
 | 🔒 **Safe & Private** | All content passes a safety guard before being shown to kids. Raw server errors, stack traces, and host details are never exposed to users. Static coral-themed error pages served by Vercel CDN for 404/500 even when the app is down. |
 | 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. Runtime voice picker lets kids choose accent (US, India, British, Australian) and gender (♀/♂) while listening. |
+| 🎙️ **Custom Story Voices** | Parents can record their own voice (or a family member's) directly in the browser, or upload an audio file. Up to 5 named voices per family (Mom, Dad, Granny…). Stories are narrated in the selected voice across all languages. Voice selection is remembered per child. |
 | 🔔 **Smart Notifications** | Weekly AI-generated notifications per child: Progress Reports, Milestones, Story Recommendations, Learning Insights, and Learn-to-Write summaries of letters and words practised that week. |
 
 ---
@@ -51,7 +52,7 @@ See the individual READMEs for setup details:
 | Backend | Spring Boot 3.2.5, Spring Security, JPA |
 | Database | PostgreSQL |
 | AI | Claude Haiku 4.5 (Anthropic) |
-| Text-to-Speech | Google Cloud TTS (WaveNet voices) |
+| Text-to-Speech | Google Cloud TTS (WaveNet voices) + ElevenLabs (custom voice cloning) |
 | Auth | JWT + Google OAuth 2.0 |
 | Bot protection | Cloudflare Turnstile |
 | Hosting | Vercel (frontend) + Railway (backend + DB) |
@@ -71,7 +72,8 @@ Vercel CDN — React SPA (static)
 Railway — Spring Boot
     ├── PostgreSQL (Railway managed)
     ├── Anthropic Claude API  (story / quiz / writing generation)
-    └── Google Cloud TTS      (audio narration)
+    ├── Google Cloud TTS      (audio narration — default voices)
+    └── ElevenLabs API        (custom voice cloning — when parent has set a voice)
 ```
 
 - Authentication: email+password (JWT) or Sign in with Google (OAuth 2.0)

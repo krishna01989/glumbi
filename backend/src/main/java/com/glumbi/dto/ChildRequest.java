@@ -17,7 +17,4 @@ public class ChildRequest {
     private String theme = "coral";
 
     private String enabledFeatures; // JSON array string
-
-    private Integer screenTimeLimitMinutes = 45;
-    private Integer maxSnoozeCount = 2;
 }

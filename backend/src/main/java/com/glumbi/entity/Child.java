@@ -36,9 +36,6 @@ public class Child {
     @Column(columnDefinition = "TEXT")
     private String enabledFeatures; // JSON array e.g. ["stories","activities","curiosity"]
 
-    private Integer screenTimeLimitMinutes = 45; // 0 = no limit
-    private Integer maxSnoozeCount = 2; // 0 = unlimited
-
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

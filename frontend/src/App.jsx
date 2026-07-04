@@ -240,6 +240,7 @@ export default function App() {
   const [sessionStart, setSessionStart]         = useState(null)
   const sessionStartRef = useRef(null)
   const lastTickRef = useRef(null) // shared between interval and visibility handler to avoid double-counting sleep
+  const wotdDateRef = useRef(null) // tracks the date of the last fetched WOTD to detect day rollover
   const [sessionMinutes, setSessionMinutes]     = useState(0)
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
@@ -346,16 +347,35 @@ export default function App() {
 
   // Prefetch Word of Day when a child is selected — only if memory is on globally AND for this child
   useEffect(() => {
-    if (!child) { setSidebarWotd(null); return }
-    // Global admin gate
+    setSidebarWotd(null); wotdDateRef.current = null
+    if (!child) return
     const globalFc = featureConfig.find(f => f.featureName === 'memory')
-    if (globalFc && globalFc.enabled === false) { setSidebarWotd(null); return }
-    // Parent gate — child must have 'memory' in their enabled features
+    if (globalFc && globalFc.enabled === false) return
     try {
       const enabled = child.enabledFeatures ? JSON.parse(child.enabledFeatures) : []
-      if (!enabled.includes('memory')) { setSidebarWotd(null); return }
+      if (!enabled.includes('memory')) return
     } catch { return }
-    memoryApi.getWordOfDay(child.id).then(setSidebarWotd).catch(() => {})
+
+    function fetchWotd() {
+      memoryApi.getWordOfDay(child.id)
+        .then(w => { wotdDateRef.current = w.date; setSidebarWotd(w) })
+        .catch(() => {})
+    }
+
+    fetchWotd()
+
+    // Re-fetch on tab focus — catches day rollover when app stays open overnight
+    function onVisible() {
+      if (document.hidden) return
+      const today = new Date().toISOString().slice(0, 10)
+      // wotdDateRef.current may be array [y,m,d] or string; normalize to string for comparison
+      const fetched = Array.isArray(wotdDateRef.current)
+        ? `${wotdDateRef.current[0]}-${String(wotdDateRef.current[1]).padStart(2,'0')}-${String(wotdDateRef.current[2]).padStart(2,'0')}`
+        : wotdDateRef.current
+      if (fetched !== today) fetchWotd()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [child?.id, featureConfig])
 
   // Expose addToast so quota refreshes after API calls
@@ -641,8 +661,9 @@ export default function App() {
   if (role === 'ADMIN') {
     return (
       <Routes>
-        <Route path="/admin/*" element={<AdminPage onLogout={handleLogout} onBack={() => navigate('/child')} />} />
-        <Route path="*"        element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/*"     element={<AdminPage onLogout={handleLogout} onBack={() => navigate('/child')} />} />
+        <Route path="/error/:code" element={<ErrorPageRoute />} />
+        <Route path="*"            element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     )
   }
@@ -767,6 +788,9 @@ export default function App() {
 
   // ── Child edit/new — always full-page, even when a child is active ──
   const isChildManagementRoute = /^\/child(\/new|\/\d+\/edit)$/.test(location.pathname)
+  if (/^\/error\//.test(location.pathname)) {
+    return <ErrorPageRoute />
+  }
   if (restoring) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: '#fff9f0' }}>

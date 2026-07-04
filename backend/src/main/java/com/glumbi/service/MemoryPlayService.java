@@ -71,7 +71,11 @@ public class MemoryPlayService {
         Child child = childService.getByIdUnchecked(childId);
         int age = ChildService.ageFromBirthYear(child.getBirthYear());
 
-        MemoryPlayAgent.WordResult result = agent.generateWordOfDay(child.getName(), age);
+        // Pass recent words so the AI avoids repeating them
+        List<String> recentWords = wordOfDayRepo.findByChildIdOrderByDateDesc(childId)
+                .stream().limit(10).map(w -> w.getWord()).toList();
+
+        MemoryPlayAgent.WordResult result = agent.generateWordOfDay(child.getName(), age, today, recentWords);
 
         WordOfDay word = new WordOfDay();
         word.setChild(child);

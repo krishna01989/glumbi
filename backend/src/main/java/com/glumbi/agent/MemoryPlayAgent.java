@@ -67,10 +67,12 @@ public class MemoryPlayAgent {
 
     public record WordResult(String word, String meaning, String exampleSentence, String pronunciation, String emoji) {}
 
-    public WordResult generateWordOfDay(String childName, int age) {
+    public WordResult generateWordOfDay(String childName, int age, java.time.LocalDate date, List<String> recentWords) {
         String system = safety.safetySystemPreamble() +
                 String.format(promptLoader.load("memory-wordofday-system"), age);
-        String prompt = String.format(promptLoader.load("memory-wordofday-user"), childName, age);
+        String avoidClause = recentWords.isEmpty() ? "" :
+                "\nDo NOT use any of these recently used words: " + String.join(", ", recentWords) + ".";
+        String prompt = String.format(promptLoader.load("memory-wordofday-user"), childName, age, date.toString()) + avoidClause;
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
@@ -85,8 +87,10 @@ public class MemoryPlayAgent {
             text = stripCodeFences(text);
             if (!safety.isOutputSafe(text)) return wordFallback();
             JsonNode node = mapper.readTree(text);
+            String word = capitalize(node.path("word").asText("Wonderful"));
+            if (!isWordSafeForAge(word, age)) return wordFallback();
             return new WordResult(
-                node.path("word").asText("Wonderful"),
+                word,
                 node.path("meaning").asText("Something truly amazing."),
                 node.path("exampleSentence").asText("The world is a wonderful place!"),
                 node.path("pronunciation").asText("WUN-der-ful"),
@@ -173,6 +177,28 @@ public class MemoryPlayAgent {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static final java.util.Set<String> BLOCKED_WORDS = java.util.Set.of(
+        "death", "dead", "die", "kill", "murder", "suicide", "blood", "gore", "war",
+        "bomb", "weapon", "gun", "knife", "stab", "shoot", "poison", "drug", "alcohol",
+        "sex", "porn", "nude", "naked", "rape", "abuse", "scary", "horror", "demon",
+        "devil", "hell", "curse", "hate", "racist", "slur", "bully"
+    );
+
+    private String capitalize(String word) {
+        if (word == null || word.isEmpty()) return word;
+        return Character.toUpperCase(word.charAt(0)) + word.substring(1).toLowerCase();
+    }
+
+    private boolean isWordSafeForAge(String word, int age) {
+        String lower = word.toLowerCase();
+        for (String blocked : BLOCKED_WORDS) {
+            if (lower.contains(blocked)) return false;
+        }
+        // For young children (4-6), reject words over 8 characters as likely too complex
+        if (age <= 6 && word.length() > 8) return false;
+        return true;
+    }
 
     private String stripCodeFences(String text) {
         return text.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();

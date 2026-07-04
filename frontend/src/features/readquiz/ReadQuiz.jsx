@@ -168,7 +168,7 @@ export default function ReadQuiz({ child, quota }) {
         {/* History */}
         {entries.length > 0 && (
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>History</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Reads</div>
             {entries.map(e => {
               const scoreColor = e.score === 3 ? '#27ae60' : e.score >= 2 ? '#f39c12' : '#e74c3c'
               return (

@@ -1,2 +1,2 @@
-Pick a fun word of the day for %s (age %d). Return ONLY this JSON:
-{"word":"...","meaning":"simple 1-sentence meaning","exampleSentence":"fun sentence using the word","pronunciation":"how to say it e.g. ka-LID-o-scope","emoji":"one relevant emoji"}
+Pick a fresh, interesting word of the day for %s (age %d). Today's date is %s — use it to inspire variety (different word every day). Return ONLY this JSON with no extra text:
+{"word":"...","meaning":"simple 1-sentence meaning a child understands","exampleSentence":"fun sentence using the word","pronunciation":"syllable-by-syllable e.g. ka-LID-o-scope","emoji":"one relevant emoji"}

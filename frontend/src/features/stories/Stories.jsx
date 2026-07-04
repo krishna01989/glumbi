@@ -270,54 +270,58 @@ export default function Stories({ child, quota }) {
           <ErrorBox msg={error} />
         </form>
 
-        {/* Story cards list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {loading && <ThemeLoader theme={child.theme} />}
-          {stories.map(s => (
-            <div key={s.id}
-              onClick={() => { setSelected(s); if (isMobile) setShowList(false) }}
-              style={{
-                borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
-                transition: 'box-shadow 0.2s',
-              }}>
-              <div style={{
-                background: 'var(--primary)',
-                height: 56, display: 'flex', alignItems: 'center',
-                padding: '0 14px', gap: 10,
-              }}>
-                <span style={{ fontSize: 22 }}>{getScene(s.keywords).emoji}</span>
-                <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {s.title}
-                </span>
-                <span onClick={e => { e.stopPropagation(); toggleFav(s.id) }} style={{ fontSize: 16, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
-                  {s.favorite ? '⭐' : '☆'}
-                </span>
-              </div>
-              <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
-                  {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </span>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  {s.keywords && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
-                  {s.language && s.language !== 'english' && (
-                    <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
-                      {LANG_SCRIPT[s.language] || s.language}
-                    </span>
-                  )}
+        {loading && <ThemeLoader theme={child.theme} />}
+
+        {/* History */}
+        {stories.length > 0 && (
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
+            {stories.map(s => (
+              <div key={s.id}
+                onClick={() => { setSelected(s); if (isMobile) setShowList(false) }}
+                style={{
+                  borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+                  boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
+                  transition: 'box-shadow 0.2s',
+                }}>
+                <div style={{
+                  background: 'var(--primary)',
+                  height: 56, display: 'flex', alignItems: 'center',
+                  padding: '0 14px', gap: 10,
+                }}>
+                  <span style={{ fontSize: 22 }}>{getScene(s.keywords).emoji}</span>
+                  <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {s.title}
+                  </span>
+                  <span onClick={e => { e.stopPropagation(); toggleFav(s.id) }} style={{ fontSize: 16, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
+                    {s.favorite ? '⭐' : '☆'}
+                  </span>
+                </div>
+                <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
+                    {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {s.keywords && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
+                    {s.language && s.language !== 'english' && (
+                      <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
+                        {LANG_SCRIPT[s.language] || s.language}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
 
-          {stories.length === 0 && !loading && (
-            <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🌟</div>
-              <div style={{ fontWeight: 700 }}>No stories yet!</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Generate your first magical story above</div>
-            </div>
-          )}
-        </div>
+        {stories.length === 0 && !loading && (
+          <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🌟</div>
+            <div style={{ fontWeight: 700 }}>No stories yet!</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>Generate your first magical story above</div>
+          </div>
+        )}
       </div>
 
       {/* ── Story Reader ── */}

@@ -227,7 +227,7 @@ export default function LandingPage() {
             },
             {
               q: 'Can I lock the app before handing the device to my child?',
-              a: 'Yes — Glumbi has a built-in Parental Lock. Set a 4-digit PIN and an optional time limit (15 min, 30 min, or 1 hour) before opening your child\'s profile. While locked, the child cannot switch profiles or access parent settings. When time runs out, a friendly screen appears and requires your PIN to continue.',
+              a: 'Yes — Glumbi has a built-in Parental Lock. When locking, choose a session time limit (15m, 30m, 45m, 1h, 90m, or no limit) and how many extensions to allow, then set a 4-digit PIN. While locked, the child cannot switch profiles or access parent settings. When time runs out, a friendly screen appears and your PIN is required to continue.',
             },
             {
               q: 'Can I add more than one child?',

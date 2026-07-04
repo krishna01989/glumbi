@@ -182,11 +182,11 @@ const SECTIONS = [
       },
       {
         q: 'How do I set a lock before handing the device to my child?',
-        a: 'On the child list page, tap the 🔒 lock icon on the child\'s card. Choose an optional time limit (15 min, 30 min, 1 hour, or unlimited), enter and confirm a 4-digit PIN, then tap "Lock & Open". The app opens in locked mode immediately.',
+        a: 'On the child list page, tap the 🔒 lock icon on the child\'s card. Pick a session time limit (No limit, 15m, 30m, 45m, 1h, or 90m) and how many extensions to allow (None, 1, 2, or 3). Then enter your 4-digit PIN and tap "Lock App". The app opens in locked mode immediately.',
       },
       {
         q: 'What happens when the time limit runs out?',
-        a: 'A friendly screen appears telling the child that time is up. They can tap "Snooze" to ask for a little more time (up to twice), or the parent can unlock by entering their PIN. No content is lost — everything is saved automatically.',
+        a: 'A friendly screen appears telling the child their time is up. Depending on how many extensions you allowed, they can request a little more time — or the session ends and your PIN is required to continue. No content is lost — everything is saved automatically.',
       },
       {
         q: 'How do I unlock the session?',
@@ -202,7 +202,7 @@ const SECTIONS = [
       },
       {
         q: 'Can the child snooze the time limit on their own?',
-        a: 'Yes, up to 2 snoozes per session. After 2 snoozes the session ends and the PIN is required to continue. This gives children a little grace while still keeping parents in control.',
+        a: 'Yes — up to however many extensions you allowed when locking. Once those are used up, the session ends and your PIN is required to continue. This gives children a little grace while still keeping parents in control.',
       },
       {
         q: 'What if my child clears the browser cookies or cache?',

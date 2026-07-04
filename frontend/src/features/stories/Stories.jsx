@@ -471,9 +471,9 @@ export default function Stories({ child, quota }) {
                   {selected.favorite ? '⭐' : '☆'}
                 </button>
                 <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
-                  title="Continue this story"
-                  style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700, borderRadius: 50, border: 'none', cursor: loading ? 'not-allowed' : 'pointer', background: 'var(--primary-lt)', color: 'var(--primary)', opacity: loading ? 0.5 : 1, whiteSpace: 'nowrap' }}>
-                  ▶ Continue
+                  title={offline ? 'AI is off — go online to continue stories' : 'Continue this story'}
+                  style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700, borderRadius: 50, border: 'none', cursor: loading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer', background: 'var(--primary-lt)', color: 'var(--primary)', opacity: loading || offline ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                  {offline ? '✈️ AI is off' : '▶ Continue'}
                 </button>
                 <button onClick={() => handleDelete(selected.id)}
                   className="btn-danger" style={{ padding: '8px 14px', fontSize: 13 }}>

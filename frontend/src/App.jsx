@@ -396,9 +396,18 @@ export default function App() {
   function handleLogout() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
-    Object.keys(localStorage).filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_')).forEach(k => localStorage.removeItem(k))
     localStorage.removeItem('glm_child_locked')
     localStorage.removeItem('glm_locked_child_id')
+    Object.keys(localStorage)
+      .filter(k =>
+        k.startsWith('glm_session_start_') ||
+        k.startsWith('glm_snooze_count_') ||
+        k.startsWith('glm_session_limit_') ||
+        k.startsWith('glm_session_max_snooze_') ||
+        k.startsWith('glm_lock_pin_') ||
+        k.startsWith('glm_offline_')
+      )
+      .forEach(k => localStorage.removeItem(k))
     setChildLocked(false)
     navigate('/', { replace: true })
     setAuthed(false); setRole(null); setChild(null)
@@ -1083,7 +1092,7 @@ export default function App() {
                 {sessionStart && childLocked && (
                   <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700,
                     color: lockTimeLimit > 0 && sessionMinutes >= lockTimeLimit ? '#cc0033' : '#aaa' }}>
-                    ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ''}
+                    ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}
                   </span>
                 )}
                 {child?.streakCount > 0 && (
@@ -1141,7 +1150,7 @@ export default function App() {
               </div>
               {sessionStart && childLocked
                 ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>
-                    ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ''}
+                    ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}
                   </div>
                 : childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>
               }

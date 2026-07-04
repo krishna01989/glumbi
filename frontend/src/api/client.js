@@ -24,8 +24,18 @@ api.interceptors.response.use(
     const alreadyOnErrorPage = window.location.pathname.startsWith('/error/')
 
     if (status === 401 && !isAuthEndpoint && !isDemoEndpoint) {
-      localStorage.removeItem('glm_token')
-      localStorage.removeItem('glm_role')
+      ;['glm_token','glm_role','glm_child_locked','glm_locked_child_id']
+        .forEach(k => localStorage.removeItem(k))
+      Object.keys(localStorage)
+        .filter(k =>
+          k.startsWith('glm_session_start_') ||
+          k.startsWith('glm_snooze_count_') ||
+          k.startsWith('glm_session_limit_') ||
+          k.startsWith('glm_session_max_snooze_') ||
+          k.startsWith('glm_lock_pin_') ||
+          k.startsWith('glm_offline_')
+        )
+        .forEach(k => localStorage.removeItem(k))
       if (!alreadyOnErrorPage) window.location.href = '/error/401'
       return new Promise(() => {})
     }

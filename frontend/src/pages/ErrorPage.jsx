@@ -88,6 +88,24 @@ export default function ErrorPage({ code, message }) {
     else window.location.reload()
   }
 
+  function handleSignOut() {
+    localStorage.removeItem('glm_token')
+    localStorage.removeItem('glm_role')
+    localStorage.removeItem('glm_child_locked')
+    localStorage.removeItem('glm_locked_child_id')
+    Object.keys(localStorage)
+      .filter(k =>
+        k.startsWith('glm_session_start_') ||
+        k.startsWith('glm_snooze_count_') ||
+        k.startsWith('glm_session_limit_') ||
+        k.startsWith('glm_session_max_snooze_') ||
+        k.startsWith('glm_lock_pin_') ||
+        k.startsWith('glm_offline_')
+      )
+      .forEach(k => localStorage.removeItem(k))
+    navigate('/auth')
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f9f9f9', fontFamily: 'Nunito, sans-serif', display: 'flex', flexDirection: 'column' }}>
 
@@ -146,10 +164,16 @@ export default function ErrorPage({ code, message }) {
               }}>
               {info.cta}
             </button>
-            <button onClick={() => navigate(-1)}
-              style={{ padding: '13px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
-              ← Go Back
-            </button>
+            {status === 403
+              ? <button onClick={handleSignOut}
+                  style={{ padding: '13px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
+                  Sign Out
+                </button>
+              : <button onClick={() => navigate(-1)}
+                  style={{ padding: '13px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
+                  ← Go Back
+                </button>
+            }
           </div>
 
           {/* Fun footer note */}

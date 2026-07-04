@@ -243,7 +243,7 @@ export default function Stories({ child, quota }) {
       {/* Mobile back button */}
       {isMobile && selected && (
         <button onClick={() => { setSelected(null); setShowList(true) }}
-          style={{ alignSelf: 'flex-start', background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13 }}>
+          style={{ alignSelf: 'flex-start', background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginTop: 16 }}>
           ← Back
         </button>
       )}

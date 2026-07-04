@@ -434,7 +434,8 @@ export default function App() {
   useEffect(() => {
     if (!sessionStart) return
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - sessionStart) / 60000)
+      if (document.hidden) return // page not visible — don't count idle time
+      const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 60000)
       setSessionMinutes(elapsed)
       const limit = child?.screenTimeLimitMinutes
       if (!limit || limit === 0) return
@@ -444,7 +445,6 @@ export default function App() {
         const maxSnooze = child?.maxSnoozeCount ?? 2
         setSnoozeCount(current => {
           if (maxSnooze > 0 && current >= maxSnooze) {
-            // Snoozes used up — trigger end automatically via a deferred action
             setTimeout(() => setScreenTimeAlert('force-end'), 0)
             return current
           }

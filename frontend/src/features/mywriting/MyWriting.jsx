@@ -162,7 +162,7 @@ export default function MyWriting({ child, quota }) {
 
       {/* Mobile top bar */}
       {isMobile && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, marginBottom: 12 }}>
           {showingContent ? (
             <button onClick={() => { setEditing(false); setSelected(null) }}
               style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>

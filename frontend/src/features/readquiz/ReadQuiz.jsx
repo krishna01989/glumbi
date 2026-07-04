@@ -113,7 +113,7 @@ export default function ReadQuiz({ child, quota }) {
       {/* Mobile back button */}
       {isMobile && selected && (
         <button onClick={() => setSelected(null)}
-          style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginBottom: 12, cursor: 'pointer' }}>
+          style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginTop: 16, marginBottom: 12, cursor: 'pointer' }}>
           ← Back
         </button>
       )}
@@ -124,7 +124,10 @@ export default function ReadQuiz({ child, quota }) {
         <QuotaBanner quota={quota} />
         {/* Generate form */}
         <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, color: 'var(--primary)', marginBottom: 14 }}>📚 Read & Quiz</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 28 }}>📚</span>
+            <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>Read & Quiz</h3>
+          </div>
           <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 800, color: '#888', display: 'block', marginBottom: 8 }}>PICK A TOPIC</label>

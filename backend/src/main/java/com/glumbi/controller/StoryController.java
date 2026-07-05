@@ -162,16 +162,18 @@ public class StoryController {
                     audio = ttsService.synthesize(title + ". " + content, language, voice);
                 }
 
-                audioCache.put(cacheKey, audio);
-
-                // Upload to R2 and persist the URL on the story row
+                // Upload to R2 — if successful, evict from memory and redirect going forward
                 if (r2Service.isConfigured()) {
                     try {
                         String r2Url = r2Service.upload(cacheKey, audio);
                         storeAudioUrl(story, cacheKey, r2Url);
+                        // don't cache in memory — future requests will redirect to R2
                     } catch (Exception e) {
                         System.err.println("[listen] R2 upload failed (non-fatal): " + e.getMessage());
+                        audioCache.put(cacheKey, audio); // fallback: keep in memory if R2 failed
                     }
+                } else {
+                    audioCache.put(cacheKey, audio);
                 }
             }
 

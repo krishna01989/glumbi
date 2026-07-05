@@ -199,6 +199,7 @@ export default function Stories({ child, quota }) {
   }
 
   const audioRef = useRef(null)
+  const playedRef = useRef(new Set()) // tracks "storyId:lang" combos played this session
 
   function stopSpeaking() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
@@ -224,6 +225,9 @@ export default function Stories({ child, quota }) {
   }
 
   function storyHasCachedAudio(story, lang) {
+    // Session-level: played at least once this session
+    if (playedRef.current.has(story.id + ':' + lang.toLowerCase())) return true
+    // DB-level: R2 URL persisted from a previous session
     if (!story.audioUrls) return false
     try {
       let parsed = story.audioUrls
@@ -260,6 +264,7 @@ export default function Stories({ child, quota }) {
       setSpeakingLang(lang)
       setSpeakingStoryId(story.id)
       setAudioSrc(url)
+      playedRef.current.add(story.id + ':' + lang.toLowerCase())
       // Mark this lang/voice combo as cached locally so offline check works without a re-fetch
       const resolvedKey = story.id + ':' + lang.toLowerCase() +
         (selectedVoiceId ? ':el:' + selectedVoiceId : (resolvedVoice ? ':' + resolvedVoice : ''))

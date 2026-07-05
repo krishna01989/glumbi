@@ -1,3 +1,9 @@
-Create 6 emoji+label pairs for a "%s" themed memory match game for %s (age %d). Return ONLY this JSON:
-[{"emoji":"🐶","label":"Dog"},...]
-Make sure all 6 pairs are distinct. Use simple, recognizable emojis.
+<task>Create 6 emoji+label pairs for a <theme>"%s"</theme> themed memory match game for <child_name>%s</child_name> (age <age>%d</age>).</task>
+
+<rules>
+  <rule>Make sure all 6 pairs are distinct</rule>
+  <rule>Use simple, recognizable emojis</rule>
+</rules>
+
+<output>Return ONLY this JSON:
+[{"emoji":"🐶","label":"Dog"},...]</output>

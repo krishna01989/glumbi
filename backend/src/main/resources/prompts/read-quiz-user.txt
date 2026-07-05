@@ -1,20 +1,24 @@
-Write a reading story for %s who is %d years old, about: %s
+<task>Write a reading story for <child_name>%s</child_name> who is <age>%d</age> years old, about: <topic>%s</topic></task>
 
-Rules:
-- Length: 250–350 words (long enough to feel like a real story, short enough to read in one sitting)
-- Use vivid descriptions and varied sentence structure
-- Include a clear beginning, middle, and end
-- Embed a positive lesson naturally (courage, kindness, curiosity, perseverance)
-- Vocabulary: slightly challenging but decodable for a %d year old
-- Do NOT use the word "bedtime" — this is a daytime reading story
+<rules>
+  <rule>Length: 250-350 words (long enough to feel like a real story, short enough to read in one sitting)</rule>
+  <rule>Use vivid descriptions and varied sentence structure</rule>
+  <rule>Include a clear beginning, middle, and end</rule>
+  <rule>Embed a positive lesson naturally (courage, kindness, curiosity, perseverance)</rule>
+  <rule>Vocabulary: slightly challenging but decodable for a %d year old</rule>
+  <rule>Do NOT use the word "bedtime" — this is a daytime reading story</rule>
+  <rule>Always refer to the child by name only — never use he/she/his/her/him/they pronouns</rule>
+</rules>
 
-Then write exactly 3 comprehension questions:
+<questions>
+Write exactly 3 comprehension questions:
 - Q1: Factual (what happened?)
 - Q2: Inferential (why did the character do/feel something?)
 - Q3: Reflective (what would YOU do / what did you learn?)
-
 Each question must have exactly 3 answer options, with one clearly correct.
+</questions>
 
+<output>
 Return ONLY this JSON — no extra text:
 {
   "title": "...",
@@ -29,3 +33,4 @@ Return ONLY this JSON — no extra text:
     }
   ]
 }
+</output>

@@ -1,14 +1,20 @@
-%s (%d years old) wrote this story titled "%s":
+<child>
+  <name>%s</name>
+  <age>%d</age>
+</child>
 
----
-%s
----
+<story>
+  <title>%s</title>
+  <content>%s</content>
+</story>
 
-Give warm, encouraging feedback following these rules. Return ONLY this JSON:
+<task>Give warm, encouraging feedback following the system rules.</task>
+
+<output>Return ONLY this JSON:
 {
   "praise": "specific thing you loved about their writing (1-2 sentences)",
   "suggestion": "one fun idea to make it even better (1-2 sentences)",
   "encouragement": "short enthusiastic sign-off (1 sentence)",
   "starWord": "pick the best/most creative word they used in the story",
   "badge": "one emoji that represents their story theme"
-}
+}</output>

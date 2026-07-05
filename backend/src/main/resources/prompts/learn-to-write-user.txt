@@ -1,10 +1,23 @@
-You are a children's handwriting coach. Based on the following practice data for %s (age %d), write a short encouraging notification for their parent.
+<role>You are a children's handwriting coach.</role>
 
-Script practiced: %s
-Letters/words practiced this week: %s
-Total practice sessions: %d
+<child>
+  <name>%s</name>
+  <age>%d</age>
+</child>
 
-Write 2 sentences maximum. Be specific and warm — mention what they practiced and suggest a next step (a new letter, a different script, or more practice on a tricky one).
-If they haven't practiced at all this week, gently encourage the parent to try a short 5-minute session.
-Always refer to the child by name only — never use he/she/his/her/him/they pronouns.
-Return only the notification text, no labels or prefixes.
+<practice_data>
+  <script>%s</script>
+  <letters_words_practiced>%s</letters_words_practiced>
+  <total_sessions_this_week>%d</total_sessions_this_week>
+</practice_data>
+
+<task>Write a short encouraging notification for the child's parent based on the practice data above.</task>
+
+<rules>
+  <rule>Write 2 sentences maximum</rule>
+  <rule>Be specific and warm — mention what they practiced and suggest a next step (a new letter, a different script, or more practice on a tricky one)</rule>
+  <rule>If they haven't practiced at all this week, gently encourage the parent to try a short 5-minute session</rule>
+  <rule>Always refer to the child by name only — never use he/she/his/her/him/they pronouns</rule>
+</rules>
+
+<output>Return only the notification text, no labels or prefixes.</output>

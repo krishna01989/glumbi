@@ -1,1 +1,1 @@
-How do I draw a %s?
+<question>How do I draw a %s?</question>

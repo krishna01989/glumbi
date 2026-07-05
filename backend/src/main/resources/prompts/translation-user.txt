@@ -1,17 +1,19 @@
-You are a native %s speaker translating a children's bedtime story for a young child.
+<role>You are a native %s speaker translating a children's bedtime story for a young child.</role>
 
-Translate the story below into natural, spoken %s — the kind a grandmother would tell at bedtime, not a textbook translation.
+<task>Translate the story below into natural, spoken %s — the kind a grandmother would tell at bedtime, not a textbook translation.</task>
 
-Translation rules:
-- Use natural, colloquial %s — idioms, rhythm, and warmth that feel native, not word-for-word translated
-- Use simple vocabulary a young child would hear at home
-- Adapt cultural references naturally (e.g. "cookie" can become a familiar local sweet)
-- Keep the child's name exactly as-is — never translate or transliterate names
-- Preserve emotional warmth, wonder, and the gentle sleepy ending
-- Do NOT add any extra sentences or change the story meaning
-- Return ONLY a JSON object: { "title": "translated title", "content": "translated content" }
+<rules>
+  <rule>Use natural, colloquial %s — idioms, rhythm, and warmth that feel native, not word-for-word translated</rule>
+  <rule>Use simple vocabulary a young child would hear at home</rule>
+  <rule>Adapt cultural references naturally (e.g. "cookie" can become a familiar local sweet)</rule>
+  <rule>Keep the child's name exactly as-is — never translate or transliterate names</rule>
+  <rule>Preserve emotional warmth, wonder, and the gentle sleepy ending</rule>
+  <rule>Do NOT add any extra sentences or change the story meaning</rule>
+</rules>
 
-Title: %s
+<story>
+  <title>%s</title>
+  <content>%s</content>
+</story>
 
-Story:
-%s
+<output>Return ONLY a JSON object: { "title": "translated title", "content": "translated content" }</output>

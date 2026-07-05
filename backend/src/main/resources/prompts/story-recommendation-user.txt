@@ -1,8 +1,16 @@
-A child named %s (age %d) has recently enjoyed these stories: %s.
-Their story keywords/themes include: %s.
+<child>
+  <name>%s</name>
+  <age>%d</age>
+  <recent_stories>%s</recent_stories>
+  <interests>%s</interests>
+</child>
 
-Suggest 3 fresh story topics they would enjoy this week, based on their interests.
-Format: one sentence introducing the suggestions, then list the 3 topics with a fun emoji each.
-Keep it short and exciting for a parent to read.
-Always refer to the child by name only — never use he/she/his/her/him/they pronouns.
-Return only the message text.
+<task>Suggest 3 fresh story topics this child would enjoy this week, based on their interests.</task>
+
+<rules>
+  <rule>Format: one sentence introducing the suggestions, then list the 3 topics with a fun emoji each</rule>
+  <rule>Keep it short and exciting for a parent to read</rule>
+  <rule>Always refer to the child by name only — never use he/she/his/her/him/they pronouns</rule>
+</rules>
+
+<output>Return only the message text.</output>

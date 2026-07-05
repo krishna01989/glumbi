@@ -1,28 +1,23 @@
-Suggest %d fun activit%s for %s who is %d years old.
+<task>Suggest %d fun activit%s for <child_name>%s</child_name> who is <age>%d</age> years old.</task>
 
-Context right now:
-- Time of day: %s
-- Weather: %s
-- Activities they've enjoyed before: %s
+<context>
+  <time_of_day>%s</time_of_day>
+  <weather>%s</weather>
+  <enjoyed_before>%s</enjoyed_before>
+  <age_guidance>%s</age_guidance>
+</context>
 
-Age guidance for a %d year old:
-%s
+<rules>
+  <rule>Mix categories: try to include indoor, creative, and physical ideas</rule>
+  <rule>If weather is rainy or snowy, avoid outdoor activities (snowy weather: prefer cozy indoor activities)</rule>
+  <rule>If it's evening, prefer calm/quiet activities</rule>
+  <rule>Each activity must be doable at home with common items</rule>
+  <rule>Keep instructions simple enough for a parent to follow quickly</rule>
+  <rule>Do NOT tailor suggestions based on gender — all activities should be suitable for any child</rule>
+</rules>
 
-Rules:
-- Mix categories: try to include indoor, creative, and physical ideas
-- If weather is rainy or snowy, avoid outdoor activities (snowy weather: prefer cozy indoor activities)
-- If it's evening, prefer calm/quiet activities
-- Each activity must be doable at home with common items
-- Keep instructions simple enough for a parent to follow quickly
-- Do NOT tailor suggestions based on gender — all activities should be suitable for any child
-
+<output>
 Return a JSON array with exactly %d object%s, each with:
-{
-  "title": "Activity name",
-  "description": "2-3 sentence instructions",
-  "category": "indoor|outdoor|creative|learning",
-  "duration": "e.g. 10-15 mins",
-  "emoji": "one relevant emoji"
-}
-
+{"title":"Activity name","description":"2-3 sentence instructions","category":"indoor|outdoor|creative|learning","duration":"e.g. 10-15 mins","emoji":"one relevant emoji"}
 Return ONLY the JSON array, no extra text.
+</output>

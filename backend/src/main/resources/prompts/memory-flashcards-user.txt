@@ -1,2 +1,4 @@
-Create 6 fun flashcard Q&A pairs about "%s" for %s (age %d). Return ONLY this JSON:
-[{"q":"question","a":"answer"},...]
+<task>Create 6 fun flashcard Q&A pairs about <topic>"%s"</topic> for <child_name>%s</child_name> (age <age>%d</age>).</task>
+
+<output>Return ONLY this JSON:
+[{"q":"question","a":"answer"},...]</output>

@@ -1,14 +1,14 @@
-A %d-year-old child named %s asked: "%s"
+<task>A <age>%d</age>-year-old child named <child_name>%s</child_name> asked: <question>"%s"</question></task>
 
-Create a fun, age-appropriate explanation following this structure:
+<rules>
+  <rule>Use super simple words a %d year old understands</rule>
+  <rule>STRICT LENGTH: each funFact must be 1-2 short sentences max (under 30 words each)</rule>
+  <rule>Make it exciting and magical, not textbook</rule>
+  <rule>Use comparisons to things a %d year old knows (%s)</rule>
+  <rule>The quiz should be easy enough for them to get right with a little thought</rule>
+</rules>
 
-Rules:
-- Use super simple words a %d year old understands
-- STRICT LENGTH: each funFact must be 1-2 short sentences max (under 30 words each)
-- Make it exciting and magical, not textbook
-- Use comparisons to things a %d year old knows (%s)
-- The quiz should be easy enough for them to get right with a little thought
-
+<output>
 Return a JSON object with exactly these fields:
 {
   "funFact1": "Simple direct answer in 1-2 fun sentences",
@@ -21,5 +21,5 @@ Return a JSON object with exactly these fields:
   "quizOption3": "wrong but plausible option",
   "sticker": "one emoji that represents this topic"
 }
-
 Return ONLY the JSON, no extra text.
+</output>

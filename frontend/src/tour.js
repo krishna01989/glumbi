@@ -197,24 +197,6 @@ export function startTour(enabledFeatures, quota, featureConfig = []) { // featu
       .filter(s => MENU_IDS.includes(s.element) && present(s.element))
       .map((s, i) => ({ ...s, onHighlightStarted: i === 0 ? openMenu : undefined }))
 
-    const memoryStep = {
-      popover: {
-        title: '🧠 Memory Play',
-        description: 'Inside the ☰ menu you\'ll find <strong>Memory Play</strong> — three fun ways to boost memory: flip through AI flashcards, discover a new Word of the Day, and play a memory match game!',
-        side: 'over', align: 'center',
-        onPopoverRender: (el) => {
-          el.style.position = 'fixed'
-          el.style.bottom = '90px'
-          el.style.top = 'auto'
-          el.style.left = '50%'
-          el.style.transform = 'translateX(-50%)'
-          el.style.maxWidth = '320px'
-          el.style.width = 'calc(100vw - 32px)'
-        },
-      },
-      onHighlightStarted: openMenu,
-    }
-
     const steps = [
       {
         popover: {
@@ -227,22 +209,20 @@ export function startTour(enabledFeatures, quota, featureConfig = []) { // featu
         element: '#tour-mobile-menu',
         popover: {
           title: '☰ Menu & AI Credits',
-          description: 'Tap to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, Memory Play, and more. The menu also shows your <strong>monthly AI credit balance</strong> so you always know how many you have left.',
+          description: 'Tap to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, and more. The menu also shows your <strong>monthly AI credit balance</strong> so you always know how many you have left.',
           side: 'bottom', align: 'end',
         },
         onHighlightStarted: closeMenu,
       },
-      memoryStep,
       ...headerSteps,
-      ...menuSteps,
-      {
+      ...menuSteps.map((s, i) => s.element === '#tour-mobile-switch' ? {
+        ...s,
         popover: {
-          title: '🏠 Child Selection Page',
-          description: 'Head back to the child selection page to find: <strong>🤖 AI / Practice mode</strong> per child, <strong>🔔 Notifications</strong>, <strong>monthly AI credit balance</strong>, and <strong>💡 Help</strong> — all parent tools in one place.',
-          side: 'over', align: 'center',
-          onPopoverRender: closeMenu,
+          ...s.popover,
+          title: '🔀 Switch Child & Parent Tools',
+          description: 'Tap here to switch to a different child. You can also head back to the child selection page to manage <strong>🤖 AI / Practice mode</strong>, <strong>🔔 Notifications</strong>, <strong>AI credit balance</strong>, and <strong>💡 Help</strong>.',
         },
-      },
+      } : s),
       {
         popover: {
           title: '🌟 You\'re all set!',

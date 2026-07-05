@@ -999,6 +999,38 @@ export default function App() {
           )}
         </div>
 
+        {/* Word of Day widget — child locked mode only, top of sidebar */}
+        {sidebarWotd && !collapsed && childLocked && (() => {
+          try {
+            const enabled = child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null
+            if (enabled && !enabled.includes('memory')) return null
+          } catch {}
+          return (
+            <div style={{ margin: '0 12px 8px', background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '10px 12px' }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🧠 Word of the Day</div>
+              <div onClick={() => navigate(`/child/${child.id}/memory?tab=wordofday`)}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer' }}>
+                <span style={{ fontSize: 22 }}>{sidebarWotd.emoji}</span>
+                <div>
+                  <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 900, color: 'white' }}>{sidebarWotd.word}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>{sidebarWotd.meaning?.slice(0, 40)}{sidebarWotd.meaning?.length > 40 ? '…' : ''}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[
+                  { tab: 'flashcards', label: '📇 Cards' },
+                  { tab: 'match',      label: '🎴 Match' },
+                ].map(({ tab, label }) => (
+                  <button key={tab} onClick={() => navigate(`/child/${child.id}/memory?tab=${tab}`)}
+                    style={{ flex: 1, padding: '5px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Nav links */}
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: collapsed ? '0 8px' : '0 12px' }}>
           {NAV.map(n => (
@@ -1020,38 +1052,6 @@ export default function App() {
             </div>
           ))}
         </nav>
-
-        {/* Word of Day widget */}
-        {sidebarWotd && !collapsed && (() => {
-          try {
-            const enabled = child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null
-            if (enabled && !enabled.includes('memory')) return null
-          } catch {}
-          return (
-            <div style={{ margin: '0 12px 8px', background: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '10px 12px' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🧠 Memory Play</div>
-              <div onClick={() => navigate(`/child/${child.id}/memory?tab=wordofday`)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, cursor: 'pointer' }}>
-                <span style={{ fontSize: 20 }}>{sidebarWotd.emoji}</span>
-                <div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>Word of the Day</div>
-                  <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 900, color: 'white' }}>{sidebarWotd.word}</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {[
-                  { tab: 'flashcards', label: '📇 Cards' },
-                  { tab: 'match',      label: '🎴 Match' },
-                ].map(({ tab, label }) => (
-                  <button key={tab} onClick={() => navigate(`/child/${child.id}/memory?tab=${tab}`)}
-                    style={{ flex: 1, padding: '5px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        })()}
 
         {/* Utility links — Profile removed from child context (parent-only feature) */}
 

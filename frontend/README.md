@@ -50,7 +50,8 @@ src/
 │   ├── LearnPage.jsx       # Learn to Write — letter/word tracing with AI validation
 │   ├── Timeline.jsx        # Activity timeline view
 │   ├── ProfilePage.jsx     # Child profile view
-│   ├── AdminPage.jsx       # Admin dashboard (admin role only)
+│   ├── AdminPage.jsx       # Admin dashboard (ADMIN / SUPER_ADMIN role)
+│   ├── AdminProfilePage.jsx # Admin profile — change password, delete account (no voice/theme)
 │   ├── ErrorPage.jsx       # 404 / error fallback
 │   └── legal/              # Privacy, Terms, Contact pages
 ├── themes.js               # Theme definitions (colours per child theme)
@@ -142,6 +143,7 @@ All API calls go through the Axios instance in `client.js`. It:
 ### Parental Lock & Session Timer
 
 - Parents set a 4-digit PIN + optional time limit on the child list page before handing the device over
+- The lock modal has preset time chips (5 / 15 / 30 / 60 / 90 min) plus a **Custom** chip that reveals a minute input (1–480). "No limit" option was intentionally removed — every session must have a time boundary. The "Lock App" button is disabled until a valid time > 0 is chosen.
 - Lock state is session-based (`sessionStorage`); PIN is never sent to the server
 - Unlock access modal follows the child's colour theme (`THEMES[child.theme]`)
 
@@ -159,9 +161,10 @@ All API calls go through the Axios instance in `client.js`. It:
 ### Authentication
 
 - JWT token stored in `localStorage` as `glm_token`
-- User role stored as `glm_role` (`PARENT` or `ADMIN`)
+- User role stored as `glm_role` (`PARENT`, `ADMIN`, or `SUPER_ADMIN`)
 - `App.jsx` reads these on mount and initialises auth state synchronously from `window.location.pathname`
 - Google Sign-In uses the Google Identity Services script loaded in `index.html`
+- Admin accounts are always password-only — Google OAuth is not available for `ADMIN` or `SUPER_ADMIN` roles
 
 ### Theming
 
@@ -169,9 +172,10 @@ Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` re
 
 ### Responsive layout
 
-- `useIsMobile` hook (`window.innerWidth < 640`) drives show/hide of panels on mobile
+- `useIsMobile` hook (`src/hooks/useIsMobile.js`) listens to `window.resize` and returns `true` when the viewport is below 640 px — reactive, not a one-shot snapshot
 - Stories, Read & Quiz, and My Writing use a sidebar + main panel layout on desktop; they collapse to a single-panel view with a back button on mobile
-- Popups (language picker, speed selector, volume) use `position: fixed` with `getBoundingClientRect()` to escape `overflow: hidden` containers
+- Admin panel Feature Credits grid, Budget Simulator, and Users sections switch to a card-per-row layout on mobile
+- Popups (language picker, speed selector, volume, admin kebab menus) use `position: fixed` with `getBoundingClientRect()` to escape `overflow: hidden` containers; admin kebab menus flip upward when there is insufficient space below
 
 ### Audio player (`AudioPlayer.jsx`)
 
@@ -206,12 +210,15 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 - Correct attempts are saved to the Timeline (`category = "learn"`)
 - TTS pronunciation available for each letter/word via `/api/learn/audio`
 
-### Admin panel (`AdminPage.jsx`)
+### Admin panel (`AdminPage.jsx` + `AdminProfilePage.jsx`)
 
-- **Dashboard**: manual 🔄 refresh + auto-refresh interval dropdown (Off / 1 min / 5 min / 15 min / 30 min); AI Credits total sourced from `ai_usage_log`, not the resettable counter
-- **Users**: quota bar and label colour reflect urgency — green (<50%) → blue (50–79%) → amber (80–99%) → red (100%); same palette as the parent-facing `QuotaBadge`
-- **AI Agents** section: toggle individual weekly-notification agents on/off; all toggles use unified green (enabled) / grey (disabled) colours
-- **Scheduler History** modal: live run history from the DB — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ status, started/finished timestamps, duration, children processed, agents ran/skipped, and errors
+- **Role hierarchy**: `ADMIN` manages app users; `SUPER_ADMIN` additionally manages admins (promote, demote, create). Guards are enforced on both frontend (kebab menu items hidden based on `callerRole`) and backend.
+- **Users** section: three groups — 👑 Super Admins / 🛡️ Administrators / 👤 App Users. Hold/release is available for app users only; admin and super admin accounts can only be deleted. Quota bar colours: green (<50%) → blue (50–79%) → amber (80–99%) → red (100%).
+- **Kebab menu**: uses `position: fixed` + `getBoundingClientRect()` to escape clipping. Flips upward when there is not enough space below. Returns `null` (no popup) when the caller has no valid actions on that row.
+- **Dashboard**: manual 🔄 refresh + auto-refresh interval dropdown; AI Credits total sourced from `ai_usage_log`.
+- **AI Agents**: toggle individual weekly-notification agents on/off.
+- **Scheduler History**: live run history — RUNNING ⏳ / SUCCESS ✅ / FAILED ❌, timestamps, duration, agents ran/skipped, errors.
+- **Admin profile** (`/admin/profile` → `AdminProfilePage.jsx`): separate page with dark indigo theme, no voice/theming features. Email fetched from `GET /api/users/profile` (not localStorage). Change password + two-step delete account. Super admins see a note that another super admin must exist before self-delete.
 
 ### Notifications (`NotificationBell.jsx`)
 
@@ -249,5 +256,6 @@ All routes are defined in `App.jsx`. The `vercel.json` at the root of `frontend/
 | `/timeline` | Timeline |
 | `/learn` | Learn to Write |
 | `/profile` | Child profile |
-| `/admin` | Admin panel |
+| `/admin/profile` | Admin profile (change password, delete account) |
+| `/admin/*` | Admin panel |
 | `/privacy`, `/terms`, `/contact` | Legal pages |

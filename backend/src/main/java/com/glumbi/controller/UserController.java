@@ -192,7 +192,13 @@ public class UserController {
 
     @DeleteMapping("/me")
     @Transactional
-    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal AuthUser authUser) {
+    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthUser authUser) {
+        if ("SUPER_ADMIN".equals(authUser.role())) {
+            long remaining = userRepository.countByRole(AppUser.Role.SUPER_ADMIN);
+            if (remaining <= 1)
+                return ResponseEntity.status(400).body(Map.of("error",
+                    "You are the only super admin. Promote another admin first before deleting your account."));
+        }
         List<Child> children = childRepository.findByOwnerId(authUser.id());
         for (Child child : children) {
             storyRepository.deleteByChildId(child.getId());

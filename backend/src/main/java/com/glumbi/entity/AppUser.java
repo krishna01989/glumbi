@@ -47,5 +47,8 @@ public class AppUser {
     @Column(columnDefinition = "TEXT")
     private String holdReason;
 
-    public enum Role { USER, ADMIN }
+    public enum Role { USER, ADMIN, SUPER_ADMIN }
+
+    public boolean isSuperAdmin() { return role == Role.SUPER_ADMIN; }
+    public boolean isAdminOrAbove() { return role == Role.ADMIN || role == Role.SUPER_ADMIN; }
 }

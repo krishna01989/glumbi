@@ -27,7 +27,6 @@ public class ActivityAgent {
 
     private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
-    private final RelevanceGuard relevance;
     private final PromptLoader promptLoader;
     private final ObjectMapper mapper = new ObjectMapper();
 

@@ -1,18 +1,15 @@
 package com.glumbi.controller;
 
 import com.glumbi.entity.AppUser;
-import com.glumbi.entity.AppSetting;
 import com.glumbi.entity.Child;
-import com.glumbi.entity.FeatureConfig;
-import com.glumbi.entity.UserFeatureOverride;
 import com.glumbi.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.scheduler.NotificationScheduler;
-import com.glumbi.scheduler.SchedulerHistoryHelper;
-import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import com.glumbi.security.JwtFilter;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -454,37 +451,52 @@ public class AdminController {
 
     @DeleteMapping("/users/{id}")
     @Transactional
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        if (!userRepo.existsById(id)) return ResponseEntity.notFound().build();
+    public ResponseEntity<?> deleteUser(@PathVariable Long id,
+                                        @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+        return userRepo.findById(id).map(u -> {
+            if (u.isSuperAdmin())
+                return ResponseEntity.status(403).body(Map.of("error", "Super admins cannot be deleted."));
+            if (u.isAdminOrAbove() && !callerIsSuperAdmin(caller))
+                return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can delete another admin."));
 
-        // Delete all child data in order (FK constraints)
-        List<Child> children = childRepo.findByOwnerId(id);
-        for (Child child : children) {
-            storyRepo.deleteByChildId(child.getId());
-            activityRepo.deleteByChildId(child.getId());
-            journalRepo.deleteByChildId(child.getId());
-            curiosityRepo.deleteByChildId(child.getId());
-            childRepo.delete(child);
-        }
-        userRepo.deleteById(id);
-        return ResponseEntity.noContent().build();
+            List<Child> children = childRepo.findByOwnerId(id);
+            for (Child child : children) {
+                storyRepo.deleteByChildId(child.getId());
+                activityRepo.deleteByChildId(child.getId());
+                journalRepo.deleteByChildId(child.getId());
+                curiosityRepo.deleteByChildId(child.getId());
+                childRepo.delete(child);
+            }
+            userRepo.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     private static final java.util.regex.Pattern STRONG_PASSWORD =
         java.util.regex.Pattern.compile("^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{}|;':\",./<>?]).{8,}$");
 
     @PatchMapping("/users/{id}/password")
-    public ResponseEntity<?> resetPassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> resetPassword(@PathVariable Long id,
+                                           @RequestBody Map<String, String> body,
+                                           @AuthenticationPrincipal JwtFilter.AuthUser caller) {
         String newPassword = body.get("password");
         if (newPassword == null || !STRONG_PASSWORD.matcher(newPassword).matches()) {
             return ResponseEntity.badRequest().body(Map.of("error",
                 "Password must be at least 8 characters and include an uppercase letter, a number, and a special character"));
         }
         return userRepo.findById(id).map(u -> {
+            if (u.isSuperAdmin() && !callerIsSuperAdmin(caller))
+                return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can reset another super admin's password."));
+            if (u.isAdminOrAbove() && !callerIsSuperAdmin(caller))
+                return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can reset another admin's password."));
             u.setPasswordHash(encoder.encode(newPassword));
             userRepo.save(u);
             return ResponseEntity.ok(Map.of("message", "Password updated"));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private boolean callerIsSuperAdmin(JwtFilter.AuthUser caller) {
+        return "SUPER_ADMIN".equals(caller.role());
     }
 
     @PostMapping("/notifications/run")
@@ -604,8 +616,12 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/hold")
-    public ResponseEntity<?> holdUser(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> holdUser(@PathVariable Long id,
+                                      @RequestBody Map<String, String> body,
+                                      @AuthenticationPrincipal JwtFilter.AuthUser caller) {
         return userRepo.findById(id).map(u -> {
+            if (u.isAdminOrAbove())
+                return ResponseEntity.status(403).body(Map.of("error", "Admin and super admin accounts cannot be put on hold. Delete the account instead."));
             u.setOnHold(true);
             u.setHoldReason(body.getOrDefault("reason", "Account suspended by admin."));
             userRepo.save(u);
@@ -614,8 +630,11 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/release")
-    public ResponseEntity<?> releaseUser(@PathVariable Long id) {
+    public ResponseEntity<?> releaseUser(@PathVariable Long id,
+                                         @AuthenticationPrincipal JwtFilter.AuthUser caller) {
         return userRepo.findById(id).map(u -> {
+            if (u.isAdminOrAbove())
+                return ResponseEntity.status(403).body(Map.of("error", "Admin and super admin accounts cannot be held."));
             u.setOnHold(false);
             u.setHoldReason(null);
             userRepo.save(u);
@@ -624,11 +643,56 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/role")
-    public ResponseEntity<?> changeRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> changeRole(@PathVariable Long id,
+                                        @RequestBody Map<String, String> body,
+                                        @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+        if (!callerIsSuperAdmin(caller))
+            return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can change roles."));
         return userRepo.findById(id).map(u -> {
-            u.setRole(AppUser.Role.valueOf(body.get("role").toUpperCase()));
+            if (u.getId().equals(caller.id()))
+                return ResponseEntity.status(403).body(Map.of("error", "You cannot change your own role."));
+            AppUser.Role newRole = AppUser.Role.valueOf(body.get("role").toUpperCase());
+            // Only allow promoting/demoting between ADMIN and SUPER_ADMIN via this endpoint
+            if (newRole == AppUser.Role.USER)
+                return ResponseEntity.status(403).body(Map.of("error", "Cannot demote an admin to a regular user."));
+            u.setRole(newRole);
             userRepo.save(u);
             return ResponseEntity.ok(Map.of("email", u.getEmail(), "role", u.getRole().name()));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/admins")
+    public ResponseEntity<?> createAdmin(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        String password = body.get("password");
+        if (email == null || email.isBlank() || password == null || password.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "Email and password are required."));
+        if (userRepo.findByEmail(email.toLowerCase().trim()).isPresent())
+            return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
+        AppUser admin = new AppUser();
+        admin.setEmail(email.toLowerCase().trim());
+        admin.setPasswordHash(encoder.encode(password));
+        admin.setRole(AppUser.Role.ADMIN);
+        userRepo.save(admin);
+        return ResponseEntity.ok(Map.of("email", admin.getEmail(), "role", "ADMIN"));
+    }
+
+    @PostMapping("/super-admins")
+    public ResponseEntity<?> createSuperAdmin(@RequestBody Map<String, String> body,
+                                              @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+        if (!callerIsSuperAdmin(caller))
+            return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can create another super admin."));
+        String email = body.get("email");
+        String password = body.get("password");
+        if (email == null || email.isBlank() || password == null || password.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "Email and password are required."));
+        if (userRepo.findByEmail(email.toLowerCase().trim()).isPresent())
+            return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
+        AppUser admin = new AppUser();
+        admin.setEmail(email.toLowerCase().trim());
+        admin.setPasswordHash(encoder.encode(password));
+        admin.setRole(AppUser.Role.SUPER_ADMIN);
+        userRepo.save(admin);
+        return ResponseEntity.ok(Map.of("email", admin.getEmail(), "role", "SUPER_ADMIN"));
     }
 }

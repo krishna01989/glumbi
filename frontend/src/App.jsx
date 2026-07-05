@@ -20,6 +20,7 @@ import MemoryPlay  from './features/memory/MemoryPlay'
 import DemoPage    from './pages/DemoPage'
 import LearnPage   from './features/learn/LearnPage'
 import ProfilePage from './pages/ProfilePage'
+import AdminProfilePage from './pages/AdminProfilePage'
 import ErrorPage   from './pages/ErrorPage'
 import PrivacyPage from './pages/legal/PrivacyPage'
 import TermsPage   from './pages/legal/TermsPage'
@@ -246,7 +247,7 @@ export default function App() {
   const [snoozedUntil, setSnoozedUntil]         = useState(null)
   const [snoozeCount, setSnoozeCount]           = useState(0)
   // Session limits chosen at lock time (not stored on child profile)
-  const [lockTimeLimit, setLockTimeLimit]       = useState(0)   // minutes; 0 = no limit
+  const [lockTimeLimit, setLockTimeLimit]       = useState(30)  // minutes
   const [lockMaxSnooze, setLockMaxSnooze]       = useState(1)   // 0 = unlimited
   const [lockModalForced, setLockModalForced]   = useState(false)
   const prevChildId = useRef(null) // track whether child→null was a deliberate navigation or initial mount
@@ -669,12 +670,13 @@ export default function App() {
   }
 
   // ── Admin ──
-  if (role === 'ADMIN') {
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
     return (
       <Routes>
-        <Route path="/admin/*"     element={<AdminPage onLogout={handleLogout} onBack={() => navigate('/child')} />} />
-        <Route path="/error/:code" element={<ErrorPageRoute />} />
-        <Route path="*"            element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/profile"   element={<AdminProfilePage onLogout={handleLogout} />} />
+        <Route path="/admin/*"         element={<AdminPage onLogout={handleLogout} />} />
+        <Route path="/error/:code"     element={<ErrorPageRoute />} />
+        <Route path="*"                element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     )
   }
@@ -692,13 +694,14 @@ export default function App() {
         {(lockModal === 'setup' || lockModal === 'lock-verify') && (() => {
           const isSetup = lockModal === 'setup'
           const TIME_OPTS = [
-            { label: 'No limit', value: 0 },
             { label: '15m', value: 15 },
             { label: '30m', value: 30 },
             { label: '45m', value: 45 },
             { label: '1h', value: 60 },
             { label: '90m', value: 90 },
+            { label: 'Custom', value: -1 },
           ]
+          const isCustom = !TIME_OPTS.slice(0, -1).some(o => o.value === lockTimeLimit)
           const EXT_OPTS = [
             { label: 'None', value: 0 },
             { label: '1', value: 1 },
@@ -727,9 +730,32 @@ export default function App() {
               <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, marginBottom: 8 }}>SESSION TIME</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {TIME_OPTS.map(o => (
-                  <button key={o.value} style={chipStyle(lockTimeLimit === o.value)} onClick={() => setLockTimeLimit(o.value)}>{o.label}</button>
+                  <button key={o.value}
+                    style={chipStyle(o.value === -1 ? isCustom : lockTimeLimit === o.value)}
+                    onClick={() => {
+                      if (o.value === -1) setLockTimeLimit(0)
+                      else setLockTimeLimit(o.value)
+                    }}>
+                    {o.label}
+                  </button>
                 ))}
               </div>
+              {isCustom && (
+                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="number" inputMode="numeric" min={1} max={480}
+                    placeholder="Minutes"
+                    value={lockTimeLimit > 0 ? lockTimeLimit : ''}
+                    onChange={e => {
+                      const v = parseInt(e.target.value)
+                      if (!isNaN(v) && v > 0) setLockTimeLimit(Math.min(v, 480))
+                      else setLockTimeLimit(0)
+                    }}
+                    style={{ width: 90, padding: '6px 10px', borderRadius: 10, border: '2px solid var(--primary)', fontSize: 14, fontWeight: 700, textAlign: 'center', outline: 'none' }}
+                  />
+                  <span style={{ fontSize: 13, color: '#888' }}>minutes</span>
+                </div>
+              )}
             </div>
 
             {/* Extensions — only if a time limit is set */}
@@ -758,7 +784,8 @@ export default function App() {
                 Cancel
               </button>
               <button onClick={isSetup ? handleLockSetup : handleLockVerify}
-                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+                disabled={lockTimeLimit <= 0}
+                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: lockTimeLimit <= 0 ? 'not-allowed' : 'pointer', fontSize: 14, opacity: lockTimeLimit <= 0 ? 0.5 : 1 }}>
                 Lock App 🔒
               </button>
             </div>
@@ -894,7 +921,7 @@ export default function App() {
             {(() => {
               const maxSnooze = lockMaxSnooze
               const snoozesLeft = maxSnooze === 0 ? Infinity : Math.max(0, maxSnooze - snoozeCount)
-              const limit = lockTimeLimit || 30
+              const limit = lockTimeLimit
               const opt1 = Math.min(15, limit)
               const opt2 = Math.min(30, limit)
               const showTwo = opt2 > opt1

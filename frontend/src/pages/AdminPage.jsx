@@ -4,6 +4,16 @@ import { adminApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ErrorBox from '../components/ErrorBox'
 
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth < 640)
+  useEffect(() => {
+    const handler = () => setMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  return mobile
+}
+
 // ─── Sidebar nav items ───────────────────────────────────────────────────────
 const NAV = [
   { id: 'dashboard',  icon: '📊', label: 'Dashboard'      },
@@ -118,7 +128,7 @@ function SetQuotaModal({ user, onClose, onSave }) {
           ⚠️ Changing the limit resets usage to 0. The user starts fresh with the new limit.
         </p>
         <div style={{ marginBottom:8, fontSize:13, fontWeight:700, color:'#555' }}>
-          Current: <span style={{ color:'#667eea' }}>{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} used</span>
+          Current: <span style={{ color:'#6366f1' }}>{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} used</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
           <input
@@ -131,7 +141,7 @@ function SetQuotaModal({ user, onClose, onSave }) {
         <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
           {[25, 50, 100, 200].map(v => (
             <button key={v} onClick={() => setValue(String(v))}
-              style={{ padding:'5px 14px', borderRadius:50, fontSize:12, fontWeight:800, border:'none', cursor:'pointer', background: num === v ? '#667eea' : '#f0f0f0', color: num === v ? 'white' : '#555' }}>
+              style={{ padding:'5px 14px', borderRadius:50, fontSize:12, fontWeight:800, border:'none', cursor:'pointer', background: num === v ? '#6366f1' : '#f0f0f0', color: num === v ? 'white' : '#555' }}>
               {v}
             </button>
           ))}
@@ -144,7 +154,7 @@ function SetQuotaModal({ user, onClose, onSave }) {
         <div style={{ display:'flex', gap:8 }}>
           <button onClick={onClose} style={{ flex:1, padding:10, borderRadius:10, border:'1.5px solid #eee', background:'#f5f5f5', cursor:'pointer', fontWeight:700 }}>Cancel</button>
           <button onClick={handleSave} disabled={!valid || saving}
-            style={{ flex:1, padding:10, borderRadius:10, border:'none', background: valid ? '#667eea' : '#ccc', color:'white', cursor: valid ? 'pointer' : 'not-allowed', fontWeight:700 }}>
+            style={{ flex:1, padding:10, borderRadius:10, border:'none', background: valid ? '#6366f1' : '#ccc', color:'white', cursor: valid ? 'pointer' : 'not-allowed', fontWeight:700 }}>
             {saving ? 'Saving…' : `Set to ${valid ? num : '?'}`}
           </button>
         </div>
@@ -293,34 +303,127 @@ function FeatureAccessModal({ user, onClose }) {
   )
 }
 
+// ─── Add Admin / Super Admin modal ───────────────────────────────────────────
+function AddAdminModal({ onClose, onCreated, asSuperAdmin = false }) {
+  const [email, setEmail]   = useState('')
+  const [pw, setPw]         = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
+
+  const checks = {
+    length:    pw.length >= 8,
+    uppercase: /[A-Z]/.test(pw),
+    number:    /[0-9]/.test(pw),
+    special:   /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(pw),
+  }
+  const strong = Object.values(checks).every(Boolean)
+  const valid  = email.includes('@') && strong
+  const accent = asSuperAdmin ? '#f59e0b' : '#6366f1'
+
+  async function handleSave() {
+    if (!valid) return
+    setSaving(true); setError('')
+    try {
+      const result = asSuperAdmin
+        ? await adminApi.createSuperAdmin(email, pw)
+        : await adminApi.createAdmin(email, pw)
+      onCreated(result)
+      onClose()
+    } catch (e) { setError(e.message) }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+      <div style={{ background: 'white', borderRadius: 20, padding: 32, width: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 18 }}>{asSuperAdmin ? '👑 Add Super Admin' : '🛡️ Add Admin'}</h3>
+        <p style={{ margin: '0 0 20px', fontSize: 13, color: '#888' }}>
+          {asSuperAdmin ? 'Create a new super admin with full privileges.' : 'Create a new admin account with password login.'}
+        </p>
+        <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)}
+          style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box', marginBottom: 12 }} />
+        <input type="password" placeholder="Password" value={pw} onChange={e => setPw(e.target.value)}
+          style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box', marginBottom: 12 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
+          {[['length','8+ characters'],['uppercase','Uppercase letter'],['number','Number (0-9)'],['special','Special character']].map(([k, l]) => (
+            <div key={k} style={{ fontSize: 12, color: checks[k] ? '#27ae60' : '#bbb', display: 'flex', gap: 6 }}>
+              <span>{checks[k] ? '✅' : '○'}</span>{l}
+            </div>
+          ))}
+        </div>
+        {error && <div style={{ fontSize: 13, color: '#e74c3c', marginBottom: 12 }}>{error}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: 10, borderRadius: 10, border: '1.5px solid #eee', background: '#f5f5f5', cursor: 'pointer', fontWeight: 700 }}>Cancel</button>
+          <button onClick={handleSave} disabled={!valid || saving}
+            style={{ flex: 1, padding: 10, borderRadius: 10, border: 'none', background: valid ? accent : '#ccc', color: 'white', cursor: valid ? 'pointer' : 'not-allowed', fontWeight: 700 }}>
+            {saving ? 'Creating…' : asSuperAdmin ? 'Create Super Admin' : 'Create Admin'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── User actions kebab menu ──────────────────────────────────────────────────
-function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete, onFeatureAccess }) {
+function UserActions({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete, onFeatureAccess, onPromote, onDemote }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const [pos, setPos]   = useState({ top: 0, right: 0 })
+  const btnRef = useRef(null)
+  const menuRef = useRef(null)
 
   useEffect(() => {
-    function handler(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    function handler(e) {
+      if (btnRef.current && !btnRef.current.contains(e.target) &&
+          menuRef.current && !menuRef.current.contains(e.target)) setOpen(false)
+    }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  function handleOpen() {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      const menuHeight = items.length * 38 + 12
+      const spaceBelow = window.innerHeight - r.bottom
+      const openUp = spaceBelow < menuHeight + 8
+      setPos(openUp
+        ? { bottom: window.innerHeight - r.top + 4, right: window.innerWidth - r.right, top: 'auto' }
+        : { top: r.bottom + 4, right: window.innerWidth - r.right, bottom: 'auto' }
+      )
+    }
+    setOpen(o => !o)
+  }
+
   function act(fn) { setOpen(false); fn() }
 
+  const isCaller_SA = callerRole === 'SUPER_ADMIN'
+  const isUser      = user.role === 'USER'
+  const isAdmin     = user.role === 'ADMIN'
+  const isSA        = user.role === 'SUPER_ADMIN'
+
   const items = [
-    { label: user.role === 'ADMIN' ? 'Demote to User' : 'Make Admin', icon: user.role === 'ADMIN' ? '↓' : '↑', color: '#555', bg: '#f0f0f0', fn: onRoleToggle },
-    user.authMethod === 'password' && { label: 'Reset Password', icon: '🔑', color: '#1a73e8', bg: '#e8f0fe', fn: onResetPw },
-    user.role !== 'ADMIN' && { label: 'Set Quota Limit', icon: '🔢', color: '#0288d1', bg: '#e1f5fe', fn: onSetQuota },
-    user.role !== 'ADMIN' && (user.quotaUsed ?? 0) > 0 && { label: 'Reset AI Quota', icon: '🔄', color: '#7c3aed', bg: '#f3e8ff', fn: onResetQuota },
-    user.role !== 'ADMIN' && { label: 'Feature Access', icon: '🔧', color: '#e67e22', bg: '#fff3e0', fn: onFeatureAccess },
-    user.onHold
+    // Password reset: SA can reset anyone; ADMIN only resets regular users
+    (isCaller_SA || isUser) && user.authMethod === 'password' && { label: 'Reset Password', icon: '🔑', color: '#1a73e8', bg: '#e8f0fe', fn: onResetPw },
+    // Quota / features: only for app users
+    isUser && { label: 'Set Quota Limit', icon: '🔢', color: '#0288d1', bg: '#e1f5fe', fn: onSetQuota },
+    isUser && (user.quotaUsed ?? 0) > 0 && { label: 'Reset AI Quota', icon: '🔄', color: '#7c3aed', bg: '#f3e8ff', fn: onResetQuota },
+    isUser && { label: 'Feature Access', icon: '🔧', color: '#e67e22', bg: '#fff3e0', fn: onFeatureAccess },
+    // Hold/release: SA can hold anyone except other SA; ADMIN can only hold users
+    isUser && (user.onHold
       ? { label: 'Release Account', icon: '✅', color: '#2e7d32', bg: '#e8f5e9', fn: onRelease }
-      : { label: 'Put on Hold', icon: '🔒', color: '#e74c3c', bg: '#fff3f3', fn: onHold },
-    { label: 'Delete User', icon: '🗑', color: '#e74c3c', bg: '#fff0f0', fn: onDelete, danger: true },
+      : { label: 'Put on Hold', icon: '🔒', color: '#e74c3c', bg: '#fff3f3', fn: onHold }),
+    // Promote/demote: only SA can do this, and not on themselves
+    isCaller_SA && isAdmin && { label: 'Promote to Super Admin', icon: '👑', color: '#d97706', bg: '#fef3c7', fn: onPromote },
+    isCaller_SA && isSA    && { label: 'Demote to Admin', icon: '↓', color: '#555', bg: '#f0f0f0', fn: onDemote },
+    // Delete: SA can delete admins; ADMIN can only delete users; nobody can delete SA
+    !isSA && (isCaller_SA || isUser) && { label: 'Delete User', icon: '🗑', color: '#e74c3c', bg: '#fff0f0', fn: onDelete, danger: true },
   ].filter(Boolean)
 
+  if (items.length === 0) return null
+
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
-      <button onClick={() => setOpen(o => !o)}
+    <div style={{ flexShrink: 0 }}>
+      <button ref={btnRef} onClick={handleOpen}
         style={{
           width: 34, height: 34, borderRadius: 8, border: '1.5px solid #eee',
           background: open ? '#f0f0f0' : 'white', cursor: 'pointer',
@@ -331,8 +434,8 @@ function UserActions({ user, onRoleToggle, onResetPw, onResetQuota, onSetQuota, 
         ⋮
       </button>
       {open && (
-        <div style={{
-          position: 'absolute', right: 0, top: 40, zIndex: 100,
+        <div ref={menuRef} style={{
+          position: 'fixed', top: pos.top, bottom: pos.bottom, right: pos.right, zIndex: 9999,
           background: 'white', borderRadius: 12, padding: '6px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
           border: '1px solid #eee', minWidth: 180,
@@ -376,7 +479,7 @@ function StatCard({ icon, label, value, sub, color }) {
 }
 
 // ─── Bar chart (pure CSS) ─────────────────────────────────────────────────────
-function BarChart({ data, color = '#667eea' }) {
+function BarChart({ data, color = '#6366f1' }) {
   const entries = Object.entries(data)
   const max = Math.max(...entries.map(([, v]) => v), 1)
   return (
@@ -487,7 +590,7 @@ function Dashboard() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* Range selector + refresh controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: '#999', marginRight: 4 }}>RANGE</span>
         {RANGES.map(r => (
           <button key={r.value} onClick={() => setRange(r.value)} disabled={loading}
@@ -511,7 +614,7 @@ function Dashboard() {
             value={autoInterval}
             onChange={e => setAutoInterval(Number(e.target.value))}
             title="Auto-refresh interval"
-            style={{ fontSize: 12, fontWeight: 600, color: autoInterval > 0 ? '#667eea' : '#999', border: '1.5px solid #e0e0e0', borderRadius: 8, padding: '4px 8px', background: autoInterval > 0 ? '#f0f0ff' : '#fafafa', cursor: 'pointer' }}>
+            style={{ fontSize: 12, fontWeight: 600, color: autoInterval > 0 ? '#6366f1' : '#999', border: '1.5px solid #e0e0e0', borderRadius: 8, padding: '4px 8px', background: autoInterval > 0 ? '#f0f0ff' : '#fafafa', cursor: 'pointer' }}>
             {AUTO_REFRESH_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.value === 0 ? '↺ Off' : `↺ ${o.label}`}</option>)}
           </select>
         </div>
@@ -538,7 +641,7 @@ function Dashboard() {
       {/* Stat cards */}
       {stats && (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-        <StatCard icon="👤" label="Total Users"    value={stats.totalUsers}      sub={`+${stats.newUsersInRange} in ${rangeLabel.toLowerCase()}`}    color="#667eea" />
+        <StatCard icon="👤" label="Total Users"    value={stats.totalUsers}      sub={`+${stats.newUsersInRange} in ${rangeLabel.toLowerCase()}`}    color="#6366f1" />
         <StatCard icon="🧒" label="Total Children" value={stats.totalChildren}   sub={`+${stats.newChildrenInRange} in ${rangeLabel.toLowerCase()}`}  color="#f093fb" />
         <StatCard icon="📖" label="Stories"        value={stats.totalStories}    sub={`+${stats.newStoriesInRange} in ${rangeLabel.toLowerCase()}`}   color="#4facfe" />
         <StatCard icon="🎯" label="Quizzes"        value={stats.totalQuizzes}    sub="all time"                                                        color="#43e97b" />
@@ -551,7 +654,7 @@ function Dashboard() {
       {stats && <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', flex: '1 1 280px' }}>
           <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 16 }}>👤 New Signups — {rangeLabel}</div>
-          <BarChart data={stats.signupsByDay} color="#667eea" />
+          <BarChart data={stats.signupsByDay} color="#6366f1" />
         </div>
         <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', flex: '1 1 280px' }}>
           <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 16 }}>📖 Stories Created — {rangeLabel}</div>
@@ -618,7 +721,7 @@ function Dashboard() {
         <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
             <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>🤖 AI Credits — This Month</div>
-            <span style={{ fontSize: 11, fontWeight: 700, background: '#f0f0ff', color: '#667eea', borderRadius: 50, padding: '2px 10px' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, background: '#f0f0ff', color: '#6366f1', borderRadius: 50, padding: '2px 10px' }}>
               Default: {stats.defaultMonthlyCredits ?? 100} credits/user
             </span>
           </div>
@@ -627,7 +730,7 @@ function Dashboard() {
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#667eea' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#6366f1' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
               <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Credits spent this month</div>
               <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>across all users</div>
             </div>
@@ -669,16 +772,87 @@ function Dashboard() {
 }
 
 // ─── Users section ────────────────────────────────────────────────────────────
-function Users() {
+function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete, onFeatureAccess, onPromote, onDemote }) {
+  const avatarBg = user.onHold
+    ? 'linear-gradient(135deg,#e74c3c,#c0392b)'
+    : user.role === 'SUPER_ADMIN' ? 'linear-gradient(135deg,#f59e0b,#d97706)'
+    : user.role === 'ADMIN' ? 'linear-gradient(135deg,#6366f1,#4f46e5)'
+    : 'linear-gradient(135deg,#64748b,#475569)'
+  const avatarIcon = user.onHold ? '🔒' : user.role === 'SUPER_ADMIN' ? '👑' : user.role === 'ADMIN' ? '🛡️' : '👤'
+  const borderColor = user.onHold ? '#e74c3c' : user.role === 'SUPER_ADMIN' ? '#f59e0b' : user.role === 'ADMIN' ? '#6366f1' : 'transparent'
+  const isPrivileged = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
+  return (
+    <div style={{ background: user.onHold ? '#fff8f8' : 'white', borderRadius: 14, padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', borderLeft: `4px solid ${borderColor}` }}>
+      <div style={{
+        width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+        background: avatarBg,
+      }}>
+        {avatarIcon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{user.email}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: user.authMethod === 'google' ? '#e8f0fe' : '#f0fff4', color: user.authMethod === 'google' ? '#1a73e8' : '#2e7d32' }}>
+            {user.authMethod === 'google' ? '🔵 Google' : '🔒 Password'}
+          </span>
+          {user.onHold && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: '#fff0f0', color: '#e74c3c', border: '1px solid #fcc' }}>
+              🔒 On Hold
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: '#aaa', marginTop: 3 }}>
+          Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {!isPrivileged && <>&nbsp;·&nbsp;{user.childCount} {user.childCount === 1 ? 'child' : 'children'}</>}
+        </div>
+        {!isPrivileged && (() => {
+          const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 100), 1)
+          const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f59e0b' : pct >= 0.5 ? '#3b82f6' : '#6bcb77'
+          const textColor = pct >= 1 ? '#cc0033' : pct >= 0.8 ? '#b45309' : pct >= 0.5 ? '#1d4ed8' : '#15803d'
+          return (
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, height: 5, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
+                {user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
+              </span>
+            </div>
+          )
+        })()}
+      </div>
+      <UserActions
+        user={user}
+        callerRole={callerRole}
+        onResetPw={onResetPw}
+        onResetQuota={onResetQuota}
+        onSetQuota={onSetQuota}
+        onHold={onHold}
+        onRelease={onRelease}
+        onDelete={onDelete}
+        onFeatureAccess={onFeatureAccess}
+        onPromote={onPromote}
+        onDemote={onDemote}
+      />
+    </div>
+  )
+}
+
+function Users({ callerRole }) {
+  const isSuperAdmin = callerRole === 'SUPER_ADMIN'
+
   const [users, setUsers]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
   const [search, setSearch]     = useState('')
-  const [resetUser, setResetUser]         = useState(null)
-  const [holdUser, setHoldUser]           = useState(null)
-  const [quotaUser, setQuotaUser]         = useState(null)
+  const [showAddAdmin, setShowAddAdmin] = useState(false)
+  const [resetUser, setResetUser]                 = useState(null)
+  const [holdUser, setHoldUser]                   = useState(null)
+  const [quotaUser, setQuotaUser]                 = useState(null)
   const [featureAccessUser, setFeatureAccessUser] = useState(null)
-  const [confirm, setConfirm]             = useState(null)
+  const [confirm, setConfirm]                     = useState(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -720,12 +894,44 @@ function Users() {
     } catch (e) { setError(e.message) }
   }
 
+  async function handlePromote(user) {
+    setConfirm({
+      title: 'Promote to Super Admin',
+      message: `Promote ${user.email} to Super Admin? They will be able to manage other admins and super admins.`,
+      confirmLabel: 'Promote',
+      confirmColor: '#f59e0b',
+      onConfirm: async () => {
+        setConfirm(null)
+        try {
+          await adminApi.promoteToSuperAdmin(user.id)
+          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: 'SUPER_ADMIN' } : u))
+        } catch (e) { setError(e.message) }
+      }
+    })
+  }
+
+  async function handleDemote(user) {
+    setConfirm({
+      title: 'Demote to Admin',
+      message: `Demote ${user.email} from Super Admin to Admin? They will lose super admin privileges.`,
+      confirmLabel: 'Demote',
+      confirmColor: '#ef4444',
+      onConfirm: async () => {
+        setConfirm(null)
+        try {
+          await adminApi.demoteToAdmin(user.id)
+          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: 'ADMIN' } : u))
+        } catch (e) { setError(e.message) }
+      }
+    })
+  }
+
   async function handleResetQuota(user) {
     setConfirm({
       title: 'Reset Quota',
       message: `Reset AI quota for ${user.email}? Usage resets to 0 and they get the full ${user.quotaLimit ?? 100} credits immediately.`,
       confirmLabel: 'Reset',
-      confirmColor: '#667eea',
+      confirmColor: '#6366f1',
       onConfirm: async () => {
         setConfirm(null)
         try {
@@ -747,29 +953,28 @@ function Users() {
     } catch (e) { throw e }
   }
 
-  async function handleRoleToggle(user) {
-    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN'
-    setConfirm({
-      title: 'Change Role',
-      message: `Change ${user.email} to ${newRole}?`,
-      confirmLabel: 'Confirm',
-      confirmColor: '#667eea',
-      onConfirm: async () => {
-        setConfirm(null)
-        try {
-          const updated = await adminApi.changeRole(user.id, newRole)
-          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: updated.role } : u))
-        } catch (e) { setError(e.message) }
-      }
-    })
-  }
+  const q = search.toLowerCase()
+  const superAdmins = users.filter(u => u.role === 'SUPER_ADMIN' && u.email.toLowerCase().includes(q))
+  const admins      = users.filter(u => u.role === 'ADMIN'       && u.email.toLowerCase().includes(q))
+  const appUsers    = users.filter(u => u.role === 'USER'        && u.email.toLowerCase().includes(q))
 
-  const filtered = users.filter(u =>
-    u.email.toLowerCase().includes(search.toLowerCase())
-  )
+  const rowProps = (user) => ({
+    user,
+    callerRole,
+    onResetPw:       () => setResetUser(user),
+    onResetQuota:    () => handleResetQuota(user),
+    onSetQuota:      () => setQuotaUser(user),
+    onHold:          () => setHoldUser(user),
+    onRelease:       () => handleRelease(user),
+    onDelete:        () => handleDelete(user),
+    onFeatureAccess: () => setFeatureAccessUser(user),
+    onPromote:       () => handlePromote(user),
+    onDemote:        () => handleDemote(user),
+  })
 
   return (
     <div>
+      {showAddAdmin && <AddAdminModal onClose={() => setShowAddAdmin(false)} onCreated={u => setUsers(prev => [{ ...u, role: 'ADMIN', authMethod: 'password', createdAt: new Date().toISOString(), childCount: 0 }, ...prev])} />}
       {holdUser && <HoldModal user={holdUser} onClose={() => setHoldUser(null)} onConfirm={reason => handleHold(holdUser, reason)} />}
       {resetUser && <PasswordModal user={resetUser} onClose={() => setResetUser(null)} />}
       {quotaUser && <SetQuotaModal user={quotaUser} onClose={() => setQuotaUser(null)} onSave={limit => handleSetQuota(quotaUser, limit)} />}
@@ -780,17 +985,24 @@ function Users() {
         onConfirm={confirm?.onConfirm} onCancel={() => setConfirm(null)}
       />
 
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontWeight: 900, fontSize: 20, color: '#1a1a2e' }}>👥 Users</div>
-          <div style={{ fontSize: 13, color: '#aaa', marginTop: 2 }}>{users.length} total</div>
+          <div style={{ fontSize: 13, color: '#aaa', marginTop: 2 }}>
+            {users.filter(u => u.role === 'SUPER_ADMIN').length} super admins · {users.filter(u => u.role === 'ADMIN').length} admins · {users.filter(u => u.role === 'USER').length} app users
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             placeholder="Search by email…"
             value={search} onChange={e => setSearch(e.target.value)}
-            style={{ padding: '8px 14px', borderRadius: 50, border: '1.5px solid #eee', fontSize: 13, width: 220, outline: 'none' }}
+            style={{ padding: '8px 14px', borderRadius: 50, border: '1.5px solid #eee', fontSize: 13, width: 180, outline: 'none' }}
           />
+          <button onClick={() => setShowAddAdmin(true)}
+            style={{ padding: '8px 16px', borderRadius: 50, border: 'none', background: '#6366f1', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            + Add Admin
+          </button>
           <button onClick={load} disabled={loading} title="Refresh users"
             style={{ width: 34, height: 34, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
             {loading ? '…' : '🔄'}
@@ -803,78 +1015,56 @@ function Users() {
       {loading
         ? <div style={{ textAlign: 'center', padding: 48, color: '#aaa' }}>Loading…</div>
         : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(user => (
-              <div key={user.id} style={{ background: user.onHold ? '#fff8f8' : 'white', borderRadius: 14, padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', borderLeft: user.onHold ? '4px solid #e74c3c' : '4px solid transparent' }}>
-                <div style={{
-                  width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-                  background: user.onHold ? 'linear-gradient(135deg,#e74c3c,#c0392b)' : user.role === 'ADMIN' ? 'linear-gradient(135deg,#2d3436,#636e72)' : 'linear-gradient(135deg,#667eea,#764ba2)',
-                }}>
-                  {user.onHold ? '🔒' : user.role === 'ADMIN' ? '🛡️' : '👤'}
-                </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{user.email}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: user.authMethod === 'google' ? '#e8f0fe' : '#f0fff4', color: user.authMethod === 'google' ? '#1a73e8' : '#2e7d32' }}>
-                      {user.authMethod === 'google' ? '🔵 Google' : '🔒 Password'}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: user.role === 'ADMIN' ? '#2d3436' : '#e8f5e9', color: user.role === 'ADMIN' ? 'white' : '#2e7d32' }}>
-                      {user.role}
-                    </span>
-                    {user.onHold && (
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: '#fff0f0', color: '#e74c3c', border: '1px solid #fcc' }}>
-                        🔒 On Hold
-                      </span>
-                    )}
+            {/* Super Admins section */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1 }}>👑 Super Admins</span>
+                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{superAdmins.length}</span>
+              </div>
+              {superAdmins.length === 0
+                ? <div style={{ padding: '16px 20px', background: '#fffbeb', borderRadius: 12, fontSize: 13, color: '#aaa' }}>{search ? 'No super admins match your search.' : 'No super admins yet.'}</div>
+                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {superAdmins.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
                   </div>
-                  <div style={{ fontSize: 12, color: '#aaa', marginTop: 3 }}>
-                    Joined {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    &nbsp;·&nbsp;{user.childCount} {user.childCount === 1 ? 'child' : 'children'}
-                  </div>
-                  {/* Quota bar */}
-                  {user.role !== 'ADMIN' && (() => {
-                    const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 100), 1)
-                    const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f59e0b' : pct >= 0.5 ? '#3b82f6' : '#6bcb77'
-                    const textColor = pct >= 1 ? '#cc0033' : pct >= 0.8 ? '#b45309' : pct >= 0.5 ? '#1d4ed8' : '#15803d'
-                    return (
-                      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 5, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
-                          {user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
-                        </span>
-                      </div>
-                    )
-                  })()}
-                  {user.onHold && user.holdReason && (
-                    <div style={{ fontSize: 11, color: '#e74c3c', marginTop: 4, fontStyle: 'italic' }}>
-                      Reason: {user.holdReason}
-                    </div>
-                  )}
-                </div>
+              }
+            </div>
 
-                <UserActions
-                  user={user}
-                  onRoleToggle={() => handleRoleToggle(user)}
-                  onResetPw={() => setResetUser(user)}
-                  onResetQuota={() => handleResetQuota(user)}
-                  onSetQuota={() => setQuotaUser(user)}
-                  onHold={() => setHoldUser(user)}
-                  onRelease={() => handleRelease(user)}
-                  onDelete={() => handleDelete(user)}
-                  onFeatureAccess={() => setFeatureAccessUser(user)}
-                />
+            <div style={{ borderTop: '1.5px solid #f0f0f0' }} />
+
+            {/* Admins section */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: 1 }}>🛡️ Administrators</span>
+                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{admins.length}</span>
               </div>
-            ))}
-            {filtered.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 48, color: '#aaa' }}>
-                <div style={{ fontSize: 40, marginBottom: 10 }}>🔍</div>
-                <div>{search ? `No users matching "${search}"` : 'No users yet'}</div>
+              {admins.length === 0
+                ? <div style={{ padding: '16px 20px', background: '#f8f9ff', borderRadius: 12, fontSize: 13, color: '#aaa' }}>No admins match your search.</div>
+                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {admins.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
+                  </div>
+              }
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1.5px solid #f0f0f0' }} />
+
+            {/* App users section */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: 1 }}>👤 App Users</span>
+                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{appUsers.length}</span>
               </div>
-            )}
+              {appUsers.length === 0
+                ? <div style={{ padding: '16px 20px', background: '#f8f9fa', borderRadius: 12, fontSize: 13, color: '#aaa' }}>
+                    {search ? `No users matching "${search}"` : 'No app users yet.'}
+                  </div>
+                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {appUsers.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
+                  </div>
+              }
+            </div>
           </div>
         )
       }
@@ -923,7 +1113,7 @@ function Agents() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)', borderRadius: 16, padding: '24px 28px' }}>
+      <div style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', borderRadius: 16, padding: '24px 28px' }}>
         <div style={{ color: 'white', fontWeight: 900, fontSize: 18, marginBottom: 6 }}>🤖 AI Agents</div>
         <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.7 }}>
           These agents run automatically every <strong style={{ color: 'white' }}>Sunday at 8:00 AM UTC</strong> as part of the Weekly Notifications scheduler.
@@ -1037,6 +1227,7 @@ const DEFAULT_MIX = {
 }
 
 function FeatureCredits() {
+  const isMobile = useIsMobile()
   const [features, setFeatures]         = useState([])
   const [defaults, setDefaults]         = useState(null)
   const [editing, setEditing]           = useState(null)
@@ -1108,7 +1299,7 @@ function FeatureCredits() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg,#667eea,#764ba2)', borderRadius: 16, padding: '24px 28px' }}>
+      <div style={{ background: 'linear-gradient(135deg,#6366f1,#4f46e5)', borderRadius: 16, padding: '24px 28px' }}>
         <div style={{ color: 'white', fontWeight: 900, fontSize: 18, marginBottom: 8 }}>💰 Feature Credit Costs</div>
         <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.6, marginBottom: 16 }}>
           Control how many credits each AI feature costs per use.
@@ -1162,15 +1353,16 @@ function FeatureCredits() {
       {/* Feature table */}
       <div style={{ background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
 
-        {/* Column headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 100px 120px 130px 90px', gap: 0, padding: '10px 20px 8px', borderBottom: '2px solid #f0f0f0', background: '#fafafa' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Complexity</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Suggested</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Current Cost</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Uses / {budget} credits</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Global</div>
-        </div>
+        {!isMobile && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 100px 120px 130px 90px', gap: 0, padding: '10px 20px 8px', borderBottom: '2px solid #f0f0f0', background: '#fafafa' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Complexity</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Suggested</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Current Cost</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Uses / {budget} credits</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Global</div>
+          </div>
+        )}
 
         {features.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Loading…</div>}
 
@@ -1178,8 +1370,60 @@ function FeatureCredits() {
           const meta    = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️', desc: fc.description || '', maxTokens: 256, suggestedCost: 1 }
           const cx      = complexityLabel(meta.maxTokens)
           const usesMax = Math.floor(budget / fc.creditCost)
-          const isEdit  = editing === fc.featureName
           const isOffSuggestion = fc.creditCost !== meta.suggestedCost
+
+          const stepper = (
+            <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f0f0f0', borderRadius: 10, overflow: 'hidden', border: '1px solid #e0e0e0' }}>
+              <button onClick={() => handleSave(fc.featureName, Math.max(1, fc.creditCost - 1))} disabled={saving || fc.creditCost <= 1}
+                style={{ width: 32, height: 34, border: 'none', background: 'transparent', color: fc.creditCost <= 1 ? '#ccc' : '#6366f1', fontWeight: 900, fontSize: 16, cursor: fc.creditCost <= 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                −
+              </button>
+              <span style={{ fontWeight: 800, fontSize: 14, minWidth: 30, height: 34, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0', color: fc.creditCost >= 4 ? '#c62828' : fc.creditCost >= 2 ? '#0277bd' : '#2e7d32' }}>
+                {fc.creditCost}
+              </span>
+              <button onClick={() => handleSave(fc.featureName, Math.min(100, fc.creditCost + 1))} disabled={saving || fc.creditCost >= 100}
+                style={{ width: 32, height: 34, border: 'none', background: 'transparent', color: fc.creditCost >= 100 ? '#ccc' : '#6366f1', fontWeight: 900, fontSize: 16, cursor: fc.creditCost >= 100 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                +
+              </button>
+            </div>
+          )
+
+          const toggle = (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+              <button onClick={() => handleToggleGlobal(fc.featureName, fc.enabled !== false)}
+                style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: fc.enabled !== false ? '#27ae60' : '#e0e0e0', transition: 'background 0.2s' }}>
+                <span style={{ position: 'absolute', top: 3, width: 18, height: 18, borderRadius: 9, background: 'white', transition: 'left 0.2s', left: fc.enabled !== false ? 23 : 3, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+              </button>
+              <div style={{ fontSize: 10, color: fc.enabled !== false ? '#27ae60' : '#e74c3c', fontWeight: 700 }}>{fc.enabled !== false ? 'ON' : 'OFF'}</div>
+            </div>
+          )
+
+          if (isMobile) {
+            return (
+              <div key={fc.featureName} style={{ padding: '14px 16px', borderBottom: i < features.length - 1 ? '1px solid #f5f5f5' : 'none', background: fc.enabled === false ? '#fff8f8' : 'white', opacity: fc.enabled === false ? 0.75 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 22 }}>{meta.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: '#1a1a2e' }}>{meta.label}</div>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 50, background: cx.bg, color: cx.color }}>{cx.label} AI load</span>
+                    </div>
+                  </div>
+                  {toggle}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    {stepper}
+                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>
+                      Suggested: <strong>{meta.suggestedCost}</strong>
+                      {isOffSuggestion && <span style={{ color: '#e67e22', marginLeft: 4 }}>⚠ differs</span>}
+                      &nbsp;·&nbsp;{usesMax}× uses/month
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div key={fc.featureName} style={{
@@ -1190,8 +1434,6 @@ function FeatureCredits() {
               transition: 'background 0.15s',
               opacity: fc.enabled === false ? 0.75 : 1,
             }}>
-
-              {/* Feature name + desc */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 <span style={{ fontSize: 20, flexShrink: 0 }}>{meta.icon}</span>
                 <div style={{ minWidth: 0 }}>
@@ -1199,8 +1441,6 @@ function FeatureCredits() {
                   <div style={{ fontSize: 11, color: '#bbb', marginTop: 1 }}>{meta.desc}</div>
                 </div>
               </div>
-
-              {/* Complexity badge */}
               <div style={{ textAlign: 'center' }}>
                 <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                   <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 50, background: cx.bg, color: cx.color }}>{cx.label} AI load</span>
@@ -1209,73 +1449,18 @@ function FeatureCredits() {
                   </span>
                 </div>
               </div>
-
-              {/* Suggested cost */}
               <div style={{ textAlign: 'center' }}>
-                <span style={{
-                  fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 50,
-                  background: '#f0f0f0', color: '#888',
-                  border: isOffSuggestion ? '1.5px dashed #e67e22' : 'none',
-                }} title={isOffSuggestion ? `Suggested: ${meta.suggestedCost} — currently differs` : 'Matches suggestion'}>
-                  {meta.suggestedCost}
-                  {isOffSuggestion && <span style={{ marginLeft: 4, color: '#e67e22' }}>⚠</span>}
+                <span style={{ fontSize: 13, fontWeight: 700, padding: '3px 10px', borderRadius: 50, background: '#f0f0f0', color: '#888', border: isOffSuggestion ? '1.5px dashed #e67e22' : 'none' }}
+                  title={isOffSuggestion ? `Suggested: ${meta.suggestedCost} — currently differs` : 'Matches suggestion'}>
+                  {meta.suggestedCost}{isOffSuggestion && <span style={{ marginLeft: 4, color: '#e67e22' }}>⚠</span>}
                 </span>
               </div>
-
-              {/* Current cost — inline stepper */}
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 0, background: '#f0f0f0', borderRadius: 10, overflow: 'hidden', border: '1px solid #e0e0e0' }}>
-                  <button
-                    onClick={() => handleSave(fc.featureName, Math.max(1, fc.creditCost - 1))}
-                    disabled={saving || fc.creditCost <= 1}
-                    style={{ width: 28, height: 32, border: 'none', background: 'transparent', color: fc.creditCost <= 1 ? '#ccc' : '#667eea', fontWeight: 900, fontSize: 16, cursor: fc.creditCost <= 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    −
-                  </button>
-                  <span style={{
-                    fontWeight: 800, fontSize: 14, minWidth: 28, height: 32, textAlign: 'center',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'white', borderLeft: '1px solid #e0e0e0', borderRight: '1px solid #e0e0e0',
-                    color: fc.creditCost >= 4 ? '#c62828' : fc.creditCost >= 2 ? '#0277bd' : '#2e7d32',
-                  }}>
-                    {fc.creditCost}
-                  </span>
-                  <button
-                    onClick={() => handleSave(fc.featureName, Math.min(100, fc.creditCost + 1))}
-                    disabled={saving || fc.creditCost >= 100}
-                    style={{ width: 28, height: 32, border: 'none', background: 'transparent', color: fc.creditCost >= 100 ? '#ccc' : '#667eea', fontWeight: 900, fontSize: 16, cursor: fc.creditCost >= 100 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                    +
-                  </button>
-                </div>
-              </div>
-
-              {/* Uses per budget */}
+              <div style={{ display: 'flex', justifyContent: 'center' }}>{stepper}</div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: usesMax >= 50 ? '#27ae60' : usesMax >= 20 ? '#e67e22' : '#e74c3c' }}>
-                  {usesMax}×
-                </div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: usesMax >= 50 ? '#27ae60' : usesMax >= 20 ? '#e67e22' : '#e74c3c' }}>{usesMax}×</div>
                 <div style={{ fontSize: 10, color: '#bbb', marginTop: 1 }}>uses/month</div>
               </div>
-
-              {/* Global enable/disable toggle */}
-              <div style={{ textAlign: 'center' }}>
-                <button
-                  onClick={() => handleToggleGlobal(fc.featureName, fc.enabled !== false)}
-                  title={fc.enabled !== false ? 'Click to disable for all users' : 'Click to enable for all users'}
-                  style={{
-                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative',
-                    background: fc.enabled !== false ? '#27ae60' : '#e0e0e0',
-                    transition: 'background 0.2s',
-                  }}>
-                  <span style={{
-                    position: 'absolute', top: 3, width: 18, height: 18, borderRadius: 9, background: 'white',
-                    transition: 'left 0.2s', left: fc.enabled !== false ? 23 : 3,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }} />
-                </button>
-                <div style={{ fontSize: 10, color: fc.enabled !== false ? '#27ae60' : '#e74c3c', marginTop: 3, fontWeight: 700 }}>
-                  {fc.enabled !== false ? 'ON' : 'OFF'}
-                </div>
-              </div>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>{toggle}</div>
             </div>
           )
         })}
@@ -1293,29 +1478,54 @@ function FeatureCredits() {
           <div style={{ marginTop: 6, color: '#888' }}>Adjust the numbers to match your users' actual behaviour. If the total exceeds the budget, either raise the default credit limit or reduce some feature costs above.</div>
         </div>
 
-        {/* Column headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '140px 160px 1fr 100px', gap: 12, padding: '6px 0 8px', borderBottom: '1.5px solid #f0f0f0', marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Uses / month  ×  cost</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Share of budget</div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'right' }}>Credits used</div>
-        </div>
+        {!isMobile && (
+          <div style={{ display: 'grid', gridTemplateColumns: '140px 160px 1fr 100px', gap: 12, padding: '6px 0 8px', borderBottom: '1.5px solid #f0f0f0', marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Uses / month × cost</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Share of budget</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'right' }}>Credits</div>
+          </div>
+        )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 14 : 10 }}>
           {features.map(fc => {
             const meta   = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️' }
             const uses   = mix[fc.featureName] ?? 0
             const spend  = uses * fc.creditCost
             const spendPct = Math.min(spend / budget * 100, 100)
-            const barColor = spend > budget * 0.4 ? '#e67e22' : '#667eea'
+            const barColor = spend > budget * 0.4 ? '#e67e22' : '#6366f1'
+
+            if (isMobile) {
+              return (
+                <div key={fc.featureName} style={{ background: '#f8f9ff', borderRadius: 12, padding: '12px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#333', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{meta.icon}</span>{meta.label}
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: barColor }}>{spend} credits</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <input type="number" min="0" max="200" value={uses}
+                      onChange={e => setMix(m => ({ ...m, [fc.featureName]: Math.max(0, parseInt(e.target.value) || 0) }))}
+                      style={{ width: 52, padding: '5px 6px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 14, fontWeight: 700, textAlign: 'center', outline: 'none' }}
+                    />
+                    <span style={{ fontSize: 12, color: '#888' }}>uses × {fc.creditCost} {fc.creditCost === 1 ? 'credit' : 'credits'}</span>
+                  </div>
+                  <div style={{ height: 6, background: '#e0e4ff', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${spendPct}%`, background: barColor, borderRadius: 10, transition: 'width 0.3s ease' }} />
+                  </div>
+                  <div style={{ fontSize: 10, color: '#aaa', marginTop: 3 }}>{Math.round(spendPct)}% of {budget}-credit budget</div>
+                </div>
+              )
+            }
+
             return (
               <div key={fc.featureName} style={{ display: 'grid', gridTemplateColumns: '140px 160px 1fr 100px', gap: 12, alignItems: 'center' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#333', display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span>{meta.icon}</span> {meta.label}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <input
-                    type="number" min="0" max="200" value={uses}
+                  <input type="number" min="0" max="200" value={uses}
                     onChange={e => setMix(m => ({ ...m, [fc.featureName]: Math.max(0, parseInt(e.target.value) || 0) }))}
                     style={{ width: 48, padding: '4px 6px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 13, fontWeight: 700, textAlign: 'center', outline: 'none' }}
                   />
@@ -1326,7 +1536,7 @@ function FeatureCredits() {
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: barColor, textAlign: 'right' }}>
                   {spend} / {budget}
-                  <div style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>{Math.round(spendPct)}% of budget</div>
+                  <div style={{ fontSize: 10, color: '#bbb', fontWeight: 400 }}>{Math.round(spendPct)}%</div>
                 </div>
               </div>
             )
@@ -1620,7 +1830,7 @@ function Schedulers() {
                   style={{
                     padding: '10px 22px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13,
                     cursor: 'pointer',
-                    background: 'linear-gradient(135deg,#667eea,#764ba2)',
+                    background: 'linear-gradient(135deg,#6366f1,#4f46e5)',
                     color: 'white',
                   }}>
                   ▶ Run Now
@@ -1631,7 +1841,7 @@ function Schedulers() {
                     🔄 Refresh
                   </button>
                   <button onClick={() => setHistorySch(s)}
-                    style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid #d0d4ff', background: '#f0f2ff', fontSize: 12, cursor: 'pointer', color: '#667eea', fontWeight: 700 }}>
+                    style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid #d0d4ff', background: '#f0f2ff', fontSize: 12, cursor: 'pointer', color: '#6366f1', fontWeight: 700 }}>
                     📋 History
                   </button>
                 </div>
@@ -1660,23 +1870,24 @@ export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
   const location     = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const isMobile = window.innerWidth < 640
+  const isMobile = useIsMobile()
 
   // Derive active section from URL: /admin/users → 'users', /admin → 'dashboard'
   const pathSegment = location.pathname.split('/').filter(Boolean)[1] // segment after 'admin'
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
-  const section = { dashboard: <Dashboard />, users: <Users />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers /> }
+  const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
+  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers /> }
   const current = NAV.find(n => n.id === active)
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: '#f4f5f7', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100vh', background: '#f1f5f9', overflow: 'hidden' }}>
 
       {/* ── Sidebar ── */}
       <aside style={{
         width: isMobile ? (sidebarOpen ? 220 : 0) : 220,
         minWidth: isMobile ? (sidebarOpen ? 220 : 0) : 220,
-        background: '#1a1a2e', display: 'flex', flexDirection: 'column',
+        background: '#0f172a', display: 'flex', flexDirection: 'column',
         transition: 'width 0.2s, min-width 0.2s', overflow: 'hidden',
         position: isMobile ? 'fixed' : 'relative',
         zIndex: isMobile ? 1000 : 'auto',
@@ -1701,11 +1912,11 @@ export default function AdminPage({ onBack, onLogout }) {
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: active === item.id ? 'rgba(102,126,234,0.25)' : 'transparent',
-                color: active === item.id ? '#a78bfa' : 'rgba(255,255,255,0.6)',
+                background: active === item.id ? 'rgba(99,102,241,0.2)' : 'transparent',
+                color: active === item.id ? '#818cf8' : 'rgba(255,255,255,0.55)',
                 fontWeight: active === item.id ? 700 : 500, fontSize: 14,
                 textAlign: 'left', width: '100%',
-                borderLeft: active === item.id ? '3px solid #a78bfa' : '3px solid transparent',
+                borderLeft: active === item.id ? '3px solid #818cf8' : '3px solid transparent',
                 transition: 'all 0.15s',
               }}>
               <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -1716,7 +1927,11 @@ export default function AdminPage({ onBack, onLogout }) {
 
         {/* Bottom actions */}
         <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-{onLogout && (
+          <button onClick={() => { navigate('/admin/profile'); setSidebarOpen(false) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
+            👤 My Profile
+          </button>
+          {onLogout && (
             <button onClick={onLogout}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.15)', color: '#ff6b6b', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
               🚪 Sign Out
@@ -1751,13 +1966,15 @@ export default function AdminPage({ onBack, onLogout }) {
               {current?.icon} {current?.label}
             </div>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-          </div>
+          {!isMobile && (
+            <div style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa' }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            </div>
+          )}
         </div>
 
         {/* Page content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 24 }}>
           {section[active]}
         </div>
       </div>

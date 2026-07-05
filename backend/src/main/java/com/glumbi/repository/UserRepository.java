@@ -12,5 +12,6 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByGoogleSub(String googleSub);
     boolean existsByEmail(String email);
     long countByCreatedAtAfter(LocalDateTime since);
+    long countByRole(AppUser.Role role);
     List<AppUser> findTop20ByOrderByCreatedAtDesc();
 }

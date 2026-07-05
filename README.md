@@ -121,15 +121,26 @@ Frontend: http://localhost:5173
 
 ## Admin Panel
 
-Accessible at `/admin` by users with the `ADMIN` role.
+Accessible at `/admin` by users with the `ADMIN` or `SUPER_ADMIN` role. Admin accounts are always password-based (no Google OAuth) and are created exclusively through the admin panel — users cannot self-register as admins.
+
+### Role hierarchy
+
+| Role | Can do |
+|---|---|
+| `ADMIN` | Manage app users — reset passwords, adjust quotas, set feature overrides, hold/release, delete |
+| `SUPER_ADMIN` | Everything an admin can do, plus: promote admins to super admin, demote super admins, create new admin accounts |
+
+Guards: admins cannot touch other admin or super admin accounts. Super admins cannot be held, deleted, or have their password reset by regular admins. The last super admin cannot delete their own account.
+
+### Sections
 
 | Section | Description |
 |---|---|
 | 📊 **Dashboard** | Usage metrics across users and children. Manual 🔄 refresh button + auto-refresh interval dropdown (1 min / 5 min / 15 min / 30 min). AI Credits this month sourced from `ai_usage_log` (never zeroed by quota reset). |
-| 👥 **Users** | View, hold, release, reset passwords, adjust quotas, manage feature overrides. Quota bar and text colour reflect urgency: green → blue → amber → red based on usage %. |
-| 🤖 **AI Agents** | Toggle individual weekly-notification agents on/off per agent type (Progress Report, Milestone, Story Recommendation, Learning Insight, Learn to Write). All toggles use a unified green/grey colour. |
-| ⚙️ **Feature Credits** | Enable/disable features and set per-feature credit costs. Changing the global default applies immediately to all users without a personal override. |
-| 🕒 **Scheduler History** | Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
+| 👥 **Users** | Three sections — 👑 Super Admins, 🛡️ Administrators, 👤 App Users. Reset passwords, adjust quotas, manage feature overrides, hold/release (app users only), delete. Quota bar colour reflects urgency: green → blue → amber → red. |
+| 🤖 **AI Agents** | Toggle individual weekly-notification agents on/off per agent type (Progress Report, Milestone, Story Recommendation, Learning Insight, Learn to Write). |
+| ⚙️ **Feature Credits** | Enable/disable features globally and set per-feature credit costs. Budget simulator shows how a usage mix maps to credits. |
+| 🕒 **Schedulers** | Manually trigger background jobs. Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
 
 ---
 

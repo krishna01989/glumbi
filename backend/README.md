@@ -66,7 +66,8 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 | `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`) |
 | `FamilyVoiceController` | `/api/voices` | CRUD for custom story voices — list, create (upload + clone via ElevenLabs), rename, delete. Capped at 5 voices per family. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
-| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. |
+| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. |
+| `UserController` | `/api/users` | Parent quota, per-child credit breakdown. `DELETE /api/users/me` (deleteAccount): blocks the last SUPER_ADMIN from self-deleting — returns 400 if `countByRole(SUPER_ADMIN) <= 1`. |
 
 ---
 
@@ -190,6 +191,27 @@ This lets the admin panel show live job state rather than only completed runs.
 - `GlobalExceptionHandler` catches `RelevanceException`, `SafetyException`, `MethodArgumentNotValidException`, `IllegalArgumentException`, `RuntimeException`, and `Exception` — all return a sanitised `{"error": "..."}` JSON body, never a stack trace or class name
 - `application.yml` sets `server.error.include-message: never`, `include-stacktrace: never`, `include-exception: false`, `whitelabel.enabled: false` — Spring's default error endpoint is fully locked down
 - Raw Apache/Nginx error pages, exception class names, and host details are never visible to the user
+
+---
+
+## Admin Role Hierarchy
+
+Roles are stored as `AppUser.Role` enum: `USER < ADMIN < SUPER_ADMIN`.
+
+- `AppUser.isSuperAdmin()` — returns `role == SUPER_ADMIN`
+- `AppUser.isAdminOrAbove()` — returns `role == ADMIN || role == SUPER_ADMIN`
+- `callerIsSuperAdmin(caller)` helper in `AdminController` — used for all privileged guards
+- `SecurityConfig` uses `hasAnyRole("ADMIN", "SUPER_ADMIN")` to protect `/api/admin/**`
+- `UserRepository.countByRole(AppUser.Role role)` — Spring Data JPA derived query, used by the last-super-admin self-delete guard
+
+**DB note:** the `app_users` table has a CHECK constraint on the `role` column. Adding `SUPER_ADMIN` to the Java enum does not update the DB constraint automatically. If the constraint was created before `SUPER_ADMIN` existed, run:
+```sql
+ALTER TABLE app_users DROP CONSTRAINT app_users_role_check;
+ALTER TABLE app_users ADD CONSTRAINT app_users_role_check
+  CHECK (role IN ('USER', 'ADMIN', 'SUPER_ADMIN'));
+```
+
+**Admin accounts** are always password-only — they are created exclusively through the admin panel (`POST /api/admin/admin`) and have no Google OAuth path. `authMethod` is always `PASSWORD` for admin/super admin accounts.
 
 ---
 

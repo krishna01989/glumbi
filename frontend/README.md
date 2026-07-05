@@ -181,7 +181,9 @@ Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` re
 
 - Supports playback speed (0.5× – 2×) via a popup selector
 - Volume control with a styled range slider
-- Relies on HTTP Range request support in the backend for seeking
+- Relies on HTTP Range request support for seeking — works against both the backend (in-memory fallback) and Cloudflare R2 (redirect path)
+- Switching stories keeps audio playing in the background; player reappears when returning to the playing story
+- Clicking Listen on a different story stops the current audio and starts the new one
 
 ### Voice / accent picker (`Stories.jsx`)
 
@@ -192,6 +194,7 @@ The listen button opens a language picker popup that includes:
 - **Language buttons** — English + 6 international + 5 Indian regional
 - Selections persist in `localStorage` (`glumbi_accent`, `glumbi_gender`)
 - When a custom voice is selected, `?familyVoiceId=<id>` is passed to the backend listen URL instead of a WaveNet voice name
+- **Practice mode (AI off) + listen**: allowed only if the story already has a cached R2 URL (free redirect). First-time listens are blocked with a friendly message — they would cost a TTS call. The check uses `story.audioUrls` (returned in the story JSON) to decide before making any API call.
 
 ### Custom Story Voices (`ProfilePage.jsx`)
 

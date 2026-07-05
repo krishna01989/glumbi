@@ -81,7 +81,7 @@ Railway — Spring Boot
 
 - Authentication: email+password (JWT) or Sign in with Google (OAuth 2.0)
 - All JWT tokens are stateless and stored in `localStorage` (`glm_token`, `glm_role`)
-- Audio is cached in-memory on the backend so seeking doesn't re-generate TTS; cache key includes language and voice name so different voice selections each get their own cached file
+- Audio is cached in three layers: **Cloudflare R2** (permanent CDN — backend returns a 302 redirect, browser fetches directly from Cloudflare), **in-memory fallback** (if R2 upload fails), and a **frontend guard** that blocks first-time TTS calls in practice mode (AI off). Cache key includes language and voice name so different voice selections each get their own entry. Story deletion cleans up R2 objects automatically.
 - Scheduled jobs run weekly (notifications) and monthly (quota reset); each run is recorded in the `scheduler_runs` DB table with a RUNNING → SUCCESS/FAILED status pattern so admins can see live job state
 
 ---

@@ -148,9 +148,32 @@ docker run -p 8080:8080 --env-file backend/.env glumbi-backend
 - `GET /api/stories/{id}/listen` returns the story as an MP3 audio stream
 - Supports **HTTP Range requests** (`206 Partial Content`) so browsers can seek without re-generating audio
 - Accepts optional `?voice=<voice-name>` param (e.g. `en-IN-Wavenet-B`) — when provided, the language code and gender are derived from the voice name itself
-- Generated audio is cached in-memory (`ConcurrentHashMap`) keyed by `storyId:language:voice` — different voice selections each get their own cache entry
 - `TextToSpeechService` uses WaveNet voices; speaking rate is `0.90` (slightly slower for kids)
 - Language → voice mapping lives in `TextToSpeechService.buildVoice()`; falls back to language-based defaults when no voice name is supplied
+
+### Audio Caching (Three-layer)
+
+| Layer | Scope | Behaviour |
+|---|---|---|
+| **Cloudflare R2** (`R2Service`) | Permanent — survives restarts/deploys | First listen → TTS generates → uploaded to R2 → URL stored in `story.audio_urls` (JSON map of `cacheKey → URL`). Future requests → backend returns **302 redirect** to R2; browser fetches audio directly from CDN. Cloudflare handles Range requests natively so seeking works. |
+| **In-memory** (`ConcurrentHashMap`) | Server lifetime only | Used as fallback when R2 upload fails — bytes kept in memory so the same server session doesn't re-call TTS. Evicted on restart. |
+| **R2 miss + offline mode** | Frontend guard | If `story.audioUrls` has no entry for the requested language/voice combo and the user is in practice mode (AI off), the frontend blocks the listen request before hitting the backend — avoids a TTS charge. |
+
+Cache key format: `{storyId}:{language}` or `{storyId}:{language}:{voiceName}` or `{storyId}:{language}:el:{elevenLabsVoiceId}`
+
+**On story delete**: all R2 objects for that story are deleted first (`R2Service.delete()` per cache key in `audio_urls`), then the DB row is removed. R2 cleanup failure is non-fatal.
+
+**Env vars required** (all must be set for R2 to activate — missing any one disables R2 silently):
+
+| Variable | Description |
+|---|---|
+| `R2_ACCESS_KEY_ID` | Cloudflare R2 API token access key |
+| `R2_SECRET_ACCESS_KEY` | Cloudflare R2 API token secret key |
+| `R2_ACCOUNT_ID` | Cloudflare account ID |
+| `R2_BUCKET_NAME` | R2 bucket name (e.g. `glumbi-audio-prod`) |
+| `R2_PUBLIC_URL` | Public base URL for the bucket (e.g. `https://audio.glumbi.com`) |
+
+CORS policy on the R2 bucket must expose `Content-Length`, `Content-Range`, and `Accept-Ranges` headers so the browser audio player can seek.
 
 ## Custom Voice Cloning (ElevenLabs)
 

@@ -263,6 +263,13 @@ export default function Stories({ child, quota }) {
       setSpeakingLang(lang)
       setSpeakingStoryId(story.id)
       setAudioSrc(url)
+      // Mark this lang/voice combo as cached locally so offline check works without a re-fetch
+      const resolvedKey = story.id + ':' + lang.toLowerCase() +
+        (selectedVoiceId ? ':el:' + selectedVoiceId : (resolvedVoice ? ':' + resolvedVoice : ''))
+      const updatedUrls = JSON.stringify({ ...(story.audioUrls ? JSON.parse(story.audioUrls) : {}), [resolvedKey]: url })
+      const updatedStory = { ...story, audioUrls: updatedUrls }
+      setStories(prev => prev.map(s => s.id === story.id ? updatedStory : s))
+      if (selected?.id === story.id) setSelected(updatedStory)
     } catch (e) {
       setAudioError('Could not play audio. Please try again.')
       audioRef.current = null
@@ -329,7 +336,7 @@ export default function Stories({ child, quota }) {
             <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
             {stories.map(s => (
               <div key={s.id}
-                onClick={() => { if (selected?.id === s.id) return; setLangPickerOpen(false); setSelected(s); if (isMobile) setShowList(false) }}
+                onClick={() => { if (selected?.id === s.id) return; setLangPickerOpen(false); setAudioError(''); setSelected(s); if (isMobile) setShowList(false) }}
                 style={{
                   borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
                   boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',

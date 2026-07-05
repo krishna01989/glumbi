@@ -223,26 +223,22 @@ export default function Stories({ child, quota }) {
     else localStorage.setItem(`glumbi_voice_${child.id}`, String(id))
   }
 
-  function storyHasCachedAudio(story, lang, voice) {
-    if (!story.audioUrls) return false
+  function storyHasCachedAudio(story, lang) {
+    if (!story.audioUrls) { console.log('[audioCache] audioUrls is null for story', story.id); return false }
     try {
-      const map = JSON.parse(story.audioUrls)
-      const resolvedVoice = selectedVoiceId ? null : (
-        lang === 'english'
-          ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
-          : (VOICE_MAP[lang]?.[selectedGender] || null)
-      )
-      const cacheKey = story.id + ':' + lang.toLowerCase() +
-        (selectedVoiceId ? ':el:' + selectedVoiceId : (resolvedVoice ? ':' + resolvedVoice : ''))
-      console.log('[audioCache check] key:', cacheKey, 'map keys:', Object.keys(map))
-      return !!map[cacheKey]
-    } catch { return false }
+      let parsed = story.audioUrls
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+      const prefix = story.id + ':' + lang.toLowerCase()
+      console.log('[audioCache] story', story.id, 'prefix:', prefix, 'keys:', Object.keys(parsed))
+      return Object.keys(parsed).some(k => k.startsWith(prefix))
+    } catch (e) { console.log('[audioCache] parse error', e); return false }
   }
 
   async function handleListen(story, lang, voice) {
     if (speaking && speakingStoryId === story.id && speakingLang === lang) { stopSpeaking(); return }
     stopSpeaking()
-    if (offline && !storyHasCachedAudio(story, lang, voice)) {
+    if (offline && !storyHasCachedAudio(story, lang)) {
       setAudioError('Audio not available in practice mode. Turn AI on to listen for the first time.')
       return
     }

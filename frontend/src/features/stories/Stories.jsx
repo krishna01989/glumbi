@@ -234,6 +234,7 @@ export default function Stories({ child, quota }) {
       )
       const cacheKey = story.id + ':' + lang.toLowerCase() +
         (selectedVoiceId ? ':el:' + selectedVoiceId : (resolvedVoice ? ':' + resolvedVoice : ''))
+      console.log('[audioCache check] key:', cacheKey, 'map keys:', Object.keys(map))
       return !!map[cacheKey]
     } catch { return false }
   }

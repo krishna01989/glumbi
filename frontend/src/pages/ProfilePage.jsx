@@ -59,9 +59,14 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const [deleteError, setDeleteError]     = useState('')
   const [showDelete, setShowDelete]       = useState(false)
 
+  const [quota,     setQuota]     = useState(null)
+  const [breakdown, setBreakdown] = useState(null)
+
   useEffect(() => {
     userApi.getProfile().then(setProfile).finally(() => setLoading(false))
     voiceApi.list().then(setVoices).catch(() => {})
+    userApi.quota().then(setQuota).catch(() => {})
+    userApi.creditBreakdown().then(setBreakdown).catch(() => {})
   }, [])
 
   // ── Recording helpers ────────────────────────────────────────────────────
@@ -207,7 +212,7 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const onBack      = parentOnly ? () => navigate('/child') : () => navigate(-1)
 
   return (
-    <div style={{ maxWidth: 560, margin: '48px auto', padding: '0 20px', fontFamily: 'Nunito, sans-serif' }}>
+    <div style={{ maxWidth: 520, margin: `${parentOnly ? '24px' : '0px'} auto`, padding: '0 16px', fontFamily: 'Nunito, sans-serif' }}>
       {parentOnly && (
         <button onClick={onBack}
           onMouseEnter={e => { e.currentTarget.style.background = accentLight; e.currentTarget.style.transform = 'translateX(-2px)' }}
@@ -222,21 +227,122 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
           ← Back
         </button>
       )}
-      <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, color: accent, marginBottom: 24 }}>
-        My Account
-      </h2>
 
-      {/* Profile info */}
-      <div style={card}>
-        <h3 style={{ fontSize: 14, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 20px' }}>
-          Account Info
-        </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Row label="Email" value={profile?.email} />
-          <Row label="Sign-in method" value={isGoogle ? '🔵 Google' : '🔑 Email & password'} />
-          <Row label="Member since" value={joinedDate} />
+      {/* Hero header */}
+      <div style={{
+        background: btnGrad, borderRadius: 20, padding: '28px 28px 24px',
+        marginBottom: 20, color: 'white', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -20, right: -20, fontSize: 100, opacity: 0.08, lineHeight: 1 }}>👤</div>
+        <div style={{ fontSize: 42, marginBottom: 10 }}>👤</div>
+        <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 4 }}>{profile?.email}</div>
+        <div style={{ fontSize: 13, opacity: 0.8, display: 'flex', gap: 16 }}>
+          <span>{isGoogle ? '🔵 Google sign-in' : '🔑 Email & password'}</span>
+          <span>· Member since {joinedDate}</span>
         </div>
       </div>
+
+      {/* AI Credits */}
+      {quota && (() => {
+        const pct = Math.min(quota.used / quota.limit, 1)
+        const barColor    = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f5a623' : '#6bcb77'
+        const statusColor = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f5a623' : '#27ae60'
+        const statusBg    = pct >= 1 ? '#fff0f0' : pct >= 0.8 ? '#fffbf0' : '#f0fff4'
+        const statusLabel = pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : '✅ Good'
+        const childRows   = breakdown ? (breakdown.children || []).filter(d => d.totalCredits > 0) : []
+        return (
+          <div style={card}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>
+                🤖 AI Credits
+              </h3>
+              <span style={{ fontSize: 12, fontWeight: 800, color: statusColor, background: statusBg, padding: '4px 10px', borderRadius: 50 }}>
+                {statusLabel}
+              </span>
+            </div>
+
+            <div style={{ height: 10, background: '#f0f0f0', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+              <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: childRows.length > 0 ? 20 : 0 }}>
+              <span style={{ fontSize: 12, color: '#bbb' }}>Resets 1st of each month</span>
+              <span style={{ fontSize: 13, fontWeight: 900, color: '#555' }}>{quota.used} / {quota.limit} cr</span>
+            </div>
+
+            {childRows.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {childRows.map(({ childId, name, avatarEmoji, theme, totalCredits, features }) => {
+                  const THEMES_MAP = { coral: '#ff6b6b', sky: '#4fc3f7', mint: '#43c98a', lavender: '#9b59b6', sunshine: '#f5a623' }
+                  const childAccent = THEMES_MAP[theme] || accent
+                  const childAccentLt = childAccent + '18'
+                  return (
+                    <div key={childId} style={{ background: '#fafafa', borderRadius: 14, padding: '14px 16px', border: '1.5px solid #f0f0f0' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                        <div style={{ width: 36, height: 36, borderRadius: 10, background: childAccentLt, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                          {avatarEmoji}
+                        </div>
+                        <span style={{ fontWeight: 900, fontSize: 15, color: '#333', flex: 1 }}>{name}</span>
+                        <span style={{ fontWeight: 900, fontSize: 14, color: childAccent, background: childAccentLt, padding: '3px 10px', borderRadius: 50 }}>{totalCredits} cr</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {features.filter(f => f.credits > 0).map(f => (
+                          <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 15 }}>{f.icon || '🤖'}</span>
+                            <span style={{ flex: 1, fontSize: 13, color: '#666', fontWeight: 600 }}>{f.label}</span>
+                            <span style={{ fontSize: 11, color: '#bbb' }}>×{f.count}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#888', minWidth: 40, textAlign: 'right' }}>{f.credits} cr</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {breakdown && childRows.length === 0 && (
+              <div style={{ fontSize: 13, color: '#bbb', textAlign: 'center', padding: '8px 0' }}>✨ No AI usage this month</div>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* Change password — password accounts only */}
+      {!isGoogle && (
+        <div style={card}>
+          <h3 style={{ fontSize: 14, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 20px' }}>
+            🔑 Change Password
+          </h3>
+          <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Field label="Current password">
+              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)}
+                placeholder="••••••••" required style={inputStyle} />
+            </Field>
+            <Field label="New password">
+              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
+                placeholder="••••••••" required style={inputStyle} />
+              {newPw.length > 0 && <PasswordStrength password={newPw} />}
+            </Field>
+            <Field label="Confirm new password">
+              <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+                placeholder="••••••••" required style={inputStyle} />
+            </Field>
+            {pwError && (
+              <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
+                🚫 {pwError}
+              </div>
+            )}
+            {pwSuccess && (
+              <div style={{ background: '#f0fff4', border: '1.5px solid #6bcb77', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#1e6b3c', fontWeight: 600 }}>
+                ✅ Password updated successfully
+              </div>
+            )}
+            <button type="submit" disabled={pwLoading}
+              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: btnGrad, color: 'white', border: 'none', cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1 }}>
+              {pwLoading ? 'Saving…' : 'Update Password'}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Custom Story Voices */}
       <div style={card}>
@@ -369,54 +475,24 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
         )}
       </div>
 
-      {/* Change password — password accounts only */}
-      {!isGoogle && (
-        <div style={card}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 20px' }}>
-            Change Password
-          </h3>
-          <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Field label="Current password">
-              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)}
-                placeholder="••••••••" required style={inputStyle} />
-            </Field>
-            <Field label="New password">
-              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
-                placeholder="••••••••" required style={inputStyle} />
-              {newPw.length > 0 && <PasswordStrength password={newPw} />}
-            </Field>
-            <Field label="Confirm new password">
-              <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
-                placeholder="••••••••" required style={inputStyle} />
-            </Field>
-
-            {pwError && (
-              <div style={{ background: '#fff0f0', border: '1.5px solid #ffb3b3', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#c0392b', fontWeight: 600 }}>
-                🚫 {pwError}
-              </div>
-            )}
-            {pwSuccess && (
-              <div style={{ background: '#f0fff4', border: '1.5px solid #6bcb77', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#1e6b3c', fontWeight: 600 }}>
-                ✅ Password updated successfully
-              </div>
-            )}
-
-            <button type="submit" disabled={pwLoading}
-              style={{ alignSelf: 'flex-start', padding: '10px 24px', borderRadius: 50, fontSize: 14, fontWeight: 800, background: btnGrad, color: 'white', border: 'none', cursor: pwLoading ? 'not-allowed' : 'pointer', opacity: pwLoading ? 0.7 : 1 }}>
-              {pwLoading ? 'Saving…' : 'Update Password'}
-            </button>
-          </form>
-        </div>
-      )}
+      {/* Danger zone divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 20px' }}>
+        <div style={{ flex: 1, height: 1, background: '#ffe0e0' }} />
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#e74c3c', textTransform: 'uppercase', letterSpacing: 1 }}>Danger zone</span>
+        <div style={{ flex: 1, height: 1, background: '#ffe0e0' }} />
+      </div>
 
       {/* Delete account */}
-      <div style={{ ...card, border: '1.5px solid #ffe0e0' }}>
-        <h3 style={{ fontSize: 14, fontWeight: 800, color: '#e74c3c', textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 12px' }}>
-          Delete Account
-        </h3>
-        <p style={{ fontSize: 13, color: '#888', margin: '0 0 16px', lineHeight: 1.6 }}>
-          Permanently deletes your account and all your children's stories, activities, and data. This cannot be undone.
-        </p>
+      <div style={{ ...card, background: '#fff9f9', border: '1.5px solid #ffe0e0', marginBottom: 32 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
+          <span style={{ fontSize: 28 }}>🗑️</span>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 15, color: '#e74c3c', marginBottom: 4 }}>Delete Account</div>
+            <p style={{ fontSize: 13, color: '#999', margin: 0, lineHeight: 1.6 }}>
+              Permanently deletes your account and all your children's stories, activities, and data. This cannot be undone.
+            </p>
+          </div>
+        </div>
         {!showDelete ? (
           <button onClick={() => setShowDelete(true)}
             style={{ padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: '#fff0f0', color: '#e74c3c', border: '1.5px solid #fcc', cursor: 'pointer' }}>

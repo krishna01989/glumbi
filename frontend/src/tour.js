@@ -115,14 +115,6 @@ const DESKTOP_UTILITY_STEPS = [
     },
   },
   {
-    element: '#tour-profile',
-    popover: {
-      title: '👤 My Account',
-      description: 'View your account details, change your password, or delete your account.',
-      side: 'bottom', align: 'end',
-    },
-  },
-  {
     element: '#tour-child-name',
     popover: {
       title: '🔀 Switch Child',

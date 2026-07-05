@@ -824,8 +824,10 @@ export default function App() {
     </div>
   ) : null
 
-  // ── Child edit/new — always full-page, even when a child is active ──
-  const isChildManagementRoute = /^\/child(\/new|\/\d+\/edit)$/.test(location.pathname)
+  // ── Child new/edit — full-page when no child active; edit stays in child layout when child is active ──
+  const isChildManagementRoute = child
+    ? /^\/child\/new$/.test(location.pathname)
+    : /^\/child(\/new|\/\d+\/edit)$/.test(location.pathname)
   if (/^\/error\//.test(location.pathname)) {
     return <ErrorPageRoute />
   }
@@ -1051,22 +1053,7 @@ export default function App() {
           )
         })()}
 
-        {/* Utility links — Profile */}
-        <div style={{ padding: collapsed ? '8px' : '8px 12px', borderTop: '1px solid rgba(255,255,255,0.15)' }}>
-          {!childLocked && <button onClick={() => navigate(`/child/${child.id}/profile`)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-              padding: collapsed ? '10px 0' : '10px 14px',
-              justifyContent: collapsed ? 'center' : 'flex-start',
-              borderRadius: 12, border: 'none', background: 'transparent',
-              color: 'rgba(255,255,255,0.8)', fontWeight: 700, fontSize: 14,
-              cursor: 'pointer',
-            }}
-            title={collapsed ? 'My Account' : undefined}>
-            <span style={{ fontSize: 18, flexShrink: 0 }}>👤</span>
-            {!collapsed && <span>My Account</span>}
-          </button>}
-        </div>
+        {/* Utility links — Profile removed from child context (parent-only feature) */}
 
         {/* Collapse toggle (not on TV) */}
         {!isTV && (
@@ -1135,8 +1122,6 @@ export default function App() {
             {!childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
             {!childLocked && <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
               style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>}
-            {!childLocked && <button id="tour-profile" onClick={() => navigate(`/child/${child.id}/profile`)} title="My Account"
-              style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</button>}
             {!childLocked && <button onClick={handleLogout}
               style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#fff0f0', color: '#cc0033', border: '1.5px solid #fcc', cursor: 'pointer' }}>
               <span style={{ fontSize: 16 }}>🚪</span>
@@ -1231,6 +1216,7 @@ export default function App() {
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/memory"    element={<FeatureGuard featureName="memory-flashcards" featureConfig={featureConfig}><MemoryPlay child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:id/edit"      element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildForm onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} inChildContext />} />
               <Route path="/child/:childId/profile" element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />
               <Route path="/profile"             element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />
               <Route path="/privacy"             element={<PrivacyPage inApp />} />

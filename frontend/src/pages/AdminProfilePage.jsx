@@ -98,7 +98,7 @@ export default function AdminProfilePage({ onLogout }) {
         </div>
       </div>
 
-      <div style={{ maxWidth: 520, margin: '32px auto', padding: '0 16px' }}>
+      <div style={{ maxWidth: 520, margin: '24px auto', padding: '0 16px' }}>
 
         {/* Account info */}
         <div style={card}>

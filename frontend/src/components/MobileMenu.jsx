@@ -122,10 +122,6 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🗺️ Take a Tour
           </button>}
-          {!childLocked && <button onClick={() => go('/profile')}
-            style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-            👤 My Account
-          </button>}
           {!childLocked && <button onClick={onLogout}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)', border: '1.5px solid rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🚪 Sign Out

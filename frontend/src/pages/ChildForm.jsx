@@ -8,7 +8,6 @@ const AVATARS = ['🧒','👧','👦','🧒🏽','👧🏽','👦🏽','🧒🏿
 const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null }
 
 const CURRENT_YEAR = new Date().getFullYear()
-// age 1 (youngest) to age 10 (oldest)
 const BIRTH_YEARS  = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 - i)
 
 const ALL_FEATURES = [
@@ -33,36 +32,53 @@ function defaultFeatureKeys(age) {
   return ALL_FEATURES.filter(f => age >= f.minAge && (!f.maxAge || age <= f.maxAge)).map(f => f.key)
 }
 
-export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatureConfig = [] }) {
+const sectionCard = {
+  background: 'white', borderRadius: 16, border: '1.5px solid #f0f0f0',
+  padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.04)', marginBottom: 16,
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 14 }}>
+      {children}
+    </div>
+  )
+}
+
+export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatureConfig = [], inChildContext = false }) {
   const { id } = useParams()
   const isEdit  = !!id
   const navigate = useNavigate()
 
   const [form, setForm]         = useState(EMPTY_FORM)
-  const [features, setFeatures] = useState(null) // null = not yet set
+  const [features, setFeatures] = useState(null)
   const [loading, setLoading]   = useState(false)
   const [fetching, setFetching] = useState(isEdit)
 
   useEffect(() => {
-    if (!isEdit) { applyTheme('coral'); return }
+    if (!isEdit) { if (!inChildContext) applyTheme('coral'); return }
     childApi.get(id).then(child => {
-      applyTheme(child.theme || 'coral')
+      if (!inChildContext) applyTheme(child.theme || 'coral')
       setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral' })
       setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
       setFetching(false)
     })
   }, [id])
 
-  // When birthYear changes in create mode, set default features
   useEffect(() => {
     if (isEdit || !form.birthYear) return
     const age = calcAge(form.birthYear)
     if (age !== null && features === null) setFeatures(defaultFeatureKeys(age))
   }, [form.birthYear])
 
-  const age = calcAge(form.birthYear)
+  const age       = calcAge(form.birthYear)
   const ageTooOld   = age !== null && age > 13
   const ageTooYoung = age !== null && age < 2
+
+  const theme   = THEMES[form.theme] || THEMES.coral
+  const primary = theme.primary
+  const primaryLt = theme.primaryLt
+  const headerGrad = theme.headerGrad
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -84,93 +100,119 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   }
 
   if (fetching) return (
-    <div style={{ maxWidth: 480, margin: '60px auto', padding: '0 20px', textAlign: 'center', color: '#aaa' }}>
+    <div style={{ maxWidth: 520, margin: '24px auto', padding: '0 16px', textAlign: 'center', color: '#aaa' }}>
       Loading…
     </div>
   )
 
   return (
-    <div style={{ maxWidth: 480, margin: '60px auto', padding: '0 20px' }}>
-      <button onClick={() => navigate('/child')}
-        onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0'; e.currentTarget.style.transform = 'translateX(-2px)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-        style={{
-          background: 'transparent', border: '1.5px solid var(--primary-lt)', color: 'var(--primary)',
-          fontWeight: 700, fontSize: 13, cursor: 'pointer',
-          padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          transition: 'all 0.15s ease',
-        }}>
-        ← Back
-      </button>
-      <h1 style={{ fontSize: 22, color: 'var(--primary)', margin: '0 0 28px' }}>
-        {isEdit ? '✏️ Edit Child' : '🌟 Add Your Child'}
-      </h1>
+    <div style={{ maxWidth: 520, margin: `${inChildContext ? '0' : '24px'} auto`, padding: '0 16px', fontFamily: 'Nunito, sans-serif' }}>
+      {!inChildContext && (
+        <button onClick={() => navigate('/child')}
+          onMouseEnter={e => { e.currentTarget.style.background = primaryLt; e.currentTarget.style.transform = 'translateX(-2px)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+          style={{
+            background: 'transparent', border: `1.5px solid ${primary}44`, color: primary,
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            transition: 'all 0.15s ease',
+          }}>
+          ← Back
+        </button>
+      )}
 
-      <form className="card" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-        <div>
-          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>Name</label>
-          <input placeholder="e.g. Emma, Liam, Sofia" value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+      {/* Hero banner */}
+      <div style={{
+        background: headerGrad, borderRadius: 20, padding: '28px 28px 24px',
+        marginBottom: 20, color: 'white', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -20, right: -10, fontSize: 100, opacity: 0.1, lineHeight: 1 }}>
+          {form.avatarEmoji}
         </div>
+        <div style={{ fontSize: 48, marginBottom: 10 }}>{form.avatarEmoji}</div>
+        <div style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>
+          {form.name || (isEdit ? 'Edit Child' : 'New Child')}
+        </div>
+        <div style={{ fontSize: 13, opacity: 0.85 }}>
+          {isEdit ? '✏️ Update profile' : '🌟 Set up your child\'s profile'}
+          {age !== null && !ageTooOld && !ageTooYoung && (
+            <span style={{ marginLeft: 10 }}>· Age {age}</span>
+          )}
+        </div>
+      </div>
 
-        <div>
-          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 8, fontWeight: 700 }}>Gender</label>
-          <div style={{ display: 'flex', gap: 12 }}>
-            {[{ val: 'girl', label: '👧 Girl' }, { val: 'boy', label: '👦 Boy' }].map(g => (
-              <button key={g.val} type="button"
-                onClick={() => setForm(f => ({ ...f, gender: g.val }))}
-                style={{
-                  flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 15, fontWeight: 700,
-                  background: form.gender === g.val ? 'var(--primary-lt)' : '#f5f5f5',
-                  border: form.gender === g.val ? '2px solid var(--primary)' : '2px solid transparent',
-                  cursor: 'pointer',
-                }}>{g.label}</button>
-            ))}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column' }}>
+
+        {/* Identity */}
+        <div style={sectionCard}>
+          <SectionLabel>Identity</SectionLabel>
+
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>Name</label>
+            <input placeholder="e.g. Emma, Liam, Sofia" value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '1.5px solid #eee', fontSize: 14, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }} />
+          </div>
+
+          <div style={{ marginBottom: 18 }}>
+            <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 8, fontWeight: 700 }}>Gender</label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[{ val: 'girl', label: '👧 Girl' }, { val: 'boy', label: '👦 Boy' }].map(g => (
+                <button key={g.val} type="button"
+                  onClick={() => setForm(f => ({ ...f, gender: g.val }))}
+                  style={{
+                    flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 15, fontWeight: 700,
+                    background: form.gender === g.val ? primaryLt : '#f5f5f5',
+                    border: form.gender === g.val ? `2px solid ${primary}` : '2px solid transparent',
+                    color: form.gender === g.val ? primary : '#888',
+                    cursor: 'pointer',
+                  }}>{g.label}</button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>Birth Year</label>
+            <select value={form.birthYear}
+              onChange={e => setForm(f => ({ ...f, birthYear: e.target.value ? parseInt(e.target.value) : '' }))}
+              required
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: `1.5px solid ${(ageTooOld || ageTooYoung) ? '#e74c3c' : '#eee'}`, fontSize: 14, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif', background: 'white', appearance: 'auto' }}>
+              <option value="">Select year…</option>
+              {BIRTH_YEARS.map(y => (
+                <option key={y} value={y}>{y} (age {CURRENT_YEAR - y})</option>
+              ))}
+            </select>
+            <div style={{ marginTop: 6, fontSize: 11, color: '#bbb' }}>
+              Used only to personalise stories for your child's age. Never shared.
+            </div>
           </div>
         </div>
 
-        <div>
-          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 6, fontWeight: 700 }}>
-            Birth Year
-          </label>
-          <select value={form.birthYear}
-            onChange={e => setForm(f => ({ ...f, birthYear: e.target.value ? parseInt(e.target.value) : '' }))}
-            required
-            style={{ borderColor: (ageTooOld || ageTooYoung) ? '#e74c3c' : undefined }}>
-            <option value="">Select year…</option>
-            {BIRTH_YEARS.map(y => (
-              <option key={y} value={y}>{y} (age {CURRENT_YEAR - y})</option>
-            ))}
-          </select>
-          <div style={{ marginTop: 6, fontSize: 11, color: '#bbb' }}>
-            Used only to personalise stories for your child's age. Never shared.
-          </div>
-        </div>
-
-        <div>
-          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 10, fontWeight: 700 }}>Avatar</label>
+        {/* Avatar */}
+        <div style={sectionCard}>
+          <SectionLabel>Avatar</SectionLabel>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {AVATARS.map(a => (
               <button key={a} type="button"
                 onClick={() => setForm(f => ({ ...f, avatarEmoji: a }))}
                 style={{
                   fontSize: 28, padding: '8px 12px', borderRadius: 12,
-                  background: form.avatarEmoji === a ? 'var(--primary-lt)' : '#f5f5f5',
-                  border: form.avatarEmoji === a ? '2px solid var(--primary)' : '2px solid transparent',
-                  cursor: 'pointer',
+                  background: form.avatarEmoji === a ? primaryLt : '#f5f5f5',
+                  border: form.avatarEmoji === a ? `2px solid ${primary}` : '2px solid transparent',
+                  cursor: 'pointer', transition: 'all 0.12s ease',
                 }}>{a}</button>
             ))}
           </div>
         </div>
 
-        <div>
-          <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 12, fontWeight: 700 }}>App Theme</label>
+        {/* Theme */}
+        <div style={sectionCard}>
+          <SectionLabel>App Theme</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {THEME_GROUPS.map(group => (
               <div key={group.label}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#bbb', marginBottom: 8, letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc', marginBottom: 8, letterSpacing: 0.5 }}>
                   {group.label}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -186,6 +228,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                           border: active ? `2px solid ${t.primary}` : '2px solid transparent',
                           color: active ? t.primary : '#888',
                           cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                          transition: 'all 0.12s ease',
                         }}>
                         <div style={{ width: '100%', height: 16, borderRadius: 6, background: t.headerGrad }} />
                         <span style={{ fontSize: 18, marginTop: 2 }}>{t.emoji}</span>
@@ -199,24 +242,25 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
           </div>
         </div>
 
+        {/* Features */}
         {features !== null && (
-          <div>
-            <label style={{ fontSize: 13, color: '#888', display: 'block', marginBottom: 10, fontWeight: 700 }}>
-              Features
-              {form.birthYear && <span style={{ fontWeight: 400, color: '#bbb', marginLeft: 8 }}>
-                (age {calcAge(form.birthYear)})
-              </span>}
-            </label>
+          <div style={sectionCard}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', textTransform: 'uppercase', letterSpacing: 1 }}>Features</div>
+              {age !== null && (
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#bbb', background: '#f5f5f5', padding: '3px 10px', borderRadius: 50 }}>
+                  Age {age}
+                </span>
+              )}
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {ALL_FEATURES.map(f => {
-                const age = calcAge(form.birthYear)
+                const curAge = calcAge(form.birthYear)
                 const enabled = features.includes(f.key)
-                const tooYoung = age !== null && age < f.minAge
-                // Check if disabled globally or for this user (featureName null = non-AI, always available)
+                const tooYoung = curAge !== null && curAge < f.minAge
                 const adminDisabled = f.featureName != null &&
                   enabledFeatureConfig.length > 0 &&
                   enabledFeatureConfig.some(fc => fc.featureName === f.featureName && fc.enabled === false)
-                const isDisabled = tooYoung || adminDisabled
                 return (
                   <button key={f.key} type="button"
                     onClick={() => {
@@ -229,10 +273,11 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                     style={{
                       padding: '8px 14px', borderRadius: 50, fontSize: 13, fontWeight: 700,
                       cursor: adminDisabled ? 'not-allowed' : 'pointer',
-                      background: adminDisabled ? '#f0f0f0' : enabled ? 'var(--primary-lt)' : '#f5f5f5',
-                      border: adminDisabled ? '2px solid #e0e0e0' : enabled ? '2px solid var(--primary)' : '2px solid transparent',
-                      color: adminDisabled ? '#ccc' : enabled ? 'var(--primary)' : '#aaa',
+                      background: adminDisabled ? '#f0f0f0' : enabled ? primaryLt : '#f5f5f5',
+                      border: adminDisabled ? `2px solid #e0e0e0` : enabled ? `2px solid ${primary}` : '2px solid transparent',
+                      color: adminDisabled ? '#ccc' : enabled ? primary : '#aaa',
                       opacity: tooYoung ? 0.5 : 1,
+                      transition: 'all 0.12s ease',
                     }}>
                     {f.emoji} {f.label}
                     {tooYoung && <span style={{ fontSize: 10, marginLeft: 4 }}>{f.minAge}+</span>}
@@ -241,16 +286,25 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                 )
               })}
             </div>
-            <div style={{ fontSize: 11, color: '#bbb', marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: '#bbb', marginTop: 10 }}>
               Toggle features on/off for this child. Features marked 🚫 are currently unavailable.
             </div>
           </div>
         )}
 
-        <button type="submit" className="btn-primary" style={{ padding: '14px', fontSize: 16 }} disabled={loading || ageTooOld || ageTooYoung}>
+        <button type="submit"
+          disabled={loading || ageTooOld || ageTooYoung}
+          style={{
+            padding: '15px', fontSize: 16, fontWeight: 900, borderRadius: 50,
+            background: (loading || ageTooOld || ageTooYoung) ? '#ccc' : headerGrad,
+            color: 'white', border: 'none', cursor: (loading || ageTooOld || ageTooYoung) ? 'not-allowed' : 'pointer',
+            boxShadow: (loading || ageTooOld || ageTooYoung) ? 'none' : `0 6px 20px ${primary}44`,
+            marginBottom: 32, fontFamily: 'Nunito, sans-serif',
+            transition: 'all 0.15s ease',
+          }}>
           {loading
             ? <><span className="spinner" />&nbsp;Saving…</>
-            : isEdit ? '✅ Save Changes' : '✨ Get Started →'}
+            : isEdit ? '✅ Save Changes' : '🌟 Get Started →'}
         </button>
       </form>
     </div>

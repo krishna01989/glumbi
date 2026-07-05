@@ -379,7 +379,8 @@ export default function App() {
     }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [child?.id, featureConfig])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [child?.id, featureConfig.map(f => `${f.featureName}:${f.enabled}`).join(',')])
 
   // Expose addToast so quota refreshes after API calls
   useEffect(() => { window.__glumbiRefreshQuota = () => userApi.quota().then(setQuota).catch(() => {}) }, [])
@@ -455,7 +456,7 @@ export default function App() {
     setLockTimeLimit(restoredLimit)
     setLockMaxSnooze(restoredMaxSnooze)
 
-    const elapsed = Math.floor((Date.now() - start) / 60000)
+    const elapsed = Math.max(0, Math.floor((Date.now() - start) / 60000))
     setSessionStart(start)
     setSessionMinutes(elapsed)
     setSnoozedUntil(null)
@@ -487,14 +488,14 @@ export default function App() {
       // (the visibility handler resets lastTickRef.current so delta stays ~60s).
       if (delta > 90000) {
         const sleepMs = delta - 60000
-        const adjusted = sessionStartRef.current + sleepMs
+        const adjusted = Math.min(sessionStartRef.current + sleepMs, Date.now())
         sessionStartRef.current = adjusted
         setSessionStart(adjusted)
         if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(adjusted))
       }
 
       if (document.hidden) return
-      const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 60000)
+      const elapsed = Math.max(0, Math.floor((Date.now() - sessionStartRef.current) / 60000))
       setSessionMinutes(elapsed)
       if (!lockTimeLimit || lockTimeLimit === 0) return
       if (elapsed >= lockTimeLimit) {

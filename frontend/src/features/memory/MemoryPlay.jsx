@@ -181,13 +181,15 @@ function FlashcardsTab({ child, quota }) {
 function WordOfDayTab({ child }) {
   const offline = useOffline()
   const [word, setWord] = useState(null)
-  const [loading, setLoading] = useState(!offline)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [speaking, setSpeaking] = useState(false)
   const audioRef = useRef(null)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (offline) return
+    if (offline || fetchedRef.current) return
+    fetchedRef.current = true
     setLoading(true)
     memoryApi.getWordOfDay(child.id)
       .then(setWord)

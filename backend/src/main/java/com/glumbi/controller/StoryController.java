@@ -1,13 +1,17 @@
 package com.glumbi.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.agent.TranslationAgent;
 import com.glumbi.dto.StoryRequest;
 import com.glumbi.entity.FamilyVoice;
 import com.glumbi.entity.Story;
 import com.glumbi.repository.FamilyVoiceRepository;
+import com.glumbi.repository.StoryRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.ElevenLabsService;
+import com.glumbi.service.R2Service;
 import com.glumbi.service.RateLimitService;
 import com.glumbi.service.RateLimitService.Endpoint;
 import com.glumbi.service.StoryService;
@@ -21,8 +25,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,10 +43,13 @@ public class StoryController {
     private final TextToSpeechService ttsService;
     private final ElevenLabsService elevenLabsService;
     private final FamilyVoiceRepository familyVoiceRepository;
+    private final StoryRepository storyRepository;
     private final RateLimitService rateLimiter;
     private final ApiQuotaService quotaService;
+    private final R2Service r2Service;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // Cache audio bytes so Range requests don't re-invoke TTS/translation
+    // Hot in-memory cache — avoids even a redirect for repeated listens in same server lifecycle
     private final ConcurrentHashMap<String, byte[]> audioCache = new ConcurrentHashMap<>();
 
     @PostMapping("/generate")
@@ -106,7 +115,21 @@ public class StoryController {
             }
             String cacheKey = id + ":" + language.toLowerCase()
                     + (elVoiceId != null ? ":el:" + elVoiceId : (voice != null ? ":" + voice : ""));
+
+            // 1. Hot in-memory cache hit — serve bytes directly (Range-request friendly)
             byte[] audio = audioCache.get(cacheKey);
+
+            // 2. R2 persistent cache hit — redirect browser to CDN URL (no Range needed, browser handles it)
+            if (audio == null && r2Service.isConfigured() && rangeHeader == null) {
+                String r2Url = getStoredAudioUrl(service.getById(id), cacheKey);
+                if (r2Url != null) {
+                    System.out.println("[listen] R2 cache hit — redirecting to CDN: " + r2Url);
+                    return ResponseEntity.status(HttpStatus.FOUND)
+                            .location(URI.create(r2Url))
+                            .build();
+                }
+            }
+
             if (audio == null) {
                 if (authUser != null && !quotaService.isFeatureEnabled(authUser.id(), "story-listen")) {
                     return ResponseEntity.status(403).body(null);
@@ -115,8 +138,7 @@ public class StoryController {
                 // Charge 1 credit for first-time TTS synthesis (cache miss only)
                 if (authUser != null && !quotaService.tryConsume(authUser.id(), "story-listen",
                         story.getChild() != null ? story.getChild().getId() : null)) {
-                    return ResponseEntity.status(429)
-                            .body(null);
+                    return ResponseEntity.status(429).body(null);
                 }
                 String title, content;
                 if ("english".equalsIgnoreCase(language)) {
@@ -140,7 +162,19 @@ public class StoryController {
                 } else {
                     audio = ttsService.synthesize(title + ". " + content, language, voice);
                 }
+
                 audioCache.put(cacheKey, audio);
+
+                // Upload to R2 and persist the URL on the story row
+                if (r2Service.isConfigured()) {
+                    try {
+                        String r2Url = r2Service.upload(cacheKey, audio);
+                        storeAudioUrl(story, cacheKey, r2Url);
+                        System.out.println("[listen] R2 upload OK — " + r2Url);
+                    } catch (Exception e) {
+                        System.err.println("[listen] R2 upload failed (non-fatal): " + e.getMessage());
+                    }
+                }
             }
 
             if (rangeHeader != null && rangeHeader.startsWith("bytes=")) {
@@ -170,6 +204,29 @@ public class StoryController {
             System.err.println("[listen] ERROR: " + e.getClass().getName() + ": " + e.getMessage());
             if (e.getCause() != null) System.err.println("[listen] CAUSE: " + e.getCause().getMessage());
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private String getStoredAudioUrl(Story story, String cacheKey) {
+        if (story.getAudioUrls() == null) return null;
+        try {
+            Map<String, String> map = objectMapper.readValue(story.getAudioUrls(), new TypeReference<>() {});
+            return map.get(cacheKey);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void storeAudioUrl(Story story, String cacheKey, String url) {
+        try {
+            Map<String, String> map = story.getAudioUrls() != null
+                    ? objectMapper.readValue(story.getAudioUrls(), new TypeReference<>() {})
+                    : new HashMap<>();
+            map.put(cacheKey, url);
+            story.setAudioUrls(objectMapper.writeValueAsString(map));
+            storyRepository.save(story);
+        } catch (Exception e) {
+            System.err.println("[listen] Failed to persist R2 URL: " + e.getMessage());
         }
     }
 

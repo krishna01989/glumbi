@@ -100,6 +100,7 @@ export default function Stories({ child, quota }) {
   const [selected, setSelected] = useState(null)
   const [speaking, setSpeaking]         = useState(false)
   const [speakingLang, setSpeakingLang] = useState(null)
+  const [speakingStoryId, setSpeakingStoryId] = useState(null)
   const [audioSrc, setAudioSrc]         = useState(null)
   const [translating, setTranslating]   = useState(null)
   const [langPickerOpen, setLangPickerOpen] = useState(false)
@@ -201,7 +202,7 @@ export default function Stories({ child, quota }) {
 
   function stopSpeaking() {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-    setSpeaking(false); setSpeakingLang(null); setAudioSrc(null)
+    setSpeaking(false); setSpeakingLang(null); setSpeakingStoryId(null); setAudioSrc(null)
   }
 
   const ENGLISH_VOICES = {
@@ -223,7 +224,7 @@ export default function Stories({ child, quota }) {
   }
 
   async function handleListen(story, lang, voice) {
-    if (speaking && speakingLang === lang) { stopSpeaking(); return }
+    if (speaking && speakingStoryId === story.id && speakingLang === lang) { stopSpeaking(); return }
     stopSpeaking()
     setAudioError('')
     setTranslating(lang)
@@ -241,6 +242,7 @@ export default function Stories({ child, quota }) {
       await audio.play()
       setSpeaking(true)
       setSpeakingLang(lang)
+      setSpeakingStoryId(story.id)
       setAudioSrc(url)
     } catch (e) {
       setAudioError('Could not play audio. Please try again.')
@@ -308,7 +310,7 @@ export default function Stories({ child, quota }) {
             <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
             {stories.map(s => (
               <div key={s.id}
-                onClick={() => { setSelected(s); if (isMobile) setShowList(false) }}
+                onClick={() => { if (selected?.id === s.id) return; setLangPickerOpen(false); setSelected(s); if (isMobile) setShowList(false) }}
                 style={{
                   borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
                   boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
@@ -365,7 +367,7 @@ export default function Stories({ child, quota }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
               <h2 style={{ fontSize: isMobile ? 20 : 26, color: 'var(--text)', lineHeight: 1.2 }}>{selected.title}</h2>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
-                {!speaking && (
+                {(!speaking || speakingStoryId !== selected?.id) && (
                   <div style={{ position: 'relative' }} ref={langPickerRef}>
                     <button ref={langBtnRef} onClick={openLangPicker}
                       style={{ padding: '8px 16px', fontSize: 13, borderRadius: 50, border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -483,7 +485,7 @@ export default function Stories({ child, quota }) {
             </div>
 
             {/* Audio player */}
-            {speaking && audioRef.current && (
+            {speaking && audioRef.current && speakingStoryId === selected?.id && (
               <AudioPlayer
                 audio={audioRef.current}
                 lang={speakingLang}

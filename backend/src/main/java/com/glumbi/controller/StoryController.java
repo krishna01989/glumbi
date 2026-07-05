@@ -119,11 +119,10 @@ public class StoryController {
             // 1. Hot in-memory cache hit — serve bytes directly (Range-request friendly)
             byte[] audio = audioCache.get(cacheKey);
 
-            // 2. R2 persistent cache hit — redirect browser to CDN URL (no Range needed, browser handles it)
-            if (audio == null && r2Service.isConfigured() && rangeHeader == null) {
+            // 2. R2 persistent cache hit — redirect to CDN URL, Cloudflare handles Range requests natively
+            if (audio == null && r2Service.isConfigured()) {
                 String r2Url = getStoredAudioUrl(service.getById(id), cacheKey);
                 if (r2Url != null) {
-                    System.out.println("[listen] R2 cache hit — redirecting to CDN: " + r2Url);
                     return ResponseEntity.status(HttpStatus.FOUND)
                             .location(URI.create(r2Url))
                             .build();
@@ -170,7 +169,6 @@ public class StoryController {
                     try {
                         String r2Url = r2Service.upload(cacheKey, audio);
                         storeAudioUrl(story, cacheKey, r2Url);
-                        System.out.println("[listen] R2 upload OK — " + r2Url);
                     } catch (Exception e) {
                         System.err.println("[listen] R2 upload failed (non-fatal): " + e.getMessage());
                     }
@@ -232,6 +230,17 @@ public class StoryController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
+        if (r2Service.isConfigured()) {
+            try {
+                Story story = service.getById(id);
+                if (story.getAudioUrls() != null) {
+                    Map<String, String> urlMap = objectMapper.readValue(story.getAudioUrls(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                    urlMap.keySet().forEach(r2Service::delete);
+                }
+            } catch (Exception e) {
+                System.err.println("[delete] R2 cleanup failed (non-fatal): " + e.getMessage());
+            }
+        }
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

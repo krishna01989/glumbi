@@ -1202,9 +1202,11 @@ export default function App() {
         {offlineMode && (
           <div style={{ background: '#f4f6ff', borderBottom: '1px solid #dce4f7', padding: '7px 24px', fontSize: 12, fontWeight: 700, color: '#5a72c9', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span>✈️ Practice mode — AI features are paused. Listening and browsing still work.</span>
-            <button onClick={toggleOffline} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#5a72c9', fontWeight: 800, cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 }}>
-              Turn AI on →
-            </button>
+            {!childLocked && (
+              <button onClick={toggleOffline} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#5a72c9', fontWeight: 800, cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 }}>
+                Turn AI on →
+              </button>
+            )}
           </div>
         )}
 

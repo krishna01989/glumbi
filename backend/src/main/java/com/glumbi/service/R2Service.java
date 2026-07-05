@@ -9,6 +9,7 @@ import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.net.URI;
@@ -31,7 +32,6 @@ public class R2Service {
         this.bucket    = bucket;
         this.publicUrl = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
         this.configured = !accessKey.isBlank() && !secretKey.isBlank() && !accountId.isBlank() && !publicUrl.isBlank();
-        System.out.println("[R2] configured=" + this.configured + " bucket=" + bucket + " accountId=" + (accountId.isBlank() ? "MISSING" : "SET") + " accessKey=" + (accessKey.isBlank() ? "MISSING" : "SET"));
 
         if (configured) {
             this.s3 = S3Client.builder()
@@ -58,6 +58,11 @@ public class R2Service {
      * Uploads audio bytes to R2 and returns the public URL.
      * Key format: audio/{cacheKey}.mp3  (colons replaced with underscores)
      */
+    public void delete(String cacheKey) {
+        String objectKey = "audio/" + cacheKey.replace(":", "_") + ".mp3";
+        s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(objectKey).build());
+    }
+
     public String upload(String cacheKey, byte[] audioBytes) {
         String objectKey = "audio/" + cacheKey.replace(":", "_") + ".mp3";
         s3.putObject(

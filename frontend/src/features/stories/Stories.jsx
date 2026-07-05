@@ -224,15 +224,15 @@ export default function Stories({ child, quota }) {
   }
 
   function storyHasCachedAudio(story, lang) {
-    if (!story.audioUrls) { console.log('[audioCache] audioUrls is null for story', story.id); return false }
+    if (!story.audioUrls) return false
     try {
       let parsed = story.audioUrls
       if (typeof parsed === 'string') parsed = JSON.parse(parsed)
       if (typeof parsed === 'string') parsed = JSON.parse(parsed)
+      if (typeof parsed !== 'object' || parsed === null) return false
       const prefix = story.id + ':' + lang.toLowerCase()
-      console.log('[audioCache] story', story.id, 'prefix:', prefix, 'keys:', Object.keys(parsed))
       return Object.keys(parsed).some(k => k.startsWith(prefix))
-    } catch (e) { console.log('[audioCache] parse error', e); return false }
+    } catch { return false }
   }
 
   async function handleListen(story, lang, voice) {

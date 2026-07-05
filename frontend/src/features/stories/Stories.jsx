@@ -223,9 +223,28 @@ export default function Stories({ child, quota }) {
     else localStorage.setItem(`glumbi_voice_${child.id}`, String(id))
   }
 
+  function storyHasCachedAudio(story, lang, voice) {
+    if (!story.audioUrls) return false
+    try {
+      const map = JSON.parse(story.audioUrls)
+      const resolvedVoice = selectedVoiceId ? null : (
+        lang === 'english'
+          ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
+          : (VOICE_MAP[lang]?.[selectedGender] || null)
+      )
+      const cacheKey = story.id + ':' + lang.toLowerCase() +
+        (selectedVoiceId ? ':el:' + selectedVoiceId : (resolvedVoice ? ':' + resolvedVoice : ''))
+      return !!map[cacheKey]
+    } catch { return false }
+  }
+
   async function handleListen(story, lang, voice) {
     if (speaking && speakingStoryId === story.id && speakingLang === lang) { stopSpeaking(); return }
     stopSpeaking()
+    if (offline && !storyHasCachedAudio(story, lang, voice)) {
+      setAudioError('Audio not available in practice mode. Turn AI on to listen for the first time.')
+      return
+    }
     setAudioError('')
     setTranslating(lang)
     try {

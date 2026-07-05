@@ -272,6 +272,22 @@ function MatchGame({ pairs, difficulty = 'hard', onReset }) {
   const [locked, setLocked] = useState(false)
   const [moves, setMoves] = useState(0)
   const won = cards.every(c => c.matched)
+  const cardsRef = useRef(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      cardsRef.current?.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }
 
   function resetGame() {
     setCards(freshCards())
@@ -306,85 +322,80 @@ function MatchGame({ pairs, difficulty = 'hard', onReset }) {
     }
   }
 
-  if (won) return (
-    <div style={{ textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 80 }}>🎉</div>
-      <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 28, fontWeight: 900, color: 'var(--primary)', marginTop: 16 }}>
-        You did it!
-      </div>
-      <div style={{ fontSize: 16, color: '#666', marginTop: 8, marginBottom: 28 }}>Matched all pairs in {moves} moves!</div>
-      <button onClick={resetGame}
-        style={{ padding: '12px 32px', borderRadius: 50, border: 'none', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-          background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-        🔄 Play Again
-      </button>
-    </div>
-  )
-
   const isMobileGrid = window.innerWidth < 480
   const cols = isMobileGrid && diff.cols > 2 ? Math.min(diff.cols, 3) : diff.cols
   const emojiSize = diff.pairs <= 2 ? 72 : diff.pairs <= 4 ? 52 : 40
   const labelSize = diff.pairs <= 2 ? 20 : diff.pairs <= 4 ? 15 : 13
 
+  const fsStyle = isFullscreen ? {
+    background: '#fff9f0', display: 'flex', flexDirection: 'column',
+    alignItems: 'center', justifyContent: 'center',
+    minHeight: '100vh', overflowY: 'auto',
+    padding: '16px 24px', boxSizing: 'border-box',
+  } : {}
+
   return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileGrid ? 8 : 12, maxWidth: cols <= 2 ? 320 : '100%', margin: '0 auto', width: '100%' }}>
-        {cards.map(card => (
-          <div key={card.id} onClick={() => flip(card)}
-            style={{
-              aspectRatio: '3/4',
-              borderRadius: 16,
-              cursor: (card.flipped || card.matched || locked) ? 'default' : 'pointer',
-              perspective: 600,
-            }}>
-            <div style={{
-              width: '100%', height: '100%',
-              transformStyle: 'preserve-3d',
-              transition: 'transform 0.4s',
-              transform: (card.flipped || card.matched) ? 'rotateY(180deg)' : 'rotateY(0)',
-              position: 'relative',
-            }}>
-              {/* Back (face-down) */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                backfaceVisibility: 'hidden',
-                borderRadius: 16,
-                background: card.matched ? '#e8f8e8' : 'var(--primary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: emojiSize, color: 'white', fontWeight: 900,
-                boxShadow: 'var(--shadow)',
-              }}>
-                {card.matched ? '✅' : '?'}
-              </div>
-              {/* Front (face-up) */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                backfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
-                borderRadius: 16,
-                background: card.matched ? '#e8f8e8' : 'var(--primary-lt)',
-                border: card.matched ? '2px solid #6bcb77' : '2px solid transparent',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: 8,
-                boxShadow: 'var(--shadow)',
-                overflow: 'hidden',
-              }}>
-                <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{card.emoji}</span>
-                <span style={{ fontSize: labelSize, fontWeight: 800, color: card.matched ? '#27ae60' : 'var(--primary)', textAlign: 'center', wordBreak: 'break-word', lineHeight: 1.2, width: '100%' }}>{card.label}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <span style={{ fontSize: 13, color: '#aaa' }}>Moves: {moves}</span>
-        <button onClick={resetGame}
-          style={{ padding: '6px 16px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: 'white',
-            fontSize: 12, fontWeight: 700, color: '#888', cursor: 'pointer' }}>
-          🔄 Reset
+    <div ref={cardsRef} style={fsStyle}>
+      {/* Fullscreen toggle */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 }}>
+        <button onClick={toggleFullscreen}
+          title={isFullscreen ? 'Exit fullscreen' : 'Play fullscreen'}
+          style={{ width: 32, height: 32, minWidth: 32, borderRadius: 8, border: '1.5px solid var(--primary-lt)', background: 'var(--primary-lt)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, transition: 'all 0.15s' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = 'white' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary-lt)'; e.currentTarget.style.color = 'var(--primary)' }}>
+          {isFullscreen ? (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+            </svg>
+          )}
         </button>
       </div>
+
+      {won ? (
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <div style={{ fontSize: 80 }}>🎉</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 28, fontWeight: 900, color: 'var(--primary)', marginTop: 16 }}>
+            You did it!
+          </div>
+          <div style={{ fontSize: 16, color: '#666', marginTop: 8, marginBottom: 28 }}>Matched all pairs in {moves} moves!</div>
+          <button onClick={resetGame}
+            style={{ padding: '12px 32px', borderRadius: 50, border: 'none', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+              background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
+            🔄 Play Again
+          </button>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileGrid ? 8 : 12, maxWidth: isFullscreen ? Math.min(cols * 160, 800) : (cols <= 2 ? 320 : '100%'), margin: '0 auto', width: '100%' }}>
+            {cards.map(card => (
+              <div key={card.id} onClick={() => flip(card)}
+                style={{ aspectRatio: '3/4', borderRadius: 16, cursor: (card.flipped || card.matched || locked) ? 'default' : 'pointer', perspective: 600 }}>
+                <div style={{ width: '100%', height: '100%', transformStyle: 'preserve-3d', transition: 'transform 0.4s', transform: (card.flipped || card.matched) ? 'rotateY(180deg)' : 'rotateY(0)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: 16, background: card.matched ? '#e8f8e8' : 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: emojiSize, color: 'white', fontWeight: 900, boxShadow: 'var(--shadow)' }}>
+                    {card.matched ? '✅' : '?'}
+                  </div>
+                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderRadius: 16, background: card.matched ? '#e8f8e8' : 'var(--primary-lt)', border: card.matched ? '2px solid #6bcb77' : '2px solid transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 8, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                    <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{card.emoji}</span>
+                    <span style={{ fontSize: labelSize, fontWeight: 800, color: card.matched ? '#27ae60' : 'var(--primary)', textAlign: 'center', wordBreak: 'break-word', lineHeight: 1.2, width: '100%' }}>{card.label}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+            <span style={{ fontSize: 13, color: '#aaa' }}>Moves: {moves}</span>
+            <button onClick={resetGame}
+              style={{ padding: '6px 16px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: 'white', fontSize: 12, fontWeight: 700, color: '#888', cursor: 'pointer' }}>
+              🔄 Reset
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -548,11 +559,11 @@ export default function MemoryPlay({ child, quota }) {
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* Tab content — always mounted to preserve game state */}
       <div style={{ flex: 1, minHeight: 400 }}>
-        {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} />}
-        {tab === 'wordofday'  && <WordOfDayTab  child={child} />}
-        {tab === 'match'      && <MemoryMatchTab child={child} quota={quota} />}
+        <div style={{ display: tab === 'flashcards' ? 'block' : 'none' }}><FlashcardsTab child={child} quota={quota} /></div>
+        <div style={{ display: tab === 'wordofday'  ? 'block' : 'none' }}><WordOfDayTab  child={child} /></div>
+        <div style={{ display: tab === 'match'      ? 'block' : 'none' }}><MemoryMatchTab child={child} quota={quota} /></div>
       </div>
     </div>
   )

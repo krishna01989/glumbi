@@ -10,7 +10,51 @@ function calcAge(birthYear) {
   return !birthYear ? null : new Date().getFullYear() - parseInt(birthYear)
 }
 
-function QuotaPill({ quota }) {
+const FEATURE_META = {
+  'story':          { label: 'Stories',       emoji: '📖' },
+  'activity':       { label: 'Activities',    emoji: '🎮' },
+  'learn-validate': { label: 'Learn to Write',emoji: '✏️' },
+  'curiosity':      { label: 'Curiosity',     emoji: '🔍' },
+  'draw':           { label: 'Draw',          emoji: '🎨' },
+  'read-quiz':      { label: 'Read & Quiz',   emoji: '📚' },
+  'writing-coach':  { label: 'My Writing',    emoji: '✍️' },
+  'memory':         { label: 'Memory Play',   emoji: '🧠' },
+}
+
+function CreditInfoModal({ featureConfig, onClose }) {
+  const items = featureConfig.filter(f => f.featureName && FEATURE_META[f.featureName])
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '24px 20px', maxWidth: 360, width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.35)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', fontFamily: 'Nunito, sans-serif' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, minWidth: 28, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 13, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>✕</button>
+        <div style={{ fontSize: 26, marginBottom: 4 }}>🪙</div>
+        <div style={{ fontWeight: 900, fontSize: 16, color: '#333', marginBottom: 3 }}>How AI Credits Work</div>
+        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 16, lineHeight: 1.5 }}>Each AI interaction uses a small number of credits. Here's the cost per use for each feature:</div>
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {items.map(f => {
+            const meta = FEATURE_META[f.featureName]
+            return (
+              <div key={f.featureName} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 12, background: '#fafafa', border: '1.5px solid #f0f0f0', flexShrink: 0 }}>
+                <span style={{ fontSize: 18, width: 26, textAlign: 'center' }}>{meta.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>{meta.label}</div>
+                  {f.description && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</div>}
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 900, fontSize: 14, color: '#ff6b6b' }}>{f.creditCost} cr</div>
+                  <div style={{ fontSize: 10, color: '#ccc' }}>per use</div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ fontSize: 11, color: '#ccc', textAlign: 'center', marginTop: 14, flexShrink: 0 }}>Credits reset on the 1st of each month</div>
+      </div>
+    </div>
+  )
+}
+
+function QuotaPill({ quota, onInfo }) {
   if (!quota) return null
   const pct = Math.min(quota.used / quota.limit, 1)
   const barColor  = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : '#6bcb77'
@@ -18,13 +62,18 @@ function QuotaPill({ quota }) {
   const borderColor = pct >= 1 ? 'rgba(255,68,68,0.5)' : pct >= 0.8 ? 'rgba(255,217,61,0.5)' : 'rgba(255,255,255,0.3)'
   const label = pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : null
   return (
-    <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: `1px solid ${borderColor}`, borderRadius: 50, padding: '6px 14px', animation: 'glm-fadein 0.5s ease both' }}>
+    <div className="quota-pill-desktop" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: `1px solid ${borderColor}`, borderRadius: 50, padding: '6px 14px', animation: 'glm-fadein 0.5s ease both' }}>
       <div style={{ width: 48, height: 5, background: 'rgba(255,255,255,0.25)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
       </div>
       <span style={{ fontSize: 12, fontWeight: 800, color: textColor }}>
         {label ? `${label} · ${quota.used}/${quota.limit}` : `${Math.round(pct * 100)}% · ${quota.used}/${quota.limit} cr`}
       </span>
+      <button onClick={e => { e.stopPropagation(); onInfo() }}
+        title="How credits work"
+        style={{ width: 20, height: 20, minWidth: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', border: 'none', color: 'white', fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, padding: 0 }}>
+        i
+      </button>
     </div>
   )
 }
@@ -173,14 +222,12 @@ function ProfileCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onTog
           style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
           ✏️
         </button>
-        {stats && (
-          <button
-            onClick={e => { e.stopPropagation(); onShowCredit(c) }}
-            title="Credits"
-            style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            📊
-          </button>
-        )}
+        <button
+          onClick={e => { e.stopPropagation(); onShowCredit(c) }}
+          title="Credits"
+          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+          📊
+        </button>
       </div>
     </div>
   )
@@ -192,6 +239,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
   const [creditChild, setCreditChild] = useState(null)
+  const [showCreditInfo, setShowCreditInfo] = useState(false)
   const [breakdown, setBreakdown] = useState({})
   const navigate = useNavigate()
   const isTouch = window.innerWidth < 1024
@@ -210,6 +258,10 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
       data.children.forEach(c => { map[c.childId] = c })
       setBreakdown(map)
     }).catch(() => {})
+
+    const openInfo = () => setShowCreditInfo(true)
+    window.addEventListener('glumbi:credit-info', openInfo)
+    return () => window.removeEventListener('glumbi:credit-info', openInfo)
   }, [])
 
   function handleToggleOffline(e, c) {
@@ -264,7 +316,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
         <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%)', bottom: -150, right: -100, pointerEvents: 'none' }} />
 
         {/* Quota pill top-right */}
-        <QuotaPill quota={quota} />
+        <QuotaPill quota={quota} onInfo={() => setShowCreditInfo(true)} />
 
         {children.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'white' }}>
@@ -348,11 +400,15 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
       </div>
 
       {/* Credit modal — rendered here (top level) so position:fixed escapes card animation stacking context */}
-      {creditChild && breakdown[creditChild.id] && (
+      {showCreditInfo && (
+        <CreditInfoModal featureConfig={featureConfig} onClose={() => setShowCreditInfo(false)} />
+      )}
+
+      {creditChild && (
         <CreditModal
           c={creditChild}
           t={THEMES[creditChild.theme] || THEMES.coral}
-          stats={breakdown[creditChild.id]}
+          stats={breakdown[creditChild.id] || { features: [], totalCredits: 0 }}
           onClose={() => setCreditChild(null)}
         />
       )}

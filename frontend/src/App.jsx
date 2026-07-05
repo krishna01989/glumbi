@@ -236,6 +236,7 @@ export default function App() {
   const [featureConfig, setFeatureConfig] = useState([])    // [{ featureName, creditCost }]
   const [toasts, setToasts]       = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mgmtMenuOpen, setMgmtMenuOpen]     = useState(false)
   const [offlineMode, setOfflineMode] = useState(false)
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
@@ -845,6 +846,7 @@ export default function App() {
   }
   if (isChildManagementRoute || !child) {
     const isManage = isChildManagementRoute
+    const isChildPage = location.pathname === '/child'
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#fafafa', color: '#3d3d3d' }}>
         {lockModalEl}
@@ -859,7 +861,8 @@ export default function App() {
             <img src="/icon.svg" alt="Glumbi" style={{ width: 32, height: 32 }} />
             <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Desktop buttons */}
+          <div className="mgmt-desktop-btns" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button id="tour-help-btn" onClick={() => navigate('/help')}
               style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #eee', background: '#fafafa', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               title="Help">💡</button>
@@ -873,7 +876,105 @@ export default function App() {
               🚪
             </button>
           </div>
+          {/* Mobile: notification bell + hamburger */}
+          <div className="mgmt-mobile-btn" style={{ display: 'none', alignItems: 'center', gap: 6 }}>
+            <span id="tour-notifications-mobile"><NotificationBell /></span>
+            <button onClick={() => setMgmtMenuOpen(true)}
+              style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #eee', background: '#fafafa', fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ☰
+            </button>
+          </div>
         </header>
+
+        {/* Mobile slide-out drawer */}
+        {mgmtMenuOpen && (
+          <div onClick={() => setMgmtMenuOpen(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, backdropFilter: 'blur(2px)' }} />
+        )}
+        <div style={{
+          position: 'fixed', top: 0, right: 0, bottom: 0, width: 260,
+          background: 'linear-gradient(135deg,#ff6b6b,#ff8e53)', zIndex: 201,
+          transform: mgmtMenuOpen ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+          display: 'flex', flexDirection: 'column',
+          boxShadow: '-8px 0 40px rgba(0,0,0,0.12)',
+          fontFamily: 'Nunito, sans-serif',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img src="/icon.svg" alt="Glumbi" style={{ width: 28, height: 28 }} />
+              <span style={{ fontSize: 18, color: 'white', fontFamily: 'Nunito, sans-serif' }}>Glumbi</span>
+            </div>
+            <button onClick={() => setMgmtMenuOpen(false)}
+              style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          </div>
+          {/* AI Credits summary */}
+          {quota && (() => {
+            const pct = Math.min(quota.used / quota.limit, 1)
+            const barColor = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : '#6bcb77'
+            const label = pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : '✅ Good'
+            return (
+              <div style={{ margin: '0 16px 8px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 14, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5 }}>🪙 AI Credits</div>
+                  <button onClick={() => { setMgmtMenuOpen(false); setTimeout(() => window.dispatchEvent(new CustomEvent('glumbi:credit-info')), 300) }}
+                    style={{ width: 18, height: 18, minWidth: 18, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', border: 'none', color: 'white', fontSize: 10, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>i</button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 900, color: 'white' }}>{quota.used} / {quota.limit} cr</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: barColor }}>{label}</span>
+                </div>
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+            )
+          })()}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+            {[
+              { heading: 'Account', items: [
+                { emoji: '👤', label: 'My Account', path: '/profile' },
+                { emoji: '💡', label: 'Help',        path: '/help' },
+              ]},
+              { heading: 'Info', items: [
+                { emoji: '📬', label: 'Contact Us',      path: '/contact' },
+                { emoji: '🔒', label: 'Privacy Policy',  path: '/privacy' },
+                { emoji: '⚖️', label: 'Terms of Service', path: '/terms' },
+              ]},
+            ].map(section => (
+              <div key={section.heading}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, padding: '16px 20px 6px' }}>
+                  {section.heading}
+                </div>
+                {section.items.map(item => (
+                  <button key={item.path} onClick={() => { navigate(item.path); setMgmtMenuOpen(false) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 20px', background: 'none', border: 'none', fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)', cursor: 'pointer', textAlign: 'left' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
+                    <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.emoji}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: 16 }}>
+            <button onClick={() => { handleLogout(); setMgmtMenuOpen(false) }}
+              style={{ width: '100%', padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.9)', border: '1.5px solid rgba(255,255,255,0.3)', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+              🚪 Sign Out
+            </button>
+          </div>
+        </div>
+
+        <style>{`
+          @media (max-width: 767px) {
+            .mgmt-desktop-btns  { display: none !important; }
+            .mgmt-mobile-btn    { display: flex !important; }
+            .app-footer         { display: none !important; }
+            .quota-pill-desktop { display: none !important; }
+          }
+        `}</style>
+
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
@@ -887,7 +988,7 @@ export default function App() {
             <Route path="*"               element={<Navigate to="/child" replace />} />
           </Routes>
         </div>
-        {location.pathname !== '/child' && <AppFooter />}
+        <AppFooter />
       </div>
     )
   }
@@ -1229,7 +1330,6 @@ export default function App() {
           </div>
           </OfflineContext.Provider>
         </main>
-        <AppFooter />
       </div>
 
       <Toast toasts={toasts} onDismiss={dismissToast} />

@@ -108,12 +108,12 @@ export default function ReadQuiz({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <FeatureBanner feature="readquiz" child={child} isMobile={isMobile} />
-    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: 16 }}>
+    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: isMobile ? 6 : 16 }}>
 
       {/* Mobile back button */}
       {isMobile && selected && (
         <button onClick={() => setSelected(null)}
-          style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginTop: 16, marginBottom: 12, cursor: 'pointer' }}>
+          style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginTop: 4, marginBottom: 6, cursor: 'pointer' }}>
           ← Back
         </button>
       )}

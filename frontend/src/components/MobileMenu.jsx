@@ -89,7 +89,7 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
         )}
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-          {[{ heading: 'App', items: appItems }, { heading: 'Info', items: INFO_ITEMS }].map(section => (
+          {[{ heading: 'App', items: appItems }].map(section => (
             <div key={section.heading}>
               <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, padding: '16px 20px 6px' }}>
                 {section.heading}
@@ -131,14 +131,6 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
               🔒 Parent access
             </button>
           )}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 4 }}>
-            {[['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', '/contact']].map(([l, p]) => (
-              <button key={p} onClick={() => go(p)}
-                style={{ background: 'none', border: 'none', fontSize: 11, color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 0 }}>
-                {l}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </>

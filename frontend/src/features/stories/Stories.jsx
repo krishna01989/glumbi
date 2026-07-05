@@ -296,7 +296,7 @@ export default function Stories({ child, quota }) {
     <div style={{
       display: isMobile ? 'flex' : 'grid',
       flexDirection: isMobile ? 'column' : undefined,
-      marginTop: 16,
+      marginTop: isMobile ? 6 : 16,
       gridTemplateColumns: isMobile ? undefined : '320px 1fr',
       gap: isMobile ? 16 : 24,
       height: isMobile ? 'auto' : '100%',
@@ -304,7 +304,7 @@ export default function Stories({ child, quota }) {
       {/* Mobile back button */}
       {isMobile && selected && (
         <button onClick={() => { setSelected(null); setShowList(true) }}
-          style={{ alignSelf: 'flex-start', background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginTop: 16 }}>
+          style={{ alignSelf: 'flex-start', background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, marginTop: 4, marginBottom: 6 }}>
           ← Back
         </button>
       )}

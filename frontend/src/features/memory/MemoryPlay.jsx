@@ -9,8 +9,8 @@ import { useOffline } from '../../contexts/OfflineContext'
 
 const TABS = [
   { key: 'flashcards', label: '📇 Flashcards' },
-  { key: 'wordofday',  label: '💬 Word of Day' },
   { key: 'match',      label: '🎴 Memory Match' },
+  { key: 'wordofday',  label: '💬 Word of Day' },
 ]
 
 const MATCH_THEMES = ['Animals', 'Space', 'Food', 'Nature', 'Sports']

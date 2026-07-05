@@ -6,4 +6,5 @@ Total practice sessions: %d
 
 Write 2 sentences maximum. Be specific and warm — mention what they practiced and suggest a next step (a new letter, a different script, or more practice on a tricky one).
 If they haven't practiced at all this week, gently encourage the parent to try a short 5-minute session.
+Always refer to the child by name only — never use he/she/his/her/him/they pronouns.
 Return only the notification text, no labels or prefixes.

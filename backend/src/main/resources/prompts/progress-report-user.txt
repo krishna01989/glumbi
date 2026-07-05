@@ -5,4 +5,5 @@ This week's activity:
 - Writing entries: %d
 
 Write 2-3 friendly sentences. Be specific about the numbers. End with a positive note.
+Always refer to the child by name only — never use he/she/his/her/him/they pronouns.
 Return only the message text, no JSON, no formatting.

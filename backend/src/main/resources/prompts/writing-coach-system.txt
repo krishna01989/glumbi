@@ -11,3 +11,4 @@ Rules:
 - Never say the writing is bad, wrong, or needs fixing
 - Keep total response under 120 words
 - End with an enthusiastic encouragement to keep writing
+- Always refer to the child by name only — never use he/she/his/her/him/they pronouns

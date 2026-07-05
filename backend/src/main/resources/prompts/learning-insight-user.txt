@@ -6,4 +6,5 @@ Writing feedback highlights: %s
 
 Write 2 sentences maximum. Be specific, constructive, and encouraging.
 Focus on one concrete thing the parent can do to help.
+Always refer to the child by name only — never use he/she/his/her/him/they pronouns.
 Return only the insight text.

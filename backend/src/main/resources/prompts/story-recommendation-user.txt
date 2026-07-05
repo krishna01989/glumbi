@@ -4,4 +4,5 @@ Their story keywords/themes include: %s.
 Suggest 3 fresh story topics they would enjoy this week, based on their interests.
 Format: one sentence introducing the suggestions, then list the 3 topics with a fun emoji each.
 Keep it short and exciting for a parent to read.
+Always refer to the child by name only — never use he/she/his/her/him/they pronouns.
 Return only the message text.

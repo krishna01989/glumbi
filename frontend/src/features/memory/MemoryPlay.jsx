@@ -434,20 +434,6 @@ function MemoryMatchTab({ child, quota }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Difficulty — persistent setting, applies to new games and replays */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#888' }}>DIFFICULTY:</span>
-        {DIFFICULTIES.map(d => (
-          <button key={d.key} type="button" onClick={() => setDifficulty(d.key)}
-            style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, borderRadius: 50, border: '2px solid', cursor: 'pointer',
-              borderColor: difficulty === d.key ? 'var(--primary)' : '#e0e0e0',
-              background: difficulty === d.key ? 'var(--primary)' : 'white',
-              color: difficulty === d.key ? 'white' : '#666' }}>
-            {d.label}
-          </button>
-        ))}
-      </div>
-
       <form onSubmit={handleGenerate} className="card"
         style={{ background: 'var(--primary-lt)', border: '2px dashed var(--primary-lt)', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -480,6 +466,19 @@ function MemoryMatchTab({ child, quota }) {
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--primary)' }}>
             🎴 {activeMatch.theme} — Find the Pairs! <span style={{ fontSize: 13, fontWeight: 600, color: '#999', marginLeft: 6 }}>{DIFFICULTIES.find(d => d.key === difficulty)?.label}</span>
+          </div>
+          {/* Difficulty — only relevant once a game is active */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#888' }}>DIFFICULTY:</span>
+            {DIFFICULTIES.map(d => (
+              <button key={d.key} type="button" onClick={() => setDifficulty(d.key)}
+                style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, borderRadius: 50, border: '2px solid', cursor: 'pointer',
+                  borderColor: difficulty === d.key ? 'var(--primary)' : '#e0e0e0',
+                  background: difficulty === d.key ? 'var(--primary)' : 'white',
+                  color: difficulty === d.key ? 'white' : '#666' }}>
+                {d.label}
+              </button>
+            ))}
           </div>
           <MatchGame key={activeMatch.id + '_' + difficulty} pairs={activePairs} difficulty={difficulty} />
         </div>

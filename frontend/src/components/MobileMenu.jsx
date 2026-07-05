@@ -7,10 +7,10 @@ const ALL_APP_ITEMS = [
   { emoji: '✏️', label: 'Learn to Write',  key: 'learn' },
   { emoji: '🔍', label: 'Curiosity',      key: 'curiosity' },
   { emoji: '🎨', label: 'Draw',           key: 'draw' },
-  { emoji: '📝', label: 'Journal',        key: 'journal',   parentOnly: true },
   { emoji: '📚', label: 'Read & Quiz',    key: 'readquiz' },
   { emoji: '✍️', label: 'My Writing',     key: 'mywriting' },
   { emoji: '🧠', label: 'Memory Play',    key: 'memory' },
+  { emoji: '📝', label: 'Journal',        key: 'journal',   parentOnly: true },
   { emoji: '🗓️', label: 'Timeline',       key: 'timeline',  parentOnly: true },
 ]
 

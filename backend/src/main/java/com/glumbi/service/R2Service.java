@@ -31,6 +31,7 @@ public class R2Service {
         this.bucket    = bucket;
         this.publicUrl = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
         this.configured = !accessKey.isBlank() && !secretKey.isBlank() && !accountId.isBlank() && !publicUrl.isBlank();
+        System.out.println("[R2] configured=" + this.configured + " bucket=" + bucket + " accountId=" + (accountId.isBlank() ? "MISSING" : "SET") + " accessKey=" + (accessKey.isBlank() ? "MISSING" : "SET"));
 
         if (configured) {
             this.s3 = S3Client.builder()

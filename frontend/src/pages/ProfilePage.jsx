@@ -236,9 +236,9 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
         <div style={{ position: 'absolute', top: -20, right: -20, fontSize: 100, opacity: 0.08, lineHeight: 1 }}>👤</div>
         <div style={{ fontSize: 42, marginBottom: 10 }}>👤</div>
         <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 4 }}>{profile?.email}</div>
-        <div style={{ fontSize: 13, opacity: 0.8, display: 'flex', gap: 16 }}>
+        <div style={{ fontSize: 13, opacity: 0.8, display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span>{isGoogle ? '🔵 Google sign-in' : '🔑 Email & password'}</span>
-          <span>· Member since {joinedDate}</span>
+          <span>Member since {joinedDate}</span>
         </div>
       </div>
 

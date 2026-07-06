@@ -45,6 +45,7 @@ public class AdminController {
     private final WordOfDayRepository           wordOfDayRepo;
     private final MemoryMatchRepository         memoryMatchRepo;
     private final AiUsageLogRepository          usageLogRepo;
+    private final com.glumbi.service.AccountDeletionService accountDeletionService;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(@RequestParam(defaultValue = "7d") String range) {
@@ -450,7 +451,6 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{id}")
-    @Transactional
     public ResponseEntity<?> deleteUser(@PathVariable Long id,
                                         @AuthenticationPrincipal JwtFilter.AuthUser caller) {
         return userRepo.findById(id).map(u -> {
@@ -459,15 +459,7 @@ public class AdminController {
             if (u.isAdminOrAbove() && !callerIsSuperAdmin(caller))
                 return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can delete another admin."));
 
-            List<Child> children = childRepo.findByOwnerId(id);
-            for (Child child : children) {
-                storyRepo.deleteByChildId(child.getId());
-                activityRepo.deleteByChildId(child.getId());
-                journalRepo.deleteByChildId(child.getId());
-                curiosityRepo.deleteByChildId(child.getId());
-                childRepo.delete(child);
-            }
-            userRepo.deleteById(id);
+            accountDeletionService.deleteUser(id);
             return ResponseEntity.noContent().build();
         }).orElse(ResponseEntity.notFound().build());
     }

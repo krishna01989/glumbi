@@ -8,4 +8,5 @@ import java.util.List;
 public interface FamilyVoiceRepository extends JpaRepository<FamilyVoice, Long> {
     List<FamilyVoice> findByUserIdOrderByCreatedAtAsc(Long userId);
     long countByUserId(Long userId);
+    void deleteByUserId(Long userId);
 }

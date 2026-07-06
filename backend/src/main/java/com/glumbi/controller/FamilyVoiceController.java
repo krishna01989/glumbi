@@ -1,17 +1,25 @@
 package com.glumbi.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.entity.AppUser;
 import com.glumbi.entity.FamilyVoice;
+import com.glumbi.entity.Story;
+import com.glumbi.repository.ChildRepository;
 import com.glumbi.repository.FamilyVoiceRepository;
+import com.glumbi.repository.StoryRepository;
 import com.glumbi.repository.UserRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ElevenLabsService;
+import com.glumbi.service.R2Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,9 +30,16 @@ public class FamilyVoiceController {
 
     private static final int MAX_VOICES = 5;
 
+    @Value("${app.env:local}")
+    private String appEnv;
+
     private final FamilyVoiceRepository voiceRepository;
     private final UserRepository        userRepository;
     private final ElevenLabsService     elevenLabsService;
+    private final R2Service             r2Service;
+    private final ChildRepository       childRepository;
+    private final StoryRepository       storyRepository;
+    private final ObjectMapper          objectMapper;
 
     @GetMapping
     public ResponseEntity<?> list(@AuthenticationPrincipal AuthUser authUser) {
@@ -55,8 +70,8 @@ public class FamilyVoiceController {
         AppUser user = userRepository.findById(authUser.id())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         try {
-            String elName = String.format("Glumbi | %s | User%d | %s",
-                    name.trim(), authUser.id(),
+            String elName = String.format("Glumbi-%s | %s | User%d | %s",
+                    appEnv.toUpperCase(), name.trim(), authUser.id(),
                     java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd-HHmm")));
             String voiceId = elevenLabsService.cloneVoice(file.getBytes(), file.getOriginalFilename(), elName);
             FamilyVoice voice = new FamilyVoice();
@@ -101,8 +116,30 @@ public class FamilyVoiceController {
         if (voice == null || !voice.getUser().getId().equals(authUser.id())) {
             return ResponseEntity.notFound().build();
         }
+        // Delete all R2 audio cached for this voice across all stories belonging to this user
+        String elVoiceId = voice.getElevenLabsVoiceId();
+        String voiceKeySuffix = ":el:" + elVoiceId;
+        childRepository.findByOwnerId(authUser.id()).forEach(child ->
+            storyRepository.findByChildIdOrderByCreatedAtDesc(child.getId()).forEach(story -> {
+                if (story.getAudioUrls() == null) return;
+                try {
+                    Map<String, String> urls = objectMapper.readValue(story.getAudioUrls(), new TypeReference<>() {});
+                    Map<String, String> updated = new HashMap<>();
+                    urls.forEach((key, url) -> {
+                        if (key.contains(voiceKeySuffix)) {
+                            try { r2Service.delete(key); } catch (Exception ignored) {}
+                        } else {
+                            updated.put(key, url);
+                        }
+                    });
+                    story.setAudioUrls(objectMapper.writeValueAsString(updated));
+                    storyRepository.save(story);
+                } catch (Exception ignored) {}
+            })
+        );
+
         try {
-            elevenLabsService.deleteVoice(voice.getElevenLabsVoiceId());
+            elevenLabsService.deleteVoice(elVoiceId);
         } catch (Exception ignored) {}
         voiceRepository.delete(voice);
         return ResponseEntity.noContent().build();

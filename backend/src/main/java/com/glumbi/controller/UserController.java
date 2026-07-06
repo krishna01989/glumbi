@@ -39,6 +39,7 @@ public class UserController {
     private final PasswordEncoder         encoder;
     private final FeatureConfigRepository       featureConfigRepo;
     private final UserFeatureOverrideRepository overrideRepo;
+    private final com.glumbi.service.AccountDeletionService accountDeletionService;
 
     @GetMapping("/me/quota")
     public ResponseEntity<?> getQuota(@AuthenticationPrincipal AuthUser authUser) {
@@ -191,7 +192,6 @@ public class UserController {
     }
 
     @DeleteMapping("/me")
-    @Transactional
     public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthUser authUser) {
         if ("SUPER_ADMIN".equals(authUser.role())) {
             long remaining = userRepository.countByRole(AppUser.Role.SUPER_ADMIN);
@@ -199,16 +199,7 @@ public class UserController {
                 return ResponseEntity.status(400).body(Map.of("error",
                     "You are the only super admin. Promote another admin first before deleting your account."));
         }
-        List<Child> children = childRepository.findByOwnerId(authUser.id());
-        for (Child child : children) {
-            storyRepository.deleteByChildId(child.getId());
-            activityRepository.deleteByChildId(child.getId());
-            journalRepository.deleteByChildId(child.getId());
-            curiosityRepository.deleteByChildId(child.getId());
-            childRepository.delete(child);
-        }
-        usageLogRepository.deleteByUserId(authUser.id());
-        userRepository.deleteById(authUser.id());
+        accountDeletionService.deleteUser(authUser.id());
         return ResponseEntity.noContent().build();
     }
 }

@@ -296,7 +296,7 @@ const DIFFICULTIES = [
   { key: 'hard',   label: '🔴 Hard',   pairs: 6, cols: 4 },
 ]
 
-function MatchGame({ pairs, difficulty = 'hard', onReset }) {
+function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   const diff = DIFFICULTIES.find(d => d.key === difficulty) || DIFFICULTIES[2]
   const slicedPairs = pairs.slice(0, diff.pairs)
 
@@ -309,6 +309,14 @@ function MatchGame({ pairs, difficulty = 'hard', onReset }) {
   const [flippedIds, setFlippedIds] = useState([])
   const [locked, setLocked] = useState(false)
   const [moves, setMoves] = useState(0)
+
+  // Reset cards when difficulty changes without unmounting (preserves fullscreen)
+  useEffect(() => {
+    setCards(freshCards())
+    setFlippedIds([])
+    setLocked(false)
+    setMoves(0)
+  }, [difficulty]) // eslint-disable-line react-hooks/exhaustive-deps
   const won = cards.every(c => c.matched)
   const cardsRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -360,22 +368,56 @@ function MatchGame({ pairs, difficulty = 'hard', onReset }) {
     }
   }
 
-  const isMobileGrid = window.innerWidth < 480
+  const [viewport, setViewport] = useState({ vw: window.innerWidth, vh: window.innerHeight })
+  useEffect(() => {
+    const update = () => setViewport({ vw: window.innerWidth, vh: window.innerHeight })
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', () => setTimeout(update, 100))
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('orientationchange', update) }
+  }, [])
+  const { vw, vh } = viewport
+
+  const isLandscapeMobile = isFullscreen && vw > vh && vh < 560
+  const isMobileGrid = vw < 480 && !isLandscapeMobile
   const cols = isMobileGrid && diff.cols > 2 ? Math.min(diff.cols, 3) : diff.cols
-  const emojiSize = diff.pairs <= 2 ? 72 : diff.pairs <= 4 ? 52 : 40
-  const labelSize = diff.pairs <= 2 ? 20 : diff.pairs <= 4 ? 15 : 13
+
+  // Landscape fullscreen: calculate exact card pixel size to fill height without scrolling
+  // Available height = vh minus: toggle btn (32) + its margin (4) + moves bar (26) + its margin (8) + padding (16)
+  const lsAvailH = vh - 32 - 4 - 26 - 8 - 16
+  const lsRows = Math.ceil(cards.length / cols)
+  const lsGap = 6
+  const lsCardH = Math.max(40, Math.floor((lsAvailH - lsGap * (lsRows - 1)) / lsRows))
+  const lsCardW = Math.floor(lsCardH * 0.75)
+  const emojiSize = isLandscapeMobile ? Math.max(16, Math.floor(lsCardH * 0.38)) : diff.pairs <= 2 ? 72 : diff.pairs <= 4 ? 52 : 40
+  const labelSize = isLandscapeMobile ? Math.max(9, Math.floor(lsCardH * 0.16)) : diff.pairs <= 2 ? 20 : diff.pairs <= 4 ? 15 : 13
 
   const fsStyle = isFullscreen ? {
     background: '#fff9f0', display: 'flex', flexDirection: 'column',
     alignItems: 'center', justifyContent: 'center',
-    minHeight: '100vh', overflowY: 'auto',
-    padding: '16px 24px', boxSizing: 'border-box',
+    height: '100dvh', width: '100dvw', overflow: 'hidden',
+    padding: isLandscapeMobile ? '6px 16px' : '16px 24px', boxSizing: 'border-box',
   } : {}
 
   return (
     <div ref={cardsRef} style={fsStyle}>
-      {/* Fullscreen toggle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 }}>
+      {/* Top bar: difficulty (fullscreen only) + fullscreen toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: isLandscapeMobile ? 2 : 6, gap: 8 }}>
+        <div style={{ display: 'flex', gap: isLandscapeMobile ? 4 : 6, alignItems: 'center', visibility: isFullscreen ? 'visible' : 'hidden' }}>
+          {DIFFICULTIES.map(d => (
+            <button key={d.key} onClick={() => setDifficulty?.(d.key)}
+              style={{
+                padding: isLandscapeMobile ? '3px 8px' : '5px 12px',
+                fontSize: isLandscapeMobile ? 10 : 11,
+                fontWeight: 700, borderRadius: 50, border: '2px solid', cursor: 'pointer',
+                borderColor: difficulty === d.key ? 'var(--primary)' : '#e0e0e0',
+                background: difficulty === d.key ? 'var(--primary)' : 'white',
+                color: difficulty === d.key ? 'white' : '#888',
+                transition: 'all 0.15s',
+              }}>
+              {d.label}
+            </button>
+          ))}
+        </div>
         <button onClick={toggleFullscreen}
           title={isFullscreen ? 'Exit fullscreen' : 'Play fullscreen'}
           style={{ width: 32, height: 32, minWidth: 32, borderRadius: 8, border: '1.5px solid var(--primary-lt)', background: 'var(--primary-lt)', color: 'var(--primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0, transition: 'all 0.15s' }}
@@ -394,30 +436,54 @@ function MatchGame({ pairs, difficulty = 'hard', onReset }) {
       </div>
 
       {won ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 80 }}>🎉</div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 28, fontWeight: 900, color: 'var(--primary)', marginTop: 16 }}>
-            You did it!
+        <div style={{ textAlign: 'center', padding: isLandscapeMobile ? '8px 24px' : 40, display: 'flex', flexDirection: isLandscapeMobile ? 'row' : 'column', alignItems: 'center', gap: isLandscapeMobile ? 20 : 0 }}>
+          <div style={{ fontSize: isLandscapeMobile ? 48 : 80 }}>🎉</div>
+          <div>
+            <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: isLandscapeMobile ? 20 : 28, fontWeight: 900, color: 'var(--primary)', marginTop: isLandscapeMobile ? 0 : 16 }}>
+              You did it!
+            </div>
+            <div style={{ fontSize: isLandscapeMobile ? 13 : 16, color: '#666', marginTop: 4, marginBottom: isLandscapeMobile ? 8 : 28 }}>Matched all pairs in {moves} moves!</div>
+            <button onClick={resetGame}
+              style={{ padding: isLandscapeMobile ? '8px 20px' : '12px 32px', borderRadius: 50, border: 'none', fontWeight: 800, fontSize: isLandscapeMobile ? 13 : 15, cursor: 'pointer',
+                background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
+              🔄 Play Again
+            </button>
           </div>
-          <div style={{ fontSize: 16, color: '#666', marginTop: 8, marginBottom: 28 }}>Matched all pairs in {moves} moves!</div>
-          <button onClick={resetGame}
-            style={{ padding: '12px 32px', borderRadius: 50, border: 'none', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-              background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-            🔄 Play Again
-          </button>
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: isMobileGrid ? 8 : 12, maxWidth: isFullscreen ? Math.min(cols * 160, 800) : (cols <= 2 ? 320 : '100%'), margin: '0 auto', width: '100%' }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isLandscapeMobile
+              ? `repeat(${cols}, ${lsCardW}px)`
+              : `repeat(${cols}, 1fr)`,
+            gridTemplateRows: isLandscapeMobile
+              ? `repeat(${lsRows}, ${lsCardH}px)`
+              : undefined,
+            gap: isLandscapeMobile ? lsGap : isMobileGrid ? 8 : 12,
+            maxWidth: isLandscapeMobile
+              ? undefined
+              : isFullscreen ? Math.min(cols * 160, 800) : (cols <= 2 ? 320 : '100%'),
+            margin: '0 auto',
+            width: isLandscapeMobile ? undefined : '100%',
+            flexShrink: 0,
+          }}>
             {cards.map(card => (
               <div key={card.id} onClick={() => flip(card)}
-                style={{ aspectRatio: '3/4', borderRadius: 16, cursor: (card.flipped || card.matched || locked) ? 'default' : 'pointer', perspective: 600 }}>
+                style={{
+                  width: isLandscapeMobile ? lsCardW : undefined,
+                  height: isLandscapeMobile ? lsCardH : undefined,
+                  aspectRatio: isLandscapeMobile ? undefined : '3/4',
+                  borderRadius: isLandscapeMobile ? 8 : 16,
+                  cursor: (card.flipped || card.matched || locked) ? 'default' : 'pointer',
+                  perspective: 600,
+                }}>
                 <div style={{ width: '100%', height: '100%', transformStyle: 'preserve-3d', transition: 'transform 0.4s', transform: (card.flipped || card.matched) ? 'rotateY(180deg)' : 'rotateY(0)', position: 'relative' }}>
-                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: 16, background: card.matched ? '#e8f8e8' : 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: emojiSize, color: 'white', fontWeight: 900, boxShadow: 'var(--shadow)' }}>
+                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', borderRadius: isLandscapeMobile ? 8 : 16, background: card.matched ? '#e8f8e8' : 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: emojiSize, color: 'white', fontWeight: 900, boxShadow: 'var(--shadow)' }}>
                     {card.matched ? '✅' : '?'}
                   </div>
-                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderRadius: 16, background: card.matched ? '#e8f8e8' : 'var(--primary-lt)', border: card.matched ? '2px solid #6bcb77' : '2px solid transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 8, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderRadius: isLandscapeMobile ? 8 : 16, background: card.matched ? '#e8f8e8' : 'var(--primary-lt)', border: card.matched ? '2px solid #6bcb77' : '2px solid transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: isLandscapeMobile ? 2 : 8, padding: isLandscapeMobile ? 4 : 8, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
                     <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{card.emoji}</span>
                     <span style={{ fontSize: labelSize, fontWeight: 800, color: card.matched ? '#27ae60' : 'var(--primary)', textAlign: 'center', wordBreak: 'break-word', lineHeight: 1.2, width: '100%' }}>{card.label}</span>
                   </div>
@@ -425,10 +491,10 @@ function MatchGame({ pairs, difficulty = 'hard', onReset }) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-            <span style={{ fontSize: 13, color: '#aaa' }}>Moves: {moves}</span>
+          <div style={{ marginTop: isLandscapeMobile ? 4 : 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <span style={{ fontSize: isLandscapeMobile ? 11 : 13, color: '#aaa' }}>Moves: {moves}</span>
             <button onClick={resetGame}
-              style={{ padding: '6px 16px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: 'white', fontSize: 12, fontWeight: 700, color: '#888', cursor: 'pointer' }}>
+              style={{ padding: isLandscapeMobile ? '4px 12px' : '6px 16px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: 'white', fontSize: isLandscapeMobile ? 11 : 12, fontWeight: 700, color: '#888', cursor: 'pointer' }}>
               🔄 Reset
             </button>
           </div>
@@ -446,7 +512,7 @@ function MemoryMatchTab({ child, quota }) {
   const [matches, setMatches] = useState([])
   const [activeMatch, setActiveMatch] = useState(null)
   const [activePairs, setActivePairs] = useState(null)
-  const [difficulty, setDifficulty] = useState('hard')
+  const [difficulty, setDifficulty] = useState('medium')
 
   useEffect(() => {
     memoryApi.getMatches(child.id).then(setMatches).catch(() => {})
@@ -529,7 +595,7 @@ function MemoryMatchTab({ child, quota }) {
               </button>
             ))}
           </div>
-          <MatchGame key={activeMatch.id + '_' + difficulty} pairs={activePairs} difficulty={difficulty} />
+          <MatchGame key={activeMatch.id} pairs={activePairs} difficulty={difficulty} setDifficulty={setDifficulty} />
         </div>
       )}
 

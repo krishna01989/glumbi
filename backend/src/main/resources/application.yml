@@ -1,6 +1,3 @@
-app:
-  env: ${APP_ENV:local}
-
 spring:
   servlet:
     multipart:
@@ -61,6 +58,7 @@ anthropic:
     draw-guide: 300
 
 app:
+  env: ${APP_ENV:local}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   jwt:

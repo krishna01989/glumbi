@@ -116,9 +116,22 @@ export default function Stories({ child, quota }) {
   const [audioError, setAudioError]     = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
   const [showList, setShowList]         = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const isMobile = useIsMobile()
   const langPickerRef = useRef(null)
   const langBtnRef    = useRef(null)
+  const fsRef         = useRef(null)
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) fsRef.current?.requestFullscreen?.()
+    else document.exitFullscreen?.()
+  }
 
   useEffect(() => {
     function handler(e) {
@@ -386,108 +399,121 @@ export default function Stories({ child, quota }) {
 
       {/* ── Story Reader ── */}
       {selected ? (
-        <div style={{ borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--shadow)', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Full illustration header */}
-          <StoryIllustration story={selected} />
+        <div ref={fsRef} style={isFullscreen ? {
+          height: '100dvh', width: '100dvw',
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+          background: scene?.bg || 'linear-gradient(135deg,#667eea,#764ba2)',
+        } : {
+          borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--shadow)',
+          display: 'flex', flexDirection: 'column', height: '100%',
+        }}>
 
-          {/* Story content */}
-          <div style={{ flex: 1, overflowY: 'auto', background: 'white', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
-              <h2 style={{ fontSize: isMobile ? 20 : 26, color: 'var(--text)', lineHeight: 1.2 }}>{selected.title}</h2>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'relative' }}>
+          {/* Fullscreen header — themed banner with title + controls */}
+          {isFullscreen ? (
+            <div style={{
+              flexShrink: 0, position: 'relative',
+              background: scene?.bg || 'linear-gradient(135deg,#667eea,#764ba2)',
+              padding: isMobile ? '12px 14px 10px' : '16px 20px',
+              display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 0,
+              borderBottom: '1px solid rgba(255,255,255,0.15)',
+            }}>
+              {scene?.stars && (
+                <div style={{ position:'absolute', inset:0, opacity:0.3, fontSize:10, lineHeight:'22px', letterSpacing:'14px', padding:6, pointerEvents:'none' }}>
+                  ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦
+                </div>
+              )}
+              {/* Row 1: emoji + title + exit button */}
+              <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 10 : 16, position:'relative', zIndex:1 }}>
+                <div style={{ fontSize: isMobile ? 36 : 52, filter:'drop-shadow(0 2px 8px rgba(0,0,0,0.3))', flexShrink:0 }}>
+                  {scene?.emoji}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <h2 style={{ fontSize: isMobile ? 16 : 22, color:'white', margin:0, lineHeight:1.2,
+                    textShadow:'0 2px 8px rgba(0,0,0,0.3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {selected.title}
+                  </h2>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.7)', marginTop:3, fontWeight:600, textTransform:'uppercase', letterSpacing:0.5 }}>
+                    {selected.keywords || 'A magical story'} · {child.name}
+                  </div>
+                </div>
+                {/* Exit button always top-right in row 1 */}
+                <button onClick={toggleFullscreen} title="Exit fullscreen"
+                  style={{ width:34, height:34, borderRadius:50, border:'none', flexShrink:0,
+                    background:'rgba(255,255,255,0.2)', backdropFilter:'blur(6px)',
+                    color:'white', cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center', padding:0,
+                    boxShadow:'0 2px 8px rgba(0,0,0,0.2)' }}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+                  </svg>
+                </button>
+              </div>
+              {/* Row 2 (mobile) or inline (desktop): action buttons */}
+              <div style={{ display:'flex', gap:8, alignItems:'center', position:'relative', zIndex:1,
+                flexWrap: isMobile ? undefined : 'wrap',
+                justifyContent: isMobile ? 'flex-start' : 'flex-end',
+                marginTop: isMobile ? 0 : 10,
+              }}>
                 {(!speaking || speakingStoryId !== selected?.id) && (
-                  <div style={{ position: 'relative', display: 'inline-flex' }} ref={langPickerRef}>
+                  <div style={{ position:'relative', display:'inline-flex' }} ref={langPickerRef}>
                     <button ref={langBtnRef} onClick={openLangPicker}
-                      style={{ padding: '8px 16px', fontSize: 13, borderRadius: 50, border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      style={{ padding:'7px 14px', fontSize:13, borderRadius:50, border:'none',
+                        background:'rgba(255,255,255,0.2)', backdropFilter:'blur(6px)',
+                        color:'white', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6,
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.2)' }}>
                       {translating ? <><span className="spinner" /> Translating…</> : '🔊 Listen'}
                     </button>
                     {langPickerOpen && (
                       <div style={{
-                        position: 'fixed', top: langPickerPos.top, right: langPickerPos.right, zIndex: 1000,
+                        position: 'fixed', top: langPickerPos.top, right: langPickerPos.right, zIndex: 2000,
                         background: 'white', borderRadius: 16, padding: 16,
                         boxShadow: '0 8px 40px rgba(0,0,0,0.16)',
                         width: Math.min(280, window.innerWidth - 16),
                         maxHeight: `calc(100vh - ${langPickerPos.top + 16}px)`,
-                        overflowY: 'auto',
-                        border: '1px solid #f0f0f0',
+                        overflowY: 'auto', border: '1px solid #f0f0f0',
                       }}>
-                        {/* Custom voice selector — only shown if family has voices */}
-                        {familyVoices.length > 0 && (
-                          <div style={{ marginBottom: 12 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>🎙️ Voice</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                              <button onClick={e => { e.stopPropagation(); handleVoiceSelect(null) }}
-                                style={{ padding: '5px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedVoiceId === null ? 'var(--primary)' : '#eee'}`, background: selectedVoiceId === null ? 'var(--primary-lt)' : '#f5f5f5', color: selectedVoiceId === null ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
-                                Default
-                              </button>
-                              {familyVoices.map(v => (
-                                <button key={v.id} onClick={e => { e.stopPropagation(); handleVoiceSelect(v.id) }}
-                                  style={{ padding: '5px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedVoiceId === v.id ? 'var(--primary)' : '#eee'}`, background: selectedVoiceId === v.id ? 'var(--primary-lt)' : '#f5f5f5', color: selectedVoiceId === v.id ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
-                                  {v.name}
-                                </button>
+                        {familyVoices.length > 0 && (<div style={{ marginBottom:12 }}>
+                          <div style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', marginBottom:6 }}>🎙️ Voice</div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                            <button onClick={e => { e.stopPropagation(); handleVoiceSelect(null) }}
+                              style={{ padding:'5px 12px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedVoiceId===null?'var(--primary)':'#eee'}`, background:selectedVoiceId===null?'var(--primary-lt)':'#f5f5f5', color:selectedVoiceId===null?'var(--primary)':'#666', cursor:'pointer' }}>Default</button>
+                            {familyVoices.map(v => (
+                              <button key={v.id} onClick={e => { e.stopPropagation(); handleVoiceSelect(v.id) }}
+                                style={{ padding:'5px 12px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedVoiceId===v.id?'var(--primary)':'#eee'}`, background:selectedVoiceId===v.id?'var(--primary-lt)':'#f5f5f5', color:selectedVoiceId===v.id?'var(--primary)':'#666', cursor:'pointer' }}>
+                                {v.name}</button>
+                            ))}
+                          </div>
+                        </div>)}
+                        {!selectedVoiceId && (<>
+                          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                            <span style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', flex:1 }}>Voice</span>
+                            {[{g:'F',label:'♀ Female'},{g:'M',label:'♂ Male'}].map(({g,label}) => (
+                              <button key={g} onClick={e => { e.stopPropagation(); handleGenderChange(g) }}
+                                style={{ padding:'4px 12px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedGender===g?'var(--primary)':'#eee'}`, background:selectedGender===g?'var(--primary-lt)':'#f5f5f5', color:selectedGender===g?'var(--primary)':'#666', cursor:'pointer' }}>{label}</button>
+                            ))}
+                          </div>
+                          <div style={{ marginBottom:10 }}>
+                            <div style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', marginBottom:6 }}>🎙 English Accent</div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                              {[{id:'en-US',label:'🇺🇸 US'},{id:'en-IN',label:'🇮🇳 India'},{id:'en-GB',label:'🇬🇧 British'},{id:'en-AU',label:'🇦🇺 Aussie'}].map(({id,label}) => (
+                                <button key={id} onClick={e => { e.stopPropagation(); setSelectedAccent(id); localStorage.setItem('glumbi_accent', id) }}
+                                  style={{ padding:'5px 10px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedAccent===id?'var(--primary)':'#eee'}`, background:selectedAccent===id?'var(--primary-lt)':'#f5f5f5', color:selectedAccent===id?'var(--primary)':'#666', cursor:'pointer' }}>{label}</button>
                               ))}
                             </div>
                           </div>
-                        )}
-
-                        {/* Gender + accent — hidden when custom voice is selected */}
-                        {!selectedVoiceId && (
-                          <>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                              <span style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', flex: 1 }}>Voice</span>
-                              {[{ g: 'F', label: '♀ Female' }, { g: 'M', label: '♂ Male' }].map(({ g, label }) => (
-                                <button key={g} onClick={e => { e.stopPropagation(); handleGenderChange(g) }}
-                                  style={{ padding: '4px 12px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedGender === g ? 'var(--primary)' : '#eee'}`, background: selectedGender === g ? 'var(--primary-lt)' : '#f5f5f5', color: selectedGender === g ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
-                                  {label}
-                                </button>
-                              ))}
-                            </div>
-                            <div style={{ marginBottom: 10 }}>
-                              <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 6 }}>🎙 English Accent</div>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                {[
-                                  { id: 'en-US', label: '🇺🇸 US' },
-                                  { id: 'en-IN', label: '🇮🇳 India' },
-                                  { id: 'en-GB', label: '🇬🇧 British' },
-                                  { id: 'en-AU', label: '🇦🇺 Aussie' },
-                                ].map(({ id, label }) => (
-                                  <button key={id}
-                                    onClick={e => { e.stopPropagation(); setSelectedAccent(id); localStorage.setItem('glumbi_accent', id) }}
-                                    style={{ padding: '5px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700, border: `1.5px solid ${selectedAccent === id ? 'var(--primary)' : '#eee'}`, background: selectedAccent === id ? 'var(--primary-lt)' : '#f5f5f5', color: selectedAccent === id ? 'var(--primary)' : '#666', cursor: 'pointer' }}>
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        <div style={{ height: 1, background: '#f0f0f0', marginBottom: 12 }} />
+                        </>)}
+                        <div style={{ height:1, background:'#f0f0f0', marginBottom:12 }} />
                         {[
-                          { group: '🌍 International', langs: [
-                            { lang: 'english',  label: 'English' },
-                            { lang: 'spanish',  label: 'Español' },
-                            { lang: 'french',   label: 'Français' },
-                            { lang: 'italian',  label: 'Italiano' },
-                            { lang: 'chinese',  label: '普通话' },
-                            { lang: 'japanese', label: '日本語' },
-                            { lang: 'korean',   label: '한국어' },
-                          ]},
-                          { group: '🇮🇳 Regional India', langs: [
-                            { lang: 'tamil',     label: 'தமிழ்' },
-                            { lang: 'hindi',     label: 'हिंदी' },
-                            { lang: 'malayalam', label: 'മലയാളം' },
-                            { lang: 'telugu',    label: 'తెలుగు' },
-                            { lang: 'kannada',   label: 'ಕನ್ನಡ' },
-                          ]},
-                        ].map(({ group, langs }) => (
-                          <div key={group} style={{ marginBottom: 12 }}>
-                            <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>{group}</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                              {langs.map(({ lang, label }) => (
+                          {group:'🌍 International',langs:[{lang:'english',label:'English'},{lang:'spanish',label:'Español'},{lang:'french',label:'Français'},{lang:'italian',label:'Italiano'},{lang:'chinese',label:'普通话'},{lang:'japanese',label:'日本語'},{lang:'korean',label:'한국어'}]},
+                          {group:'🇮🇳 Regional India',langs:[{lang:'tamil',label:'தமிழ்'},{lang:'hindi',label:'हिंदी'},{lang:'malayalam',label:'മലയാളം'},{lang:'telugu',label:'తెలుగు'},{lang:'kannada',label:'ಕನ್ನಡ'}]},
+                        ].map(({group,langs}) => (
+                          <div key={group} style={{ marginBottom:12 }}>
+                            <div style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', marginBottom:8 }}>{group}</div>
+                            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                              {langs.map(({lang,label}) => (
                                 <button key={lang} onClick={() => { setLangPickerOpen(false); handleListen(selected, lang) }}
-                                  style={{ padding: '6px 12px', borderRadius: 50, fontSize: 12, fontWeight: 700, border: '1.5px solid #eee', background: speakingLang === lang ? 'var(--primary)' : '#f5f5f5', color: speakingLang === lang ? 'white' : '#444', cursor: 'pointer' }}>
-                                  {label}
-                                </button>
+                                  style={{ padding:'6px 12px', borderRadius:50, fontSize:12, fontWeight:700, border:'1.5px solid #eee', background:speakingLang===lang?'var(--primary)':'#f5f5f5', color:speakingLang===lang?'white':'#444', cursor:'pointer' }}>{label}</button>
                               ))}
                             </div>
                           </div>
@@ -497,47 +523,159 @@ export default function Stories({ child, quota }) {
                   </div>
                 )}
                 <button onClick={() => toggleFav(selected.id)}
-                  style={{ padding: '8px 14px', fontSize: 18, background: selected.favorite ? '#fff3cd' : '#f5f5f5', borderRadius: 50 }}>
+                  style={{ padding:'7px 12px', fontSize:18,
+                    background: isFullscreen ? 'rgba(255,255,255,0.2)' : (selected.favorite ? '#fff3cd' : '#f5f5f5'),
+                    borderRadius:50, border:'none', cursor:'pointer',
+                    boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.2)' : 'none' }}>
                   {selected.favorite ? '⭐' : '☆'}
                 </button>
                 <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
                   title={offline ? 'AI is off — go online to continue stories' : 'Continue this story'}
-                  style={{ padding: '8px 14px', fontSize: 13, fontWeight: 700, borderRadius: 50, border: 'none', cursor: loading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer', background: 'var(--primary-lt)', color: 'var(--primary)', opacity: loading || offline ? 0.5 : 1, whiteSpace: 'nowrap' }}>
+                  style={{ padding:'7px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none',
+                    cursor: loading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
+                    background: isFullscreen ? 'rgba(255,255,255,0.2)' : 'var(--primary-lt)',
+                    color: isFullscreen ? 'white' : 'var(--primary)',
+                    opacity: loading || offline ? 0.5 : 1, whiteSpace:'nowrap',
+                    boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
+                    backdropFilter: isFullscreen ? 'blur(6px)' : 'none' }}>
                   {offline ? '✈️ AI is off' : '▶ Continue'}
                 </button>
                 <button onClick={() => handleDelete(selected.id)}
-                  className="btn-danger" style={{ padding: '8px 14px', fontSize: 13 }}>
+                  style={{ padding:'7px 12px', fontSize:13, borderRadius:50, border:'none', cursor:'pointer',
+                    background: isFullscreen ? 'rgba(255,0,0,0.3)' : '#fee', color: isFullscreen ? 'white' : '#e55' }}>
                   🗑
                 </button>
               </div>
             </div>
+          ) : (
+            /* Normal mode header: illustration + title/buttons */
+            <>
+              <StoryIllustration story={selected} />
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:10, padding:'24px 28px 0' }}>
+                <h2 style={{ fontSize: isMobile ? 20 : 26, color:'var(--text)', lineHeight:1.2, margin:0 }}>{selected.title}</h2>
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', position:'relative' }}>
+                  {(!speaking || speakingStoryId !== selected?.id) && (
+                    <div style={{ position:'relative', display:'inline-flex' }} ref={langPickerRef}>
+                      <button ref={langBtnRef} onClick={openLangPicker}
+                        style={{ padding:'8px 16px', fontSize:13, borderRadius:50, border:'none', background:'var(--primary)', color:'white', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
+                        {translating ? <><span className="spinner" /> Translating…</> : '🔊 Listen'}
+                      </button>
+                      {langPickerOpen && (
+                        <div style={{
+                          position:'fixed', top:langPickerPos.top, right:langPickerPos.right, zIndex:1000,
+                          background:'white', borderRadius:16, padding:16,
+                          boxShadow:'0 8px 40px rgba(0,0,0,0.16)',
+                          width: Math.min(280, window.innerWidth - 16),
+                          maxHeight:`calc(100vh - ${langPickerPos.top + 16}px)`,
+                          overflowY:'auto', border:'1px solid #f0f0f0',
+                        }}>
+                          {/* same picker content rendered in normal mode */}
+                          {/* (duplicate of FS picker above — needed for both modes) */}
+                          <div style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', marginBottom:6 }}>🎙️ Voice</div>
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+                            <button onClick={e => { e.stopPropagation(); handleVoiceSelect(null) }}
+                              style={{ padding:'5px 12px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedVoiceId===null?'var(--primary)':'#eee'}`, background:selectedVoiceId===null?'var(--primary-lt)':'#f5f5f5', color:selectedVoiceId===null?'var(--primary)':'#666', cursor:'pointer' }}>
+                              Default
+                            </button>
+                            {familyVoices.map(v => (
+                              <button key={v.id} onClick={e => { e.stopPropagation(); handleVoiceSelect(v.id) }}
+                                style={{ padding:'5px 12px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedVoiceId===v.id?'var(--primary)':'#eee'}`, background:selectedVoiceId===v.id?'var(--primary-lt)':'#f5f5f5', color:selectedVoiceId===v.id?'var(--primary)':'#666', cursor:'pointer' }}>
+                                {v.name}
+                              </button>
+                            ))}
+                          </div>
+                          {!selectedVoiceId && (<>
+                            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                              <span style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', flex:1 }}>Voice</span>
+                              {[{g:'F',label:'♀ Female'},{g:'M',label:'♂ Male'}].map(({g,label}) => (
+                                <button key={g} onClick={e => { e.stopPropagation(); handleGenderChange(g) }}
+                                  style={{ padding:'4px 12px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedGender===g?'var(--primary)':'#eee'}`, background:selectedGender===g?'var(--primary-lt)':'#f5f5f5', color:selectedGender===g?'var(--primary)':'#666', cursor:'pointer' }}>
+                                  {label}
+                                </button>
+                              ))}
+                            </div>
+                            <div style={{ marginBottom:10 }}>
+                              <div style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', marginBottom:6 }}>🎙 English Accent</div>
+                              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                                {[{id:'en-US',label:'🇺🇸 US'},{id:'en-IN',label:'🇮🇳 India'},{id:'en-GB',label:'🇬🇧 British'},{id:'en-AU',label:'🇦🇺 Aussie'}].map(({id,label}) => (
+                                  <button key={id} onClick={e => { e.stopPropagation(); setSelectedAccent(id); localStorage.setItem('glumbi_accent', id) }}
+                                    style={{ padding:'5px 10px', borderRadius:50, fontSize:11, fontWeight:700, border:`1.5px solid ${selectedAccent===id?'var(--primary)':'#eee'}`, background:selectedAccent===id?'var(--primary-lt)':'#f5f5f5', color:selectedAccent===id?'var(--primary)':'#666', cursor:'pointer' }}>
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </>)}
+                          <div style={{ height:1, background:'#f0f0f0', marginBottom:12 }} />
+                          {[
+                            {group:'🌍 International',langs:[{lang:'english',label:'English'},{lang:'spanish',label:'Español'},{lang:'french',label:'Français'},{lang:'italian',label:'Italiano'},{lang:'chinese',label:'普通话'},{lang:'japanese',label:'日本語'},{lang:'korean',label:'한국어'}]},
+                            {group:'🇮🇳 Regional India',langs:[{lang:'tamil',label:'தமிழ்'},{lang:'hindi',label:'हिंदी'},{lang:'malayalam',label:'മലയാളം'},{lang:'telugu',label:'తెలుగు'},{lang:'kannada',label:'ಕನ್ನಡ'}]},
+                          ].map(({group,langs}) => (
+                            <div key={group} style={{ marginBottom:12 }}>
+                              <div style={{ fontSize:11, fontWeight:800, color:'#aaa', letterSpacing:0.5, textTransform:'uppercase', marginBottom:8 }}>{group}</div>
+                              <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                                {langs.map(({lang,label}) => (
+                                  <button key={lang} onClick={() => { setLangPickerOpen(false); handleListen(selected, lang) }}
+                                    style={{ padding:'6px 12px', borderRadius:50, fontSize:12, fontWeight:700, border:'1.5px solid #eee', background:speakingLang===lang?'var(--primary)':'#f5f5f5', color:speakingLang===lang?'white':'#444', cursor:'pointer' }}>
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button onClick={() => toggleFav(selected.id)}
+                    style={{ padding:'8px 14px', fontSize:18, background:selected.favorite?'#fff3cd':'#f5f5f5', borderRadius:50, border:'none', cursor:'pointer' }}>
+                    {selected.favorite ? '⭐' : '☆'}
+                  </button>
+                  <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
+                    style={{ padding:'8px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none', cursor:loading||offline||quota?.used>=quota?.limit?'not-allowed':'pointer', background:'var(--primary-lt)', color:'var(--primary)', opacity:loading||offline?0.5:1, whiteSpace:'nowrap' }}>
+                    {offline ? '✈️ AI is off' : '▶ Continue'}
+                  </button>
+                  <button onClick={() => handleDelete(selected.id)} className="btn-danger" style={{ padding:'8px 14px', fontSize:13 }}>🗑</button>
+                  {/* Fullscreen button in normal mode */}
+                  <button onClick={toggleFullscreen} title="Fullscreen reading mode"
+                    style={{ padding:'8px 10px', fontSize:13, borderRadius:50, border:'none', background:'#f5f5f5', color:'#888', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Story body (shared between FS and normal mode) ── */}
+          <div style={{
+            flex:1, overflowY:'auto',
+            background: isFullscreen ? 'rgba(255,255,255,0.96)' : 'white',
+            padding: isFullscreen ? '28px max(28px, calc(50% - 360px))' : '16px 28px 24px',
+            display:'flex', flexDirection:'column', gap:16,
+            borderRadius: isFullscreen ? '20px 20px 0 0' : 0,
+            marginTop: isFullscreen ? 0 : 0,
+          }}>
 
             {/* Audio player */}
             {speaking && audioRef.current && speakingStoryId === selected?.id && (
-              <AudioPlayer
-                audio={audioRef.current}
-                lang={speakingLang}
-                onStop={stopSpeaking}
-              />
+              <AudioPlayer audio={audioRef.current} lang={speakingLang} onStop={stopSpeaking} />
             )}
             <ErrorBox msg={audioError} icon="🔇" />
 
-            <div style={{ height: 2, background: 'linear-gradient(to right,var(--primary),var(--accent),var(--green))', borderRadius: 4 }} />
+            <div style={{ height:2, background:'linear-gradient(to right,var(--primary),var(--accent),var(--green))', borderRadius:4 }} />
 
-            {/* Story text styled like a storybook */}
+            {/* Story text */}
             <div style={{
-              lineHeight: 2, fontSize: 17, color: '#444',
-              whiteSpace: 'pre-wrap',
-              fontFamily: 'Nunito, sans-serif',
-              background: '#fffdf9',
-              borderRadius: 14,
-              padding: '20px 24px',
-              border: '1.5px solid #f5ede4',
+              lineHeight:2, fontSize: isFullscreen ? 19 : 17, color:'#444',
+              whiteSpace:'pre-wrap', fontFamily:'Nunito, sans-serif',
+              background:'#fffdf9', borderRadius:14,
+              padding:'20px 24px', border:'1.5px solid #f5ede4',
             }}>
-              {/* Large drop cap on first letter */}
-              {selected.content.slice(0, 1) && (
+              {selected.content.slice(0,1) && (
                 <>
-                  <span style={{ float: 'left', fontSize: 64, lineHeight: 0.8, marginRight: 8, marginTop: 8, color: 'var(--primary)', fontFamily: 'Nunito, sans-serif' }}>
+                  <span style={{ float:'left', fontSize:64, lineHeight:0.8, marginRight:8, marginTop:8, color:'var(--primary)', fontFamily:'Nunito, sans-serif' }}>
                     {selected.content[0]}
                   </span>
                   {selected.content.slice(1)}
@@ -545,7 +683,7 @@ export default function Stories({ child, quota }) {
               )}
             </div>
 
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 'auto', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ fontSize:12, color:'var(--muted)', marginTop:'auto', display:'flex', justifyContent:'space-between' }}>
               <span>✨ Created for {child.name}</span>
               <span>{new Date(selected.createdAt).toLocaleString()}</span>
             </div>

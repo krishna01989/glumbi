@@ -59,7 +59,7 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
             <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 18, color: 'white' }}>Glumbi</span>
           </div>
           <button onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+            style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', padding: 0, flexShrink: 0 }}>
             ✕
           </button>
         </div>

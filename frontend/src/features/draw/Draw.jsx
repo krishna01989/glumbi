@@ -73,6 +73,7 @@ export default function Draw({ child, quota, featureConfig }) {
   const colorInput = useRef(null)
   const drawing    = useRef(false)
   const lastPos    = useRef(null)
+  const fsRef      = useRef(null)
 
   const historyRef = useRef([])
   const [canUndo, setCanUndo]     = useState(false)
@@ -88,6 +89,31 @@ export default function Draw({ child, quota, featureConfig }) {
   const [guideInput, setGuideInput]     = useState('')
   const [guideLoading, setGuideLoading] = useState(false)
   const [showDemo, setShowDemo]   = useState(() => !localStorage.getItem('glm_draw_seen'))
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [viewport, setViewport]   = useState({ vw: window.innerWidth, vh: window.innerHeight })
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
+  useEffect(() => {
+    const update = () => {
+      setTimeout(() => setViewport({ vw: window.innerWidth, vh: window.innerHeight }), 100)
+    }
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('orientationchange', update) }
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      fsRef.current?.requestFullscreen?.()
+    } else {
+      document.exitFullscreen?.()
+    }
+  }
 
   const drawAiEnabled = (() => {
     if (!featureConfig) return true
@@ -302,7 +328,22 @@ export default function Draw({ child, quota, featureConfig }) {
     link.click()
   }
 
-  const toolbarStyle = {
+  const toolbarStyle = isFullscreen ? {
+    // Fullscreen: narrow vertical strip on the left, full height
+    width: 64,
+    flexShrink: 0,
+    alignSelf: 'stretch',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    background: 'white',
+    borderRadius: 0,
+    padding: '12px 8px',
+    boxShadow: '2px 0 8px rgba(0,0,0,0.06)',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    overflowY: 'auto',
+  } : {
     width: isCompact ? '100%' : 96,
     flexShrink: 0,
     display: 'flex',
@@ -357,21 +398,28 @@ export default function Draw({ child, quota, featureConfig }) {
         </form>
       )}
 
-      {/* ── Middle: toolbar + drawing area ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? 12 : 20, minHeight: 0 }}>
+      {/* ── Middle: toolbar + drawing area (fullscreen root) ── */}
+      <div ref={fsRef} style={isFullscreen ? {
+        position: 'relative',
+        display: 'flex', flexDirection: 'row',
+        height: '100dvh', width: '100dvw',
+        background: '#f0f0f0',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+      } : { flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? 12 : 20, minHeight: 0 }}>
 
       {/* ── Toolbar ── */}
       <div style={toolbarStyle}>
 
         {/* ── COLOUR section ── */}
-        {!isCompact && <SectionLabel>Colour</SectionLabel>}
+        {!isCompact && !isFullscreen && <SectionLabel>Colour</SectionLabel>}
 
         {/* Active color swatch + palette trigger */}
         <div style={{ position: 'relative' }}>
           <button ref={swatchRef} className="palette-trigger"
             onClick={() => {
               const rect = swatchRef.current.getBoundingClientRect()
-              setPalettePos(isCompact
+              setPalettePos(isCompact || isFullscreen
                 ? { x: rect.left, y: rect.bottom + 8 }
                 : { x: rect.right + 10, y: rect.top }
               )
@@ -394,7 +442,7 @@ export default function Draw({ child, quota, featureConfig }) {
               position: 'fixed',
               left: palettePos.x,
               top: palettePos.y,
-              zIndex: 1000,
+              zIndex: 2000,
               background: 'white',
               borderRadius: 20,
               padding: 16,
@@ -449,8 +497,8 @@ export default function Draw({ child, quota, featureConfig }) {
           )}
         </div>
 
-        {/* Quick colour row (most used) */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: 76 }}>
+        {/* Quick colours */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isFullscreen ? 52 : 76 }}>
           {['#000000','#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#9c6ef8','#ff69b4'].map(c => (
             <button key={c} onClick={() => pickColor(c)}
               style={{
@@ -463,16 +511,15 @@ export default function Draw({ child, quota, featureConfig }) {
           ))}
         </div>
 
-        {!isCompact && <Divider />}
+        {!isCompact && !isFullscreen && <Divider />}
+        {!isCompact && !isFullscreen && <SectionLabel>Size</SectionLabel>}
 
-        {/* ── SIZE section ── */}
-        {!isCompact && <SectionLabel>Size</SectionLabel>}
-
-        <div style={{ display: 'flex', flexDirection: isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
           {BRUSHES.map(b => (
             <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
               style={{
-                width: isCompact ? 34 : 72, height: isCompact ? 32 : 28,
+                width: isFullscreen ? 44 : isCompact ? 34 : 72,
+                height: isFullscreen ? 36 : isCompact ? 32 : 28,
                 borderRadius: 8, border: 'none', cursor: 'pointer',
                 background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
                 outline: brush === b.size ? '2px solid var(--primary)' : 'none',
@@ -485,80 +532,85 @@ export default function Draw({ child, quota, featureConfig }) {
                 background: brush === b.size ? 'var(--primary)' : '#aaa',
                 flexShrink: 0,
               }} />
-              {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: brush === b.size ? 'var(--primary)' : '#aaa' }}>{b.title}</span>}
+              {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: brush === b.size ? 'var(--primary)' : '#aaa' }}>{b.title}</span>}
             </button>
           ))}
         </div>
 
-        {!isCompact && <Divider />}
+        {!isCompact && !isFullscreen && <Divider />}
+        {!isCompact && !isFullscreen && <SectionLabel>Tools</SectionLabel>}
 
-        {/* ── TOOLS section ── */}
-        {!isCompact && <SectionLabel>Tools</SectionLabel>}
+        {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
 
-        <div style={{ display: 'flex', flexDirection: isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
           <button onClick={() => { setFillMode(f => !f); setEraser(false) }} title="Fill"
             style={{
-              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              width: isFullscreen ? 44 : isCompact ? 40 : 72,
+              height: isFullscreen ? 40 : isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: fillMode ? '#fff0f0' : '#f5f5f5',
+              background: fillMode ? 'var(--primary-lt)' : '#f5f5f5',
               outline: fillMode ? '2px solid var(--primary)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-            <span style={{ fontSize: 16 }}>🪣</span>
-            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: fillMode ? 'var(--primary)' : '#aaa' }}>Fill</span>}
+            <span style={{ fontSize: 18 }}>🪣</span>
+            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: fillMode ? 'var(--primary)' : '#aaa' }}>Fill</span>}
           </button>
 
           <button onClick={() => { setEraser(e => !e); setFillMode(false) }} title="Eraser"
             style={{
-              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              width: isFullscreen ? 44 : isCompact ? 40 : 72,
+              height: isFullscreen ? 40 : isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: eraser ? '#fff0f0' : '#f5f5f5',
+              background: eraser ? 'var(--primary-lt)' : '#f5f5f5',
               outline: eraser ? '2px solid var(--primary)' : 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-            <span style={{ fontSize: 16 }}>🧹</span>
-            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: eraser ? 'var(--primary)' : '#aaa' }}>Eraser</span>}
+            <span style={{ fontSize: 18 }}>🧹</span>
+            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: eraser ? 'var(--primary)' : '#aaa' }}>Eraser</span>}
           </button>
 
           <button onClick={handleUndo} title="Undo" disabled={!canUndo}
             style={{
-              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              width: isFullscreen ? 44 : isCompact ? 40 : 72,
+              height: isFullscreen ? 40 : isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: canUndo ? 'pointer' : 'not-allowed', background: '#f5f5f5',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               opacity: canUndo ? 1 : 0.35,
             }}>
-            <span style={{ fontSize: 16 }}>↩️</span>
-            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Undo</span>}
+            <span style={{ fontSize: 18 }}>↩️</span>
+            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Undo</span>}
           </button>
 
           <button onClick={clearCanvas} title="Clear canvas"
             style={{
-              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              width: isFullscreen ? 44 : isCompact ? 40 : 72,
+              height: isFullscreen ? 40 : isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer', background: '#f5f5f5',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-            <span style={{ fontSize: 16 }}>🗑️</span>
-            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Clear</span>}
+            <span style={{ fontSize: 18 }}>🗑️</span>
+            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Clear</span>}
           </button>
 
           <button onClick={downloadDrawing} title="Save drawing"
             style={{
-              width: isCompact ? 40 : 72, height: isCompact ? 38 : 32,
+              width: isFullscreen ? 44 : isCompact ? 40 : 72,
+              height: isFullscreen ? 40 : isCompact ? 38 : 32,
               borderRadius: 8, border: 'none', cursor: 'pointer', background: '#f5f5f5',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
-            <span style={{ fontSize: 16 }}>💾</span>
-            {!isCompact && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Save</span>}
+            <span style={{ fontSize: 18 }}>💾</span>
+            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Save</span>}
           </button>
         </div>
 
-      </div>
+      </div>{/* end toolbar */}
 
       {/* ── Canvas area ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isFullscreen ? 0 : 16, minHeight: 0 }}>
 
-        {/* Guide prompt — mobile only (desktop version rendered above) */}
-        {isCompact && guideEnabled && (
+        {/* Guide prompt — mobile only, hidden in fullscreen */}
+        {isCompact && !isFullscreen && guideEnabled && (
           <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
               borderRadius: 50, padding: '0 16px', boxShadow: 'var(--shadow)', minHeight: 46 }}>
@@ -583,10 +635,11 @@ export default function Draw({ child, quota, featureConfig }) {
           </form>
         )}
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && guide ? 'column' : 'row',
-          gap: 16, minHeight: isCompact ? 340 : 0 }}>
-        {/* Guide panel */}
-        {guide && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && guide && !isFullscreen ? 'column' : 'row',
+          gap: 16, minHeight: isCompact && !isFullscreen ? 340 : 0 }}>
+
+        {/* Guide panel — side panel in normal mode, floating overlay in fullscreen */}
+        {guide && !isFullscreen && (
           <div style={{ width: isCompact ? '100%' : 220, flexShrink: 0, background: 'white',
             borderRadius: 20, boxShadow: 'var(--shadow)', padding: '16px', overflowY: 'auto',
             display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -601,8 +654,8 @@ export default function Draw({ child, quota, featureConfig }) {
         )}
 
         <div style={{
-          flex: 1, borderRadius: 20, overflow: 'hidden',
-          boxShadow: 'var(--shadow)', position: 'relative',
+          flex: 1, borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
+          boxShadow: isFullscreen ? 'none' : 'var(--shadow)', position: 'relative',
           cursor: canvasCursor,
           background: 'white',
         }}>
@@ -626,15 +679,86 @@ export default function Draw({ child, quota, featureConfig }) {
               <div style={{ fontSize: 16, color: '#ccc', fontWeight: 700, marginTop: 8 }}>Start drawing!</div>
             </div>
           )}
+          {/* Fullscreen toggle button — canvas overlay in normal mode */}
+          {!isFullscreen && (
+            <button onClick={toggleFullscreen} title="Fullscreen"
+              style={{ position:'absolute', top:10, right:10, zIndex:10,
+                width:32, height:32, borderRadius:8, border:'1.5px solid rgba(0,0,0,0.1)',
+                background:'rgba(255,255,255,0.9)', color:'#888', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+              </svg>
+            </button>
+          )}
+          {/* Guide floating panel in fullscreen */}
+          {isFullscreen && guide && (
+            <div style={{ position:'absolute', top:10, left:10, zIndex:10, maxWidth:220,
+              background:'rgba(255,255,255,0.97)', borderRadius:16,
+              boxShadow:'0 4px 20px rgba(0,0,0,0.15)', padding:'12px 14px',
+              display:'flex', flexDirection:'column', gap:8, maxHeight:'60vh', overflowY:'auto' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <div style={{ fontWeight:900, fontSize:13, color:'var(--primary)' }}>🖼️ {guideSubject}</div>
+                <button onClick={() => setGuide('')}
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#ccc', fontSize:14 }}>✕</button>
+              </div>
+              <div style={{ fontSize:12, lineHeight:1.7, color:'#444', whiteSpace:'pre-wrap' }}>{guide}</div>
+            </div>
+          )}
+          {/* Exit fullscreen button — absolute top-right of canvas in fullscreen */}
+          {isFullscreen && (
+            <button onClick={toggleFullscreen} title="Exit fullscreen"
+              style={{ position:'absolute', top:10, right:10, zIndex:20,
+                width:36, height:36, borderRadius:10, border:'none',
+                background:'rgba(255,255,255,0.95)', color:'#555', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', padding:0,
+                boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+              </svg>
+            </button>
+          )}
         </div>
         </div>{/* end canvas+guide row */}
-      </div>
 
-      </div>{/* end middle row */}
+        {/* ── Fullscreen bottom action bar ── */}
+        {isFullscreen && (
+          <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:10,
+            padding:'10px 16px', background:'white', borderTop:'1px solid #f0f0f0',
+            boxSizing:'border-box', minHeight:60 }}>
+            {drawAiEnabled && (
+              <button onClick={handleIdentify}
+                disabled={loading || isEmpty || quota?.used >= quota?.limit || offline}
+                style={{ padding:'10px 20px', borderRadius:50, border:'none', fontWeight:800,
+                  fontSize:14, cursor:(isEmpty||offline)?'not-allowed':'pointer',
+                  background:'linear-gradient(135deg,var(--primary),var(--accent))',
+                  color:'white', opacity:(isEmpty||offline)?0.45:1, flexShrink:0,
+                  whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(0,0,0,0.15)' }}>
+                {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
+              </button>
+            )}
+            {aiReply && (
+              <div style={{ flex:1, fontSize:13, fontWeight:600, color:'#444',
+                background:'var(--primary-lt)', borderRadius:12,
+                padding:'8px 14px', lineHeight:1.5 }}>
+                {aiReply}
+              </div>
+            )}
+            {!aiReply && !loading && (
+              <div style={{ flex:1, fontSize:12, color:'#ccc', fontWeight:600 }}>
+                {guideSubject ? `Drawing: ${guideSubject}` : 'Draw something, then ask AI to guess it!'}
+              </div>
+            )}
+          </div>
+        )}
 
-      {/* ── AI section (below toolbar+canvas on desktop) ── */}
-      <QuotaBanner quota={quota} />
-      <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
+      </div>{/* end canvas area */}
+
+      </div>{/* end fsRef / middle row */}
+
+      {/* ── AI section — hidden in fullscreen ── */}
+      {!isFullscreen && <QuotaBanner quota={quota} />}
+      <div style={{ display: isFullscreen ? 'none' : 'flex', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
         {!drawAiEnabled && (
           <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
             ✈️ AI drawing features are currently off

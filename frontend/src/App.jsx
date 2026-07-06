@@ -1162,12 +1162,12 @@ export default function App() {
           <button onClick={() => setCollapsed(c => !c)}
             style={{
               position: 'absolute', top: 24, right: -14,
-              width: 28, height: 28, borderRadius: '50%',
+              width: 28, height: 28, minWidth: 28, borderRadius: '50%',
               background: 'white', border: 'none', cursor: 'pointer',
               boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
               fontSize: 12, color: theme.primary, fontWeight: 800,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              zIndex: 20,
+              padding: 0, flexShrink: 0, zIndex: 20,
             }}>
             {collapsed ? '›' : '‹'}
           </button>

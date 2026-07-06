@@ -907,7 +907,7 @@ export default function App() {
               <span style={{ fontSize: 18, color: 'white', fontFamily: 'Nunito, sans-serif' }}>Glumbi</span>
             </div>
             <button onClick={() => setMgmtMenuOpen(false)}
-              style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
           </div>
           {/* AI Credits summary */}
           {quota && (() => {

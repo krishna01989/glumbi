@@ -48,13 +48,13 @@ public class ActivityAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxTokens);
-        // Layer 2 — safety preamble
-        body.put("system", safety.safetySystemPreamble() + "You are a cheerful children's activity planner.");
 
         ArrayNode messages = body.putArray("messages");
         messages.addObject().put("role", "user").put("content", prompt);
 
-        String response = anthropicClient.call(body);
+        String response = anthropicClient.callWithCachedSystem(body,
+                safety.safetySystemPreamble(),
+                "You are a cheerful children's activity planner.");
 
         return parseResponse(response);
     }

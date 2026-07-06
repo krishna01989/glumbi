@@ -30,18 +30,16 @@ public class MemoryPlayAgent {
     public List<Map<String, String>> generateFlashcards(String childName, int age, String topic) {
         safety.validateInput(topic);
 
-        String system = safety.safetySystemPreamble() +
-                String.format(promptLoader.load("memory-flashcards-system"), age);
+        String agentPrompt = String.format(promptLoader.load("memory-flashcards-system"), age);
         String prompt = String.format(promptLoader.load("memory-flashcards-user"), topic, childName, age);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", flashcardTokens);
-        body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
         try {
-            String response = anthropicClient.call(body);
+            String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
             JsonNode root = mapper.readTree(response);
             String text = root.path("content").get(0).path("text").asText();
             text = stripCodeFences(text);
@@ -68,8 +66,7 @@ public class MemoryPlayAgent {
     public record WordResult(String word, String meaning, String exampleSentence, String pronunciation, String emoji) {}
 
     public WordResult generateWordOfDay(String childName, int age, java.time.LocalDate date, List<String> recentWords) {
-        String system = safety.safetySystemPreamble() +
-                String.format(promptLoader.load("memory-wordofday-system"), age);
+        String agentPrompt = String.format(promptLoader.load("memory-wordofday-system"), age);
         String avoidClause = recentWords.isEmpty() ? "" :
                 "\nDo NOT use any of these recently used words: " + String.join(", ", recentWords) + ".";
         String prompt = String.format(promptLoader.load("memory-wordofday-user"), childName, age, date.toString()) + avoidClause;
@@ -77,11 +74,10 @@ public class MemoryPlayAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", wordTokens);
-        body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
         try {
-            String response = anthropicClient.call(body);
+            String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
             JsonNode root = mapper.readTree(response);
             String text = root.path("content").get(0).path("text").asText();
             text = stripCodeFences(text);
@@ -116,18 +112,16 @@ public class MemoryPlayAgent {
     public List<Map<String, String>> generateMatchPairs(String childName, int age, String theme) {
         safety.validateInput(theme);
 
-        String system = safety.safetySystemPreamble() +
-                String.format(promptLoader.load("memory-match-system"), age);
+        String agentPrompt = String.format(promptLoader.load("memory-match-system"), age);
         String prompt = String.format(promptLoader.load("memory-match-user"), theme, childName, age);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", matchTokens);
-        body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
         try {
-            String response = anthropicClient.call(body);
+            String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
             JsonNode root = mapper.readTree(response);
             String text = root.path("content").get(0).path("text").asText();
             text = stripCodeFences(text);
@@ -163,11 +157,12 @@ public class MemoryPlayAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", 200);
-        body.put("system", safety.safetySystemPreamble() + "You write brief, warm parent notifications for a kids learning app.");
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
         try {
-            String response = anthropicClient.call(body);
+            String response = anthropicClient.callWithCachedSystem(body,
+                    safety.safetySystemPreamble(),
+                    "You write brief, warm parent notifications for a kids learning app.");
             JsonNode root = mapper.readTree(response);
             String text = root.path("content").get(0).path("text").asText().trim();
             return safety.isOutputSafe(text) ? text : null;

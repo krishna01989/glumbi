@@ -46,13 +46,13 @@ public class CuriosityAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxTokens);
-        // Layer 2 — safety preamble injected into system prompt
-        body.put("system", safety.safetySystemPreamble() + "You are a fun, friendly science explainer for young children.");
 
         ArrayNode messages = body.putArray("messages");
         messages.addObject().put("role", "user").put("content", prompt);
 
-        String response = anthropicClient.call(body);
+        String response = anthropicClient.callWithCachedSystem(body,
+                safety.safetySystemPreamble(),
+                "You are a fun, friendly science explainer for young children.");
 
         CuriosityResult result = parseResponse(response, question);
 

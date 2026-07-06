@@ -29,7 +29,7 @@ public class WritingCoachAgent {
             );
         }
 
-        String system = safety.safetySystemPreamble() + String.format(
+        String agentPrompt = String.format(
                 promptLoader.load("writing-coach-system"), childAge, coachGuidance(childAge), childAge);
 
         String prompt = String.format(promptLoader.load("writing-coach-user"),
@@ -38,10 +38,9 @@ public class WritingCoachAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxTokens);
-        body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
-        String response = anthropicClient.call(body);
+        String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
 
         return parseResponse(response, childName);
     }

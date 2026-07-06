@@ -24,7 +24,7 @@ public class ReadQuizAgent {
         relevance.validate(topic, RelevanceGuard.Context.STORY);
         safety.validateInput(topic);
 
-        String system = safety.safetySystemPreamble() + String.format(
+        String agentPrompt = String.format(
                 promptLoader.load("read-quiz-system"), childAge, readingGuidance(childAge));
 
         String prompt = String.format(promptLoader.load("read-quiz-user"),
@@ -33,10 +33,9 @@ public class ReadQuizAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxTokens);
-        body.put("system", system);
         body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
-        String response = anthropicClient.call(body);
+        String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
 
         return parseResponse(response, topic);
     }

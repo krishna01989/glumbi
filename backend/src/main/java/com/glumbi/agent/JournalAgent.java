@@ -36,10 +36,9 @@ public class JournalAgent {
             ObjectNode body = mapper.createObjectNode();
             body.put("model", model);
             body.put("max_tokens", maxTokens);
-            body.put("system", system);
             body.putArray("messages").addObject().put("role", "user").put("content", prompt);
 
-            String response = anthropicClient.call(body);
+            String response = anthropicClient.callWithCachedSystem(body, system);
             JsonNode root = mapper.readTree(response);
             String text = root.path("content").get(0).path("text").asText().trim();
 

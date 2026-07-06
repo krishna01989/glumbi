@@ -26,18 +26,17 @@ public class StoryAgent {
 
         String pronoun = "girl".equalsIgnoreCase(gender) ? "she/her" : "he/him";
 
-        String systemPrompt = safety.safetySystemPreamble() + String.format(
+        String agentPrompt = String.format(
                 promptLoader.load("story-system"),
                 childName, childAge, pronoun, childName, pronoun, childAge, storyGuidance(childAge));
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxTokens);
-        body.put("system", systemPrompt);
         body.putArray("messages").addObject().put("role", "user")
                 .put("content", "Create a bedtime story using these elements: " + keywords);
 
-        String response = anthropicClient.call(body);
+        String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
 
         StoryResult result = parseResponse(response);
         if (!safety.isOutputSafe(result.content()))
@@ -51,7 +50,7 @@ public class StoryAgent {
         String snippet = previousContent.length() > 600
                 ? previousContent.substring(previousContent.length() - 600) : previousContent;
 
-        String systemPrompt = safety.safetySystemPreamble() + String.format(
+        String agentPrompt = String.format(
                 promptLoader.load("story-system"),
                 childName, childAge, pronoun, childName, pronoun, childAge, storyGuidance(childAge));
 
@@ -63,10 +62,9 @@ public class StoryAgent {
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
         body.put("max_tokens", maxTokens);
-        body.put("system", systemPrompt);
         body.putArray("messages").addObject().put("role", "user").put("content", userMsg);
 
-        String response = anthropicClient.call(body);
+        String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
         StoryResult result = parseResponse(response);
         if (!safety.isOutputSafe(result.content()))
             return new StoryResult("A Magical Story", safety.safeFallback("story"));

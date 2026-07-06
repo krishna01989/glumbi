@@ -69,7 +69,7 @@ public class MemoryPlayAgent {
         String agentPrompt = String.format(promptLoader.load("memory-wordofday-system"), age);
         String avoidClause = recentWords.isEmpty() ? "" :
                 "\nDo NOT use any of these recently used words: " + String.join(", ", recentWords) + ".";
-        String prompt = String.format(promptLoader.load("memory-wordofday-user"), childName, age, date.toString()) + avoidClause;
+        String prompt = String.format(promptLoader.load("memory-wordofday-user"), childName, age, date.toString(), age) + avoidClause;
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
@@ -81,10 +81,10 @@ public class MemoryPlayAgent {
             JsonNode root = mapper.readTree(response);
             String text = root.path("content").get(0).path("text").asText();
             text = stripCodeFences(text);
-            if (!safety.isOutputSafe(text)) return wordFallback();
+            if (!safety.isOutputSafe(text)) return null;
             JsonNode node = mapper.readTree(text);
-            String word = capitalize(node.path("word").asText("Wonderful"));
-            if (!isWordSafeForAge(word, age)) return wordFallback();
+            String word = capitalize(node.path("word").asText(""));
+            if (word.isBlank() || !isWordSafeForAge(word, age)) return null;
             return new WordResult(
                 word,
                 node.path("meaning").asText("Something truly amazing."),
@@ -93,18 +93,9 @@ public class MemoryPlayAgent {
                 node.path("emoji").asText("✨")
             );
         } catch (Exception e) {
-            return wordFallback();
+            System.err.println("[MemoryPlayAgent] Word of Day generation failed: " + e.getMessage());
+            return null;
         }
-    }
-
-    private WordResult wordFallback() {
-        return new WordResult(
-            "Curious",
-            "Wanting to know or learn about something.",
-            "The curious puppy sniffed every flower in the garden!",
-            "KYOOR-ee-us",
-            "🐾"
-        );
     }
 
     // ── Memory Match ──────────────────────────────────────────────────────────

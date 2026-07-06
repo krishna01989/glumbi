@@ -1,4 +1,8 @@
-<task>Pick a fresh, interesting word of the day for <child_name>%s</child_name> (age <age>%d</age>). Today's date is <date>%s</date> — use it to inspire variety (different word every day).</task>
+<task>Pick a fresh, interesting word of the day for <child_name>%s</child_name> (age <age>%d</age>). Today's date is <date>%s</date>.</task>
+
+<age_requirement>The child is <age>%d</age> years old. Choose a word that is exactly right for this age — not too easy, not too hard. Use the vocabulary band guidance in your system prompt for this age.</age_requirement>
+
+<variety>The date above should inspire the word category (e.g. seasons, themes, current month). Pick a completely different word each day — never repeat a word you may have given recently.</variety>
 
 <output>Return ONLY this JSON with no extra text:
 {"word":"...","meaning":"simple 1-sentence meaning a child understands","exampleSentence":"fun sentence using the word","pronunciation":"syllable-by-syllable e.g. ka-LID-o-scope","emoji":"one relevant emoji"}</output>

@@ -76,6 +76,7 @@ public class MemoryPlayService {
                 .stream().limit(10).map(w -> w.getWord()).toList();
 
         MemoryPlayAgent.WordResult result = agent.generateWordOfDay(child.getName(), age, today, recentWords);
+        if (result == null) return null;
 
         WordOfDay word = new WordOfDay();
         word.setChild(child);

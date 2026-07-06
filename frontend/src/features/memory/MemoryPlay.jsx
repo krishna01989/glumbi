@@ -178,12 +178,16 @@ function FlashcardsTab({ child, quota }) {
 
 // ── Word of Day tab ────────────────────────────────────────────────────────────
 
+const HISTORY_DAYS = 7
+
 function WordOfDayTab({ child }) {
   const offline = useOffline()
   const [word, setWord] = useState(null)
+  const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [speaking, setSpeaking] = useState(false)
+  const [speakingId, setSpeakingId] = useState(null)
   const audioRef = useRef(null)
   const fetchedRef = useRef(false)
 
@@ -191,9 +195,13 @@ function WordOfDayTab({ child }) {
     if (offline || fetchedRef.current) return
     fetchedRef.current = true
     setLoading(true)
-    memoryApi.getWordOfDay(child.id)
-      .then(setWord)
-      .catch(err => setError(err.message))
+    Promise.all([
+      memoryApi.getWordOfDay(child.id),
+      memoryApi.getWordOfDayHistory(child.id),
+    ]).then(([today, hist]) => {
+      setWord(today)
+      setHistory(hist.filter(h => h.id !== today.id).slice(0, HISTORY_DAYS))
+    }).catch(err => setError(err.message))
       .finally(() => setLoading(false))
     window.__glumbiRefreshQuota?.()
   }, [child.id, offline])
@@ -208,36 +216,37 @@ function WordOfDayTab({ child }) {
   if (loading) return <ThemeLoader theme={child.theme} />
 
   if (error) return (
-    <div className="card">
-      <ErrorBox msg={error} />
-    </div>
+    <div className="card"><ErrorBox msg={error} /></div>
   )
 
   if (!word) return null
 
   const isMobile = window.innerWidth < 768
 
-  function playWord() {
-    if (speaking || offline) return
+  function playAudio(w, id) {
+    if (offline) return
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
-    setSpeaking(true)
-    const audio = new Audio(learnApi.audioUrl(word.word, 'en-US'))
+    if (speakingId === id) { setSpeaking(false); setSpeakingId(null); return }
+    setSpeaking(true); setSpeakingId(id)
+    const audio = new Audio(learnApi.audioUrl(w, 'en-US'))
     audioRef.current = audio
-    audio.onended = () => setSpeaking(false)
-    audio.onerror = () => setSpeaking(false)
-    audio.play().catch(() => setSpeaking(false))
+    audio.onended = () => { setSpeaking(false); setSpeakingId(null) }
+    audio.onerror = () => { setSpeaking(false); setSpeakingId(null) }
+    audio.play().catch(() => { setSpeaking(false); setSpeakingId(null) })
   }
 
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Today's word */}
       <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary-lt), white)', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', textAlign: 'center', padding: isMobile ? '24px 20px' : 40 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1 }}>Today's Word</div>
         <div style={{ fontSize: isMobile ? 56 : 80 }}>{word.emoji}</div>
         <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 28 : 40, fontWeight: 900, color: 'var(--primary)' }}>
           {word.word}
         </div>
-        <button onClick={playWord} disabled={speaking || offline}
-          style={{ background: speaking ? 'var(--primary)' : 'rgba(0,0,0,0.06)', borderRadius: 50, padding: '7px 18px', fontSize: 13, fontWeight: 700, color: speaking ? 'white' : '#666', letterSpacing: 0.5, border: 'none', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}>
-          {speaking ? <><span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> Playing…</> : <>🔊 {word.pronunciation}</>}
+        <button onClick={() => playAudio(word.word, word.id)} disabled={offline}
+          style={{ background: speakingId === word.id ? 'var(--primary)' : 'rgba(0,0,0,0.06)', borderRadius: 50, padding: '7px 18px', fontSize: 13, fontWeight: 700, color: speakingId === word.id ? 'white' : '#666', letterSpacing: 0.5, border: 'none', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}>
+          {speakingId === word.id ? <><span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> Playing…</> : <>🔊 {word.pronunciation}</>}
         </button>
         <div style={{ fontSize: isMobile ? 14 : 16, color: '#444', lineHeight: 1.7, fontWeight: 600 }}>{word.meaning}</div>
         <div style={{ background: 'var(--primary-lt)', borderRadius: 14, padding: '12px 16px', fontSize: isMobile ? 13 : 15, color: '#333', lineHeight: 1.7, width: '100%', textAlign: 'left', boxSizing: 'border-box' }}>
@@ -245,9 +254,36 @@ function WordOfDayTab({ child }) {
           <em>"{word.exampleSentence}"</em>
         </div>
         <div style={{ fontSize: 12, color: '#bbb', marginTop: 2 }}>
-          Word for {new Date(word.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          {new Date(word.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </div>
       </div>
+
+      {/* History */}
+      {history.length > 0 && (
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
+            Past {history.length} Word{history.length > 1 ? 's' : ''}
+          </div>
+          {history.map((h, i) => (
+            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
+              <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--primary)' }}>{h.word}</span>
+                  <span style={{ fontSize: 11, color: '#bbb' }}>
+                    {new Date(h.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <div style={{ fontSize: 13, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{h.meaning}</div>
+              </div>
+              <button onClick={() => playAudio(h.word, h.id)} disabled={offline}
+                style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', border: 'none', background: speakingId === h.id ? 'var(--primary)' : 'var(--primary-lt)', color: speakingId === h.id ? 'white' : 'var(--primary)', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0, flexShrink: 0 }}>
+                {speakingId === h.id ? <span className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : '🔊'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

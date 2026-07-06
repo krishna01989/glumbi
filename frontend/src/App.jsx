@@ -536,6 +536,12 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [child?.id])
 
+  // Exit browser fullscreen when screen-time alert fires so the modal is visible
+  useEffect(() => {
+    if (!screenTimeAlert) return
+    if (document.fullscreenElement) document.exitFullscreen?.()
+  }, [screenTimeAlert])
+
   // Auto-end when snoozes exhausted
   useEffect(() => {
     if (screenTimeAlert !== 'force-end') return

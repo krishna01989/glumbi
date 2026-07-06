@@ -394,9 +394,9 @@ export default function Stories({ child, quota }) {
           <div style={{ flex: 1, overflowY: 'auto', background: 'white', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
               <h2 style={{ fontSize: isMobile ? 20 : 26, color: 'var(--text)', lineHeight: 1.2 }}>{selected.title}</h2>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', position: 'relative' }}>
                 {(!speaking || speakingStoryId !== selected?.id) && (
-                  <div style={{ position: 'relative' }} ref={langPickerRef}>
+                  <div style={{ position: 'relative', display: 'inline-flex' }} ref={langPickerRef}>
                     <button ref={langBtnRef} onClick={openLangPicker}
                       style={{ padding: '8px 16px', fontSize: 13, borderRadius: 50, border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
                       {translating ? <><span className="spinner" /> Translating…</> : '🔊 Listen'}

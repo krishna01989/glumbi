@@ -442,7 +442,7 @@ function pathEndpoints(pathStr) {
 
 // ── Canvas component ───────────────────────────────────────────────────────────
 
-function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Nunito, sans-serif' }) {
+function DrawCanvas({ onSubmit, onPractice, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Nunito, sans-serif' }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
 
@@ -503,11 +503,9 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
     c.getContext('2d').clearRect(0, 0, c.width, c.height)
   }
 
-  function submit() {
+  function getImageData() {
     const c = canvasRef.current
     const ctx = c.getContext('2d')
-
-    // Crop to bounding box of drawn content + padding, so AI sees a tight image
     const pixels = ctx.getImageData(0, 0, c.width, c.height).data
     let minX = c.width, minY = c.height, maxX = 0, maxY = 0
     for (let y = 0; y < c.height; y++) {
@@ -519,8 +517,6 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
         }
       }
     }
-
-    let imageData
     if (maxX > minX && maxY > minY) {
       const pad = 24
       const x = Math.max(0, minX - pad), y = Math.max(0, minY - pad)
@@ -532,13 +528,12 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
       cCtx.fillStyle = '#ffffff'
       cCtx.fillRect(0, 0, w, h)
       cCtx.drawImage(c, x, y, w, h, 0, 0, w, h)
-      imageData = crop.toDataURL('image/png').split(',')[1]
-    } else {
-      imageData = c.toDataURL('image/png').split(',')[1]
+      return crop.toDataURL('image/png').split(',')[1]
     }
-
-    onSubmit(imageData)
+    return c.toDataURL('image/png').split(',')[1]
   }
+
+  function submit() { onSubmit(getImageData()) }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: fullWidth ? '100%' : 'auto' }}>
@@ -576,10 +571,17 @@ function DrawCanvas({ onSubmit, loading, disabled = false, height = 260, fullWid
           onMouseDown={start} onMouseMove={move} onMouseUp={stop} onMouseLeave={stop}
           onTouchEnd={stop} />
       </div>
-      <div style={{ display: 'flex', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
         <button onClick={clear} style={btn('#f5f5f5','#555')}>🗑️ Clear</button>
-        <button onClick={submit} disabled={loading || disabled} style={btn('linear-gradient(135deg,var(--primary),var(--accent))','white')}>
-          {loading ? <><span className="spinner" style={{ width:14,height:14,borderWidth:2 }}/>&nbsp;Checking…</> : '✨ Check!'}
+        {onPractice && (
+          <button onClick={() => onPractice(getImageData())} disabled={loading}
+            style={btn('var(--primary-lt)','var(--primary)')}>
+            ✏️ Practice
+          </button>
+        )}
+        <button onClick={submit} disabled={loading || disabled}
+          style={btn(disabled ? '#e0e0e0' : 'linear-gradient(135deg,var(--primary),var(--accent))', disabled ? '#aaa' : 'white')}>
+          {loading ? <><span className="spinner" style={{ width:14,height:14,borderWidth:2 }}/>&nbsp;Checking…</> : '✨ Check with AI'}
         </button>
       </div>
     </div>
@@ -708,21 +710,55 @@ function HindiCompoundTable({ selected, onSelect }) {
 
 // ── Letter practice panel ──────────────────────────────────────────────────────
 
+const PRACTICE_MSGS = [
+  { emoji:'⭐', msg:"Great practice! Keep going — repetition builds memory!" },
+  { emoji:'💪', msg:"Nice effort! Draw it a few more times to make it stick." },
+  { emoji:'🖊️', msg:"Good job! Try to match the traced letter as closely as you can." },
+  { emoji:'🌟', msg:"You're practicing so well! Every stroke counts." },
+  { emoji:'🎯', msg:"Awesome! Try it one more time without looking at the trace." },
+]
+
 function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) {
   const offline = useOffline()
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [viewport, setViewport] = useState({ vw: window.innerWidth, vh: window.innerHeight })
+  const fsRef = useRef(null)
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
+  useEffect(() => {
+    const update = () => setViewport({ vw: window.innerWidth, vh: window.innerHeight })
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', () => setTimeout(update, 100))
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('orientationchange', update) }
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) fsRef.current?.requestFullscreen()
+    else document.exitFullscreen()
+  }
 
   useEffect(() => { setFeedback(null) }, [selected])
 
-  async function handleSubmit(imageData) {
+  function handlePractice() {
+    const msg = PRACTICE_MSGS[Math.floor(Math.random() * PRACTICE_MSGS.length)]
+    setFeedback({ type: 'practice', emoji: msg.emoji, text: msg.msg })
+  }
+
+  async function handleAiCheck(imageData) {
     setLoading(true); setFeedback(null)
     try {
       const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
       const result = await learnApi.validate(imageData, selected.char, script, child?.name || 'you', age, child?.id)
-      setFeedback(result)
+      setFeedback({ type: 'ai', correct: result.correct, text: result.feedback, emoji: result.correct ? '🎉' : '💪' })
       window.__glumbiRefreshQuota?.()
-    } catch { setFeedback({ correct:true, feedback:'Great effort! Keep practising! 🌟' }) }
+    } catch { setFeedback({ type: 'ai', correct: true, text: 'Great effort! Keep practising! 🌟', emoji: '🌟' }) }
     finally { setLoading(false) }
   }
 
@@ -733,32 +769,131 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
     </div>
   )
 
+  const letterFont = script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif')
+  const isLandscape = isFullscreen && viewport.vw > viewport.vh
+
+  const fsContainerStyle = isFullscreen ? {
+    background: '#fff9f0',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100dvh', width: '100dvw',
+    overflowY: 'auto', overflowX: 'hidden',
+    boxSizing: 'border-box',
+  } : { display:'flex', flexDirection:'column', alignItems:'center', gap:14, position:'relative' }
+
+  const fsToggleBtn = (
+    <button onClick={toggleFullscreen}
+      title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen practice'}
+      style={{ width:32, height:32, minWidth:32, borderRadius:8, border:'1.5px solid var(--primary-lt)', background:'var(--primary-lt)', color:'var(--primary)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0, flexShrink:0, transition:'all 0.15s' }}
+      onMouseEnter={e => { e.currentTarget.style.background='var(--primary)'; e.currentTarget.style.color='white' }}
+      onMouseLeave={e => { e.currentTarget.style.background='var(--primary-lt)'; e.currentTarget.style.color='var(--primary)' }}>
+      {isFullscreen ? (
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+        </svg>
+      )}
+    </button>
+  )
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 }}>
-      {/* Big letter */}
-      <div style={{ textAlign:'center' }}>
-        <div style={{ fontSize:80, fontFamily: script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif'), fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1.2, paddingTop:8, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+    <div ref={fsRef} style={fsContainerStyle}>
+
+      {/* TOP BAR — in-flow row, always visible, reserves space so content starts below */}
+      {isFullscreen ? (
+        <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', padding:'8px 12px', flexShrink:0, width:'100%', boxSizing:'border-box' }}>
+          {fsToggleBtn}
+        </div>
+      ) : (
+        <div style={{ position:'absolute', top:12, right:12, zIndex:10 }}>{fsToggleBtn}</div>
+      )}
+
+      {/* CONTENT AREA — scrollable, centered */}
+      <div style={isFullscreen ? {
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: isLandscape ? 'row' : 'column',
+        alignItems: isLandscape ? 'flex-start' : 'center',
+        justifyContent: 'center',
+        gap: isLandscape ? 24 : 16,
+        padding: isLandscape ? '8px 20px 16px' : '8px 16px 16px',
+        boxSizing: 'border-box',
+        width: '100%',
+      } : { display:'contents' }}>
+
+      {/* Letter side */}
+      <div style={{ textAlign:'center', flexShrink: 0, width: isLandscape ? 160 : undefined }}>
+        <div style={{ fontSize: isLandscape ? 72 : isFullscreen ? 100 : 80, fontFamily: letterFont, fontWeight: (script==='tamil'||script==='hindi') ? 400 : 700, color:'var(--primary)', lineHeight:1.2, paddingTop: isFullscreen ? 0 : 8, textShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
           {selected.char}
         </div>
-        {selected.roman && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
+        {selected.roman && !isLandscape && <div style={{ fontSize:13, color:'#aaa', fontWeight:700, marginTop:4 }}>
           pronounced: <span style={{ color:'var(--primary)' }}>{selected.roman}</span>
         </div>}
-        {selected.meaning && <div style={{ fontSize:11, color:'#bbb', marginTop:2 }}>{selected.meaning}</div>}
+        {selected.roman && isLandscape && <div style={{ fontSize:11, color:'#aaa', fontWeight:700, marginTop:2 }}>
+          {selected.roman}
+        </div>}
         <button onClick={onPlay} style={{ marginTop:8, background:'var(--primary-lt)', border:'none', borderRadius:50, padding:'6px 14px', fontSize:12, fontWeight:700, color:'var(--primary)', cursor:'pointer' }}>
           🔊 Hear it
         </button>
       </div>
-      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth
-        traceChar={selected.char}
-        traceFontFamily={script==='tamil' ? '"Noto Sans Tamil",serif' : script==='hindi' ? '"Noto Sans Devanagari",serif' : (engFontFamily || 'Nunito, sans-serif')} />
-      {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
-      {loading && <ThemeLoader theme={child?.theme} />}
-      {!loading && feedback && (
-        <div style={{ maxWidth:300, padding:'12px 16px', borderRadius:14, textAlign:'center', background: feedback.correct ? '#f0fff4' : '#fff8f0', border:`1.5px solid ${feedback.correct ? '#6bcb77' : '#ffc0a0'}`, fontSize:14, lineHeight:1.6, fontWeight:600, color: feedback.correct ? '#1e6b3c' : '#c05a00' }}>
-          <div style={{ fontSize:26, marginBottom:6 }}>{feedback.correct ? '🎉' : '💪'}</div>
-          {feedback.feedback}
-        </div>
-      )}
+
+      {/* Canvas + feedback side */}
+      {/* In fullscreen, constrain canvas width so it fits the viewport height — canvas is 4:3 (800×600) */}
+      {(() => {
+        const { vw, vh } = viewport
+        const topBarH = 48  // height of the top bar we just added
+        const canvasMaxW = isFullscreen
+          ? isLandscape
+            ? Math.min(vw - 220, Math.floor((vh - topBarH - 80) * (800 / 600)))
+            : Math.min(vw - 32,  Math.floor((vh - topBarH - 120) * (800 / 600)))
+          : undefined
+        return (
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscape ? 8 : 14, flex: isFullscreen ? 1 : undefined, width: isFullscreen ? undefined : '100%', maxWidth: isFullscreen ? canvasMaxW : undefined, alignSelf: 'flex-start', overflow:'visible' }}>
+        <DrawCanvas
+          onSubmit={handleAiCheck}
+          onPractice={handlePractice}
+          loading={loading}
+          disabled={quota?.used >= quota?.limit || offline}
+          fullWidth
+          traceChar={selected.char}
+          traceFontFamily={letterFont}
+        />
+
+        {/* Practice vs AI hint */}
+        {!feedback && !loading && (
+          <div style={{ fontSize:11, color:'#bbb', textAlign:'center', maxWidth:320, lineHeight:1.6 }}>
+            <strong style={{ color:'var(--primary)' }}>✏️ Practice</strong> is free — get a quick encouragement.{!isLandscape && <><br/></>}
+            {' '}<strong style={{ color:'var(--primary)' }}>✨ Check with AI</strong> uses a credit for detailed feedback.
+          </div>
+        )}
+
+        {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa' }}>✈️ Practice mode — AI check is off</div>}
+        {loading && <ThemeLoader theme={child?.theme} />}
+        {!loading && feedback && (
+          <div style={{ maxWidth:320, padding:'12px 16px', borderRadius:14, textAlign:'center', width:'100%', boxSizing:'border-box',
+            background: feedback.type === 'practice' ? '#f0f7ff' : feedback.correct ? '#f0fff4' : '#fff8f0',
+            border: `1.5px solid ${feedback.type === 'practice' ? '#90caf9' : feedback.correct ? '#6bcb77' : '#ffc0a0'}`,
+            fontSize:14, lineHeight:1.6, fontWeight:600,
+            color: feedback.type === 'practice' ? '#1565c0' : feedback.correct ? '#1e6b3c' : '#c05a00' }}>
+            <div style={{ fontSize:26, marginBottom:6 }}>{feedback.emoji}</div>
+            {feedback.text}
+            {feedback.type === 'practice' && (
+              <div style={{ fontSize:11, color:'#90caf9', marginTop:6, fontWeight:600 }}>
+                Free practice • Use <strong>Check with AI</strong> for real feedback
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+        )
+      })()}
+
+      </div>{/* end content area */}
     </div>
   )
 }

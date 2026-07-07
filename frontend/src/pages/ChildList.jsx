@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { childApi, userApi } from '../api/client'
 import { THEMES } from '../themes'
@@ -11,25 +11,26 @@ function calcAge(birthYear) {
 }
 
 const FEATURE_META = {
-  'story':          { label: 'Stories',       emoji: '📖' },
-  'activity':       { label: 'Activities',    emoji: '🎮' },
-  'learn-validate': { label: 'Learn to Write',emoji: '✏️' },
-  'curiosity':      { label: 'Curiosity',     emoji: '🔍' },
-  'draw':           { label: 'Draw',          emoji: '🎨' },
-  'read-quiz':      { label: 'Read & Quiz',   emoji: '📚' },
-  'writing-coach':  { label: 'My Writing',    emoji: '✍️' },
-  'memory':         { label: 'Memory Play',   emoji: '🧠' },
+  'story':          { label: 'Stories',        emoji: '📖' },
+  'activity':       { label: 'Activities',     emoji: '🎮' },
+  'learn-validate': { label: 'Learn to Write', emoji: '✏️' },
+  'curiosity':      { label: 'Curiosity',      emoji: '🔍' },
+  'draw':           { label: 'Draw',           emoji: '🎨' },
+  'read-quiz':      { label: 'Read & Quiz',    emoji: '📚' },
+  'writing-coach':  { label: 'My Writing',     emoji: '✍️' },
+  'memory':         { label: 'Memory Play',    emoji: '🧠' },
 }
 
+/* ── Credit info modal ── */
 function CreditInfoModal({ featureConfig, onClose }) {
   const items = featureConfig.filter(f => f.featureName && FEATURE_META[f.featureName])
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '24px 20px', maxWidth: 360, width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.35)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', fontFamily: 'Nunito, sans-serif' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, minWidth: 28, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 13, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>✕</button>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 13, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
         <div style={{ fontSize: 26, marginBottom: 4 }}>🪙</div>
         <div style={{ fontWeight: 900, fontSize: 16, color: '#333', marginBottom: 3 }}>How AI Credits Work</div>
-        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 16, lineHeight: 1.5 }}>Each AI interaction uses a small number of credits. Here's the cost per use for each feature:</div>
+        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 16, lineHeight: 1.5 }}>Each AI interaction uses a small number of credits. Here's the cost per use:</div>
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7 }}>
           {items.map(f => {
             const meta = FEATURE_META[f.featureName]
@@ -54,23 +55,23 @@ function CreditInfoModal({ featureConfig, onClose }) {
   )
 }
 
+/* ── Quota pill ── */
 function QuotaPill({ quota, onInfo }) {
   if (!quota) return null
   const pct = Math.min(quota.used / quota.limit, 1)
-  const barColor  = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : '#6bcb77'
-  const textColor = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : 'white'
+  const barColor   = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : '#6bcb77'
+  const textColor  = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#ffd93d' : 'white'
   const borderColor = pct >= 1 ? 'rgba(255,68,68,0.5)' : pct >= 0.8 ? 'rgba(255,217,61,0.5)' : 'rgba(255,255,255,0.3)'
   const label = pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : null
   return (
-    <div className="quota-pill-desktop" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: `1px solid ${borderColor}`, borderRadius: 50, padding: '6px 14px', animation: 'glm-fadein 0.5s ease both' }}>
+    <div className="quota-pill-desktop" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: `1px solid ${borderColor}`, borderRadius: 50, padding: '6px 14px', animation: 'glm-fadein 0.5s ease both', zIndex: 10 }}>
       <div style={{ width: 48, height: 5, background: 'rgba(255,255,255,0.25)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
       </div>
       <span style={{ fontSize: 12, fontWeight: 800, color: textColor }}>
         {label ? `${label} · ${quota.used}/${quota.limit}` : `${Math.round(pct * 100)}% · ${quota.used}/${quota.limit} cr`}
       </span>
-      <button onClick={e => { e.stopPropagation(); onInfo() }}
-        title="How credits work"
+      <button onClick={e => { e.stopPropagation(); onInfo() }} title="How credits work"
         style={{ width: 20, height: 20, minWidth: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', border: 'none', color: 'white', fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, padding: 0 }}>
         i
       </button>
@@ -78,12 +79,13 @@ function QuotaPill({ quota, onInfo }) {
   )
 }
 
+/* ── Unlock modal ── */
 function UnlockModal({ child, onClose, onLock, onParent }) {
   const pt = THEMES[child.theme] || THEMES.coral
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
       <div style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
         <div style={{ fontSize: 52, marginBottom: 10 }}>{child.avatarEmoji}</div>
         <div style={{ fontWeight: 900, fontSize: 18, color: pt.primary, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>Opening without child lock</div>
         <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 24, fontFamily: 'Nunito, sans-serif' }}>
@@ -104,17 +106,16 @@ function UnlockModal({ child, onClose, onLock, onParent }) {
   )
 }
 
+/* ── Credit modal ── */
 function CreditModal({ c, t, stats, onClose }) {
   const activeFeatures = stats.features.filter(f => f.credits > 0)
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
         <div style={{ fontSize: 52, marginBottom: 10 }}>{c.avatarEmoji}</div>
         <div style={{ fontWeight: 900, fontSize: 18, color: t.primary, marginBottom: 4, fontFamily: 'Nunito, sans-serif' }}>{c.name}</div>
         <div style={{ fontSize: 13, color: '#aaa', marginBottom: 20, fontFamily: 'Nunito, sans-serif' }}>AI credits used this month</div>
-
         {activeFeatures.length === 0 ? (
           <div style={{ color: '#bbb', fontSize: 14, padding: '12px 0 20px' }}>✨ No AI usage this month</div>
         ) : (
@@ -133,117 +134,202 @@ function CreditModal({ c, t, stats, onClose }) {
             </div>
           </div>
         )}
-
         <div style={{ fontSize: 11, color: '#ccc' }}>Resets on the 1st of each month</div>
       </div>
     </div>
   )
 }
 
-function ProfileCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggleOffline, isTouch, onShowCredit }) {
-  const [hovered, setHovered] = useState(false)
-  const stats = breakdown[c.id]
-  const actionsVisible = isTouch || hovered
+/* ══════════════════════════════════════════════════════
+   CHILD CAROUSEL CARD — the big focused card
+══════════════════════════════════════════════════════ */
+function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggleOffline, onShowCredit, animDir }) {
+  const age = calcAge(c.birthYear)
 
   return (
-    <div
-      onMouseEnter={() => !isTouch && setHovered(true)}
-      onMouseLeave={() => { if (!isTouch) setHovered(false) }}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, position: 'relative' }}>
-
-      {/* Avatar circle */}
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      animation: animDir > 0 ? 'globe-in-right 0.5s cubic-bezier(0.22,1,0.36,1) both'
+                             : 'globe-in-left 0.5s cubic-bezier(0.22,1,0.36,1) both',
+    }}>
+      {/* ── Avatar ── */}
       <div
         onClick={() => onSelect(c)}
         style={{
-          position: 'relative',
-          width: isTouch ? 100 : 120, height: isTouch ? 100 : 120,
+          width: 'clamp(140px, 22vw, 180px)',
+          height: 'clamp(140px, 22vw, 180px)',
           borderRadius: '50%',
           background: t.headerGrad,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 'clamp(58px, 9vw, 76px)',
           cursor: 'pointer',
-          display: 'grid', placeItems: 'center',
-          fontSize: isTouch ? 42 : 50,
-          boxShadow: hovered
-            ? `0 0 0 4px white, 0 0 0 7px ${t.primary}, 0 20px 60px ${t.primary}55`
-            : `0 8px 32px ${t.primary}33`,
-          transform: hovered ? 'scale(1.12) translateY(-6px)' : 'scale(1) translateY(0)',
-          transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+          boxShadow: `0 0 0 6px rgba(255,255,255,0.2), 0 0 0 12px rgba(255,255,255,0.08), 0 24px 64px ${t.primary}55`,
+          transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+          position: 'relative',
           userSelect: 'none',
-        }}>
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform='scale(1.07) translateY(-4px)'}
+        onMouseLeave={e => e.currentTarget.style.transform='scale(1) translateY(0)'}
+      >
         <span style={{ lineHeight: 1 }}>{c.avatarEmoji}</span>
 
         {/* Offline badge */}
         {offline && (
           <div style={{
-            position: 'absolute', bottom: 4, right: 4,
+            position: 'absolute', top: 8, right: 8,
             background: '#555', borderRadius: '50%',
-            width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, border: '2px solid white',
+            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, border: '2px solid white',
           }}>✈️</div>
         )}
       </div>
 
-      {/* Name + age */}
-      <div style={{ textAlign: 'center' }}>
-        <div style={{
-          fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: isTouch ? 14 : 16,
-          color: 'white',
-          textShadow: '0 2px 8px rgba(0,0,0,0.4)',
-          transform: hovered ? 'scale(1.05)' : 'scale(1)',
-          transition: 'transform 0.2s ease',
-        }}>{c.name}</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>
-          {c.gender === 'girl' ? '👧' : '👦'} {calcAge(c.birthYear)} yrs
+      {/* ── Name & age ── */}
+      <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 8 }}>
+        <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 'clamp(22px,4vw,30px)', color: 'white', textShadow: '0 2px 12px rgba(0,0,0,0.35)', letterSpacing: -0.3 }}>
+          {c.name}
+        </div>
+        <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', marginTop: 5 }}>
+          {c.gender === 'girl' ? '👧' : '👦'} &nbsp;
+          {age ? `${age} year${age !== 1 ? 's' : ''} old` : 'Little one'}
+          {c.theme && (
+            <span style={{ marginLeft: 10, opacity: 0.7 }}>{THEMES[c.theme]?.emoji || '🌈'}</span>
+          )}
         </div>
       </div>
 
-      {/* Action buttons row */}
-      <div style={{
-        display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
-        opacity: actionsVisible ? 1 : 0,
-        transform: actionsVisible ? 'translateY(0)' : 'translateY(6px)',
-        transition: 'opacity 0.2s ease, transform 0.2s ease',
-        pointerEvents: actionsVisible ? 'auto' : 'none',
-      }}>
-        <button
-          onClick={e => { e.stopPropagation(); onLock(c) }}
-          title="Hand to child (locked)"
-          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-          🔒 Lock
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); onToggleOffline(e, c) }}
-          title={offline ? 'AI off — tap to enable' : 'AI on — tap to disable'}
-          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-          {offline ? '✈️' : '🤖'}
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); onEdit(c) }}
-          title="Edit"
-          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-          ✏️
-        </button>
-        <button
-          onClick={e => { e.stopPropagation(); onShowCredit(c) }}
-          title="Credits"
-          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(8px)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-          📊
-        </button>
+      {/* ── Tap to open hint ── */}
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 28, fontStyle: 'italic' }}>
+        tap avatar to open
+      </div>
+
+      {/* ── Action buttons ── */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {[
+          { icon: '🔒', label: 'Lock', action: e => { e.stopPropagation(); onLock(c) } },
+          { icon: offline ? '✈️' : '🤖', label: offline ? 'AI off' : 'AI on', action: e => { e.stopPropagation(); onToggleOffline(e, c) } },
+          { icon: '✏️', label: 'Edit', action: e => { e.stopPropagation(); onEdit(c) } },
+          { icon: '📊', label: 'Credits', action: e => { e.stopPropagation(); onShowCredit(c) } },
+        ].map(btn => (
+          <button
+            key={btn.label}
+            onClick={btn.action}
+            style={{
+              background: 'rgba(255,255,255,0.18)',
+              backdropFilter: 'blur(10px)',
+              color: 'white',
+              border: '1.5px solid rgba(255,255,255,0.25)',
+              padding: '8px 16px',
+              borderRadius: 50,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              fontFamily: 'Nunito, sans-serif',
+              display: 'flex', alignItems: 'center', gap: 5,
+              transition: 'background 0.15s, transform 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.28)'; e.currentTarget.style.transform='translateY(-1px)' }}
+            onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.18)'; e.currentTarget.style.transform='translateY(0)' }}
+          >
+            <span>{btn.icon}</span>
+            <span>{btn.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   )
 }
 
+/* ── Add child slide ── */
+function AddChildSlide({ onAdd, animDir }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      animation: animDir > 0 ? 'globe-in-right 0.5s cubic-bezier(0.22,1,0.36,1) both'
+                             : 'globe-in-left 0.5s cubic-bezier(0.22,1,0.36,1) both',
+    }}>
+      <div
+        onClick={onAdd}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{
+          width: 'clamp(140px, 22vw, 180px)',
+          height: 'clamp(140px, 22vw, 180px)',
+          borderRadius: '50%',
+          border: `3px dashed ${hovered ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'}`,
+          background: hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+          transform: hovered ? 'scale(1.07) translateY(-4px)' : 'scale(1)',
+          boxShadow: hovered ? '0 24px 64px rgba(255,255,255,0.12)' : 'none',
+        }}
+      >
+        <span style={{ fontSize: 52, color: hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)', transition: 'color 0.2s', lineHeight: 1 }}>+</span>
+      </div>
+
+      <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 8 }}>
+        <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 'clamp(20px,3.5vw,26px)', color: 'rgba(255,255,255,0.7)' }}>
+          Add a child
+        </div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 5 }}>
+          Up to 3 profiles per account
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN COMPONENT
+══════════════════════════════════════════════════════ */
 export default function ChildList({ onChildSelected, onLogout, onChildSelectedLocked, onToggleOffline, quota, featureConfig }) {
-  const [children, setChildren] = useState([])
-  const [loading, setLoading]   = useState(true)
+  const [children, setChildren]       = useState([])
+  const [loading, setLoading]         = useState(true)
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
-  const [creditChild, setCreditChild] = useState(null)
+  const [creditChild, setCreditChild]  = useState(null)
   const [showCreditInfo, setShowCreditInfo] = useState(false)
-  const [breakdown, setBreakdown] = useState({})
-  const navigate = useNavigate()
-  const isTouch = window.innerWidth < 1024
+  const [breakdown, setBreakdown]     = useState({})
 
+  // Carousel state
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [animDir, setAnimDir]     = useState(1)
+  const [animKey, setAnimKey]     = useState(0)
+  const touchStartX = useRef(null)
+
+  const navigate = useNavigate()
+
+  // Total slides = children + 1 (add new)
+  const totalSlides = children.length + 1
+
+  const goTo = useCallback((idx, dir) => {
+    setAnimDir(dir)
+    setActiveIdx(idx)
+    setAnimKey(k => k + 1)
+  }, [])
+
+  const prev = useCallback(() => {
+    goTo((activeIdx - 1 + totalSlides) % totalSlides, -1)
+  }, [activeIdx, totalSlides, goTo])
+
+  const next = useCallback(() => {
+    goTo((activeIdx + 1) % totalSlides, 1)
+  }, [activeIdx, totalSlides, goTo])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handler = e => {
+      if (e.key === 'ArrowLeft')  prev()
+      if (e.key === 'ArrowRight') next()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [prev, next])
+
+  // Load data
   useEffect(() => {
     childApi.getAll().then(data => {
       setChildren(data)
@@ -272,8 +358,23 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
     if (onToggleOffline) onToggleOffline(c.id)
   }
 
+  // Touch swipe
+  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchEnd(e) {
+    if (touchStartX.current === null) return
+    const dx = touchStartX.current - e.changedTouches[0].clientX
+    if (dx > 48)  next()
+    if (dx < -48) prev()
+    touchStartX.current = null
+  }
+
+  // Background — morph between child themes as you slide
+  const activeChild = activeIdx < children.length ? children[activeIdx] : null
+  const activeTheme = activeChild ? (THEMES[activeChild.theme] || THEMES.coral) : THEMES.coral
+  const bgGrad = activeChild ? activeTheme.headerGrad : 'linear-gradient(135deg,#667eea,#764ba2)'
+
   if (loading) return (
-    <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontFamily: 'Nunito, sans-serif', fontSize: 18 }}>
+    <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontFamily: 'Nunito, sans-serif', fontSize: 18, background: CORAL.headerGrad }}>
       ✨ Loading…
     </div>
   )
@@ -281,129 +382,162 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
   return (
     <>
       <style>{`
-        @keyframes glm-float {
-          0%, 100% { transform: translateY(0px) }
-          50%       { transform: translateY(-12px) }
-        }
         @keyframes glm-fadein {
           from { opacity: 0; transform: translateY(24px) scale(0.95) }
-          to   { opacity: 1; transform: translateY(0)   scale(1) }
+          to   { opacity: 1; transform: translateY(0) scale(1) }
         }
-        @keyframes glm-pulse-ring {
-          0%   { transform: scale(1);   opacity: 0.7 }
-          100% { transform: scale(1.5); opacity: 0 }
+        @keyframes globe-in-right {
+          from { opacity: 0; transform: perspective(700px) rotateY(35deg) translateX(80px) scale(0.88); }
+          to   { opacity: 1; transform: perspective(700px) rotateY(0deg) translateX(0) scale(1); }
         }
-        .glm-profile-card {
-          animation: glm-fadein 0.5s cubic-bezier(0.34,1.2,0.64,1) both;
+        @keyframes globe-in-left {
+          from { opacity: 0; transform: perspective(700px) rotateY(-35deg) translateX(-80px) scale(0.88); }
+          to   { opacity: 1; transform: perspective(700px) rotateY(0deg) translateX(0) scale(1); }
         }
-        @keyframes glm-bar-grow {
-          from { width: 0% }
-        }
+        .nav-arrow:hover { background: rgba(255,255,255,0.25) !important; transform: scale(1.1); }
+        .nav-dot:hover { transform: scale(1.3); }
       `}</style>
 
-      {/* Full-page cinematic backdrop */}
-      <div style={{
-        minHeight: 'calc(100vh - 60px)',
-        background: CORAL.headerGrad,
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: '48px 24px',
-        fontFamily: 'Nunito, sans-serif',
-        position: 'relative', overflow: 'hidden',
-      }}>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        style={{
+          minHeight: 'calc(100vh - 60px)',
+          background: bgGrad,
+          transition: 'background 0.7s ease',
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', padding: '48px 24px',
+          fontFamily: 'Nunito, sans-serif',
+          position: 'relative', overflow: 'hidden',
+        }}>
 
-        {/* Decorative blobs */}
-        <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%)', top: -100, left: -100, pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%)', bottom: -150, right: -100, pointerEvents: 'none' }} />
+        {/* Background blobs */}
+        <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%)', top: -150, left: -150, pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)', bottom: -120, right: -100, pointerEvents: 'none' }} />
 
-        {/* Quota pill top-right */}
+        {/* Quota pill */}
         <QuotaPill quota={quota} onInfo={() => setShowCreditInfo(true)} />
 
         {children.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'white' }}>
-            <div style={{ fontSize: 72, marginBottom: 20, animation: 'glm-float 3s ease-in-out infinite' }}>🌟</div>
-            <h2 style={{ fontSize: 24, fontWeight: 900, marginBottom: 10 }}>No adventurers yet!</h2>
+          /* ── Empty state ── */
+          <div style={{ textAlign: 'center', color: 'white', animation: 'glm-fadein 0.5s ease both' }}>
+            <div style={{ fontSize: 72, marginBottom: 20 }}>🌟</div>
+            <h2 style={{ fontSize: 26, fontWeight: 900, marginBottom: 10 }}>No adventurers yet!</h2>
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, marginBottom: 32 }}>Add your little one to get started with stories and adventures!</p>
             <button onClick={() => navigate('/child/new')}
-              style={{ background: 'linear-gradient(135deg, #ff6b6b, #ff8e53)', color: 'white', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 32px rgba(255,107,107,0.4)' }}>
+              style={{ background: 'white', color: '#ff6b6b', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 900, cursor: 'pointer', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
               + Add Your Child
             </button>
           </div>
         ) : (
           <>
-            {/* Heading */}
-            <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 10 }}>
-                Glumbi
-              </div>
-              <h1 style={{ fontSize: 'clamp(24px, 5vw, 38px)', fontWeight: 900, color: 'white', margin: 0, letterSpacing: -0.5 }}>
+            {/* ── Header ── */}
+            <div style={{ textAlign: 'center', marginBottom: 40, animation: 'glm-fadein 0.4s ease both' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 8 }}>Glumbi</div>
+              <h1 style={{ fontSize: 'clamp(22px, 4.5vw, 34px)', fontWeight: 900, color: 'white', margin: 0, letterSpacing: -0.5 }}>
                 Who's playing today? 🎮
               </h1>
             </div>
 
-            {/* Profile grid */}
-            <div style={{
-              display: 'flex', flexWrap: 'wrap', gap: 'clamp(24px, 5vw, 56px)',
-              justifyContent: 'center', alignItems: 'flex-start',
-              maxWidth: 800,
-            }}>
-              {children.map((c, i) => {
-                const t = THEMES[c.theme] || THEMES.coral
+            {/* ── Carousel row ── */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(12px,3vw,36px)', width: '100%', maxWidth: 560, justifyContent: 'center' }}>
+
+              {/* Left arrow */}
+              <button
+                className="nav-arrow"
+                onClick={prev}
+                style={{
+                  width: 48, height: 48, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.18)',
+                  border: '1.5px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  fontSize: 20, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s ease', flexShrink: 0,
+                  backdropFilter: 'blur(8px)',
+                }}>
+                ←
+              </button>
+
+              {/* Active slide */}
+              <div key={animKey} style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+                {activeIdx < children.length ? (
+                  <ChildCard
+                    c={children[activeIdx]}
+                    t={THEMES[children[activeIdx].theme] || THEMES.coral}
+                    offline={offlineModes[children[activeIdx].id]}
+                    breakdown={breakdown}
+                    onSelect={setPendingChild}
+                    onLock={onChildSelectedLocked}
+                    onEdit={c => navigate(`/child/${c.id}/edit`)}
+                    onToggleOffline={handleToggleOffline}
+                    onShowCredit={setCreditChild}
+                    animDir={animDir}
+                  />
+                ) : (
+                  <AddChildSlide onAdd={() => navigate('/child/new')} animDir={animDir} />
+                )}
+              </div>
+
+              {/* Right arrow */}
+              <button
+                className="nav-arrow"
+                onClick={next}
+                style={{
+                  width: 48, height: 48, borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.18)',
+                  border: '1.5px solid rgba(255,255,255,0.2)',
+                  color: 'white',
+                  fontSize: 20, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.2s ease', flexShrink: 0,
+                  backdropFilter: 'blur(8px)',
+                }}>
+                →
+              </button>
+            </div>
+
+            {/* ── Dots ── */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 36, alignItems: 'center' }}>
+              {Array.from({ length: totalSlides }).map((_, i) => {
+                const isAdd = i === children.length
                 return (
-                  <div key={c.id} className="glm-profile-card" style={{ animationDelay: `${i * 0.08}s` }}>
-                    <ProfileCard
-                      c={c} t={t}
-                      offline={offlineModes[c.id]}
-                      breakdown={breakdown}
-                      onSelect={setPendingChild}
-                      onLock={onChildSelectedLocked}
-                      onEdit={c => navigate(`/child/${c.id}/edit`)}
-                      onToggleOffline={handleToggleOffline}
-                      isTouch={isTouch}
-                      onShowCredit={setCreditChild}
-                    />
-                  </div>
+                  <button
+                    key={i}
+                    className="nav-dot"
+                    onClick={() => goTo(i, i > activeIdx ? 1 : -1)}
+                    title={isAdd ? 'Add child' : children[i]?.name}
+                    style={{
+                      width: i === activeIdx ? 28 : 10,
+                      height: 10,
+                      borderRadius: 50,
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: i === activeIdx
+                        ? 'white'
+                        : isAdd
+                          ? 'rgba(255,255,255,0.25)'
+                          : 'rgba(255,255,255,0.35)',
+                      transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                      padding: 0,
+                    }}
+                  />
                 )
               })}
+            </div>
 
-              {/* Add child card */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                <div
-                  onClick={() => navigate('/child/new')}
-                  style={{
-                    width: 120, height: 120, borderRadius: '50%',
-                    border: '3px dashed rgba(255,255,255,0.25)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 36, color: 'rgba(255,255,255,0.4)',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                    background: 'rgba(255,255,255,0.05)',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.6)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.8)'
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.1)'
-                    e.currentTarget.style.transform = 'scale(1.08)'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'
-                    e.currentTarget.style.color = 'rgba(255,255,255,0.4)'
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
-                    e.currentTarget.style.transform = 'scale(1)'
-                  }}>
-                  +
-                </div>
-                <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13, fontWeight: 700 }}>Add child</div>
-              </div>
+            {/* ── Swipe hint (mobile) ── */}
+            <div style={{ marginTop: 16, fontSize: 12, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>
+              {totalSlides > 1 ? 'swipe or use ← → keys' : ''}
             </div>
           </>
         )}
       </div>
 
-      {/* Credit modal — rendered here (top level) so position:fixed escapes card animation stacking context */}
+      {/* Modals */}
       {showCreditInfo && (
         <CreditInfoModal featureConfig={featureConfig} onClose={() => setShowCreditInfo(false)} />
       )}
-
       {creditChild && (
         <CreditModal
           c={creditChild}
@@ -412,8 +546,6 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
           onClose={() => setCreditChild(null)}
         />
       )}
-
-      {/* Unlocked-access modal */}
       {pendingChild && (
         <UnlockModal
           child={pendingChild}

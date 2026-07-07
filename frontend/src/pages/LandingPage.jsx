@@ -1,41 +1,276 @@
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Footer from '../components/Footer'
 import PublicHeader from '../components/PublicHeader'
 
+/* ── FAQ item ── */
 function FaqItem({ q, a }) {
   const [open, setOpen] = useState(false)
   return (
     <div style={{ borderBottom: '1.5px solid #f0f0f0', padding: '4px 0' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{
-          width: '100%', textAlign: 'left', padding: '18px 4px',
-          background: 'none', border: 'none', cursor: 'pointer',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16,
-          fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 16, color: open ? '#ff6b6b' : '#3d3d3d',
-        }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: '100%', textAlign: 'left', padding: '16px 4px',
+        background: 'none', border: 'none', cursor: 'pointer',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16,
+        fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 15, color: open ? '#ff6b6b' : '#3d3d3d',
+      }}>
         <span>{q}</span>
-        <span style={{ fontSize: 22, color: open ? '#ff6b6b' : '#ccc', flexShrink: 0, lineHeight: 1 }}>{open ? '−' : '+'}</span>
+        <span style={{ fontSize: 20, color: open ? '#ff6b6b' : '#ccc', flexShrink: 0 }}>{open ? '−' : '+'}</span>
       </button>
       {open && (
-        <div style={{ padding: '0 4px 18px', fontSize: 15, color: '#777', lineHeight: 1.8, fontFamily: 'Nunito, sans-serif' }}>
-          {a}
-        </div>
+        <div style={{ padding: '0 4px 16px', fontSize: 14, color: '#777', lineHeight: 1.8, fontFamily: 'Nunito, sans-serif' }}>{a}</div>
       )}
     </div>
   )
 }
 
-
+/* ── How it works steps ── */
 const STEPS = [
-  { step: '01', title: 'Create your account', desc: 'Sign up with email or continue with Google in seconds.' },
-  { step: '02', title: 'Add your child', desc: 'Enter their name, age, pick an avatar and a fun theme.' },
-  { step: '03', title: 'Generate magic', desc: 'Type a few keywords and watch a personalized story come to life.' },
-  { step: '04', title: 'Listen & explore', desc: 'Play the story aloud in your preferred language and explore activities.' },
+  { step: '01', emoji: '👤', title: 'Create your account', desc: 'Sign up with email or Google in seconds.' },
+  { step: '02', emoji: '🧒', title: 'Add your child', desc: 'Name, age, avatar, and a fun personalised theme.' },
+  { step: '03', emoji: '✨', title: 'Generate magic', desc: 'Type a few keywords — a personalised story appears.' },
+  { step: '04', emoji: '🎧', title: 'Listen & explore', desc: 'Play aloud in your language and dive into activities.' },
 ]
 
-// Maps feature names to landing page display config
+/* ── Feature slides ── */
+const FEATURES = [
+  { emoji: '📖', title: 'Personalised Stories', desc: 'Every story is written for your child — their name, their interests, their age. No two stories are ever the same.', grad: 'linear-gradient(135deg,#ff6b6b,#ff8e53)', tag: 'Core feature', highlights: ['Age-adaptive', 'Interest-based', 'Continuations'] },
+  { emoji: '🎯', title: 'Story Activities', desc: 'Each story comes with age-appropriate activities, crafts, and ideas to turn reading into doing.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'After reading', highlights: ['Hands-on ideas', 'Tied to story', 'All ages'] },
+  { emoji: '🔭', title: 'Curiosity Questions', desc: '"Why is the sky blue?" Glumbi turns big questions into daily wonder moments that spark real thinking.', grad: 'linear-gradient(135deg,#4facfe,#00f2fe)', tag: 'Daily spark', highlights: ['New every day', 'Age-matched', 'Open-ended'] },
+  { emoji: '📝', title: 'Read & Quiz', desc: 'Generate a reading passage on any topic + comprehension questions. Scores tracked over time.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Learning', highlights: ['Any topic', 'Score tracking', 'Adjusts to age'] },
+  { emoji: '✍️', title: 'My Writing', desc: "Kids write their own stories. Glumbi reads them and gives kind, specific feedback — never harsh, always encouraging.", grad: 'linear-gradient(135deg,#fa709a,#fee140)', tag: 'Creative writing', highlights: ['AI coach', 'Kind feedback', '"What happens next?"'] },
+  { emoji: '🎨', title: 'Draw', desc: 'A free canvas to draw anything. AI looks at the drawing and gives a fun, personalised reaction — like a real art show.', grad: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', tag: 'Creative play', highlights: ['Free canvas', 'AI reactions', 'Fullscreen mode'] },
+  { emoji: '✏️', title: 'Learn to Write', desc: 'Guided letter and word tracing in English, Hindi, and Tamil. Canvas validated by AI — effort always counts.', grad: 'linear-gradient(135deg,#f6d365,#fda085)', tag: 'Letters & script', highlights: ['English, Hindi, Tamil', 'AI validation', 'Timeline progress'] },
+  { emoji: '🔐', title: 'Parental Lock', desc: 'Set a PIN and a time limit before handing over the device. Kids can snooze — but parents always stay in control.', grad: 'linear-gradient(135deg,#667eea,#764ba2)', tag: 'Screen time', highlights: ['PIN + timer', 'Snooze control', 'No app needed'] },
+  { emoji: '🌍', title: '12 Languages', desc: 'Stories narrated in English, Spanish, French, Hindi, Tamil, and more — in warm, natural WaveNet voices.', grad: 'linear-gradient(135deg,#f7971e,#ffd200)', tag: 'Multilingual', highlights: ['12 languages', '4 English accents', 'Male & female voices'] },
+  { emoji: '🎙️', title: 'Your Voice', desc: "Record your own voice — or a grandparent's. Every story narrated by someone your child loves.", grad: 'linear-gradient(135deg,#11998e,#38ef7d)', tag: 'Custom voices', highlights: ['Record in browser', 'Up to 5 voices', 'All languages'] },
+]
+
+/* ── Feature Carousel ── */
+function FeatureCarousel() {
+  const [active, setActive] = useState(0)
+  const [dir, setDir] = useState(1)
+  const [animKey, setAnimKey] = useState(0)
+  const timerRef = useRef(null)
+  const touchStartX = useRef(null)
+
+  function goTo(idx, direction) {
+    setDir(direction)
+    setActive(idx)
+    setAnimKey(k => k + 1)
+  }
+  function prev() { goTo((active - 1 + FEATURES.length) % FEATURES.length, -1) }
+  function next() { goTo((active + 1) % FEATURES.length, 1) }
+
+  function resetTimer() {
+    clearInterval(timerRef.current)
+    timerRef.current = setInterval(() => { goTo((active + 1) % FEATURES.length, 1) }, 4000)
+  }
+  useEffect(() => { resetTimer(); return () => clearInterval(timerRef.current) }, [active])
+
+  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchEnd(e) {
+    if (!touchStartX.current) return
+    const dx = touchStartX.current - e.changedTouches[0].clientX
+    if (dx > 48) next(); else if (dx < -48) prev()
+    touchStartX.current = null
+  }
+
+  const f = FEATURES[active]
+  const prev1 = FEATURES[(active - 1 + FEATURES.length) % FEATURES.length]
+  const next1 = FEATURES[(active + 1) % FEATURES.length]
+
+  return (
+    <div
+      onMouseEnter={() => clearInterval(timerRef.current)}
+      onMouseLeave={resetTimer}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      style={{ maxWidth: 960, margin: '0 auto' }}>
+
+      <style>{`
+        @keyframes fc-enter-right {
+          from { opacity: 0; transform: translateX(56px) scale(0.96); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes fc-enter-left {
+          from { opacity: 0; transform: translateX(-56px) scale(0.96); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        .fc-peek-btn { transition: opacity 0.2s, transform 0.2s; }
+        .fc-peek-btn:hover { opacity: 1 !important; transform: scale(1.04) !important; }
+      `}</style>
+
+      {/* ── 3-card peek row ── */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 16, marginBottom: 32 }}>
+
+        {/* Left peek */}
+        <div
+          className="fc-peek-btn"
+          onClick={prev}
+          style={{
+            flex: '0 0 clamp(80px, 10vw, 120px)',
+            background: prev1.grad,
+            borderRadius: 20,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+            cursor: 'pointer', opacity: 0.55,
+            minHeight: 'clamp(200px, 32vw, 340px)',
+            overflow: 'hidden', position: 'relative',
+          }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.12)' }} />
+          <span style={{ fontSize: 32, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))' }}>{prev1.emoji}</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, position: 'relative', zIndex: 1, textAlign: 'center', padding: '0 8px' }}>{prev1.title}</span>
+        </div>
+
+        {/* ── CENTER CARD ── */}
+        <div
+          key={animKey}
+          style={{
+            flex: 1,
+            background: f.grad,
+            borderRadius: 28,
+            overflow: 'hidden',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.22)',
+            animation: `${dir >= 0 ? 'fc-enter-right' : 'fc-enter-left'} 0.42s cubic-bezier(0.22,1,0.36,1) both`,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 'clamp(200px, 32vw, 340px)',
+            position: 'relative',
+          }}>
+
+          {/* Background decoration circles */}
+          <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', top: -120, right: -80, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', bottom: -80, left: -60, pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', bottom: 40, right: 40, pointerEvents: 'none' }} />
+
+          {/* Main content — split layout on wide, stack on narrow */}
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            position: 'relative', zIndex: 1,
+          }}>
+            {/* LEFT — illustration area */}
+            <div style={{
+              flex: '0 0 clamp(120px, 30%, 200px)',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              padding: 'clamp(24px,4vw,40px) clamp(12px,2vw,24px)',
+              borderRight: '1px solid rgba(255,255,255,0.12)',
+              gap: 12,
+            }}>
+              {/* Big emoji with glow */}
+              <div style={{
+                width: 'clamp(80px,12vw,110px)', height: 'clamp(80px,12vw,110px)',
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 'clamp(40px,7vw,60px)',
+                boxShadow: '0 0 0 8px rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.2)',
+              }}>
+                {f.emoji}
+              </div>
+              {/* Tag pill */}
+              <div style={{
+                background: 'rgba(255,255,255,0.22)',
+                backdropFilter: 'blur(6px)',
+                borderRadius: 50, padding: '4px 12px',
+                fontSize: 10, fontWeight: 900, color: 'white',
+                letterSpacing: 0.8, textAlign: 'center',
+                border: '1px solid rgba(255,255,255,0.2)',
+              }}>
+                {f.tag.toUpperCase()}
+              </div>
+            </div>
+
+            {/* RIGHT — text content */}
+            <div style={{
+              flex: 1, minWidth: 180,
+              display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              padding: 'clamp(24px,4vw,40px) clamp(20px,3vw,36px)',
+              gap: 12,
+            }}>
+              <h3 style={{
+                fontFamily: 'Nunito, sans-serif',
+                fontSize: 'clamp(20px,3vw,28px)',
+                fontWeight: 900, color: 'white', margin: 0,
+                textShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                lineHeight: 1.2,
+              }}>
+                {f.title}
+              </h3>
+              <p style={{
+                fontSize: 'clamp(13px,1.8vw,15px)',
+                color: 'rgba(255,255,255,0.88)',
+                lineHeight: 1.75, margin: 0,
+              }}>
+                {f.desc}
+              </p>
+              {/* Feature highlights */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 4 }}>
+                {f.highlights.map(h => (
+                  <span key={h} style={{
+                    background: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    borderRadius: 50, padding: '4px 12px',
+                    fontSize: 11, fontWeight: 700, color: 'white',
+                  }}>✓ {h}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom bar — progress */}
+          <div style={{ position: 'relative', zIndex: 1, padding: '12px 24px', borderTop: '1px solid rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.2)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${((active + 1) / FEATURES.length) * 100}%`, background: 'rgba(255,255,255,0.7)', borderRadius: 10, transition: 'width 0.5s ease' }} />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>{active + 1} / {FEATURES.length}</span>
+          </div>
+        </div>
+
+        {/* Right peek */}
+        <div
+          className="fc-peek-btn"
+          onClick={next}
+          style={{
+            flex: '0 0 clamp(80px, 10vw, 120px)',
+            background: next1.grad,
+            borderRadius: 20,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8,
+            cursor: 'pointer', opacity: 0.55,
+            minHeight: 'clamp(200px, 32vw, 340px)',
+            overflow: 'hidden', position: 'relative',
+          }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.12)' }} />
+          <span style={{ fontSize: 32, position: 'relative', zIndex: 1, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))' }}>{next1.emoji}</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.5, position: 'relative', zIndex: 1, textAlign: 'center', padding: '0 8px' }}>{next1.title}</span>
+        </div>
+      </div>
+
+      {/* ── Dot navigation ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        {FEATURES.map((feat, i) => (
+          <button
+            key={i}
+            onClick={() => goTo(i, i > active ? 1 : -1)}
+            title={feat.title}
+            style={{
+              width: i === active ? 28 : 8, height: 8,
+              borderRadius: 50, border: 'none', cursor: 'pointer',
+              background: i === active ? '#ff6b6b' : '#ddd',
+              transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)', padding: 0,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* ── Main Landing Page ── */
 export default function LandingPage() {
   const navigate = useNavigate()
   const [defaultCredits, setDefaultCredits] = useState(null)
@@ -43,159 +278,161 @@ export default function LandingPage() {
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/public/feature-credits`)
       .then(r => r.json())
-      .then(data => {
-        setDefaultCredits(data.defaultCredits ?? 200)
-      })
+      .then(data => setDefaultCredits(data.defaultCredits ?? 200))
       .catch(() => {})
   }, [])
 
   return (
     <div style={{ fontFamily: 'Nunito, sans-serif', color: '#3d3d3d', overflowX: 'hidden' }}>
-
       <PublicHeader />
 
-      {/* ── Hero ── */}
+      {/* ══════════ HERO ══════════ */}
       <section style={{
-        background: 'linear-gradient(135deg,#ff6b6b,#ff8e53,#ffd93d)',
-        padding: '100px 40px 120px',
+        background: 'linear-gradient(135deg,#ff6b6b 0%,#ff8e53 40%,#a855f7 80%,#6366f1 100%)',
+        padding: 'clamp(80px,10vw,120px) 40px clamp(100px,12vw,140px)',
         textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>
-        {/* floating emojis */}
-        {['🌟','🐉','🌈','🚀','🦋','🌙','⭐','🎨'].map((e, i) => (
+        {/* Floating emojis */}
+        {['🌟','🐉','🌈','🚀','🦋','🌙','⭐','🎨','🔮','🧸'].map((e, i) => (
           <span key={i} style={{
-            position: 'absolute', fontSize: 32, opacity: 0.2,
-            top: `${10 + (i * 11) % 70}%`,
-            left: `${5 + (i * 13) % 90}%`,
-            animation: `float ${3 + i * 0.4}s ease-in-out infinite alternate`,
+            position: 'absolute', fontSize: 28, opacity: 0.18,
+            top: `${8 + (i * 9) % 72}%`, left: `${4 + (i * 11) % 92}%`,
+            animation: `hero-float ${3 + i * 0.5}s ease-in-out infinite alternate`,
+            pointerEvents: 'none',
           }}>{e}</span>
         ))}
 
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', borderRadius: 50, padding: '6px 18px', fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 24 }}>
-            ✨ Glumbi AI — magic for kids
+          {/* Pill badge */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(10px)', borderRadius: 50, padding: '7px 20px', fontSize: 13, fontWeight: 700, color: 'white', marginBottom: 28, border: '1px solid rgba(255,255,255,0.25)' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6bcb77', display: 'inline-block', boxShadow: '0 0 0 3px rgba(107,203,119,0.4)' }} />
+            AI-powered · Free every month · No credit card
           </div>
-          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(40px, 7vw, 72px)', color: 'white', lineHeight: 1.1, marginBottom: 20 }}>
-            Magic stories for<br />little ones
+
+          <h1 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(38px,7vw,76px)', color: 'white', lineHeight: 1.05, marginBottom: 20, fontWeight: 900, letterSpacing: -1 }}>
+            Magic stories for<br />little ones ✨
           </h1>
-          <p style={{ fontSize: 'clamp(16px, 2.5vw, 20px)', color: 'rgba(255,255,255,0.9)', maxWidth: 580, margin: '0 auto 40px', lineHeight: 1.7 }}>
-            Meet Glumbi — the little friend who lives inside your child's imagination. Stories, activities, curiosity answers, reading, writing, and more. All personalised. All magical.
+
+          <p style={{ fontSize: 'clamp(15px,2.5vw,19px)', color: 'rgba(255,255,255,0.88)', maxWidth: 540, margin: '0 auto 36px', lineHeight: 1.75 }}>
+            Meet <strong style={{ color: 'white' }}>Glumbi</strong> — the AI friend who lives inside your child's imagination. Stories, quizzes, drawing, writing, curiosity questions — all personalised to your child, every single day.
           </p>
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
             <button onClick={() => navigate('/login')}
-              style={{ padding: '16px 36px', borderRadius: 50, fontSize: 17, fontWeight: 800, background: 'white', color: '#ff6b6b', border: 'none', cursor: 'pointer', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }}>
+              style={{ padding: '15px 36px', borderRadius: 50, fontSize: 16, fontWeight: 900, background: 'white', color: '#ff6b6b', border: 'none', cursor: 'pointer', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', transition: 'transform 0.15s, box-shadow 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 12px 40px rgba(0,0,0,0.22)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,0.18)' }}>
               🌟 Start for Free
             </button>
             <button onClick={() => navigate('/demo')}
-              style={{ padding: '16px 36px', borderRadius: 50, fontSize: 17, fontWeight: 800, background: 'rgba(255,255,255,0.2)', color: 'white', border: '2px solid rgba(255,255,255,0.5)', cursor: 'pointer' }}>
-              ✨ Try it Free
+              style={{ padding: '15px 32px', borderRadius: 50, fontSize: 16, fontWeight: 800, background: 'rgba(255,255,255,0.15)', color: 'white', border: '2px solid rgba(255,255,255,0.4)', cursor: 'pointer', backdropFilter: 'blur(8px)', transition: 'transform 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
+              onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}>
+              ✨ Try the Demo
             </button>
           </div>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 20 }}>No credit card required · <strong style={{ color: 'white' }}>{defaultCredits ?? '…'} free AI credits every month</strong></p>
+
+          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13 }}>
+            {defaultCredits ?? '…'} <strong style={{ color: 'rgba(255,255,255,0.85)' }}>free AI credits</strong> every month · resets automatically
+          </p>
         </div>
       </section>
 
-      {/* ── Meet Glumbi ── */}
-      <section style={{ padding: '80px 40px', background: 'white' }}>
-        <div style={{ maxWidth: 860, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 56, flexWrap: 'wrap' }}>
-          {/* Illustration */}
-          <div style={{ flex: '0 0 auto', textAlign: 'center' }}>
+      {/* ══════════ MEET GLUMBI ══════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: 'white' }}>
+        <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 48, flexWrap: 'wrap' }}>
+          {/* Avatar */}
+          <div style={{ flex: '0 0 auto', textAlign: 'center', margin: '0 auto' }}>
             <div style={{
-              width: 200, height: 200, borderRadius: '50%',
-              background: 'linear-gradient(135deg,#fff8f0,#ffeedd)',
+              width: 160, height: 160, borderRadius: '50%',
+              background: 'linear-gradient(135deg,#fff0e8,#ffd5c0)',
               border: '4px solid #ffcdb8',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 12px 40px rgba(255,107,107,0.15)',
-              margin: '0 auto',
-              position: 'relative',
+              boxShadow: '0 16px 48px rgba(255,107,107,0.2)',
+              margin: '0 auto', position: 'relative',
             }}>
-              <img src="/icon.svg" alt="Glumbi" style={{ width: 140, height: 140 }} />
-              {/* Sparkle dots */}
+              <img src="/icon.svg" alt="Glumbi" style={{ width: 110, height: 110 }} />
               {[
-                { top: 10, right: 18, size: 10, color: '#ffd93d' },
-                { top: 30, left: 8,  size: 7,  color: '#ff6b6b' },
-                { bottom: 18, right: 10, size: 8, color: '#a66cff' },
-                { bottom: 28, left: 16, size: 6, color: '#6bcb77' },
+                { top: 8, right: 16, size: 10, color: '#ffd93d' },
+                { top: 32, left: 6,  size: 7,  color: '#ff6b6b' },
+                { bottom: 16, right: 8, size: 8, color: '#a66cff' },
+                { bottom: 24, left: 14, size: 6, color: '#6bcb77' },
               ].map((s, i) => (
                 <div key={i} style={{
                   position: 'absolute', width: s.size, height: s.size,
                   borderRadius: '50%', background: s.color,
                   top: s.top, right: s.right, bottom: s.bottom, left: s.left,
-                  animation: `float ${2.5 + i * 0.4}s ease-in-out infinite alternate`,
+                  animation: `hero-float ${2.5 + i * 0.4}s ease-in-out infinite alternate`,
                 }} />
               ))}
             </div>
-            <div style={{ marginTop: 16, fontFamily: 'Nunito, sans-serif', fontSize: 22, color: '#ff6b6b' }}>Glumbi</div>
-            <div style={{ fontSize: 12, color: '#bbb', marginTop: 4, fontStyle: 'italic' }}>your child's imagination friend</div>
+            <div style={{ marginTop: 12, fontFamily: 'Nunito, sans-serif', fontSize: 18, color: '#ff6b6b', fontWeight: 900 }}>Glumbi</div>
+            <div style={{ fontSize: 11, color: '#bbb', marginTop: 3, fontStyle: 'italic' }}>your child's imagination friend</div>
           </div>
 
-          {/* Story */}
+          {/* Text */}
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '5px 16px', fontSize: 12, fontWeight: 800, marginBottom: 16, letterSpacing: 0.5 }}>
+            <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '4px 16px', fontSize: 11, fontWeight: 800, marginBottom: 14, letterSpacing: 0.5 }}>
               WHO IS GLUMBI?
             </div>
-            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(26px,4vw,38px)', color: '#3d3d3d', lineHeight: 1.2, marginBottom: 20 }}>
-              The little friend who lives inside every child's imagination ✨
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(22px,3.5vw,34px)', color: '#3d3d3d', lineHeight: 1.25, marginBottom: 16 }}>
+              The little friend who looks different to every child ✨
             </h2>
-            <p style={{ fontSize: 16, color: '#777', lineHeight: 1.9, marginBottom: 16 }}>
-              Nobody knows exactly what Glumbi looks like — because <strong style={{ color: '#ff6b6b' }}>Glumbi looks different to every child</strong>. That's the magic.
+            <p style={{ fontSize: 15, color: '#777', lineHeight: 1.9, marginBottom: 12 }}>
+              Nobody knows exactly what Glumbi looks like — because <strong style={{ color: '#ff6b6b' }}>Glumbi looks different to every child</strong>. Part storyteller, part explorer, part cheerleader.
             </p>
-            <p style={{ fontSize: 16, color: '#777', lineHeight: 1.9, marginBottom: 16 }}>
-              Glumbi is part storyteller, part explorer, part cheerleader. Glumbi shows up at bedtime with a tale, answers the big "why" questions, suggests today's adventure, and cheers the loudest when your little one writes their very first story.
-            </p>
-            <p style={{ fontSize: 16, color: '#777', lineHeight: 1.9 }}>
-              Glumbi grows with your child — learning what they love, celebrating who they're becoming, and turning ordinary days into extraordinary memories.
+            <p style={{ fontSize: 15, color: '#777', lineHeight: 1.9 }}>
+              Glumbi shows up at bedtime with a tale, answers the big "why" questions, cheers when your child writes their first story, and grows with them — celebrating every milestone along the way.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section style={{ padding: '100px 40px', background: '#fafafa' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+      {/* ══════════ FEATURE CAROUSEL ══════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: '#fafafa' }}>
+        <div style={{ maxWidth: 780, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '4px 16px', fontSize: 11, fontWeight: 800, marginBottom: 14, letterSpacing: 0.5 }}>
+              10 FEATURES
+            </div>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(24px,4vw,38px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
               Everything your child needs to thrive 🌱
             </h2>
-            <p style={{ fontSize: 17, color: '#888', maxWidth: 520, margin: '0 auto' }}>
-              Built for children aged 1–10, with Glumbi AI safety at every step.
+            <p style={{ fontSize: 15, color: '#888', maxWidth: 440, margin: '0 auto' }}>
+              Built for children aged 1–10. All personalised. All safe. All in one place.
             </p>
           </div>
-
-          <p style={{ textAlign: 'center', fontSize: 18, color: '#888', lineHeight: 1.9, maxWidth: 640, margin: '0 auto' }}>
-            Stories · Activities · Curiosity · Drawing · Journaling · Reading · Writing · and more —
-            <strong style={{ color: '#3d3d3d' }}> all personalised to your child's age, all in one place.</strong>
-          </p>
+          <FeatureCarousel />
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section style={{ padding: '100px 40px', background: 'white' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 64 }}>
-            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+      {/* ══════════ HOW IT WORKS ══════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: 'white' }}>
+        <div style={{ maxWidth: 840, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 52 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(24px,4vw,38px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
               Up and running in minutes ⚡
             </h2>
-            <p style={{ fontSize: 17, color: '#888' }}>Four simple steps to your child's first magical story.</p>
+            <p style={{ fontSize: 15, color: '#888' }}>Four steps to your child's first magical story.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32, position: 'relative' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 28 }}>
             {STEPS.map((s, i) => (
               <div key={s.step} style={{ textAlign: 'center', position: 'relative' }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: '50%',
-                  background: 'linear-gradient(135deg,#ff6b6b,#ff8e53)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontFamily: 'Nunito, sans-serif', fontSize: 22, color: 'white',
-                  margin: '0 auto 20px',
-                  boxShadow: '0 8px 24px rgba(255,107,107,0.3)',
-                }}>
-                  {s.step}
-                </div>
+                {/* Connector line */}
                 {i < STEPS.length - 1 && (
                   <div style={{ position: 'absolute', top: 32, left: '60%', width: '80%', height: 2, background: 'linear-gradient(to right,#ffcdb8,transparent)', display: 'block' }} />
                 )}
-                <h4 style={{ fontSize: 16, fontWeight: 800, marginBottom: 8 }}>{s.title}</h4>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%',
+                  background: 'linear-gradient(135deg,#ff6b6b,#a855f7)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 26, margin: '0 auto 16px',
+                  boxShadow: '0 8px 24px rgba(255,107,107,0.25)',
+                }}>{s.emoji}</div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: '#ffb3b3', letterSpacing: 1.5, marginBottom: 6 }}>STEP {s.step}</div>
+                <h4 style={{ fontSize: 15, fontWeight: 800, marginBottom: 6, color: '#3d3d3d' }}>{s.title}</h4>
                 <p style={{ fontSize: 13, color: '#888', lineHeight: 1.6 }}>{s.desc}</p>
               </div>
             ))}
@@ -203,155 +440,96 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FAQ ── */}
-      <section style={{ padding: '100px 40px', background: '#fafafa' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 12 }}>
+      {/* ══════════ TRUST BAR ══════════ */}
+      <section style={{ background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)', padding: '32px 40px' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center', alignItems: 'center' }}>
+          {[
+            { icon: '🔒', text: 'Safety-first — 3-layer AI content guard' },
+            { icon: '👨‍👩‍👧', text: 'Built by a parent, for parents' },
+            { icon: '🌍', text: '12 languages, real WaveNet voices' },
+            { icon: '💳', text: 'Free forever — no credit card' },
+          ].map(item => (
+            <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#6b4fa3' }}>
+              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              {item.text}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════ FAQ ══════════ */}
+      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: 'white' }}>
+        <div style={{ maxWidth: 680, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 44 }}>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(22px,4vw,36px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
               Questions? We've got answers 💬
             </h2>
-            <p style={{ fontSize: 17, color: '#888' }}>Everything parents ask before signing up.</p>
+            <p style={{ fontSize: 15, color: '#888' }}>Everything parents ask before signing up.</p>
           </div>
           {[
             {
               q: 'What age is Glumbi for?',
-              a: 'Glumbi is designed for children aged 1–10. Stories, activities, and questions all adapt to your child\'s age — a 3-year-old gets simple sentences and playful rhymes, while a 9-year-old gets richer vocabulary and more complex quiz questions.',
+              a: "Glumbi is designed for children aged 1–10. Stories, activities, and questions all adapt to your child's age — a 3-year-old gets simple sentences and playful rhymes, while a 9-year-old gets richer vocabulary and more complex quiz questions.",
             },
             {
               q: 'Is it really free?',
-              a: `Yes. Every account gets ${defaultCredits ?? '…'} AI credits every month at no cost, with no credit card required. Credits reset automatically on the 1st of each month. There is no trial period — it\'s simply free, every month.`,
+              a: `Yes. Every account gets ${defaultCredits ?? '…'} AI credits every month at no cost, no credit card required. Credits reset automatically on the 1st of each month — forever.`,
             },
             {
               q: 'Is the content safe for my child?',
-              a: 'Absolutely. Every piece of AI-generated content passes a multi-layer Safety Guard before it reaches your child. Anything flagged as inappropriate is silently discarded and never shown. Glumbi was built by a parent, for parents.',
+              a: 'Absolutely. Every piece of AI-generated content passes a multi-layer Safety Guard before it reaches your child. Anything flagged is silently discarded. Glumbi was built by a parent, for parents.',
             },
             {
               q: 'Can I lock the app before handing the device to my child?',
-              a: 'Yes — Glumbi has a built-in Parental Lock. When locking, choose a session time limit (15m, 30m, 45m, 1h, 90m, or no limit) and how many extensions to allow, then set a 4-digit PIN. While locked, the child cannot switch profiles or access parent settings. When time runs out, a friendly screen appears and your PIN is required to continue.',
+              a: 'Yes — set a session time limit and a 4-digit PIN. While locked, the child cannot switch profiles or access parent settings. When time runs out, your PIN is required to continue.',
             },
             {
               q: 'Can I add more than one child?',
-              a: 'Yes — you can add up to 3 children under one account, each with their own profile, theme, interests, and learning history. Switch between children from the sidebar in seconds.',
+              a: 'Yes — up to 3 children under one account, each with their own profile, theme, interests, and learning history.',
             },
             {
               q: 'What languages does Glumbi support?',
-              a: 'Stories can be narrated in 12 languages: English (US, Indian, British, and Australian accents), Spanish, French, Italian, Chinese, Japanese, Korean, Tamil, Hindi, Malayalam, Telugu, and Kannada. You can also record your own voice — or a family member\'s — so stories are read aloud by someone your child loves. Learn to Write supports English, Tamil, and Hindi scripts.',
+              a: 'Stories can be narrated in 12 languages including English (US, Indian, British, Australian accents), Spanish, French, Hindi, Tamil, and more. You can also record your own voice for narration. Learn to Write supports English, Tamil, and Hindi scripts.',
             },
             {
-              q: 'Do I need to install anything?',
-              a: 'No. Glumbi runs entirely in your browser — no app download needed. It works on any device: phone, tablet, or desktop.',
-            },
-            {
-              q: 'What happens to my child\'s data?',
-              a: "Your child's Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Anthropic's Claude AI to generate responses but is not used for model training. See our Privacy Policy for full details.",
+              q: "What happens to my child's data?",
+              a: "Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Anthropic's Claude AI to generate responses but is not used for model training. See our Privacy Policy for full details.",
             },
           ].map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
         </div>
       </section>
 
-      {/* ── Languages ── */}
-      <section style={{ padding: '80px 40px', background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)' }}>
-        <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🌍</div>
-          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 36, color: '#8e44ad', marginBottom: 16 }}>
-            Speaks your child's language
-          </h2>
-          <p style={{ fontSize: 16, color: '#777', lineHeight: 1.8, marginBottom: 40 }}>
-            Stories can be listened to in <strong>12 languages</strong> using natural voices — warm, clear, and perfect for bedtime. You can even record your own voice so your child hears <em>you</em> reading every story.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 24, textAlign: 'left' }}>
-            {[
-              { group: '🌍 International', color: '#4d96ff', bg: '#f0f6ff', langs: ['English', 'Español', 'Français', 'Italiano', '普通话', '日本語', '한국어'] },
-              { group: '🇮🇳 Regional India', color: '#e67e22', bg: '#fff8f0', langs: ['தமிழ்', 'हिंदी', 'മലയാളം', 'తెలుగు', 'ಕನ್ನಡ'] },
-            ].map(({ group, color, bg, langs }) => (
-              <div key={group} style={{ background: 'white', borderRadius: 20, padding: '24px 28px', boxShadow: '0 4px 20px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color, marginBottom: 16 }}>{group}</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {langs.map(l => (
-                    <span key={l} style={{ padding: '6px 14px', borderRadius: 50, background: bg, color, fontSize: 14, fontWeight: 700 }}>
-                      🔊 {l}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Free Credits ── */}
-      <section style={{ padding: '80px 40px', background: 'white' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ display: 'inline-block', background: '#fff8e1', borderRadius: 50, padding: '6px 18px', fontSize: 13, fontWeight: 700, color: '#e67e22', marginBottom: 20 }}>
-            🎁 Always free — no surprises
-          </div>
-          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 40, color: '#3d3d3d', marginBottom: 16 }}>
-            {defaultCredits ?? '…'} AI credits, every month
-          </h2>
-          <p style={{ fontSize: 17, color: '#888', maxWidth: 540, margin: '0 auto 48px', lineHeight: 1.7 }}>
-            Every account gets {defaultCredits ?? '…'} credits automatically each month. No card needed, no trial period — just magic, every single month.
-          </p>
-
-          {/* Credit concept */}
-          <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
-            {[
-              { icon: '📖', label: 'A story', cost: 'a few credits' },
-              { icon: '🔍', label: 'A curiosity answer', cost: 'just 1 credit' },
-              { icon: '🎨', label: 'Drawing & journal', cost: 'always free' },
-            ].map(item => (
-              <div key={item.label} style={{ background: '#fafafa', borderRadius: 16, padding: '20px 24px', textAlign: 'center', border: '1.5px solid #f0f0f0', minWidth: 140 }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>{item.icon}</div>
-                <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontSize: 12, color: '#888' }}>{item.cost}</div>
-              </div>
-            ))}
-          </div>
-          <p style={{ fontSize: 13, color: '#bbb', marginBottom: 48 }}>
-            Different features use different amounts. Sign in and open Help to see the full breakdown.
-          </p>
-
-          {/* How credits reset */}
-          <div style={{
-            background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)', borderRadius: 20, padding: '28px 32px',
-            display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', justifyContent: 'center',
-            border: '1.5px solid #e8d5f5',
-          }}>
-            <div style={{ fontSize: 48 }}>🔄</div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontWeight: 800, fontSize: 17, color: '#8e44ad', marginBottom: 6 }}>Credits reset on the 1st of every month</div>
-              <div style={{ fontSize: 14, color: '#777', lineHeight: 1.7, maxWidth: 460 }}>
-                Your {defaultCredits ?? '…'} credits refresh automatically — no action needed. Mix and match features freely. Switch to <strong>Practice Mode</strong> any time to explore without spending credits.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
+      {/* ══════════ CTA ══════════ */}
       <section style={{
-        padding: '100px 40px',
-        background: 'linear-gradient(135deg,#ff6b6b,#ff8e53,#ffd93d)',
-        textAlign: 'center',
+        padding: 'clamp(80px,10vw,120px) 40px',
+        background: 'linear-gradient(135deg,#ff6b6b 0%,#ff8e53 40%,#a855f7 80%,#6366f1 100%)',
+        textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
-        <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 44, color: 'white', marginBottom: 16 }}>
-          Ready to create some magic? ✨
-        </h2>
-        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.9)', marginBottom: 40, maxWidth: 480, margin: '0 auto 40px' }}>
-          Glumbi is waiting to meet your child. Join families turning bedtime into the best part of the day.
-        </p>
-        <button onClick={() => navigate('/login')}
-          style={{ padding: '18px 48px', borderRadius: 50, fontSize: 18, fontWeight: 800, background: 'white', color: '#ff6b6b', border: 'none', cursor: 'pointer', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }}>
-          🌟 Get Started — It's Free
-        </button>
+        <div style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', top: -200, left: -100, pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🌟</div>
+          <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(28px,5vw,48px)', color: 'white', marginBottom: 14, fontWeight: 900 }}>
+            Ready to create some magic?
+          </h2>
+          <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.85)', marginBottom: 36, maxWidth: 440, margin: '0 auto 36px', lineHeight: 1.7 }}>
+            Glumbi is waiting to meet your child. Join families turning bedtime into the best part of the day.
+          </p>
+          <button onClick={() => navigate('/login')}
+            style={{ padding: '16px 44px', borderRadius: 50, fontSize: 17, fontWeight: 900, background: 'white', color: '#ff6b6b', border: 'none', cursor: 'pointer', boxShadow: '0 8px 32px rgba(0,0,0,0.2)', transition: 'transform 0.15s, box-shadow 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 16px 48px rgba(0,0,0,0.25)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 8px 32px rgba(0,0,0,0.2)' }}>
+            Get Started — It's Free ✨
+          </button>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 16 }}>No credit card · No trial period · Just magic, every month</p>
+        </div>
       </section>
 
-      {/* ── Footer ── */}
       <Footer />
 
       <style>{`
-        @keyframes float {
+        @keyframes hero-float {
           from { transform: translateY(0px) rotate(0deg); }
-          to   { transform: translateY(-20px) rotate(10deg); }
+          to   { transform: translateY(-18px) rotate(8deg); }
         }
       `}</style>
     </div>

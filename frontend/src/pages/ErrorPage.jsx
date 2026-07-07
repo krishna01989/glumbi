@@ -84,8 +84,13 @@ export default function ErrorPage({ code, message }) {
   const info     = ERRORS[status] || DEFAULT
 
   function handleCta() {
-    if (info.ctaPath) navigate(info.ctaPath)
-    else window.location.reload()
+    if (info.ctaPath) {
+      navigate(info.ctaPath)
+    } else {
+      // Go back and force a reload so the original request is retried
+      window.history.go(-1)
+      setTimeout(() => window.location.reload(), 100)
+    }
   }
 
   function handleSignOut() {

@@ -82,6 +82,9 @@ public class ApiQuotaService {
         AppUser user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        // Admins and super-admins are exempt from quota — unlimited AI access
+        if (user.isAdminOrAbove()) return true;
+
         String thisMonth = YearMonth.now().toString();
 
         if (!thisMonth.equals(user.getApiCallMonth())) {
@@ -133,6 +136,7 @@ public class ApiQuotaService {
         try {
             String thisMonth = YearMonth.now().toString();
             for (var user : userRepository.findAll()) {
+                if (user.isAdminOrAbove()) continue;
                 user.setMonthlyApiCalls(0);
                 user.setApiCallMonth(thisMonth);
                 user.setQuotaWarnMonth(null);

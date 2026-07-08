@@ -258,6 +258,7 @@ export default function App() {
   const [lockModal, setLockModal]               = useState(null)  // 'setup' | 'confirm' | 'unlock'
   const [lockPin, setLockPin]                   = useState('')
   const [lockPinError, setLockPinError]         = useState('')
+  const [showPin, setShowPin]                   = useState(false)
   const [pendingLockedChild, setPendingLockedChild] = useState(null)
 
   function toggleOffline(childId) {
@@ -607,7 +608,7 @@ export default function App() {
       localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     }
     originalLimitRef.current = lockTimeLimit
-    setChildLocked(true); setLockModal(null); setLockPin('')
+    setChildLocked(true); setLockModal(null); setLockPin(''); setShowPin(false)
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
       navigate(`/child/${pendingLockedChild.id}/stories`)
@@ -628,7 +629,7 @@ export default function App() {
       localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     }
     originalLimitRef.current = lockTimeLimit
-    setChildLocked(true); setLockModal(null); setLockPin('')
+    setChildLocked(true); setLockModal(null); setLockPin(''); setShowPin(false)
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
       navigate(`/child/${pendingLockedChild.id}/stories`)
@@ -648,7 +649,7 @@ export default function App() {
     }
     originalLimitRef.current = 0
     setLockTimeLimit(0); setLockMaxSnooze(1)
-    setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError(''); setLockModalForced(false)
+    setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError(''); setLockModalForced(false); setShowPin(false)
     setChild(null); navigate('/child')
   }
 
@@ -795,16 +796,23 @@ export default function App() {
               </div>
             )}
 
-            <input type="number" inputMode="numeric" maxLength={4}
-              placeholder={isSetup ? 'Enter 4 digits' : 'Enter your PIN'}
-              className="pin-input"
-              value={lockPin} onChange={e => { setLockPin(e.target.value.slice(0,4)); setLockPinError('') }}
-              autoFocus
-              style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
-                border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px', marginBottom: 8, boxSizing: 'border-box' }} />
+            <div style={{ position: 'relative', marginBottom: 8 }}>
+              <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4}
+                placeholder="• • • •"
+                className="pin-input"
+                value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
+                autoFocus
+                style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
+                  border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 20 }} />
+              <button type="button" onClick={() => setShowPin(p => !p)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
+                {showPin ? '🙈' : '👁️'}
+              </button>
+            </div>
             {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
-            <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-              <button onClick={() => { setLockModal(null); setLockPin(''); if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) } }}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button onClick={() => { setLockModal(null); setLockPin(''); setShowPin(false); if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) } }}
                 style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
                 Cancel
               </button>
@@ -826,15 +834,22 @@ export default function App() {
               ? `Great session, ${child?.name}! 🌟 Ask a parent to enter the PIN to continue.`
               : 'Enter your 4-digit PIN to unlock'}
           </div>
-          <input type="number" inputMode="numeric" maxLength={4} placeholder="PIN"
-            value={lockPin} onChange={e => { setLockPin(e.target.value.slice(0,4)); setLockPinError('') }}
-            autoFocus
-            style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
-              border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px', marginBottom: 8, boxSizing: 'border-box' }} />
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="••••"
+              value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
+              autoFocus
+              style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900,
+                border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 10 }} />
+            <button type="button" onClick={() => setShowPin(p => !p)}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
+              {showPin ? '🙈' : '👁️'}
+            </button>
+          </div>
           {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
-          <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             {!lockModalForced && (
-              <button onClick={() => { setLockModal(null); setLockPin(''); setLockPinError('') }}
+              <button onClick={() => { setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false) }}
                 style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
                 Cancel
               </button>

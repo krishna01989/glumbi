@@ -556,12 +556,12 @@ export default function App() {
   }, [screenTimeAlert])
 
   function handleScreenTimeSnooze(extraMinutes) {
-    // Reset session start so the timer shows 0m again after extending
     const newStart = Date.now()
     if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
     setSessionStart(newStart)
     setSessionMinutes(0)
-    setSnoozedUntil(newStart + extraMinutes * 60000)
+    setLockTimeLimit(extraMinutes)   // timer now counts against the extension, not the original limit
+    setSnoozedUntil(null)
     setSnoozeCount(n => {
       const next = n + 1
       if (child?.id) localStorage.setItem(`glm_snooze_count_${child.id}`, String(next))

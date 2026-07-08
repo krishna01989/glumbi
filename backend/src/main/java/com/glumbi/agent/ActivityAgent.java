@@ -43,7 +43,7 @@ public class ActivityAgent {
                 count, count == 1 ? "y" : "ies",
                 childName, childAge, timeOfDay, weather,
                 pastHighRatedActivities.isEmpty() ? "none yet" : pastHighRatedActivities,
-                childAge, ageGuidance(childAge), count, count == 1 ? "" : "s");
+                ageGuidance(childAge), count, count == 1 ? "" : "s");
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);

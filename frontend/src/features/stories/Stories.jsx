@@ -65,7 +65,7 @@ function StoryIllustration({ story }) {
         {scene.emoji}
       </div>
       <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', position: 'relative', zIndex: 1 }}>
-        {story.keywords || 'A magical story'}
+        {(story.keywords && story.keywords.toLowerCase() !== 'continue' ? story.keywords.split(',')[0].trim() : null) || 'A magical story'}
       </div>
     </div>
   )
@@ -112,6 +112,7 @@ export default function Stories({ child, quota }) {
     const saved = localStorage.getItem(`glumbi_voice_${child.id}`)
     return saved ? parseInt(saved, 10) : null  // null = default Google TTS
   })
+  const [similarStories, setSimilarStories] = useState([])
   const [error, setError]               = useState('')
   const [audioError, setAudioError]     = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
@@ -170,9 +171,12 @@ export default function Stories({ child, quota }) {
     setLoading(true)
     setError('')
     try {
-      const story = await storyApi.generate({ childId: child.id, keywords })
+      const res = await storyApi.generate({ childId: child.id, keywords })
+      const story = res.story ?? res   // fallback if backend not yet updated
+      const similar = res.similar ?? []
       setStories(prev => [story, ...prev])
       setSelected(story)
+      setSimilarStories(similar)
       setKeywords('')
       window.__glumbiRefreshQuota?.()
 
@@ -185,9 +189,12 @@ export default function Stories({ child, quota }) {
     setLoading(true)
     setError('')
     try {
-      const continued = await storyApi.continue(child.id, story.id)
+      const res = await storyApi.continue(child.id, story.id)
+      const continued = res.story ?? res
+      const similar = res.similar ?? []
       setStories(prev => [continued, ...prev])
       setSelected(continued)
+      setSimilarStories(similar)
       window.__glumbiRefreshQuota?.()
     } catch (e) {
       setError(e.message)
@@ -351,7 +358,7 @@ export default function Stories({ child, quota }) {
             <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
             {stories.map(s => (
               <div key={s.id}
-                onClick={() => { if (selected?.id === s.id) return; setLangPickerOpen(false); setAudioError(''); setSelected(s); if (isMobile) setShowList(false) }}
+                onClick={() => { if (selected?.id === s.id) return; setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([]); storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {}); if (isMobile) setShowList(false) }}
                 style={{
                   borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
                   boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
@@ -682,6 +689,34 @@ export default function Stories({ child, quota }) {
                 </>
               )}
             </div>
+
+            {/* Similar stories — RAG recommendations */}
+            {similarStories.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                  ✨ You might also like
+                </div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {similarStories.map(s => (
+                    <button key={s.id} onClick={() => { setSelected(s); setSimilarStories([]); storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {}) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        background: 'var(--primary-lt)', border: '1.5px solid var(--primary-lt)',
+                        borderRadius: 50, padding: '7px 14px', cursor: 'pointer',
+                        fontFamily: 'Nunito, sans-serif', fontSize: 13, fontWeight: 700,
+                        color: 'var(--primary)', transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-lt)'}
+                    >
+                      <span>{getScene(s.keywords).emoji}</span>
+                      <span style={{ maxWidth: 160, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                        {s.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ fontSize:12, color:'var(--muted)', marginTop:'auto', display:'flex', justifyContent:'space-between' }}>
               <span>✨ Created for {child.name}</span>

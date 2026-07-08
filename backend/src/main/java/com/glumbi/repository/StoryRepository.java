@@ -2,7 +2,9 @@ package com.glumbi.repository;
 
 import com.glumbi.entity.Story;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,4 +22,42 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     List<Object[]> countStoriesPerChild();
 
     List<Story> findByCreatedAtAfter(LocalDateTime since);
+
+    // Update embedding with explicit cast — JPA can't map String → vector automatically
+    @Modifying
+    @Query(value = "UPDATE stories SET embedding = CAST(:embedding AS vector) WHERE id = :id", nativeQuery = true)
+    void updateEmbedding(@Param("id") Long id, @Param("embedding") String embedding);
+
+    // Similarity search using a raw embedding string — used only at generate time
+    @Query(value = """
+        SELECT * FROM stories
+        WHERE child_id = :childId
+          AND embedding IS NOT NULL
+          AND id != :excludeId
+        ORDER BY embedding <-> CAST(:embedding AS vector)
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Story> findSimilarStories(
+        @Param("childId")   Long   childId,
+        @Param("embedding") String embedding,
+        @Param("excludeId") Long   excludeId,
+        @Param("limit")     int    limit
+    );
+
+    // Similarity search using a story's own stored embedding — no Voyage AI call needed
+    @Query(value = """
+        SELECT s.* FROM stories s
+        JOIN stories ref ON ref.id = :storyId
+        WHERE s.child_id = :childId
+          AND s.embedding IS NOT NULL
+          AND s.id != :storyId
+          AND ref.embedding IS NOT NULL
+        ORDER BY s.embedding <-> ref.embedding
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Story> findSimilarByStoredEmbedding(
+        @Param("childId") Long childId,
+        @Param("storyId") Long storyId,
+        @Param("limit")   int  limit
+    );
 }

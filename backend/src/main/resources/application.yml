@@ -71,3 +71,10 @@ app:
     verify-url: https://challenges.cloudflare.com/turnstile/v0/siteverify
   quota:
     default-monthly-credits: 200
+
+voyage:
+  api-key: ${VOYAGE_API_KEY:}
+  embed-url: https://api.voyageai.com/v1/embeddings
+  model: voyage-3
+  dimensions: 1024
+  similar-limit: 3

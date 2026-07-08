@@ -88,6 +88,7 @@ export const storyApi = {
   getByChild:     (childId, params)   => api.get(`/stories/child/${childId}`, { params }).then(r => r.data),
   getFavorites:   (childId)           => api.get(`/stories/child/${childId}/favorites`).then(r => r.data),
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
+  getSimilar:     (id)                => api.get(`/stories/${id}/similar`).then(r => r.data),
   translate:      (id, language)      => api.get(`/stories/${id}/translate?language=${language}`).then(r => r.data),
   listenUrl:      (id, language, voice, familyVoiceId) => {
     const token = localStorage.getItem('glm_token')

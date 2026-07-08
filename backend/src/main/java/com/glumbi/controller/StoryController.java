@@ -67,7 +67,7 @@ public class StoryController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly story limit. It resets at the start of next month!"));
         }
-        return ResponseEntity.ok(service.generate(req));
+        return ResponseEntity.ok(service.generate(req));  // returns { story, similar }
     }
 
     @GetMapping("/child/{childId}")
@@ -85,6 +85,11 @@ public class StoryController {
     @PatchMapping("/{id}/favorite")
     public Story toggleFavorite(@PathVariable Long id) {
         return service.toggleFavorite(id);
+    }
+
+    @GetMapping("/{id}/similar")
+    public List<Story> getSimilar(@PathVariable Long id) {
+        return service.findSimilar(id);
     }
 
     @GetMapping("/{id}/translate")

@@ -15,20 +15,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StoryService {
 
-    private final StoryRepository repo;
-    private final ChildService childService;
-    private final StoryAgent storyAgent;
+    private final StoryRepository      repo;
+    private final ChildService         childService;
+    private final StoryAgent           storyAgent;
+    private final StoryEmbeddingService embeddingService;
 
-    public Story generate(StoryRequest req) {
+    public StoryGenerateResult generate(StoryRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
         int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
         StoryAgent.StoryResult result;
+        Story prev = null;
         if (req.getPreviousStoryId() != null) {
-            Story prev = repo.findById(req.getPreviousStoryId())
+            prev = repo.findById(req.getPreviousStoryId())
                     .orElseThrow(() -> new RuntimeException("Previous story not found"));
+            // Strip the "Root · " prefix so the AI doesn't mimic it in the new chapter title
+            String prevTitleForAi = prev.getTitle().contains(" · ")
+                    ? prev.getTitle().substring(prev.getTitle().indexOf(" · ") + 3)
+                    : prev.getTitle();
             result = storyAgent.continueStory(
-                    child.getName(), age, child.getGender(), prev.getTitle(), prev.getContent()
+                    child.getName(), age, child.getGender(), prevTitleForAi, prev.getContent()
             );
         } else {
             result = storyAgent.generateStory(
@@ -38,11 +44,35 @@ public class StoryService {
 
         Story story = new Story();
         story.setChild(child);
-        story.setTitle(result.title());
         story.setContent(result.content());
-        story.setKeywords(req.getKeywords());
-        return repo.save(story);
+        if (prev != null) {
+            story.setKeywords(prev.getKeywords());
+            // Always use the root story title as prefix so chaining doesn't nest titles
+            String rootTitle = prev.getTitle().contains(" · ")
+                    ? prev.getTitle().substring(0, prev.getTitle().indexOf(" · "))
+                    : prev.getTitle();
+            story.setTitle(rootTitle + " · " + result.title());
+        } else {
+            story.setTitle(result.title());
+            story.setKeywords(req.getKeywords());
+        }
+        Story saved = repo.save(story);
+
+        // Embed synchronously first so this story is immediately searchable,
+        // then find similar — both use the same keywords as the query vector
+        embeddingService.embedAndSave(saved);
+        List<Story> similar = embeddingService.findSimilarById(saved.getId(), child.getId());
+
+        return new StoryGenerateResult(saved, similar);
     }
+
+    public List<Story> findSimilar(Long storyId) {
+        Story story = repo.findById(storyId).orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
+        return embeddingService.findSimilarById(storyId, story.getChild().getId());
+    }
+
+    public record StoryGenerateResult(Story story, List<Story> similar) {}
+
 
     public Story getById(Long id) {
         return repo.findById(id).orElseThrow(() -> new RuntimeException("Story not found: " + id));

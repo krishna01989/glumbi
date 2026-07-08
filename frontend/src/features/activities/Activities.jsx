@@ -183,7 +183,7 @@ export default function Activities({ child, quota }) {
               🗑 Clear all
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px,1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px,1fr))', gap: 16 }}>
             {pending.map(a => {
               const cat = CATEGORY_COLORS[a.category] || CATEGORY_COLORS.indoor
               return (

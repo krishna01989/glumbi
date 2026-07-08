@@ -48,12 +48,13 @@ function makeEmojiCursor(emoji, size = 36) {
 }
 
 const BRUSHES = [
-  { size: 3,  label: '·',  title: 'Extra thin' },
-  { size: 7,  label: '•',  title: 'Thin' },
-  { size: 14, label: '●',  title: 'Medium' },
-  { size: 24, label: '⬤', title: 'Thick' },
-  { size: 40, label: '⬤', title: 'Extra thick', big: true },
+  { size: 3,  title: 'Extra thin', dotSize: 4,  btnH: 24 },
+  { size: 7,  title: 'Thin',       dotSize: 8,  btnH: 28 },
+  { size: 14, title: 'Medium',     dotSize: 14, btnH: 32 },
+  { size: 24, title: 'Thick',      dotSize: 20, btnH: 38 },
+  { size: 40, title: 'Extra thick',dotSize: 26, btnH: 46 },
 ]
+
 
 function SectionLabel({ children }) {
   return (
@@ -135,8 +136,8 @@ export default function Draw({ child, quota, featureConfig }) {
   const isCompact = bp === 'mobile' || bp === 'tablet'
   const canvasCursor = useMemo(() => {
     if (fillMode) return makeEmojiCursor('🪣', 40)
-    if (eraser) return 'cell'
-    return 'crosshair'
+    if (eraser) return makeEmojiCursor('🧽', 36)
+    return makeEmojiCursor('✏️', 32)
   }, [eraser, fillMode])
 
   const getCtx = () => canvasRef.current.getContext('2d', { willReadFrequently: true })
@@ -519,7 +520,7 @@ export default function Draw({ child, quota, featureConfig }) {
             <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
               style={{
                 width: isFullscreen ? 44 : isCompact ? 34 : 72,
-                height: isFullscreen ? 36 : isCompact ? 32 : 28,
+                height: isFullscreen ? b.btnH * 0.8 : isCompact ? b.btnH * 0.75 : b.btnH,
                 borderRadius: 8, border: 'none', cursor: 'pointer',
                 background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
                 outline: brush === b.size ? '2px solid var(--primary)' : 'none',
@@ -527,12 +528,11 @@ export default function Draw({ child, quota, featureConfig }) {
                 gap: 6, padding: '0 6px',
               }}>
               <div style={{
-                width: Math.min(b.size, 20), height: Math.min(b.size, 20),
+                width: b.dotSize, height: b.dotSize,
                 borderRadius: '50%',
                 background: brush === b.size ? 'var(--primary)' : '#aaa',
                 flexShrink: 0,
               }} />
-              {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: brush === b.size ? 'var(--primary)' : '#aaa' }}>{b.title}</span>}
             </button>
           ))}
         </div>
@@ -543,65 +543,29 @@ export default function Draw({ child, quota, featureConfig }) {
         {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
 
         <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
-          <button onClick={() => { setFillMode(f => !f); setEraser(false) }} title="Fill"
-            style={{
-              width: isFullscreen ? 44 : isCompact ? 40 : 72,
-              height: isFullscreen ? 40 : isCompact ? 38 : 32,
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: fillMode ? 'var(--primary-lt)' : '#f5f5f5',
-              outline: fillMode ? '2px solid var(--primary)' : 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-            <span style={{ fontSize: 18 }}>🪣</span>
-            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: fillMode ? 'var(--primary)' : '#aaa' }}>Fill</span>}
-          </button>
-
-          <button onClick={() => { setEraser(e => !e); setFillMode(false) }} title="Eraser"
-            style={{
-              width: isFullscreen ? 44 : isCompact ? 40 : 72,
-              height: isFullscreen ? 40 : isCompact ? 38 : 32,
-              borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: eraser ? 'var(--primary-lt)' : '#f5f5f5',
-              outline: eraser ? '2px solid var(--primary)' : 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-            <span style={{ fontSize: 18 }}>🧹</span>
-            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: eraser ? 'var(--primary)' : '#aaa' }}>Eraser</span>}
-          </button>
-
-          <button onClick={handleUndo} title="Undo" disabled={!canUndo}
-            style={{
-              width: isFullscreen ? 44 : isCompact ? 40 : 72,
-              height: isFullscreen ? 40 : isCompact ? 38 : 32,
-              borderRadius: 8, border: 'none', cursor: canUndo ? 'pointer' : 'not-allowed', background: '#f5f5f5',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              opacity: canUndo ? 1 : 0.35,
-            }}>
-            <span style={{ fontSize: 18 }}>↩️</span>
-            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Undo</span>}
-          </button>
-
-          <button onClick={clearCanvas} title="Clear canvas"
-            style={{
-              width: isFullscreen ? 44 : isCompact ? 40 : 72,
-              height: isFullscreen ? 40 : isCompact ? 38 : 32,
-              borderRadius: 8, border: 'none', cursor: 'pointer', background: '#f5f5f5',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-            <span style={{ fontSize: 18 }}>🗑️</span>
-            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Clear</span>}
-          </button>
-
-          <button onClick={downloadDrawing} title="Save drawing"
-            style={{
-              width: isFullscreen ? 44 : isCompact ? 40 : 72,
-              height: isFullscreen ? 40 : isCompact ? 38 : 32,
-              borderRadius: 8, border: 'none', cursor: 'pointer', background: '#f5f5f5',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            }}>
-            <span style={{ fontSize: 18 }}>💾</span>
-            {!isCompact && !isFullscreen && <span style={{ fontSize: 10, fontWeight: 700, color: '#aaa' }}>Save</span>}
-          </button>
+          {[
+            { key: 'pencil', title: 'Pencil',  emoji: '✏️',  active: !eraser && !fillMode, onClick: () => { setEraser(false); setFillMode(false) } },
+            { key: 'fill',   title: 'Fill',    emoji: '🪣',  active: fillMode,              onClick: () => { setFillMode(f => !f); setEraser(false) } },
+            { key: 'eraser', title: 'Eraser',  emoji: '🧽',  active: eraser,                onClick: () => { setEraser(e => !e); setFillMode(false) } },
+            { key: 'undo',   title: 'Undo',    emoji: '↩️',  active: false, disabled: !canUndo, onClick: handleUndo },
+            { key: 'clear',  title: 'Clear',   emoji: '🗑️', active: false,                 onClick: clearCanvas },
+            { key: 'save',   title: 'Save',    emoji: '💾',  active: false,                 onClick: downloadDrawing },
+          ].map(({ key, title, emoji, active, disabled, onClick }) => (
+            <button key={key} onClick={onClick} title={title} disabled={disabled}
+              style={{
+                width: isFullscreen ? 44 : isCompact ? 40 : 72,
+                height: isFullscreen ? 40 : isCompact ? 38 : 32,
+                borderRadius: 8, border: 'none',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                background: active ? 'var(--primary-lt)' : '#f5f5f5',
+                outline: active ? '2px solid var(--primary)' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: disabled ? 0.35 : 1,
+                fontSize: 18,
+              }}>
+              {emoji}
+            </button>
+          ))}
         </div>
 
       </div>{/* end toolbar */}

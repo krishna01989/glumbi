@@ -53,10 +53,14 @@ WHERE t.child_id = :childId
   AND t.embedding IS NOT NULL
   AND t.id != :id
   AND ref.embedding IS NOT NULL
-ORDER BY t.embedding <-> ref.embedding   -- pgvector cosine distance
+  AND (t.embedding <-> ref.embedding) < 0.9   -- distance threshold: filters out unrelated content
+ORDER BY t.embedding <-> ref.embedding         -- pgvector L2 distance (ascending = most similar first)
 LIMIT :limit
 ```
 Voyage AI is never called at read time. All similarity lookups are pure pgvector.
+
+**Why L2 distance `<->` with threshold `0.9`:**
+Voyage AI embeddings are normalized to unit vectors, so L2 distance and cosine similarity are mathematically equivalent: `L2² = 2 × cosine_distance`. An L2 threshold of `0.9` corresponds to cosine similarity > 0.60 — close enough to surface genuinely related content (e.g. "what happens in sleep" ↔ "why do we dream", L2 ≈ 0.4–0.6) while filtering out unrelated topics (e.g. "why do fish swim" ↔ "why does the moon come at night", L2 > 1.0).
 
 **Key design decisions:**
 - `CompletableFuture.runAsync()` (not `@Async`) — `@EnableAsync` caused CGLIB proxy startup failures breaking all APIs.

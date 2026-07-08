@@ -1,7 +1,6 @@
 package com.glumbi.controller;
 
 import com.glumbi.entity.AppUser;
-import com.glumbi.entity.Child;
 import com.glumbi.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.scheduler.NotificationScheduler;
@@ -29,7 +28,6 @@ public class AdminController {
     private final ChildRepository         childRepo;
     private final StoryRepository         storyRepo;
     private final ActivityRepository      activityRepo;
-    private final JournalRepository       journalRepo;
     private final CuriosityRepository     curiosityRepo;
     private final ReadQuizRepository      quizRepo;
     private final WritingRepository       writingRepo;

@@ -1,7 +1,6 @@
 package com.glumbi.service;
 
 import com.google.cloud.texttospeech.v1.*;
-import com.google.protobuf.ByteString;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

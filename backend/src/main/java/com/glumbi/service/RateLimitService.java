@@ -2,7 +2,6 @@ package com.glumbi.service;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -24,12 +23,12 @@ public class RateLimitService {
 
     private Bucket newBucket(Endpoint endpoint) {
         Bandwidth limit = switch (endpoint) {
-            case STORY      -> Bandwidth.classic(10, Refill.greedy(10, Duration.ofHours(1)));
-            case ACTIVITY   -> Bandwidth.classic(10, Refill.greedy(10, Duration.ofHours(1)));
-            case CURIOSITY  -> Bandwidth.classic(20, Refill.greedy(20, Duration.ofHours(1)));
-            case READ_QUIZ  -> Bandwidth.classic(10, Refill.greedy(10, Duration.ofHours(1)));
-            case WRITING    -> Bandwidth.classic(10, Refill.greedy(10, Duration.ofHours(1)));
-            case MEMORY     -> Bandwidth.classic(15, Refill.greedy(15, Duration.ofHours(1)));
+            case STORY      -> Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofHours(1)).build();
+            case ACTIVITY   -> Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofHours(1)).build();
+            case CURIOSITY  -> Bandwidth.builder().capacity(20).refillGreedy(20, Duration.ofHours(1)).build();
+            case READ_QUIZ  -> Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofHours(1)).build();
+            case WRITING    -> Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofHours(1)).build();
+            case MEMORY     -> Bandwidth.builder().capacity(15).refillGreedy(15, Duration.ofHours(1)).build();
         };
         return Bucket.builder().addLimit(limit).build();
     }

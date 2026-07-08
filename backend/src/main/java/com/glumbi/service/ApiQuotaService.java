@@ -1,6 +1,5 @@
 package com.glumbi.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.entity.AiUsageLog;
 import com.glumbi.entity.AppSetting;
 import com.glumbi.entity.AppUser;
@@ -13,7 +12,6 @@ import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.repository.UserRepository;
 import com.glumbi.entity.SchedulerRun;
 import com.glumbi.repository.SchedulerRunRepository;
-import com.glumbi.scheduler.SchedulerHistoryHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,9 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -32,14 +27,12 @@ public class ApiQuotaService {
 
     private static final String SETTING_KEY          = "default-monthly-credits";
     public  static final String RESET_HISTORY_KEY    = "scheduler.reset-credits.history";
-    private static final DateTimeFormatter FMT       = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
+    
     private final UserRepository                userRepository;
     private final NotificationService           notificationService;
     private final FeatureConfigRepository       featureConfigRepo;
     private final AppSettingRepository          appSettingRepo;
     private final UserFeatureOverrideRepository overrideRepo;
-    private final ObjectMapper                  objectMapper;
     private final SchedulerRunRepository        schedulerRunRepo;
     private final AiUsageLogRepository          usageLogRepo;
 

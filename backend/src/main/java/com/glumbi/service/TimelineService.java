@@ -1,7 +1,5 @@
 package com.glumbi.service;
 
-import com.glumbi.repository.ChildRepository;
-import com.glumbi.security.JwtFilter.AuthUser;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
@@ -16,12 +14,6 @@ public class TimelineService {
 
     @PersistenceContext
     private EntityManager em;
-
-    private final ChildRepository childRepository;
-
-    public TimelineService(ChildRepository childRepository) {
-        this.childRepository = childRepository;
-    }
 
     public Map<String, Object> getPage(Long childId, int page, int size, String from, String to) {
         LocalDateTime fromDt = from != null ? LocalDateTime.parse(from, DateTimeFormatter.ISO_DATE_TIME) : LocalDateTime.of(2000, 1, 1, 0, 0);

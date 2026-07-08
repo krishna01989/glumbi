@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -30,11 +29,7 @@ public class UserController {
 
     private final UserRepository          userRepository;
     private final ChildRepository         childRepository;
-    private final StoryRepository         storyRepository;
-    private final ActivityRepository      activityRepository;
     private final ApiQuotaService         quotaService;
-    private final JournalRepository       journalRepository;
-    private final CuriosityRepository     curiosityRepository;
     private final AiUsageLogRepository    usageLogRepository;
     private final PasswordEncoder         encoder;
     private final FeatureConfigRepository       featureConfigRepo;

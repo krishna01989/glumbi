@@ -32,7 +32,6 @@ public class WritingController {
     private final RateLimitService rateLimiter;
     private final ApiQuotaService quotaService;
     private final StoryAgent storyAgent;
-    private final ChildService childService;
 
     @PostMapping
     public ResponseEntity<?> save(@Valid @RequestBody WritingRequest req) {

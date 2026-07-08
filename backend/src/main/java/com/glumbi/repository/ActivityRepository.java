@@ -35,6 +35,7 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
           AND a.embedding IS NOT NULL
           AND a.id != :activityId
           AND ref.embedding IS NOT NULL
+          AND (a.embedding <-> ref.embedding) < 0.9
         ORDER BY a.embedding <-> ref.embedding
         LIMIT :limit
         """, nativeQuery = true)

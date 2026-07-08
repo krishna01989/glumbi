@@ -27,6 +27,7 @@ public interface CuriosityRepository extends JpaRepository<CuriosityEntry, Long>
           AND c.embedding IS NOT NULL
           AND c.id != :entryId
           AND ref.embedding IS NOT NULL
+          AND (c.embedding <-> ref.embedding) < 0.9
         ORDER BY c.embedding <-> ref.embedding
         LIMIT :limit
         """, nativeQuery = true)

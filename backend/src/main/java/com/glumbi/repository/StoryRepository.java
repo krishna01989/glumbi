@@ -52,6 +52,7 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
           AND s.embedding IS NOT NULL
           AND s.id != :storyId
           AND ref.embedding IS NOT NULL
+          AND (s.embedding <-> ref.embedding) < 0.9
         ORDER BY s.embedding <-> ref.embedding
         LIMIT :limit
         """, nativeQuery = true)

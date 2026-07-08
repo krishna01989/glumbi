@@ -36,11 +36,21 @@ public class ActivityService {
                 .map(Activity::getTitle)
                 .collect(Collectors.joining(", "));
 
+        // Age-adaptive cooldown: younger kids repeat sooner, older kids need more variety
+        int cooldownDays = age <= 4 ? 7 : age <= 7 ? 14 : 21;
+        String recentlyDone = repo.findByChildIdAndCompletedTrueAndCreatedAtAfterOrderByCreatedAtDesc(
+                        child.getId(), LocalDateTime.now().minusDays(cooldownDays))
+                .stream()
+                .limit(10)
+                .map(Activity::getTitle)
+                .collect(Collectors.joining(", "));
+
         List<ActivityAgent.ActivityResult> results = agent.generateActivities(
                 child.getName(), age,
                 req.getTimeOfDay() != null ? req.getTimeOfDay() : "anytime",
                 req.getWeather()    != null ? req.getWeather()    : "sunny",
                 pastFavorites,
+                recentlyDone,
                 req.getCount() > 0 ? req.getCount() : 3
         );
 

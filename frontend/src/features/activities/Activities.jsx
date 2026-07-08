@@ -39,7 +39,6 @@ export default function Activities({ child, quota }) {
   const [substituting, setSubstituting] = useState(null) // id being substituted
   const [timeOfDay, setTimeOfDay]   = useState(getTimeOfDay())
   const [weather, setWeather]       = useState('sunny')
-  const [ratings, setRatings]       = useState({})
   const [similarMap, setSimilarMap] = useState({}) // activityId -> similar[]
 
   useEffect(() => { loadActivities() }, [child.id])
@@ -106,7 +105,11 @@ export default function Activities({ child, quota }) {
   }
 
   async function handleComplete(id) {
-    const rating = ratings[id] || null
+    const updated = await activityApi.markComplete(id, null)
+    setActivities(prev => prev.map(a => a.id === id ? updated : a))
+  }
+
+  async function handleRate(id, rating) {
     const updated = await activityApi.markComplete(id, rating)
     setActivities(prev => prev.map(a => a.id === id ? updated : a))
   }
@@ -219,29 +222,28 @@ export default function Activities({ child, quota }) {
                   <p style={{ fontSize: 13, color: '#666', lineHeight: 1.6, flex: 1 }}>{a.description}</p>
                   <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>⏱ {a.duration}</div>
 
-                  <div style={{ borderTop: '1px solid #f0ebe6', paddingTop: 12 }}>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Rate before completing:</div>
-                    <StarRating value={ratings[a.id] || 0} onChange={v => setRatings(r => ({ ...r, [a.id]: v }))} />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn-primary" style={{ flex: 1, padding: '8px', fontSize: 13 }}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {/* Done — solid fill, most prominent */}
+                    <button className="btn-primary" style={{ flex: 1, padding: '8px 4px', fontSize: 12, textAlign: 'center' }}
                       onClick={() => handleComplete(a.id)}>✓ Done!</button>
+                    {/* Swap — outlined, secondary */}
                     <button disabled={!!substituting}
                       onClick={() => handleDelete(a.id)}
                       title="Remove and get a replacement"
-                      style={{ padding: '8px 12px', fontSize: 13, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '1.5px solid rgba(255,107,107,0.3)', background: 'var(--primary-lt)', color: 'var(--primary)', cursor: substituting ? 'not-allowed' : 'pointer' }}>
+                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '2px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: substituting ? 'not-allowed' : 'pointer', opacity: substituting && substituting !== a.id ? 0.5 : 1, textAlign: 'center' }}>
                       {substituting === a.id ? '…' : '↻ Swap'}
                     </button>
+                    {/* Similar — accent-tinted, tertiary */}
                     <button onClick={() => handleSimilar(a.id)}
                       title="Find similar activities"
-                      style={{ padding: '8px 10px', fontSize: 13, background: similarMap[a.id] ? 'var(--primary-lt)' : '#f5f5f5', border: '1.5px solid #e0e0e0', borderRadius: 10, cursor: 'pointer', color: similarMap[a.id] ? 'var(--primary)' : '#999', fontWeight: 700 }}>
-                      ✦
+                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '1.5px solid var(--accent, #a29bfe)', background: similarMap[a.id] ? 'var(--accent, #a29bfe)' : 'rgba(162,155,254,0.12)', color: similarMap[a.id] ? '#fff' : 'var(--accent, #7c6ff0)', cursor: 'pointer', textAlign: 'center' }}>
+                      {similarMap[a.id] ? '✦ Hide' : '✦ Similar'}
                     </button>
+                    {/* Delete — soft red, destructive */}
                     <button onClick={() => handleRemove(a.id)}
                       title="Remove activity"
-                      style={{ padding: '8px 10px', fontSize: 13, background: '#f5f5f5', border: '1.5px solid #e0e0e0', borderRadius: 10, cursor: 'pointer', color: '#999', fontWeight: 700 }}>
-                      ✕
+                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '1.5px solid #ffb3b3', background: '#fff0f0', color: '#e05555', cursor: 'pointer', textAlign: 'center' }}>
+                      ✕ Delete
                     </button>
                   </div>
 
@@ -280,15 +282,18 @@ export default function Activities({ child, quota }) {
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {completed.map(a => (
-              <div key={a.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.8 }}>
+              <div key={a.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.85 }}>
                 <span style={{ fontSize: 28 }}>{a.emoji}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
                     {new Date(a.createdAt).toLocaleDateString()}
                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{a.rating ? 'Rated:' : 'Rate it:'}</span>
+                    <StarRating value={a.rating || 0} onChange={v => handleRate(a.id, v)} />
+                  </div>
                 </div>
-                {a.rating && <div>{'⭐'.repeat(a.rating)}</div>}
                 <button className="btn-danger" style={{ padding: '6px 10px', fontSize: 12 }}
                   onClick={() => handleDelete(a.id)}>✕</button>
               </div>

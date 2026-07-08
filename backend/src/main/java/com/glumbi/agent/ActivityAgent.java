@@ -37,12 +37,14 @@ public class ActivityAgent {
             String childName, int childAge,
             String timeOfDay, String weather,
             String pastHighRatedActivities,
+            String recentlyDoneActivities,
             int count) {
 
         String prompt = String.format(promptLoader.load("activity-user"),
                 count, count == 1 ? "y" : "ies",
                 childName, childAge, timeOfDay, weather,
                 pastHighRatedActivities.isEmpty() ? "none yet" : pastHighRatedActivities,
+                recentlyDoneActivities.isEmpty() ? "none" : recentlyDoneActivities,
                 ageGuidance(childAge), count, count == 1 ? "" : "s");
 
         ObjectNode body = mapper.createObjectNode();

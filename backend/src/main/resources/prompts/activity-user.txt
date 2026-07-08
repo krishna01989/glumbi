@@ -4,6 +4,7 @@
   <time_of_day>%s</time_of_day>
   <weather>%s</weather>
   <enjoyed_before>%s</enjoyed_before>
+  <recently_done>%s</recently_done>
   <age_guidance>%s</age_guidance>
 </context>
 
@@ -14,6 +15,7 @@
   <rule>Each activity must be doable at home with common items</rule>
   <rule>Keep instructions simple enough for a parent to follow quickly</rule>
   <rule>Do NOT tailor suggestions based on gender — all activities should be suitable for any child</rule>
+  <rule>Do NOT suggest activities listed in recently_done — the child has done these recently and needs fresh ideas</rule>
 </rules>
 
 <output>

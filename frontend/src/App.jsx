@@ -241,15 +241,17 @@ export default function App() {
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
   const sessionStartRef = useRef(null)
-  const lastTickRef = useRef(null) // shared between interval and visibility handler to avoid double-counting sleep
-  const wotdDateRef = useRef(null) // tracks the date of the last fetched WOTD to detect day rollover
+  const lastTickRef = useRef(null)    // shared between interval and visibility handler to avoid double-counting sleep
+  const wotdDateRef = useRef(null)    // tracks the date of the last fetched WOTD to detect day rollover
+  const sessionEndedRef = useRef(false)   // set true after force-end so the interval never re-triggers the alert
+  const originalLimitRef = useRef(0)      // the limit set at lock time — never changes on snooze
   const [sessionMinutes, setSessionMinutes]     = useState(0)
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
-  const [snoozedUntil, setSnoozedUntil]         = useState(null)
   const [snoozeCount, setSnoozeCount]           = useState(0)
   // Session limits chosen at lock time (not stored on child profile)
   const [lockTimeLimit, setLockTimeLimit]       = useState(30)  // minutes
   const [lockMaxSnooze, setLockMaxSnooze]       = useState(1)   // 0 = unlimited
+  const lockMaxSnoozeRef = useRef(1) // ref copy so the tick interval always reads the latest value
   const [lockModalForced, setLockModalForced]   = useState(false)
   const prevChildId = useRef(null) // track whether child→null was a deliberate navigation or initial mount
   const [childLocked, setChildLocked]           = useState(() => localStorage.getItem('glm_child_locked') === '1')
@@ -406,6 +408,7 @@ export default function App() {
         k.startsWith('glm_session_start_') ||
         k.startsWith('glm_snooze_count_') ||
         k.startsWith('glm_session_limit_') ||
+        k.startsWith('glm_session_original_limit_') ||
         k.startsWith('glm_session_max_snooze_') ||
         k.startsWith('glm_lock_pin_') ||
         k.startsWith('glm_offline_')
@@ -428,10 +431,12 @@ export default function App() {
           .forEach(k => localStorage.removeItem(k))
       }
       prevChildId.current = null
-      setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozedUntil(null); setSnoozeCount(0)
+      sessionEndedRef.current = false
+      setSessionStart(null); setSessionMinutes(0); setScreenTimeAlert(false); setSnoozeCount(0)
       return
     }
     prevChildId.current = child.id
+    sessionEndedRef.current = false
     const startKey   = `glm_session_start_${child.id}`
     const snoozeKey  = `glm_snooze_count_${child.id}`
     const limitKey   = `glm_session_limit_${child.id}`
@@ -449,17 +454,19 @@ export default function App() {
     }
 
     // Restore lock-time limit settings from localStorage
-    const storedLimit    = localStorage.getItem(limitKey)
-    const storedMaxSnooze = localStorage.getItem(maxSnoozeKey)
-    const restoredLimit    = storedLimit    ? parseInt(storedLimit)    : 0
+    const storedLimit       = localStorage.getItem(limitKey)
+    const storedMaxSnooze   = localStorage.getItem(maxSnoozeKey)
+    const storedOriginal    = localStorage.getItem(`glm_session_original_limit_${child.id}`)
+    const restoredLimit     = storedLimit    ? parseInt(storedLimit)    : 0
     const restoredMaxSnooze = storedMaxSnooze ? parseInt(storedMaxSnooze) : 1
+    const restoredOriginal  = storedOriginal ? parseInt(storedOriginal) : restoredLimit
     setLockTimeLimit(restoredLimit)
     setLockMaxSnooze(restoredMaxSnooze)
+    originalLimitRef.current = restoredOriginal
 
     const elapsed = Math.max(0, Math.floor((Date.now() - start) / 60000))
     setSessionStart(start)
     setSessionMinutes(elapsed)
-    setSnoozedUntil(null)
     setScreenTimeAlert(false)
 
     // Check immediately if already over limit on restore
@@ -498,10 +505,10 @@ export default function App() {
       const elapsed = Math.max(0, Math.floor((Date.now() - sessionStartRef.current) / 60000))
       setSessionMinutes(elapsed)
       if (!lockTimeLimit || lockTimeLimit === 0) return
+      if (sessionEndedRef.current) return
       if (elapsed >= lockTimeLimit) {
-        if (snoozedUntil && Date.now() < snoozedUntil) return
         setSnoozeCount(current => {
-          if (lockMaxSnooze > 0 && current >= lockMaxSnooze) {
+          if (lockMaxSnoozeRef.current > 0 && current >= lockMaxSnoozeRef.current) {
             setTimeout(() => setScreenTimeAlert('force-end'), 0)
             return current
           }
@@ -511,10 +518,11 @@ export default function App() {
       }
     }, 60000)
     return () => clearInterval(interval)
-  }, [sessionStart, lockTimeLimit, lockMaxSnooze, snoozedUntil, childLocked])
+  }, [sessionStart, lockTimeLimit, childLocked])
 
-  // Keep ref in sync so visibility handler always has the latest sessionStart
+  // Keep refs in sync so interval/visibility handlers always read latest values
   useEffect(() => { sessionStartRef.current = sessionStart }, [sessionStart])
+  useEffect(() => { lockMaxSnoozeRef.current = lockMaxSnooze }, [lockMaxSnooze])
 
   // Pause timer while page is hidden (child walks away / device sleeps)
   useEffect(() => {
@@ -545,8 +553,8 @@ export default function App() {
   // Auto-end when snoozes exhausted
   useEffect(() => {
     if (screenTimeAlert !== 'force-end') return
+    sessionEndedRef.current = true // stop the interval from re-firing
     setScreenTimeAlert(false)
-    setSnoozedUntil(Date.now() + 365 * 24 * 60 * 60 * 1000) // prevent interval re-triggering
     if (childLocked) {
       setLockModalForced(true)
       setLockPin(''); setLockPinError(''); setLockModal('unlock')
@@ -557,11 +565,14 @@ export default function App() {
 
   function handleScreenTimeSnooze(extraMinutes) {
     const newStart = Date.now()
-    if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+    if (child?.id) {
+      localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
+      localStorage.setItem(`glm_session_limit_${child.id}`, String(extraMinutes)) // fix #1: persist new limit
+    }
+    sessionEndedRef.current = false  // allow interval to fire again for the new window
     setSessionStart(newStart)
     setSessionMinutes(0)
-    setLockTimeLimit(extraMinutes)   // timer now counts against the extension, not the original limit
-    setSnoozedUntil(null)
+    setLockTimeLimit(extraMinutes)
     setSnoozeCount(n => {
       const next = n + 1
       if (child?.id) localStorage.setItem(`glm_snooze_count_${child.id}`, String(next))
@@ -592,8 +603,10 @@ export default function App() {
     if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
     if (childId) {
       localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
+      localStorage.setItem(`glm_session_original_limit_${childId}`, String(lockTimeLimit))
       localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     }
+    originalLimitRef.current = lockTimeLimit
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
@@ -611,8 +624,10 @@ export default function App() {
     if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
     if (childId) {
       localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
+      localStorage.setItem(`glm_session_original_limit_${childId}`, String(lockTimeLimit))
       localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     }
+    originalLimitRef.current = lockTimeLimit
     setChildLocked(true); setLockModal(null); setLockPin('')
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
@@ -628,8 +643,10 @@ export default function App() {
     localStorage.removeItem('glm_locked_child_id')
     if (child?.id) {
       localStorage.removeItem(`glm_session_limit_${child.id}`)
+      localStorage.removeItem(`glm_session_original_limit_${child.id}`)
       localStorage.removeItem(`glm_session_max_snooze_${child.id}`)
     }
+    originalLimitRef.current = 0
     setLockTimeLimit(0); setLockMaxSnooze(1)
     setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError(''); setLockModalForced(false)
     setChild(null); navigate('/child')
@@ -1031,13 +1048,17 @@ export default function App() {
             {(() => {
               const maxSnooze = lockMaxSnooze
               const snoozesLeft = maxSnooze === 0 ? Infinity : Math.max(0, maxSnooze - snoozeCount)
-              const limit = lockTimeLimit
-              const opt1 = Math.min(15, limit)
-              const opt2 = Math.min(30, limit)
-              const showTwo = opt2 > opt1
+              const original = originalLimitRef.current || lockTimeLimit
+              // Only offer extensions strictly less than the original lock time.
+              // Include small options (5, 10) so short custom sessions still get choices.
+              // Show the two largest valid options so extensions feel meaningful.
+              const allOptions = [5, 10, 15, 30, 45, 60].filter(m => m < original)
+              const opt1 = allOptions[allOptions.length - 2] ?? allOptions[0]
+              const opt2 = allOptions[allOptions.length - 1]
+              const showTwo = !!opt1 && opt2 !== opt1
               return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {snoozesLeft > 0 ? (<>
+              {snoozesLeft > 0 && opt1 ? (<>
               <button onClick={() => handleScreenTimeSnooze(opt1)}
                 style={{
                   padding: '14px', borderRadius: 50, border: 'none', cursor: 'pointer',

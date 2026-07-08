@@ -1,0 +1,36 @@
+Copyright (c) 2026 Krishnaswamy V. All rights reserved.
+
+This repository is published for portfolio and educational viewing purposes only.
+
+---
+
+## What is NOT covered by the MIT License
+
+The following assets are proprietary and are explicitly excluded from the MIT
+License granted in the LICENSE file:
+
+- All AI prompt files (system prompts, user prompt templates, few-shot examples)
+  located in backend/src/main/resources/prompts/ and any subdirectories
+- The SafetyGuard and RelevanceGuard filter configurations
+- All child-safety filtering logic, keyword lists, and moderation rules
+
+You may NOT copy, modify, deploy, or redistribute these assets — in whole or
+in part — for any purpose, commercial or otherwise.
+
+---
+
+## What IS covered by the MIT License
+
+The source code structure, architecture patterns, Spring Boot configuration,
+React component patterns, and general engineering implementation described in
+this repository are licensed under MIT (see LICENSE file). You may read and
+study them freely.
+
+---
+
+## No Endorsement
+
+Use of this codebase, or any derivative of it, does not imply endorsement by
+Krishnaswamy. You may not represent any product or service built from this
+code as affiliated with, approved by, or originating from the Glumbi platform
+or its author.

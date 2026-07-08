@@ -134,6 +134,26 @@ All API calls go through the Axios instance in `client.js`. It:
 - The returned `streakCount` is merged into local child state and shown as `🔥 N` in the nav bar
 - Stored on the `Child` entity so streaks persist across devices and tab closes
 
+### Semantic Similarity (RAG — Stories, Curiosity, Activities)
+
+All three content features expose an on-demand **"similar content"** panel backed by pgvector. The API client helpers:
+
+```js
+storyApi.getSimilar(id)     // GET /api/stories/{id}/similar
+curiosityApi.getSimilar(id) // GET /api/curiosity/{id}/similar
+activityApi.getSimilar(id)  // GET /api/activities/{id}/similar
+```
+
+**UX pattern (same across all three features):**
+- A toggle button on each card (`🔗 Related questions`, `✦ Similar activities`, `More like this`) is shown.
+- On first open the call is made lazily; result is cached in component state so repeated toggles do not re-fetch.
+- Loading state shows `…`; empty result shows a friendly message.
+
+**How it works (no Voyage AI at read time):**
+The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding column — zero external API calls on navigation. Voyage AI was already called (async, fire-and-forget) when the record was first saved.
+
+**Activities note:** the similar-activities query returns only `completed = true` activities, so the panel genuinely shows "activities your child has done that are similar to this one", not pending suggestions.
+
 ### Story Continuation
 
 - **Stories page** — any story has a **▶ Continue** button in the action row; calls `POST /api/stories/generate` with `previousStoryId` set; the backend passes the last 600 chars of the original as context to `StoryAgent.continueStory()`. Result is saved as a new story and appears at the top of the list.

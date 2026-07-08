@@ -9,7 +9,9 @@ Spring Boot 3.2.5 REST API powering the Glumbi kids learning app.
 - **Java 21** + Spring Boot 3.2.5
 - **Spring Security** — stateless JWT authentication
 - **Spring Data JPA** — PostgreSQL via Hibernate
-- **WebFlux (WebClient)** — async calls to Anthropic Claude API
+- **WebFlux (WebClient)** — async calls to Anthropic Claude API and Voyage AI embeddings
+- **pgvector** — PostgreSQL extension for 1024-dim vector similarity search (`<->` cosine distance)
+- **Voyage AI** — `voyage-3` embedding model (1024 dimensions); called once per record at save time, async
 - **Google Cloud TTS** — audio narration with WaveNet voices (default)
 - **ElevenLabs API** — custom voice cloning for parent-recorded voices
 - **Lombok** — boilerplate reduction
@@ -29,7 +31,38 @@ src/main/java/com/glumbi/
 ├── repository/     # Spring Data repositories
 ├── security/       # JwtFilter, JwtUtil
 └── service/        # Business logic, TTS, rate limiting, quota tracking
+                #   ↳ VoyageEmbeddingClient     — shared HTTP client for Voyage AI
+                #   ↳ StoryEmbeddingService     — embed + store story vectors
+                #   ↳ CuriosityEmbeddingService — embed + store curiosity entry vectors
+                #   ↳ ActivityEmbeddingService  — embed + store activity vectors
 ```
+
+### RAG / Semantic Similarity (pgvector + Voyage AI)
+
+Glumbi implements a **two-path embedding strategy** for Stories, Curiosity, and Activities:
+
+**Path 1 — Save time (async, once per record)**
+When a record is created, `CompletableFuture.runAsync()` fires a background task that calls Voyage AI (`voyage-3`, 1024 dims) and writes the resulting vector to an `embedding` column via a native `UPDATE ... CAST(:embedding AS vector)` query. The request thread returns immediately — no blocking.
+
+**Path 2 — Similarity fetch (zero API calls)**
+`GET /{id}/similar` queries a native SQL JOIN that finds the nearest neighbours using the stored embedding:
+```sql
+SELECT t.* FROM table t
+JOIN table ref ON ref.id = :id
+WHERE t.child_id = :childId
+  AND t.embedding IS NOT NULL
+  AND t.id != :id
+  AND ref.embedding IS NOT NULL
+ORDER BY t.embedding <-> ref.embedding   -- pgvector cosine distance
+LIMIT :limit
+```
+Voyage AI is never called at read time. All similarity lookups are pure pgvector.
+
+**Key design decisions:**
+- `CompletableFuture.runAsync()` (not `@Async`) — `@EnableAsync` caused CGLIB proxy startup failures breaking all APIs.
+- The lambda captures the Spring bean reference, so `@Transactional` on `embedAndSave` applies correctly in the background thread.
+- Activities similar query includes `AND a.completed = true` — only shows activities the child has actually done.
+- `VoyageEmbeddingClient.isConfigured()` guards all embedding calls — app runs normally without `VOYAGE_API_KEY`.
 
 ### Agents
 
@@ -57,8 +90,8 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 |---|---|---|
 | `AuthController` | `/api/auth` | Register, login, Google OAuth, health check. Sets `quotaLimit` to current global default on new user creation. |
 | `StoryController` | `/api/stories` | CRUD + `/listen` audio endpoint with HTTP Range support and optional `?voice=` param |
-| `ActivityController` | `/api/activities` | Generate and list activities |
-| `CuriosityController` | `/api/curiosity` | Daily curiosity questions |
+| `ActivityController` | `/api/activities` | Generate and list activities; `GET /{id}/similar` returns semantically similar completed activities via pgvector |
+| `CuriosityController` | `/api/curiosity` | Daily curiosity questions; `GET /{id}/similar` returns semantically related questions via pgvector |
 | `ReadQuizController` | `/api/readquiz` | Quiz generation and history |
 | `WritingController` | `/api/writing` | Submit writing, get feedback, `POST /{id}/continue` generates a story continuation suggestion (not saved) |
 | `LearnController` | `/api/learn` | Letter validation (vision AI), word identification, TTS audio for letters |
@@ -87,6 +120,7 @@ Set these in your shell (local) or in Railway dashboard (production).
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID (ends in `.apps.googleusercontent.com`) |
 | `GOOGLE_CREDENTIALS_JSON` | Full Google service account JSON as a single line (for TTS) |
 | `ELEVENLABS_API_KEY` | ElevenLabs API key for custom voice cloning |
+| `VOYAGE_API_KEY` | Voyage AI API key for semantic embeddings (`voyage-3` model). Optional — if absent, embedding is skipped but all other features work normally. |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (server-side verification) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins e.g. `https://glumbi.com,https://www.glumbi.com` |
 | `PORT` | Auto-set by Railway — do not set manually |
@@ -102,6 +136,26 @@ export JWT_SECRET=some-long-random-secret-string-here
 ```
 
 > For local dev, `GOOGLE_APPLICATION_CREDENTIALS` (file path) is used instead of `GOOGLE_CREDENTIALS_JSON` (JSON string). The `GoogleCredentialsConfig` bean handles both automatically.
+
+---
+
+## Database — pgvector Setup
+
+pgvector must be enabled before the embedding columns are usable:
+
+```sql
+-- Enable the extension (once per database)
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Add embedding columns to the three content tables
+ALTER TABLE stories           ADD COLUMN IF NOT EXISTS embedding vector(1024);
+ALTER TABLE curiosity_entries ADD COLUMN IF NOT EXISTS embedding vector(1024);
+ALTER TABLE activities        ADD COLUMN IF NOT EXISTS embedding vector(1024);
+```
+
+On Railway, pgvector is pre-installed. For local PostgreSQL, install the extension first (`brew install pgvector` on macOS or the official packages for Linux).
+
+The app uses `ddl-auto: update` — it will not create these columns automatically because pgvector types are not JPA-managed. Run the DDL once manually.
 
 ---
 

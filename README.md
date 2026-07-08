@@ -10,9 +10,9 @@ Live at **[glumbi.com](https://glumbi.com)**
 
 | Feature | Description |
 |---|---|
-| 📖 **Stories** | AI-generated stories personalised to the child's interests. Listen with Google TTS narration in 12 languages. |
-| 🎯 **Activities** | Age-appropriate activity suggestions tied to each story. |
-| 🔭 **Curiosity** | Daily "wonder" questions to spark curiosity and critical thinking. |
+| 📖 **Stories** | AI-generated stories personalised to the child's interests. Listen with Google TTS narration in 12 languages. "More like this" surfaces semantically similar past stories via pgvector. |
+| 🎯 **Activities** | Age-appropriate activity suggestions. ✦ button surfaces similar completed activities ranked by semantic similarity. |
+| 🔭 **Curiosity** | Daily "wonder" questions to spark curiosity and critical thinking. 🔗 button shows related questions via semantic search. |
 | 📝 **Read & Quiz** | Generate comprehension quizzes from any story topic. Track scores over time. |
 | ✍️ **My Writing** | Kids write their own stories and get AI writing-coach feedback. |
 | 🎨 **Draw** | Free-draw canvas for kids to illustrate their stories. |
@@ -55,6 +55,8 @@ See the individual READMEs for setup details:
 | Backend | Spring Boot 3.2.5, Spring Security, JPA |
 | Database | PostgreSQL |
 | AI | Claude Haiku 4.5 (Anthropic) |
+| Embeddings | Voyage AI `voyage-3` (1024-dim semantic embeddings) |
+| Vector search | pgvector — PostgreSQL extension for nearest-neighbour similarity |
 | Text-to-Speech | Google Cloud TTS (WaveNet voices) + ElevenLabs (custom voice cloning) |
 | Auth | JWT + Google OAuth 2.0 |
 | Bot protection | Cloudflare Turnstile |
@@ -73,8 +75,9 @@ Vercel CDN — React SPA (static)
     │
     ▼ API calls → api.glumbi.com
 Railway — Spring Boot
-    ├── PostgreSQL (Railway managed)
+    ├── PostgreSQL + pgvector  (content + 1024-dim embeddings)
     ├── Anthropic Claude API  (story / quiz / writing generation)
+    ├── Voyage AI             (semantic embeddings — called once at save, async)
     ├── Google Cloud TTS      (audio narration — default voices)
     └── ElevenLabs API        (custom voice cloning — when parent has set a voice)
 ```

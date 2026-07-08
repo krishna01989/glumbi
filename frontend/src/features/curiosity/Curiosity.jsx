@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { curiosityApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
@@ -11,11 +11,12 @@ const SAMPLE_QUESTIONS = [
   'Why do birds sing?', 'How do fish breathe underwater?', 'Why is grass green?'
 ]
 
-function QuizCard({ entry, onCorrect }) {
+const QuizCard = memo(function QuizCard({ entry, onCorrect }) {
   const [answered, setAnswered] = useState(null)
 
-  const options = [entry.quizOption1, entry.quizOption2, entry.quizOption3]
-    .sort(() => Math.random() - 0.5)   // shuffle so correct isn't always first
+  const [options] = useState(() =>
+    [entry.quizOption1, entry.quizOption2, entry.quizOption3].sort(() => Math.random() - 0.5)
+  )
 
   function handleAnswer(opt) {
     if (answered) return
@@ -52,50 +53,25 @@ function QuizCard({ entry, onCorrect }) {
       )}
     </div>
   )
-}
-
-function RelatedPanel({ entryId }) {
-  const [open, setOpen]       = useState(false)
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(false)
-
-  async function toggle() {
-    if (open) { setOpen(false); return }
-    setOpen(true)
-    if (data !== null) return
-    setLoading(true)
-    try { setData(await curiosityApi.getSimilar(entryId)) }
-    catch { setData([]) }
-    finally { setLoading(false) }
-  }
-
-  return (
-    <>
-      <button type="button" onClick={toggle}
-        style={{ background: open ? 'var(--primary-lt)' : '#f5f5f5', color: open ? 'var(--primary)' : '#888', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-        {loading ? '…' : open ? '🔗 Hide related' : '🔗 Related questions'}
-      </button>
-      {open && (
-        <div style={{ background: '#f0f7ff', borderRadius: 12, padding: 12, border: '1.5px solid #4d96ff33' }}>
-          {data?.length > 0 ? data.map(r => (
-            <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #e8f0fb' }}>
-              <span style={{ fontSize: 20 }}>{r.sticker}</span>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#2980b9' }}>{r.question}</div>
-            </div>
-          )) : (
-            <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
-              {data === null || loading ? '…' : 'No related questions yet — keep exploring!'}
-            </div>
-          )}
-        </div>
-      )}
-    </>
-  )
-}
+})
 
 function CuriosityCard({ entry, onDelete }) {
-  const [showQuiz, setShowQuiz] = useState(false)
-  const [won, setWon]           = useState(false)
+  const [activeTab, setActiveTab] = useState(null) // null | 'quiz' | 'related'
+  const [won, setWon]             = useState(false)
+  const [related, setRelated]     = useState(null)
+  const [relLoading, setRelLoading] = useState(false)
+
+  async function selectTab(tab) {
+    if (activeTab === tab) { setActiveTab(null); if (tab === 'quiz') setWon(false); return }
+    setActiveTab(tab)
+    if (tab === 'quiz') setWon(false)
+    if (tab === 'related' && related === null) {
+      setRelLoading(true)
+      try { setRelated(await curiosityApi.getSimilar(entry.id)) }
+      catch { setRelated([]) }
+      finally { setRelLoading(false) }
+    }
+  }
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -130,15 +106,8 @@ function CuriosityCard({ entry, onDelete }) {
         ))}
       </div>
 
-      {/* Quiz toggle */}
-      {!showQuiz ? (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn-primary" style={{ fontSize: 14, flex: 1 }} onClick={() => setShowQuiz(true)}>
-            🧠 Take the Quiz!
-          </button>
-          <RelatedPanel entryId={entry.id} />
-        </div>
-      ) : (
+      {/* Tab content */}
+      {activeTab === 'quiz' && (
         <>
           <QuizCard entry={entry} onCorrect={() => setWon(true)} />
           {won && (
@@ -149,9 +118,48 @@ function CuriosityCard({ entry, onDelete }) {
               </div>
             </div>
           )}
-          <RelatedPanel entryId={entry.id} />
         </>
       )}
+      {activeTab === 'related' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {relLoading ? (
+            <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>…</div>
+          ) : related?.length > 0 ? related.map(r => (
+            <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', background: 'var(--primary-lt)', borderRadius: 10, padding: '8px 12px' }}>
+              <span style={{ fontSize: 18 }}>{r.sticker}</span>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>{r.question}</div>
+            </div>
+          )) : (
+            <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
+              No related questions yet — keep exploring!
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab strip */}
+      <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #f0ebe6', paddingTop: 12 }}>
+        {[
+          { key: 'quiz',    label: '🧠 Quiz' },
+          { key: 'related', label: '🔗 Related' },
+        ].map(tab => {
+          const active = activeTab === tab.key
+          return (
+            <button key={tab.key} type="button" onClick={() => selectTab(tab.key)}
+              style={{
+                flex: 1, padding: '9px 4px', fontSize: 14,
+                fontWeight: active ? 900 : 800,
+                fontFamily: 'Nunito,sans-serif', border: 'none', borderRadius: 50,
+                cursor: 'pointer', transition: 'all 0.18s',
+                background: active ? 'var(--primary)' : 'var(--primary-lt)',
+                color: active ? 'white' : 'var(--primary)',
+                boxShadow: active ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
+              }}>
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

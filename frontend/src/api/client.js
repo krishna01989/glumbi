@@ -113,12 +113,14 @@ export const activityApi = {
   markComplete:   (id, rating)      => api.patch(`/activities/${id}/complete`, { rating }).then(r => r.data),
   delete:         (id)              => api.delete(`/activities/${id}`),
   deletePending:  (childId)         => api.delete(`/activities/child/${childId}/pending`),
+  getSimilar:     (id)              => api.get(`/activities/${id}/similar`).then(r => r.data),
 }
 
 export const curiosityApi = {
   ask:        (data)            => api.post('/curiosity/ask', data).then(r => r.data),
   getByChild: (childId, params) => api.get(`/curiosity/child/${childId}`, { params }).then(r => r.data),
   delete:     (id)      => api.delete(`/curiosity/${id}`),
+  getSimilar: (id)      => api.get(`/curiosity/${id}/similar`).then(r => r.data),
 }
 
 export const drawApi = {

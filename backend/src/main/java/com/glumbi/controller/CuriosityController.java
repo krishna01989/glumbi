@@ -44,6 +44,11 @@ public class CuriosityController {
         return ResponseEntity.ok(service.explain(req));
     }
 
+    @GetMapping("/{id}/similar")
+    public List<CuriosityEntry> getSimilar(@PathVariable Long id) {
+        return service.findSimilar(id);
+    }
+
     @GetMapping("/child/{childId}")
     public List<CuriosityEntry> getByChild(@PathVariable Long childId,
                                             @RequestParam(required = false) LocalDateTime from,

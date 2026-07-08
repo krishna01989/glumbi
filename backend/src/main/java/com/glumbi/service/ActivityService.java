@@ -12,15 +12,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ActivityService {
 
-    private final ActivityRepository repo;
-    private final ChildService childService;
-    private final ActivityAgent agent;
+    private final ActivityRepository    repo;
+    private final ChildService          childService;
+    private final ActivityAgent         agent;
+    private final ActivityEmbeddingService embeddingService;
 
     public List<Activity> generate(ActivityRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
@@ -50,8 +52,15 @@ public class ActivityService {
             a.setCategory(r.category());
             a.setDuration(r.duration());
             a.setEmoji(r.emoji());
-            return repo.save(a);
+            Activity saved = repo.save(a);
+            CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved));
+            return saved;
         }).collect(Collectors.toList());
+    }
+
+    public List<Activity> findSimilar(Long activityId) {
+        Activity a = repo.findById(activityId).orElseThrow(() -> new RuntimeException("Activity not found: " + activityId));
+        return embeddingService.findSimilarById(activityId, a.getChild().getId());
     }
 
     public List<Activity> getByChild(Long childId, LocalDateTime from, LocalDateTime to, boolean includeLearn) {

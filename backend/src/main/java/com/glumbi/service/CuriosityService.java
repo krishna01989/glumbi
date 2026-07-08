@@ -10,14 +10,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
 public class CuriosityService {
 
-    private final CuriosityRepository repo;
-    private final ChildService childService;
-    private final CuriosityAgent agent;
+    private final CuriosityRepository    repo;
+    private final ChildService           childService;
+    private final CuriosityAgent         agent;
+    private final CuriosityEmbeddingService embeddingService;
 
     public CuriosityEntry explain(CuriosityRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
@@ -37,7 +39,16 @@ public class CuriosityService {
         entry.setQuizOption2(result.quizOption2());
         entry.setQuizOption3(result.quizOption3());
         entry.setSticker(result.sticker());
-        return repo.save(entry);
+        CuriosityEntry saved = repo.save(entry);
+
+        CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved));
+
+        return saved;
+    }
+
+    public List<CuriosityEntry> findSimilar(Long entryId) {
+        CuriosityEntry entry = repo.findById(entryId).orElseThrow(() -> new RuntimeException("Entry not found: " + entryId));
+        return embeddingService.findSimilarById(entryId, entry.getChild().getId());
     }
 
     public List<CuriosityEntry> getByChild(Long childId, LocalDateTime from, LocalDateTime to) {

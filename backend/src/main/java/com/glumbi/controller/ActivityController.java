@@ -45,6 +45,11 @@ public class ActivityController {
         return ResponseEntity.ok(service.generate(req));
     }
 
+    @GetMapping("/{id}/similar")
+    public List<Activity> getSimilar(@PathVariable Long id) {
+        return service.findSimilar(id);
+    }
+
     @GetMapping("/child/{childId}")
     public List<Activity> getByChild(@PathVariable Long childId,
                                       @RequestParam(required = false) LocalDateTime from,

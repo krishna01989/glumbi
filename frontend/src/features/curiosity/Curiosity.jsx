@@ -54,6 +54,45 @@ function QuizCard({ entry, onCorrect }) {
   )
 }
 
+function RelatedPanel({ entryId }) {
+  const [open, setOpen]       = useState(false)
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  async function toggle() {
+    if (open) { setOpen(false); return }
+    setOpen(true)
+    if (data !== null) return
+    setLoading(true)
+    try { setData(await curiosityApi.getSimilar(entryId)) }
+    catch { setData([]) }
+    finally { setLoading(false) }
+  }
+
+  return (
+    <>
+      <button type="button" onClick={toggle}
+        style={{ background: open ? 'var(--primary-lt)' : '#f5f5f5', color: open ? 'var(--primary)' : '#888', border: '1.5px solid #e0e0e0', borderRadius: 10, padding: '7px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        {loading ? '…' : open ? '🔗 Hide related' : '🔗 Related questions'}
+      </button>
+      {open && (
+        <div style={{ background: '#f0f7ff', borderRadius: 12, padding: 12, border: '1.5px solid #4d96ff33' }}>
+          {data?.length > 0 ? data.map(r => (
+            <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #e8f0fb' }}>
+              <span style={{ fontSize: 20 }}>{r.sticker}</span>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#2980b9' }}>{r.question}</div>
+            </div>
+          )) : (
+            <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', padding: 8 }}>
+              {data === null || loading ? '…' : 'No related questions yet — keep exploring!'}
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
 function CuriosityCard({ entry, onDelete }) {
   const [showQuiz, setShowQuiz] = useState(false)
   const [won, setWon]           = useState(false)
@@ -93,9 +132,12 @@ function CuriosityCard({ entry, onDelete }) {
 
       {/* Quiz toggle */}
       {!showQuiz ? (
-        <button className="btn-primary" style={{ fontSize: 14 }} onClick={() => setShowQuiz(true)}>
-          🧠 Take the Quiz!
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-primary" style={{ fontSize: 14, flex: 1 }} onClick={() => setShowQuiz(true)}>
+            🧠 Take the Quiz!
+          </button>
+          <RelatedPanel entryId={entry.id} />
+        </div>
       ) : (
         <>
           <QuizCard entry={entry} onCorrect={() => setWon(true)} />
@@ -107,6 +149,7 @@ function CuriosityCard({ entry, onDelete }) {
               </div>
             </div>
           )}
+          <RelatedPanel entryId={entry.id} />
         </>
       )}
     </div>

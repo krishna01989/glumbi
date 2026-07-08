@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { activityApi } from '../../api/client'
 import ThemeLoader from '../../components/ThemeLoader'
+import ErrorBox from '../../components/ErrorBox'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
@@ -34,10 +35,12 @@ export default function Activities({ child, quota }) {
   const offline = useOffline()
   const [activities, setActivities] = useState([])
   const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState('')
   const [substituting, setSubstituting] = useState(null) // id being substituted
   const [timeOfDay, setTimeOfDay]   = useState(getTimeOfDay())
   const [weather, setWeather]       = useState('sunny')
   const [ratings, setRatings]       = useState({})
+  const [similarMap, setSimilarMap] = useState({}) // activityId -> similar[]
 
   useEffect(() => { loadActivities() }, [child.id])
 
@@ -55,29 +58,46 @@ export default function Activities({ child, quota }) {
 
   async function handleGenerate() {
     setLoading(true)
+    setError('')
     setActivities(prev => prev.filter(a => a.completed))
     try {
       await activityApi.deletePending(child.id)
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
       setActivities(prev => [...newOnes, ...prev])
       window.__glumbiRefreshQuota?.()
+    } catch (e) {
+      setError(e.message)
     } finally { setLoading(false) }
   }
 
   async function handleRefresh() {
     setLoading(true)
+    setError('')
     setActivities(prev => prev.filter(a => a.completed))
     try {
       await activityApi.deletePending(child.id)
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
       setActivities(prev => [...newOnes, ...prev])
       window.__glumbiRefreshQuota?.()
+    } catch (e) {
+      setError(e.message)
     } finally { setLoading(false) }
   }
 
   async function handleRemove(id) {
     await activityApi.delete(id)
     setActivities(prev => prev.filter(a => a.id !== id))
+  }
+
+  async function handleSimilar(id) {
+    if (similarMap[id]) {
+      setSimilarMap(m => { const n = { ...m }; delete n[id]; return n })
+      return
+    }
+    try {
+      const similar = await activityApi.getSimilar(id)
+      setSimilarMap(m => ({ ...m, [id]: similar }))
+    } catch { /* silent */ }
   }
 
   async function handleClearAll() {
@@ -151,7 +171,8 @@ export default function Activities({ child, quota }) {
         </div>
 
         <QuotaBanner quota={quota} />
-        <div style={{ display: 'flex', gap: 10 }}>
+        {error && <div style={{ marginTop: 12 }}><ErrorBox msg={error} /></div>}
+        <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
           <button className="btn-primary" onClick={handleGenerate} disabled={loading || !!substituting || quota?.used >= quota?.limit || offline} style={{ flex: 1, fontSize: 16 }}>
             {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : offline ? '✈️ AI is off' : '🎲 Suggest 3 Activities'}
           </button>
@@ -212,12 +233,38 @@ export default function Activities({ child, quota }) {
                       style={{ padding: '8px 12px', fontSize: 13, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '1.5px solid rgba(255,107,107,0.3)', background: 'var(--primary-lt)', color: 'var(--primary)', cursor: substituting ? 'not-allowed' : 'pointer' }}>
                       {substituting === a.id ? '…' : '↻ Swap'}
                     </button>
+                    <button onClick={() => handleSimilar(a.id)}
+                      title="Find similar activities"
+                      style={{ padding: '8px 10px', fontSize: 13, background: similarMap[a.id] ? 'var(--primary-lt)' : '#f5f5f5', border: '1.5px solid #e0e0e0', borderRadius: 10, cursor: 'pointer', color: similarMap[a.id] ? 'var(--primary)' : '#999', fontWeight: 700 }}>
+                      ✦
+                    </button>
                     <button onClick={() => handleRemove(a.id)}
                       title="Remove activity"
                       style={{ padding: '8px 10px', fontSize: 13, background: '#f5f5f5', border: '1.5px solid #e0e0e0', borderRadius: 10, cursor: 'pointer', color: '#999', fontWeight: 700 }}>
                       ✕
                     </button>
                   </div>
+
+                  {/* Similar activities panel */}
+                  {similarMap[a.id]?.length > 0 && (
+                    <div style={{ borderTop: '1px solid #f0ebe6', paddingTop: 10 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        ✦ Similar activities you've done
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {similarMap[a.id].map(s => (
+                          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--primary-lt)', borderRadius: 8, padding: '6px 10px' }}>
+                            <span style={{ fontSize: 18 }}>{s.emoji}</span>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', flex: 1 }}>{s.title}</div>
+                            {s.rating && <div style={{ fontSize: 11 }}>{'⭐'.repeat(s.rating)}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {similarMap[a.id]?.length === 0 && (
+                    <div style={{ fontSize: 12, color: 'var(--muted)', paddingTop: 6 }}>No similar activities yet — do more to unlock suggestions!</div>
+                  )}
                 </div>
               )
             })}

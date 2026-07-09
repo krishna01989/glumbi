@@ -133,7 +133,7 @@ export default function MyWriting({ child, quota }) {
   }
 
   function openEntry(e) {
-    setSelected(e); setEditing(false); setContinuation(null)
+    setSelected(e); setEditing(false); setContinuation(null); setError('')
     setFeedback(e.feedbackReceived ? {
       praise: e.feedbackPraise,
       suggestion: e.feedbackSuggestion,
@@ -228,6 +228,10 @@ export default function MyWriting({ child, quota }) {
   const deletingEntry = entries.find(e => e.id === confirmDelete)
   const deletingHasSeries = deletingEntry && entries.some(e => e.seriesId === deletingEntry.id)
   const wc = wordCount(content)
+  const MAX_CHARS = 4000
+  const charCount = content.length
+  const nearLimit = charCount > MAX_CHARS * 0.85
+  const overLimit = charCount > MAX_CHARS
   const isMobile = useIsMobile()
   const showingContent = editing || (selected && !editing)
 
@@ -245,23 +249,21 @@ export default function MyWriting({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <FeatureBanner feature="mywriting" child={child} isMobile={isMobile} />
-    <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: isMobile ? 6 : 16 }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : undefined, gap: isMobile ? 16 : 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: isMobile ? 6 : 16 }}>
 
       {/* Mobile top bar */}
       {isMobile && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 6 }}>
-          {showingContent ? (
-            <button onClick={() => { setEditing(false); setSelected(null) }}
-              style={{ background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-              ← Back
-            </button>
-          ) : (
-            <button onClick={startNew}
-              style={{ flex: 1, padding: '13px', borderRadius: 50, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-              ✍️ Write New Story
-            </button>
-          )}
-        </div>
+        showingContent ? (
+          <button onClick={() => { setEditing(false); setSelected(null) }}
+            style={{ alignSelf: 'flex-start', background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', borderRadius: 50, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer', marginTop: 4, marginBottom: 6 }}>
+            ← Back
+          </button>
+        ) : (
+          <button onClick={startNew}
+            style={{ marginBottom: 12, padding: '13px', borderRadius: 50, fontWeight: 800, fontSize: 15, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
+            ✍️ Write New Story
+          </button>
+        )
       )}
 
       {/* ── Left panel ── */}
@@ -307,7 +309,7 @@ export default function MyWriting({ child, quota }) {
       </div>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, marginTop: isMobile ? 8 : 0 }}>
 
         {/* Editor */}
         {editing && (
@@ -354,20 +356,29 @@ export default function MyWriting({ child, quota }) {
                 style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '2px solid #eee', fontSize: 15, lineHeight: 1.9, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif', color: '#333' }} />
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, flexWrap: 'wrap', gap: 10 }}>
-                <div style={{ fontSize: 12, color: wc >= MIN_WORDS ? '#27ae60' : '#aaa', fontWeight: 700 }}>
-                  {wc} words {wc < MIN_WORDS ? `(write ${MIN_WORDS - wc} more for feedback)` : '✓'}
+                <div style={{ fontSize: 12, fontWeight: 700, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ color: wc >= MIN_WORDS ? '#27ae60' : '#aaa' }}>
+                    {wc} words {wc < MIN_WORDS ? `(write ${MIN_WORDS - wc} more for feedback)` : '✓'}
+                  </span>
+                  {nearLimit && (
+                    <span style={{ color: overLimit ? '#e74c3c' : '#e67e22' }}>
+                      {overLimit
+                        ? `Too long for feedback — ${charCount - MAX_CHARS} chars over limit`
+                        : `${MAX_CHARS - charCount} chars left before feedback limit`}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => handleSave()} disabled={saving || !title.trim() || !content.trim()}
                     style={{ padding: '10px 20px', borderRadius: 50, fontWeight: 700, fontSize: 13, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
                     {saving ? 'Saving…' : '💾 Save'}
                   </button>
-                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || quota?.used >= quota?.limit || offline}
+                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || overLimit || quota?.used >= quota?.limit || offline}
                     style={{
                       padding: '10px 20px', borderRadius: 50, fontWeight: 800, fontSize: 13,
                       background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none',
-                      cursor: fbLoading || !content.trim() || quota?.used >= quota?.limit || offline ? 'not-allowed' : 'pointer',
-                      opacity: fbLoading || !content.trim() || quota?.used >= quota?.limit || offline ? 0.6 : 1,
+                      cursor: fbLoading || !content.trim() || overLimit || quota?.used >= quota?.limit || offline ? 'not-allowed' : 'pointer',
+                      opacity: fbLoading || !content.trim() || overLimit || quota?.used >= quota?.limit || offline ? 0.6 : 1,
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}>
                     {fbLoading

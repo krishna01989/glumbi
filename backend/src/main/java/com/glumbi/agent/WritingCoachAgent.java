@@ -20,14 +20,13 @@ public class WritingCoachAgent {
     @Value("${anthropic.max-tokens.writing-coach}")  private int maxTokens;
 
     public CoachResult getFeedback(String childName, int childAge, String title, String writing) {
-        safety.validateInput(writing);
+        if (writing == null || writing.isBlank())
+            throw new SafetyGuard.SafetyException("Please write something first!");
+        if (writing.length() > 4000)
+            throw new SafetyGuard.SafetyException("Your story is too long for feedback. Try shortening it a bit!");
+        if (!safety.isOutputSafe(writing))
+            throw new SafetyGuard.SafetyException("Oops! Please keep your story fun and friendly 🌟");
 
-        // Validate the writing content for safety before sending to Claude
-        if (!safety.isOutputSafe(writing)) {
-            throw new SafetyGuard.SafetyException(
-                "Oops! Please keep your story fun and friendly 🌟"
-            );
-        }
 
         String agentPrompt = String.format(
                 promptLoader.load("writing-coach-system"), childAge, coachGuidance(childAge), childAge);

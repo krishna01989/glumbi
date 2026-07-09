@@ -461,6 +461,7 @@ export default function Stories({ child, quota }) {
       </div>
 
       {/* ── Story Reader ── */}
+      {isMobile && loading && <ThemeLoader theme={child.theme} />}
       {selected ? (
         <div ref={fsRef} style={isFullscreen ? {
           height: '100dvh', width: '100dvw',

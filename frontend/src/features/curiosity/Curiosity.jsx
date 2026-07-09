@@ -62,10 +62,15 @@ function CuriosityCard({ entry, onDelete }) {
   const [relLoading, setRelLoading] = useState(false)
 
   async function selectTab(tab) {
-    if (activeTab === tab) { setActiveTab(null); if (tab === 'quiz') setWon(false); return }
+    if (activeTab === tab) {
+      setActiveTab(null)
+      if (tab === 'quiz') setWon(false)
+      if (tab === 'related') setRelated(null) // clear cache so next open is always fresh
+      return
+    }
     setActiveTab(tab)
     if (tab === 'quiz') setWon(false)
-    if (tab === 'related' && related === null) {
+    if (tab === 'related') {
       setRelLoading(true)
       try { setRelated(await curiosityApi.getSimilar(entry.id)) }
       catch { setRelated([]) }

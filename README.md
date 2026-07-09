@@ -10,21 +10,21 @@ Live at **[glumbi.com](https://glumbi.com)**
 
 | Feature | Description |
 |---|---|
-| 📖 **Stories** | AI-generated stories personalised to the child's interests. Listen with Google TTS narration in 12 languages. "More like this" surfaces semantically similar past stories via pgvector. |
+| 📖 **Stories** | AI-generated stories personalised to the child's interests. Listen with Google TTS narration in 12 languages. "More like this" surfaces semantically similar past stories via pgvector. Stories can be continued as a multi-chapter series — chapters are grouped in the list and cascade-delete with the root. Similar stories exclude same-series chapters to avoid duplicate suggestions. |
 | 🎯 **Activities** | Age-appropriate activity suggestions. ✦ button surfaces similar completed activities ranked by semantic similarity. |
 | 🔭 **Curiosity** | Daily "wonder" questions to spark curiosity and critical thinking. 🔗 button shows related questions via semantic search. |
 | 📝 **Read & Quiz** | Generate comprehension quizzes from any story topic. Track scores over time. |
-| ✍️ **My Writing** | Kids write their own stories and get AI writing-coach feedback. |
+| ✍️ **My Writing** | Kids write their own stories and get AI writing-coach feedback. Supports multi-chapter series: chapters are linked via `parentStoryId`/`seriesId`, grouped in the list, and the previous chapter's coaching tip is carried forward as a collapsible "Last time's tip" strip in the editor. Cascade-deletes the entire series when the root is removed. Character limit (4,000 chars) with a live warning counter prevents oversized feedback requests. |
 | 🎨 **Draw** | Free-draw canvas for kids to illustrate their stories. |
 | 📓 **Journal** | A private journal for kids to record their thoughts. |
 | ✏️ **Learn to Write** | Guided letter and word tracing in English, Tamil, and Hindi. Canvas drawing validated by AI — any visible stroke counts as correct to encourage effort. Completed letters and words appear in the Timeline. |
-| 🔐 **Parental Lock & Session Timer** | Parents set a 4-digit PIN and optional time limit before handing the device over. Timer starts the moment a child profile is opened (locked or unlocked) and resets whenever the parent returns to the child list. Children can extend time N configurable times (snoozes); once snoozes are exhausted, locked sessions require the PIN to continue and unlocked sessions return to the child list. |
+| 🔐 **Parental Lock & Session Timer** | Parents set a 4-digit PIN and optional time limit before handing the device over. Timer counts only active foreground time — it pauses when the tab is hidden, when the device sleeps, and while the screen-time popup is open. Children can extend time N configurable times (snoozes); once snoozes are exhausted, locked sessions require the PIN to continue and unlocked sessions return to the child list. |
 | 🔒 **Safe & Private** | All content passes a safety guard before being shown to kids. Raw server errors, stack traces, and host details are never exposed to users. Static coral-themed error pages served by Vercel CDN for 404/500 even when the app is down. |
 | 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. Runtime voice picker lets kids choose accent (US, India, British, Australian) and gender (♀/♂) while listening. |
 | 🎙️ **Custom Story Voices** | Parents can record their own voice (or a family member's) directly in the browser, or upload an audio file. Up to 5 named voices per family (Mom, Dad, Granny…). Stories are narrated in the selected voice across all languages. Voice selection is remembered per child. |
 | 🔔 **Smart Notifications** | Weekly AI-generated notifications per child: Progress Reports, Milestones, Story Recommendations, Learning Insights, and Learn-to-Write summaries of letters and words practised that week. |
 | 🔥 **Daily Streak** | A streak counter in the nav rewards kids for opening Glumbi on consecutive days. Visiting on consecutive days increments the streak; missing a day resets it to 1. Streaks are stored per child so each profile has its own counter. |
-| ▶ **Story Continuation** | Any AI-generated story can be continued as a new chapter. Open a story → click **Continue** — Glumbi generates a follow-on story using the same characters and world. The continuation is saved as a new story. |
+| ▶ **Story Continuation & Series** | Any AI-generated story can be continued as a new chapter. Glumbi generates a follow-on chapter using the same characters and world, links it under the root via `seriesId`/`parentStoryId`, and groups the series in the list with chapter labels (Ch.1, Ch.2…). Deleting the root warns the parent and cascades to all chapters. |
 | ✨ **"What happens next?" (My Writing)** | After reading a child's own written story, tap **What happens next?** to get an AI-suggested next chapter as inspiration. The child can adopt the suggestion into the editor and keep writing, or request a fresh idea. The suggestion is not saved automatically. |
 
 ---

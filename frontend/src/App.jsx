@@ -444,8 +444,11 @@ export default function App() {
     const maxSnoozeKey = `glm_session_max_snooze_${child.id}`
 
     const stored = localStorage.getItem(startKey)
-    const start  = stored ? parseInt(stored) : Date.now()
-    if (!stored) {
+    // Discard stored start if it's from a different calendar day
+    const storedMs = stored ? parseInt(stored) : null
+    const isToday = storedMs && new Date(storedMs).toDateString() === new Date().toDateString()
+    const start  = isToday ? storedMs : Date.now()
+    if (!stored || !isToday) {
       localStorage.setItem(startKey, String(start))
       localStorage.removeItem(snoozeKey)
       setSnoozeCount(0)
@@ -494,15 +497,15 @@ export default function App() {
       // Device was locked/asleep if the tick fired much later than expected.
       // Only correct here if the visibilitychange handler didn't already handle it
       // (the visibility handler resets lastTickRef.current so delta stays ~60s).
-      if (delta > 90000) {
-        const sleepMs = delta - 60000
+      if (delta > 45000) {
+        const sleepMs = delta - 30000
         const adjusted = Math.min(sessionStartRef.current + sleepMs, Date.now())
         sessionStartRef.current = adjusted
         setSessionStart(adjusted)
         if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(adjusted))
       }
 
-      if (document.hidden) return
+      if (document.hidden || screenTimeAlert) return
       const elapsed = Math.max(0, Math.floor((Date.now() - sessionStartRef.current) / 60000))
       setSessionMinutes(elapsed)
       if (!lockTimeLimit || lockTimeLimit === 0) return
@@ -517,7 +520,7 @@ export default function App() {
           return current
         })
       }
-    }, 60000)
+    }, 30000)
     return () => clearInterval(interval)
   }, [sessionStart, lockTimeLimit, childLocked])
 

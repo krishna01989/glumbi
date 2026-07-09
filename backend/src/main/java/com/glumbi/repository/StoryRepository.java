@@ -17,6 +17,8 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
     long countByCreatedAtAfter(LocalDateTime since);
     long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<Story> findTop10ByOrderByCreatedAtDesc();
+    List<Story> findBySeriesId(Long seriesId);
+    void deleteBySeriesId(Long seriesId);
 
     @Query("SELECT s.child.id, COUNT(s) FROM Story s GROUP BY s.child.id")
     List<Object[]> countStoriesPerChild();
@@ -34,6 +36,7 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
         WHERE child_id = :childId
           AND embedding IS NOT NULL
           AND id != :excludeId
+          AND series_id IS NULL
         ORDER BY embedding <-> CAST(:embedding AS vector)
         LIMIT :limit
         """, nativeQuery = true)
@@ -52,6 +55,7 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
           AND s.embedding IS NOT NULL
           AND s.id != :storyId
           AND ref.embedding IS NOT NULL
+          AND s.series_id IS NULL
           AND (s.embedding <-> ref.embedding) < 0.9
         ORDER BY s.embedding <-> ref.embedding
         LIMIT :limit

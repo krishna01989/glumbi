@@ -31,6 +31,55 @@ function wordCount(text) {
   return text.trim().split(/\s+/).filter(Boolean).length
 }
 
+function StoryCard({ e, chapterNum, selected, onOpen }) {
+  const isSelected = selected?.id === e.id
+  return (
+    <div onClick={() => onOpen(e)}
+      style={{
+        borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+        boxShadow: isSelected ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
+        transition: 'box-shadow 0.2s',
+      }}>
+      <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
+        <span style={{ fontSize: 22 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
+        <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          {chapterNum ? `Ch.${chapterNum}: ` : ''}{e.title}
+        </span>
+        {e.badge && <span style={{ fontSize: 18 }}>{e.badge}</span>}
+      </div>
+      <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
+        {e.feedbackReceived
+          ? <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
+          : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Saved</span>
+        }
+      </div>
+    </div>
+  )
+}
+
+function SeriesGroup({ root, chapters, selected, onOpen }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div>
+      <div onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 4px', marginBottom: 4 }}>
+        <span style={{ fontSize: 13, color: '#aaa' }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          📖 {root.title}
+        </span>
+        <span style={{ fontSize: 10, color: '#bbb', fontWeight: 700 }}>{chapters.length + 1} chapters</span>
+      </div>
+      {open && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 12, borderLeft: '2px solid var(--primary-lt)' }}>
+          <StoryCard e={root} chapterNum={1} selected={selected} onOpen={onOpen} />
+          {chapters.map((ch, i) => <StoryCard key={ch.id} e={ch} chapterNum={i + 2} selected={selected} onOpen={onOpen} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MyWriting({ child, quota }) {
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
@@ -45,8 +94,12 @@ export default function MyWriting({ child, quota }) {
   const [fbLoading,setFbLoading]= useState(false)
   const [continuation, setContinuation] = useState(null)
   const [contLoading, setContLoading]   = useState(false)
+  const [prevFeedback, setPrevFeedback] = useState(null)
+  const [showPrevTips, setShowPrevTips] = useState(false)
   const [error,    setError]    = useState('')
-  const savedId = useRef(null)  // id of the saved draft being edited
+  const savedId = useRef(null)       // id of the saved draft being edited
+  const parentStoryIdRef = useRef(null)
+  const seriesIdRef = useRef(null)
   const autoSaveRef = useRef(null)
 
   useEffect(() => {
@@ -63,8 +116,9 @@ export default function MyWriting({ child, quota }) {
   }, [editing, title, content])
 
   function startNew() {
-    savedId.current = null
+    savedId.current = null; parentStoryIdRef.current = null; seriesIdRef.current = null
     setTitle(''); setContent(''); setFeedback(null); setError(''); setContinuation(null)
+    setPrevFeedback(null); setShowPrevTips(false)
     setSelected(null); setEditing(true)
   }
 
@@ -87,19 +141,32 @@ export default function MyWriting({ child, quota }) {
       starWord: e.starWord,
       badge: e.badge,
     } : null)
+    // Load parent's feedback tip for chapters
+    if (e.parentStoryId) {
+      const parent = entries.find(p => p.id === e.parentStoryId)
+      setPrevFeedback(parent?.feedbackSuggestion || null)
+    } else {
+      setPrevFeedback(null)
+    }
+    setShowPrevTips(false)
   }
 
   function editEntry(e) {
     savedId.current = e.id
     setTitle(e.title); setContent(e.content)
     setFeedback(null); setError(''); setEditing(true); setSelected(null); setContinuation(null)
+    setPrevFeedback(null); setShowPrevTips(false)
+    parentStoryIdRef.current = null; seriesIdRef.current = null
   }
 
   async function handleSave(silent = false) {
     if (!title.trim() || !content.trim()) return
     if (!silent) setSaving(true)
     try {
-      const data = { childId: child.id, title, content }
+      const data = { childId: child.id, title, content,
+        parentStoryId: parentStoryIdRef.current || undefined,
+        seriesId: seriesIdRef.current || undefined,
+      }
       let saved
       if (savedId.current) {
         saved = await writingApi.update(savedId.current, data)
@@ -146,14 +213,20 @@ export default function MyWriting({ child, quota }) {
   }
 
   async function confirmDeleteEntry() {
-    await writingApi.delete(confirmDelete)
-    setEntries(prev => prev.filter(e => e.id !== confirmDelete))
-    if (selected?.id === confirmDelete) setSelected(null)
+    const result = await writingApi.delete(confirmDelete)
+    const seriesDeleted = result?.seriesDeleted
+    setEntries(prev => seriesDeleted
+      ? prev.filter(e => e.id !== confirmDelete && e.seriesId !== confirmDelete)
+      : prev.filter(e => e.id !== confirmDelete)
+    )
+    if (selected?.id === confirmDelete || (seriesDeleted && selected?.seriesId === confirmDelete)) setSelected(null)
     if (savedId.current === confirmDelete) { savedId.current = null; setEditing(false) }
     setConfirmDelete(null)
   }
 
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const deletingEntry = entries.find(e => e.id === confirmDelete)
+  const deletingHasSeries = deletingEntry && entries.some(e => e.seriesId === deletingEntry.id)
   const wc = wordCount(content)
   const isMobile = useIsMobile()
   const showingContent = editing || (selected && !editing)
@@ -163,8 +236,10 @@ export default function MyWriting({ child, quota }) {
     {(fbLoading || contLoading) && <ThemeLoader theme={child.theme} label={contLoading ? 'Imagining what happens next…' : 'Reading your story…'} />}
     <ConfirmDialog
       open={!!confirmDelete}
-      title="Delete Story?"
-      message="This story will be permanently deleted."
+      title={deletingHasSeries ? "Delete Whole Series?" : "Delete Story?"}
+      message={deletingHasSeries
+        ? `This is the first chapter of a series. Deleting it will permanently delete all chapters in the series.`
+        : "This story will be permanently deleted."}
       confirmLabel="Delete"
       onConfirm={confirmDeleteEntry}
       onCancel={() => setConfirmDelete(null)}
@@ -209,38 +284,26 @@ export default function MyWriting({ child, quota }) {
           </div>
         )}
 
-        {entries.length > 0 && (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Stories</div>
-        {entries.map(e => (
-          <div key={e.id} onClick={() => openEntry(e)}
-            style={{
-              borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-              boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
-              transition: 'box-shadow 0.2s',
-            }}>
-            {/* Header */}
-            <div style={{
-              background: 'var(--primary)',
-              height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
-            }}>
-              <span style={{ fontSize: 22 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
-              <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                {e.title}
-              </span>
-              {e.badge && <span style={{ fontSize: 18 }}>{e.badge}</span>}
+        {entries.length > 0 && (() => {
+          // Group entries: standalone (no seriesId) shown as-is; series grouped under root
+          const roots = entries.filter(e => !e.seriesId)
+          const chaptersBySeriesId = entries.reduce((acc, e) => {
+            if (e.seriesId) { (acc[e.seriesId] = acc[e.seriesId] || []).push(e) }
+            return acc
+          }, {})
+
+          return (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Stories</div>
+              {roots.map(root => {
+                const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                return chapters.length > 0
+                  ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={openEntry} />
+                  : <StoryCard key={root.id} e={root} selected={selected} onOpen={openEntry} />
+              })}
             </div>
-            {/* Footer */}
-            <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
-              {e.feedbackReceived
-                ? <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
-                : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Saved</span>
-              }
-            </div>
-          </div>
-        ))}
-        </div>)}
+          )
+        })()}
       </div>
 
       {/* ── Right panel ── */}
@@ -249,6 +312,19 @@ export default function MyWriting({ child, quota }) {
         {/* Editor */}
         {editing && (
           <div style={{ animation: 'fadeIn 0.3s ease' }}>
+            {/* Last time's tips */}
+            {prevFeedback && (
+              <div style={{ borderRadius: 12, border: '1.5px solid #ffd93d', background: '#fffdf0', overflow: 'hidden', marginBottom: 16 }}>
+                <button type="button" onClick={() => setShowPrevTips(v => !v)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#d68910' }}>💡 Last time's tip — try to apply it!</span>
+                  <span style={{ fontSize: 12, color: '#aaa' }}>{showPrevTips ? '▲' : '▼'}</span>
+                </button>
+                {showPrevTips && (
+                  <div style={{ padding: '0 16px 12px', fontSize: 13, color: '#555', lineHeight: 1.7 }}>{prevFeedback}</div>
+                )}
+              </div>
+            )}
             <div className="card" style={{ padding: 'clamp(16px,3vw,28px)', marginBottom: 20 }}>
               <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--primary)', marginBottom: 20 }}>✍️ My Story</div>
 
@@ -300,7 +376,7 @@ export default function MyWriting({ child, quota }) {
                   </button>
                 </div>
               </div>
-              <ErrorBox msg={error} />
+              <div style={{ marginTop: error ? 12 : 0 }}><ErrorBox msg={error} /></div>
             </div>
 
             {/* Feedback card */}
@@ -368,28 +444,41 @@ export default function MyWriting({ child, quota }) {
             </div>
 
             {selected.feedbackReceived && (
-              <div className="card">
-                <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: 40 }}>{selected.badge}</span>
-                  <div>
-                    <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 800, color: 'var(--primary)' }}>Coach's Feedback</div>
-                    {selected.starWord && <div style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>⭐ Star word: <em>"{selected.starWord}"</em></div>}
+              continuation ? (
+                // Collapsed when continuation is showing — just a reminder strip
+                <div style={{ borderRadius: 12, border: '1.5px solid #ffd93d', background: '#fffdf0', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px' }}>
+                    <span style={{ fontSize: 20 }}>{selected.badge || '✨'}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#d68910', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Last time's tip</div>
+                      <div style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>{selected.feedbackSuggestion}</div>
+                    </div>
                   </div>
                 </div>
-                <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <div style={{ background: '#e8f8f0', borderRadius: 12, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#27ae60', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>What I loved 💚</div>
-                    <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackPraise}</div>
+              ) : (
+                <div className="card">
+                  <div style={{ background: 'var(--primary-lt)', borderRadius: '20px 20px 0 0', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <span style={{ fontSize: 40 }}>{selected.badge}</span>
+                    <div>
+                      <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 800, color: 'var(--primary)' }}>Coach's Feedback</div>
+                      {selected.starWord && <div style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 700 }}>⭐ Star word: <em>"{selected.starWord}"</em></div>}
+                    </div>
                   </div>
-                  <div style={{ background: '#fff8e8', borderRadius: 12, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#f39c12', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Try this next time 💡</div>
-                    <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackSuggestion}</div>
-                  </div>
-                  <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--primary)', fontStyle: 'italic' }}>
-                    {selected.feedbackEncouragement}
+                  <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ background: '#e8f8f0', borderRadius: 12, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#27ae60', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>What I loved 💚</div>
+                      <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackPraise}</div>
+                    </div>
+                    <div style={{ background: '#fff8e8', borderRadius: 12, padding: '14px 16px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#f39c12', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Try this next time 💡</div>
+                      <div style={{ fontSize: 14, color: '#333', lineHeight: 1.7 }}>{selected.feedbackSuggestion}</div>
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: 14, fontWeight: 800, color: 'var(--primary)', fontStyle: 'italic' }}>
+                      {selected.feedbackEncouragement}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )
             )}
 
             {/* Continue story suggestion */}
@@ -431,6 +520,14 @@ export default function MyWriting({ child, quota }) {
                           setTitle(continuation.title)
                           setContent(continuation.content)
                           savedId.current = null
+                          if (selected?.feedbackSuggestion) {
+                            setPrevFeedback(selected.feedbackSuggestion)
+                            setShowPrevTips(false)
+                          }
+                          parentStoryIdRef.current = selected.id
+                          seriesIdRef.current = selected.seriesId || selected.id
+                          savedId.current = null
+                          setFeedback(null)
                           setEditing(true); setSelected(null); setContinuation(null)
                         }}
                         style={{ padding: '10px 20px', borderRadius: 50, background: 'linear-gradient(135deg,#8e44ad,#3498db)', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
@@ -444,7 +541,7 @@ export default function MyWriting({ child, quota }) {
                   </div>
                 </div>
               )}
-              <ErrorBox msg={error} />
+              <div style={{ marginTop: error ? 12 : 0 }}><ErrorBox msg={error} /></div>
             </div>
           </div>
         )}

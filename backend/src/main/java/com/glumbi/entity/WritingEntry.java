@@ -28,6 +28,10 @@ public class WritingEntry {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    // Series / lineage — null for standalone stories
+    private Long parentStoryId;   // immediate parent chapter (for feedback tip)
+    private Long seriesId;        // root story id (for grouping all chapters)
+
     // AI feedback fields — null until feedback is requested
     private String feedbackPraise;
     private String feedbackSuggestion;

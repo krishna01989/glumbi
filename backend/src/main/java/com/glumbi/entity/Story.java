@@ -32,6 +32,10 @@ public class Story {
 
     private boolean favorite = false;
 
+    // Series / lineage — null for standalone stories
+    private Long parentStoryId;
+    private Long seriesId;
+
     // JSON map of cacheKey → R2 public URL, persisted so audio survives restarts/deploys
     @Column(columnDefinition = "TEXT")
     private String audioUrls;

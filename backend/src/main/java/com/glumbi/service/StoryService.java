@@ -52,6 +52,8 @@ public class StoryService {
                     ? prev.getTitle().substring(0, prev.getTitle().indexOf(" · "))
                     : prev.getTitle();
             story.setTitle(rootTitle + " · " + result.title());
+            story.setParentStoryId(prev.getId());
+            story.setSeriesId(prev.getSeriesId() != null ? prev.getSeriesId() : prev.getId());
         } else {
             story.setTitle(result.title());
             story.setKeywords(req.getKeywords());
@@ -95,7 +97,12 @@ public class StoryService {
         return repo.save(story);
     }
 
-    public void delete(Long storyId) {
+    @org.springframework.transaction.annotation.Transactional
+    public boolean delete(Long storyId) {
+        List<Story> chapters = repo.findBySeriesId(storyId);
+        boolean hasSeries = !chapters.isEmpty();
+        if (hasSeries) repo.deleteBySeriesId(storyId);
         repo.deleteById(storyId);
+        return hasSeries;
     }
 }

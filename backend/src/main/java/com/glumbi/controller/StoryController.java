@@ -236,7 +236,7 @@ public class StoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<?> delete(@PathVariable Long id) {
         if (r2Service.isConfigured()) {
             try {
                 Story story = service.getById(id);
@@ -248,7 +248,9 @@ public class StoryController {
                 System.err.println("[delete] R2 cleanup failed (non-fatal): " + e.getMessage());
             }
         }
-        service.delete(id);
-        return ResponseEntity.noContent().build();
+        boolean seriesDeleted = service.delete(id);
+        return seriesDeleted
+            ? ResponseEntity.ok(Map.of("seriesDeleted", true))
+            : ResponseEntity.noContent().build();
     }
 }

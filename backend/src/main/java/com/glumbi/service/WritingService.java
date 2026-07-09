@@ -27,6 +27,8 @@ public class WritingService {
         entry.setChild(child);
         entry.setTitle(req.getTitle());
         entry.setContent(req.getContent());
+        entry.setParentStoryId(req.getParentStoryId());
+        entry.setSeriesId(req.getSeriesId());
         return repo.save(entry);
     }
 
@@ -71,5 +73,12 @@ public class WritingService {
         return repo.findByChildIdOrderByCreatedAtDesc(childId);
     }
 
-    public void delete(Long id) { repo.deleteById(id); }
+    @org.springframework.transaction.annotation.Transactional
+    public boolean delete(Long id) {
+        List<WritingEntry> chapters = repo.findBySeriesId(id);
+        boolean hasSeries = !chapters.isEmpty();
+        if (hasSeries) repo.deleteBySeriesId(id);
+        repo.deleteById(id);
+        return hasSeries;
+    }
 }

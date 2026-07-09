@@ -98,8 +98,10 @@ public class WritingController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        boolean seriesDeleted = service.delete(id);
+        return seriesDeleted
+            ? ResponseEntity.ok(Map.of("seriesDeleted", true))
+            : ResponseEntity.noContent().build();
     }
 }

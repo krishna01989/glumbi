@@ -284,7 +284,11 @@ export default function ReadQuiz({ child, quota }) {
             </div>
 
             {/* Quiz */}
-            <div className="card" style={{ padding: 'clamp(16px,3vw,28px)' }}>
+            <div style={{
+              background: `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
+              borderRadius: 20, padding: 'clamp(20px,3vw,32px)',
+              border: `2px solid ${lessonColor}33`, marginBottom: 24,
+            }}>
               <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>
                 🧠 Comprehension Quiz
               </div>

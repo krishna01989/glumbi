@@ -12,4 +12,6 @@ public interface WritingRepository extends JpaRepository<WritingEntry, Long> {
     long countByCreatedAtAfter(LocalDateTime since);
     long countByChildIdAndFeedbackReceivedTrueAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<WritingEntry> findTop5ByOrderByCreatedAtDesc();
+    List<WritingEntry> findBySeriesId(Long seriesId);
+    void deleteBySeriesId(Long seriesId);
 }

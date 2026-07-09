@@ -92,6 +92,66 @@ const LANG_SCRIPT = {
   chinese: '普通话', japanese: '日本語', korean: '한국어',
 }
 
+function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
+  const isSelected = selected?.id === s.id
+  const scene = getScene(s.keywords)
+  const chapterLabel = s.title.includes(' · ') ? s.title.substring(s.title.indexOf(' · ') + 3) : null
+  return (
+    <div onClick={() => onSelect(s)}
+      style={{
+        borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+        boxShadow: isSelected ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
+        transition: 'box-shadow 0.2s',
+      }}>
+      <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
+        <span style={{ fontSize: 22 }}>{scene.emoji}</span>
+        <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          {chapterNum ? `Ch.${chapterNum}: ` : ''}{chapterLabel || s.title}
+        </span>
+        <span onClick={e => { e.stopPropagation(); onToggleFav(s.id) }} style={{ fontSize: 16, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
+          {s.favorite ? '⭐' : '☆'}
+        </span>
+      </div>
+      <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
+          {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {s.keywords && !s.title.includes(' · ') && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
+          {s.language && s.language !== 'english' && (
+            <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
+              {s.language}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
+  const [open, setOpen] = useState(true)
+  const rootTitle = root.title.includes(' · ') ? root.title.substring(0, root.title.indexOf(' · ')) : root.title
+  return (
+    <div>
+      <div onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 4px', marginBottom: 4 }}>
+        <span style={{ fontSize: 13, color: '#aaa' }}>{open ? '▾' : '▸'}</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          📖 {rootTitle}
+        </span>
+        <span style={{ fontSize: 10, color: '#bbb', fontWeight: 700 }}>{chapters.length + 1} chapters</span>
+      </div>
+      {open && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingLeft: 12, borderLeft: '2px solid var(--primary-lt)' }}>
+          <StoryListCard s={root} selected={selected} onSelect={onSelect} onToggleFav={onToggleFav} chapterNum={1} />
+          {chapters.map((ch, i) => <StoryListCard key={ch.id} s={ch} selected={selected} onSelect={onSelect} onToggleFav={onToggleFav} chapterNum={i + 2} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Stories({ child, quota }) {
   const offline = useOffline()
   const [stories, setStories] = useState([])
@@ -190,7 +250,11 @@ export default function Stories({ child, quota }) {
     setError('')
     try {
       const res = await storyApi.continue(child.id, story.id)
-      const continued = res.story ?? res
+      const continued = {
+        ...(res.story ?? res),
+        parentStoryId: (res.story ?? res).parentStoryId ?? story.id,
+        seriesId: (res.story ?? res).seriesId ?? (story.seriesId || story.id),
+      }
       const similar = res.similar ?? []
       setStories(prev => [continued, ...prev])
       setSelected(continued)
@@ -206,11 +270,18 @@ export default function Stories({ child, quota }) {
   }
 
   async function confirmDeleteStory() {
-    await storyApi.delete(confirmDelete)
-    setStories(prev => prev.filter(s => s.id !== confirmDelete))
-    if (selected?.id === confirmDelete) setSelected(null)
+    const result = await storyApi.delete(confirmDelete)
+    const seriesDeleted = result?.seriesDeleted
+    setStories(prev => seriesDeleted
+      ? prev.filter(s => s.id !== confirmDelete && s.seriesId !== confirmDelete)
+      : prev.filter(s => s.id !== confirmDelete)
+    )
+    if (selected?.id === confirmDelete || (seriesDeleted && selected?.seriesId === confirmDelete)) setSelected(null)
     setConfirmDelete(null)
   }
+
+  const deletingStory = stories.find(s => s.id === confirmDelete)
+  const deletingHasSeries = deletingStory && stories.some(s => s.seriesId === deletingStory.id)
 
   async function toggleFav(storyId) {
     const updated = await storyApi.toggleFavorite(storyId)
@@ -306,8 +377,10 @@ export default function Stories({ child, quota }) {
     <>
     <ConfirmDialog
       open={!!confirmDelete}
-      title="Delete Story?"
-      message="This story will be permanently deleted."
+      title={deletingHasSeries ? "Delete Whole Series?" : "Delete Story?"}
+      message={deletingHasSeries
+        ? "This is the first chapter of a series. Deleting it will permanently delete all chapters in the series."
+        : "This story will be permanently deleted."}
       confirmLabel="Delete"
       onConfirm={confirmDeleteStory}
       onCancel={() => setConfirmDelete(null)}
@@ -353,47 +426,30 @@ export default function Stories({ child, quota }) {
         {loading && <ThemeLoader theme={child.theme} />}
 
         {/* History */}
-        {stories.length > 0 && (
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
-            {stories.map(s => (
-              <div key={s.id}
-                onClick={() => { if (selected?.id === s.id) return; setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([]); storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {}); if (isMobile) setShowList(false) }}
-                style={{
-                  borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                  boxShadow: selected?.id === s.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
-                  transition: 'box-shadow 0.2s',
-                }}>
-                <div style={{
-                  background: 'var(--primary)',
-                  height: 56, display: 'flex', alignItems: 'center',
-                  padding: '0 14px', gap: 10,
-                }}>
-                  <span style={{ fontSize: 22 }}>{getScene(s.keywords).emoji}</span>
-                  <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {s.title}
-                  </span>
-                  <span onClick={e => { e.stopPropagation(); toggleFav(s.id) }} style={{ fontSize: 16, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
-                    {s.favorite ? '⭐' : '☆'}
-                  </span>
-                </div>
-                <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
-                    {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {s.keywords && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
-                    {s.language && s.language !== 'english' && (
-                      <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
-                        {LANG_SCRIPT[s.language] || s.language}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {stories.length > 0 && (() => {
+          const roots = stories.filter(s => !s.seriesId)
+          const chaptersBySeriesId = stories.reduce((acc, s) => {
+            if (s.seriesId) (acc[s.seriesId] = acc[s.seriesId] || []).push(s)
+            return acc
+          }, {})
+          function handleSelect(s) {
+            if (selected?.id === s.id) return
+            setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
+            storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {})
+            if (isMobile) setShowList(false)
+          }
+          return (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
+              {roots.map(root => {
+                const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+                return chapters.length > 0
+                  ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
+                  : <StoryListCard key={root.id} s={root} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
+              })}
+            </div>
+          )
+        })()}
 
         {stories.length === 0 && !loading && (
           <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
@@ -698,7 +754,10 @@ export default function Stories({ child, quota }) {
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {similarStories.map(s => (
-                    <button key={s.id} onClick={() => { setSelected(s); setSimilarStories([]); storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {}) }}
+                    <button key={s.id} onClick={() => {
+                      const target = s.seriesId ? (stories.find(r => r.id === s.seriesId) ?? s) : s
+                      setSelected(target); setSimilarStories([]); storyApi.getSimilar(target.id).then(setSimilarStories).catch(() => {})
+                    }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,
                         background: 'var(--primary-lt)', border: '1.5px solid var(--primary-lt)',

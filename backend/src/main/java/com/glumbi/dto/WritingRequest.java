@@ -9,4 +9,6 @@ public class WritingRequest {
     @NotNull  private Long childId;
     @NotBlank private String title;
     @NotBlank private String content;
+    private Long parentStoryId;
+    private Long seriesId;
 }

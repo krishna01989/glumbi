@@ -97,7 +97,7 @@ export const storyApi = {
     const fv = familyVoiceId ? `&familyVoiceId=${familyVoiceId}` : ''
     return `${base}/stories/${id}/listen?language=${language}${v}${fv}&token=${token}`
   },
-  delete:         (id)                => api.delete(`/stories/${id}`),
+  delete:         (id)                => api.delete(`/stories/${id}`).then(r => r.data).catch(() => null),
 }
 
 export const journalApi = {
@@ -160,7 +160,7 @@ export const writingApi = {
   feedback:  (id)                => api.post(`/writing/${id}/feedback`).then(r => r.data),
   continue:  (id)                => api.post(`/writing/${id}/continue`).then(r => r.data),
   getByChild:(childId, params)   => api.get(`/writing/child/${childId}`, { params }).then(r => r.data),
-  delete:    (id)               => api.delete(`/writing/${id}`),
+  delete:    (id)               => api.delete(`/writing/${id}`).then(r => r.data).catch(() => null),
 }
 
 export const userApi = {

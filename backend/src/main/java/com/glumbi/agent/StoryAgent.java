@@ -56,7 +56,8 @@ public class StoryAgent {
 
         String userMsg = String.format(
                 "Continue this story for %s. Here is what happened so far:\n\nTitle: %s\n\n...%s\n\n" +
-                "Write the NEXT chapter. Keep the same characters and world. Give it a new chapter title.",
+                "Write the NEXT chapter. Keep the same characters and world. " +
+                "Give it a short new chapter title (just the chapter name, NOT the series title or any prefix).",
                 childName, previousTitle, snippet);
 
         ObjectNode body = mapper.createObjectNode();

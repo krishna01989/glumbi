@@ -627,7 +627,7 @@ function LetterGrid({ letters, selected, onSelect, script, pulli, engFontFamily 
 function CompoundTable({ selected, onSelect }) {
   return (
     <div style={{ overflowX:'auto' }}>
-      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Tamil",serif' }}>
+      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Tamil",serif', width:'100%', tableLayout:'fixed' }}>
         <thead>
           <tr>
             <th style={th()}></th>
@@ -644,7 +644,7 @@ function CompoundTable({ selected, onSelect }) {
                 <td key={cell.char} style={{ padding:0 }}>
                   <button onClick={() => onSelect(cell)}
                     style={{
-                      width:44, height:52, border:'none', borderRadius:8, cursor:'pointer',
+                      width:'100%', height:52, border:'none', borderRadius:8, cursor:'pointer',
                       fontFamily:'"Noto Sans Tamil",serif', fontSize:17, fontWeight:400,
                       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
                       background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
@@ -671,7 +671,7 @@ function th() { return { padding:'4px 6px', textAlign:'center', fontSize:14, fon
 function HindiCompoundTable({ selected, onSelect }) {
   return (
     <div style={{ overflowX:'auto' }}>
-      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Devanagari",serif' }}>
+      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Devanagari",serif', width:'100%', tableLayout:'fixed' }}>
         <thead>
           <tr>
             <th style={th()}></th>
@@ -688,7 +688,7 @@ function HindiCompoundTable({ selected, onSelect }) {
                 <td key={cell.char} style={{ padding:0 }}>
                   <button onClick={() => onSelect(cell)}
                     style={{
-                      width:44, height:52, border:'none', borderRadius:8, cursor:'pointer',
+                      width:'100%', height:52, border:'none', borderRadius:8, cursor:'pointer',
                       fontFamily:'"Noto Sans Devanagari",serif', fontSize:17,
                       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
                       background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',

@@ -992,7 +992,6 @@ export default function App() {
                       className="mgmt-menu-item"
                       style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 20px', border: 'none', fontSize: 15, cursor: 'pointer', textAlign: 'left',
                         background: active ? 'rgba(255,255,255,0.25)' : 'none',
-                        borderLeft: active ? '3px solid white' : '3px solid transparent',
                         fontWeight: active ? 900 : 700,
                         color: 'rgba(255,255,255,0.9)',
                       }}>

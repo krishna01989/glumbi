@@ -105,7 +105,6 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
                       fontSize: 15, fontWeight: active ? 900 : 700,
                       color: 'white', cursor: 'pointer', textAlign: 'left',
                       background: active ? 'rgba(255,255,255,0.25)' : 'none',
-                      borderLeft: active ? '3px solid white' : '3px solid transparent',
                     }}
                     onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
                     onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}>

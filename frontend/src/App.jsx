@@ -985,15 +985,22 @@ export default function App() {
                 <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, padding: '16px 20px 6px' }}>
                   {section.heading}
                 </div>
-                {section.items.map(item => (
-                  <button key={item.path} onClick={() => { navigate(item.path); setMgmtMenuOpen(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 20px', background: 'none', border: 'none', fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)', cursor: 'pointer', textAlign: 'left' }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)' }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
-                    <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.emoji}</span>
-                    {item.label}
-                  </button>
-                ))}
+                {section.items.map(item => {
+                  const active = location.pathname === item.path
+                  return (
+                    <button key={item.path} onClick={() => { navigate(item.path); setMgmtMenuOpen(false) }}
+                      className="mgmt-menu-item"
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 20px', border: 'none', fontSize: 15, cursor: 'pointer', textAlign: 'left',
+                        background: active ? 'rgba(255,255,255,0.25)' : 'none',
+                        borderLeft: active ? '3px solid white' : '3px solid transparent',
+                        fontWeight: active ? 900 : 700,
+                        color: 'rgba(255,255,255,0.9)',
+                      }}>
+                      <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.emoji}</span>
+                      {item.label}
+                    </button>
+                  )
+                })}
               </div>
             ))}
           </div>
@@ -1006,6 +1013,7 @@ export default function App() {
         </div>
 
         <style>{`
+          .mgmt-menu-item:hover { background: rgba(255,255,255,0.15) !important; }
           @media (max-width: 767px) {
             .mgmt-desktop-btns  { display: none !important; }
             .mgmt-mobile-btn    { display: flex !important; }

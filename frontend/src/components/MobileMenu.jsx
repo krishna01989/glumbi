@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 
 const ALL_APP_ITEMS = [
@@ -22,6 +22,7 @@ const INFO_ITEMS = [
 
 export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, theme, onTour, wotd, childLocked, onUnlock }) {
   const navigate = useNavigate()
+  const location = useLocation()
 
   function go(path) {
     navigate(path)
@@ -94,19 +95,25 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
               <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1, padding: '16px 20px 6px' }}>
                 {section.heading}
               </div>
-              {section.items.map(item => (
-                <button key={item.path} onClick={() => go(item.path)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    width: '100%', padding: '12px 20px', background: 'none', border: 'none',
-                    fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.9)', cursor: 'pointer', textAlign: 'left',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'none' }}>
-                  <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.emoji}</span>
-                  {item.label}
-                </button>
-              ))}
+              {section.items.map(item => {
+                const active = location.pathname === item.path
+                return (
+                  <button key={item.path} onClick={() => go(item.path)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      width: '100%', padding: '12px 20px', border: 'none',
+                      fontSize: 15, fontWeight: active ? 900 : 700,
+                      color: 'white', cursor: 'pointer', textAlign: 'left',
+                      background: active ? 'rgba(255,255,255,0.25)' : 'none',
+                      borderLeft: active ? '3px solid white' : '3px solid transparent',
+                    }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.12)' }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}>
+                    <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.emoji}</span>
+                    {item.label}
+                  </button>
+                )
+              })}
             </div>
           ))}
         </div>

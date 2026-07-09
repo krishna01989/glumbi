@@ -159,7 +159,7 @@ function FlashcardsTab({ child, quota }) {
                 📇 {s.topic}
               </button>
               <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
-              <button className="btn-danger" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => handleDelete(s.id)}>✕</button>
+              <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(s.id)}>✕</button>
             </div>
           ))}
         </div>
@@ -609,7 +609,7 @@ function MemoryMatchTab({ child, quota }) {
                 🔁 Replay: {m.theme}
               </button>
               <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(m.createdAt).toLocaleDateString()}</span>
-              <button className="btn-danger" style={{ padding: '4px 10px', fontSize: 11 }} onClick={() => handleDelete(m.id)}>✕</button>
+              <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(m.id)}>✕</button>
             </div>
           ))}
         </div>

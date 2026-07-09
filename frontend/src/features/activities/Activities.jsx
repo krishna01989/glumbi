@@ -294,7 +294,7 @@ export default function Activities({ child, quota }) {
                     <StarRating value={a.rating || 0} onChange={v => handleRate(a.id, v)} />
                   </div>
                 </div>
-                <button className="btn-danger" style={{ padding: '6px 10px', fontSize: 12 }}
+                <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onClick={() => handleDelete(a.id)}>✕</button>
               </div>
             ))}

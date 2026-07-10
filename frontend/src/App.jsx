@@ -245,6 +245,8 @@ export default function App() {
   const wotdDateRef = useRef(null)    // tracks the date of the last fetched WOTD to detect day rollover
   const sessionEndedRef = useRef(false)   // set true after force-end so the interval never re-triggers the alert
   const originalLimitRef = useRef(0)      // the limit set at lock time — never changes on snooze
+  const alertOpenedAtRef = useRef(null)   // wall-clock ms when the popup first appeared
+  const screenTimeAlertRef = useRef(false) // ref mirror so interval closure reads current value
   const [sessionMinutes, setSessionMinutes]     = useState(0)
   const [screenTimeAlert, setScreenTimeAlert]   = useState(false)
   const [snoozeCount, setSnoozeCount]           = useState(0)
@@ -477,6 +479,7 @@ export default function App() {
     if (restoredLimit > 0 && elapsed >= restoredLimit) {
       const savedSnooze = localStorage.getItem(snoozeKey)
       const currentSnooze = savedSnooze ? parseInt(savedSnooze) : 0
+      alertOpenedAtRef.current = Date.now()
       if (restoredMaxSnooze > 0 && currentSnooze >= restoredMaxSnooze) {
         setScreenTimeAlert('force-end')
       } else {
@@ -505,7 +508,7 @@ export default function App() {
         if (child?.id) localStorage.setItem(`glm_session_start_${child.id}`, String(adjusted))
       }
 
-      if (document.hidden || screenTimeAlert) return
+      if (document.hidden || screenTimeAlertRef.current) return
       const elapsed = Math.max(0, Math.floor((Date.now() - sessionStartRef.current) / 60000))
       setSessionMinutes(elapsed)
       if (!lockTimeLimit || lockTimeLimit === 0) return
@@ -513,9 +516,11 @@ export default function App() {
       if (elapsed >= lockTimeLimit) {
         setSnoozeCount(current => {
           if (lockMaxSnoozeRef.current > 0 && current >= lockMaxSnoozeRef.current) {
+            alertOpenedAtRef.current = Date.now()
             setTimeout(() => setScreenTimeAlert('force-end'), 0)
             return current
           }
+          alertOpenedAtRef.current = Date.now()
           setScreenTimeAlert(true)
           return current
         })
@@ -527,6 +532,7 @@ export default function App() {
   // Keep refs in sync so interval/visibility handlers always read latest values
   useEffect(() => { sessionStartRef.current = sessionStart }, [sessionStart])
   useEffect(() => { lockMaxSnoozeRef.current = lockMaxSnooze }, [lockMaxSnooze])
+  useEffect(() => { screenTimeAlertRef.current = !!screenTimeAlert }, [screenTimeAlert])
 
   // Pause timer while page is hidden (child walks away / device sleeps)
   useEffect(() => {
@@ -568,10 +574,13 @@ export default function App() {
   }, [screenTimeAlert])
 
   function handleScreenTimeSnooze(extraMinutes) {
-    const newStart = Date.now()
+    // Start the new window from when the popup first appeared so time spent
+    // looking at the popup doesn't eat into the extension.
+    const newStart = alertOpenedAtRef.current ?? Date.now()
+    alertOpenedAtRef.current = null
     if (child?.id) {
       localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))
-      localStorage.setItem(`glm_session_limit_${child.id}`, String(extraMinutes)) // fix #1: persist new limit
+      localStorage.setItem(`glm_session_limit_${child.id}`, String(extraMinutes))
     }
     sessionEndedRef.current = false  // allow interval to fire again for the new window
     setSessionStart(newStart)
@@ -1066,9 +1075,7 @@ export default function App() {
               Screen time check!
             </div>
             <div style={{ fontSize: 15, color: '#777', lineHeight: 1.6, marginBottom: 28 }}>
-              Hey {child.name}! You've been learning for{' '}
-              <strong style={{ color: theme.primary }}>{formatElapsed(sessionMinutes)}</strong>.
-              {' '}Want to keep going or take a break?
+              Great session, {child.name}! Want to keep going or take a quick break?
             </div>
             {(() => {
               const maxSnooze = lockMaxSnooze

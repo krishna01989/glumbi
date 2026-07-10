@@ -416,7 +416,19 @@ export default function Draw({ child, quota, featureConfig }) {
         {!isCompact && !isFullscreen && <SectionLabel>Colour</SectionLabel>}
 
         {/* Active color swatch + palette trigger */}
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          {/* Color swatch — shows active color */}
+          <div
+            style={{
+              width: 44, height: 44, borderRadius: 12,
+              background: eraser ? '#f5f5f5' : color,
+              boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+            {eraser && <span style={{ fontSize: 20 }}>🧹</span>}
+          </div>
+          {/* Palette icon button */}
           <button ref={swatchRef} className="palette-trigger"
             onClick={() => {
               const rect = swatchRef.current.getBoundingClientRect()
@@ -428,13 +440,13 @@ export default function Draw({ child, quota, featureConfig }) {
             }}
             title="Open colour palette"
             style={{
-              width: 44, height: 44, borderRadius: 12, border: 'none', cursor: 'pointer', padding: 0,
-              background: eraser ? '#f5f5f5' : color,
-              boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
+              width: 44, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', padding: '4px 0',
+              background: showPalette ? 'var(--primary-lt)' : '#f5f5f5',
+              outline: showPalette ? '2px solid var(--primary)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
               transition: 'all 0.15s',
-              position: 'relative', overflow: 'hidden',
             }}>
-            {eraser && <span style={{ fontSize: 20 }}>🧹</span>}
+            <span style={{ fontSize: 16, lineHeight: 1 }}>🎨</span>
           </button>
 
           {/* Palette popup — rendered fixed so toolbar overflow doesn't clip it */}

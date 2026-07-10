@@ -35,7 +35,6 @@ function generateMaze(cols, rows, seed) {
     return a
   }
 
-  // Iterative DFS to avoid stack overflow on large grids
   const stack = [[0, 0]]
   grid[0][0].visited = true
   while (stack.length) {
@@ -59,29 +58,6 @@ function generateMaze(cols, rows, seed) {
   return grid
 }
 
-function solveMaze(grid, rows, cols) {
-  const DIR_VECS = { N: [-1,0], S: [1,0], E: [0,1], W: [0,-1] }
-  const queue = [[[0, 0]]]
-  const seen = new Set(['0,0'])
-  while (queue.length) {
-    const path = queue.shift()
-    const [r, c] = path[path.length - 1]
-    if (r === rows - 1 && c === cols - 1) return path
-    for (const [dir, [dr, dc]] of Object.entries(DIR_VECS)) {
-      if (!grid[r][c].walls[dir]) {
-        const nr = r + dr, nc = c + dc
-        const k = `${nr},${nc}`
-        if (!seen.has(k) && nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-          seen.add(k)
-          queue.push([...path, [nr, nc]])
-        }
-      }
-    }
-  }
-  return []
-}
-
-// Grid size by age — bigger grid = more complex maze
 function gridSize(age) {
   if (age <= 4) return { cols: 4, rows: 3 }
   if (age <= 6) return { cols: 5, rows: 4 }
@@ -95,15 +71,16 @@ const SVG_W = 600
 const SVG_H = 420
 const MARGIN = 28
 
-function cellGeom(r, c, cols, rows) {
-  const cw = (SVG_W - MARGIN * 2) / cols
-  const ch = (SVG_H - MARGIN * 2) / rows
-  return { x: MARGIN + c * cw, y: MARGIN + r * ch, cw, ch }
+function cellGeom(cols, rows) {
+  return {
+    cw: (SVG_W - MARGIN * 2) / cols,
+    ch: (SVG_H - MARGIN * 2) / rows,
+  }
 }
 
 function cellCenter(r, c, cols, rows) {
-  const { x, y, cw, ch } = cellGeom(r, c, cols, rows)
-  return [x + cw / 2, y + ch / 2]
+  const { cw, ch } = cellGeom(cols, rows)
+  return [MARGIN + c * cw + cw / 2, MARGIN + r * ch + ch / 2]
 }
 
 function svgPoint(svg, clientX, clientY) {
@@ -119,16 +96,30 @@ function svgPoint(svg, clientX, clientY) {
   }
 }
 
-function hitCell(sx, sy, cols, rows) {
-  const cw = (SVG_W - MARGIN * 2) / cols
-  const ch = (SVG_H - MARGIN * 2) / rows
-  const c = Math.floor((sx - MARGIN) / cw)
-  const r = Math.floor((sy - MARGIN) / ch)
-  if (r < 0 || r >= rows || c < 0 || c >= cols) return null
-  return [r, c]
+// ── Wall collision ───────────────────────────────────────────────────────────
+
+// Returns parameter t ∈ (0,1] along AB where it crosses CD, or null
+function segIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
+  const dxAB = bx - ax, dyAB = by - ay
+  const dxCD = dx - cx, dyCD = dy - cy
+  const denom = dxAB * dyCD - dyAB * dxCD
+  if (Math.abs(denom) < 1e-10) return null
+  const t = ((cx - ax) * dyCD - (cy - ay) * dxCD) / denom
+  const u = ((cx - ax) * dyAB - (cy - ay) * dxAB) / denom
+  if (t > 0.01 && t <= 1 && u >= 0 && u <= 1) return t
+  return null
 }
 
-// ── Built-in themes (AI skins these) ────────────────────────────────────────
+function firstWallHit(x1, y1, x2, y2, wallSegs) {
+  let minT = null
+  for (const [wx1, wy1, wx2, wy2] of wallSegs) {
+    const t = segIntersect(x1, y1, x2, y2, wx1, wy1, wx2, wy2)
+    if (t !== null && (minT === null || t < minT)) minT = t
+  }
+  return minT
+}
+
+// ── Built-in themes ──────────────────────────────────────────────────────────
 const BASE_THEMES = [
   { bg: '#fef9e7', wall: '#795548', floor: '#fffde7', startEmoji: '🦊', endEmoji: '🏡', story: 'The clever fox found the right path home! 🌟' },
   { bg: '#e8f5e9', wall: '#388e3c', floor: '#f1f8e9', startEmoji: '🐝', endEmoji: '🌸', story: 'Buzz buzz! The bee found the sweetest flower! 🌸' },
@@ -137,34 +128,49 @@ const BASE_THEMES = [
   { bg: '#fce4ec', wall: '#c2185b', floor: '#fff8f8', startEmoji: '🐱', endEmoji: '🧶', story: 'Meow! The curious cat found the yarn ball! 🐱' },
 ]
 
-const DEAD_END_MSGS = ['Oops! Dead end! 🧱', 'Wrong way! Go back! 🔄', 'Dead end! Try again! ↩️']
+const WALL_MSGS = ['Oops! That\'s a wall! 🧱', 'Blocked! Try another way! 🔄', 'Hit a wall! Go back! ↩️']
 
 export default function Maze({ child, quota, featureConfig }) {
   const offline = useOffline()
   const childAge = child?.birthYear ? new Date().getFullYear() - child.birthYear : 6
   const { cols, rows } = gridSize(childAge)
 
-  const [seed, setSeed]       = useState(() => (Math.random() * 1e8) | 0)
+  const [seed, setSeed]         = useState(() => (Math.random() * 1e8) | 0)
   const [themeIdx, setThemeIdx] = useState(0)
-  const [aiSkin, setAiSkin]   = useState(null)   // overrides theme emojis/story/bg
-  const [cellTrail, setCellTrail] = useState([])
-  const [phase, setPhase]     = useState('idle') // idle | drawing | deadend | success
-  const [deadMsg, setDeadMsg] = useState('')
+  const [aiSkin, setAiSkin]     = useState(null)
+  const [pathPts, setPathPts]   = useState([])   // [[x,y], ...] SVG coordinates
+  const [phase, setPhase]       = useState('idle')
+  const [wallMsg, setWallMsg]   = useState('')
   const [fullscreen, setFullscreen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
 
   const svgRef       = useRef(null)
   const containerRef = useRef(null)
-  const trailRef     = useRef([])
+  const pathRef      = useRef([])
   const phaseRef     = useRef('idle')
   const drawingRef   = useRef(false)
-  const deadCountRef = useRef(0)
   const timerRef     = useRef(null)
 
-  const grid     = useMemo(() => generateMaze(cols, rows, seed), [cols, rows, seed])
-  const solution = useMemo(() => solveMaze(grid, rows, cols),    [grid, rows, cols])
-  const solSet   = useMemo(() => new Set(solution.map(([r,c]) => `${r},${c}`)), [solution])
+  const grid = useMemo(() => generateMaze(cols, rows, seed), [cols, rows, seed])
+
+  // Build wall segments from the grid for collision detection
+  const wallSegs = useMemo(() => {
+    const { cw, ch } = cellGeom(cols, rows)
+    const segs = []
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = MARGIN + c * cw
+        const y = MARGIN + r * ch
+        const w = grid[r][c].walls
+        if (w.N) segs.push([x, y, x + cw, y])
+        if (w.S) segs.push([x, y + ch, x + cw, y + ch])
+        if (w.W) segs.push([x, y, x, y + ch])
+        if (w.E) segs.push([x + cw, y, x + cw, y + ch])
+      }
+    }
+    return segs
+  }, [grid, cols, rows])
 
   const baseTheme = BASE_THEMES[themeIdx % BASE_THEMES.length]
   const theme = aiSkin
@@ -183,12 +189,11 @@ export default function Maze({ child, quota, featureConfig }) {
   // ── Reset ──────────────────────────────────────────────────────────────────
   function resetDraw() {
     clearTimeout(timerRef.current)
-    trailRef.current = []
-    setCellTrail([])
+    pathRef.current = []
+    setPathPts([])
     drawingRef.current = false
     phaseRef.current = 'idle'
     setPhase('idle')
-    deadCountRef.current = 0
   }
 
   function newMaze() {
@@ -198,102 +203,90 @@ export default function Maze({ child, quota, featureConfig }) {
     resetDraw()
   }
 
-  // Reset when grid changes (age changes)
   useEffect(resetDraw, [grid])
 
-  // ── Pointer logic ──────────────────────────────────────────────────────────
-  function handleCell(r, c) {
-    if (phaseRef.current === 'deadend' || phaseRef.current === 'success') return
-    const trail = trailRef.current
-    const lastKey = trail.length ? `${trail[trail.length-1][0]},${trail[trail.length-1][1]}` : null
-    const key = `${r},${c}`
-    if (key === lastKey) return
+  // ── Freehand drawing logic ─────────────────────────────────────────────────
+  const { cw, ch } = cellGeom(cols, rows)
+  const resumeRadius = Math.min(cw, ch) * 0.7
+  const startRadius  = Math.min(cw, ch) * 0.85
+  const endRadius    = Math.min(cw, ch) * 0.6
+  const strokeW      = Math.min(cw, ch) * 0.28
 
-    // Must start at (0,0)
+  function handleAt(clientX, clientY) {
+    if (phaseRef.current === 'success') return
+    const [sx, sy] = svgPoint(svgRef.current, clientX, clientY)
+    const pts = pathRef.current
+
     if (!drawingRef.current) {
-      if (r === 0 && c === 0) {
+      // Resume if near the tip of the existing path
+      if (pts.length > 0) {
+        const [lx, ly] = pts[pts.length - 1]
+        if (Math.hypot(sx - lx, sy - ly) < resumeRadius) {
+          drawingRef.current = true
+          if (phaseRef.current === 'wall') {
+            clearTimeout(timerRef.current)
+            phaseRef.current = 'drawing'
+            setPhase('drawing')
+          }
+          return
+        }
+      }
+      // Start fresh from the start cell
+      const [sx0, sy0] = cellCenter(0, 0, cols, rows)
+      if (Math.hypot(sx - sx0, sy - sy0) < startRadius) {
         drawingRef.current = true
         phaseRef.current = 'drawing'
         setPhase('drawing')
-        trailRef.current = [[0, 0]]
-        setCellTrail([[0, 0]])
+        pathRef.current = [[sx0, sy0]]
+        setPathPts([[sx0, sy0]])
       }
       return
     }
 
-    // Allow backtracking
-    if (trail.length >= 2) {
-      const prev = trail[trail.length - 2]
-      if (prev[0] === r && prev[1] === c) {
-        const trimmed = trail.slice(0, -1)
-        trailRef.current = trimmed
-        setCellTrail([...trimmed])
-        deadCountRef.current = Math.max(0, deadCountRef.current - 1)
-        return
-      }
+    if (pts.length === 0) return
+    const [lx, ly] = pts[pts.length - 1]
+    if (Math.hypot(sx - lx, sy - ly) < 3) return
+
+    // Wall collision check
+    const t = firstWallHit(lx, ly, sx, sy, wallSegs)
+    if (t !== null) {
+      const ix = lx + (sx - lx) * t
+      const iy = ly + (sy - ly) * t
+      const newPts = [...pts, [ix, iy]]
+      pathRef.current = newPts
+      setPathPts([...newPts])
+      drawingRef.current = false
+      phaseRef.current = 'wall'
+      setPhase('wall')
+      setWallMsg(WALL_MSGS[Math.floor(Math.random() * WALL_MSGS.length)])
+      timerRef.current = setTimeout(() => {
+        if (phaseRef.current === 'wall') {
+          phaseRef.current = 'idle'
+          setPhase('idle')
+        }
+      }, 1200)
+      return
     }
 
-    // Check wall between last cell and new cell (only for adjacent moves)
-    if (trail.length > 0) {
-      const [lr, lc] = trail[trail.length - 1]
-      const dr = r - lr, dc = c - lc
-      if (Math.abs(dr) + Math.abs(dc) === 1) {
-        const dir = dr === -1 ? 'N' : dr === 1 ? 'S' : dc === -1 ? 'W' : 'E'
-        if (grid[lr][lc].walls[dir]) return // blocked by wall
-      } else if (Math.abs(dr) + Math.abs(dc) > 2) {
-        return // too far a jump, ignore
-      }
-    }
+    const newPts = [...pts, [sx, sy]]
+    pathRef.current = newPts
+    setPathPts([...newPts])
 
-    const newTrail = [...trail, [r, c]]
-    trailRef.current = newTrail
-    setCellTrail([...newTrail])
-
-    if (!solSet.has(key)) {
-      deadCountRef.current++
-      if (deadCountRef.current >= 3) {
-        triggerDeadEnd(newTrail)
-        return
-      }
-    } else {
-      deadCountRef.current = 0
-    }
-
-    // Success
-    if (r === rows - 1 && c === cols - 1) {
+    // Success — reached end cell
+    const [ex, ey] = cellCenter(rows - 1, cols - 1, cols, rows)
+    if (Math.hypot(sx - ex, sy - ey) < endRadius) {
       phaseRef.current = 'success'
       setPhase('success')
       drawingRef.current = false
     }
   }
 
-  function triggerDeadEnd(trail) {
-    phaseRef.current = 'deadend'
-    setPhase('deadend')
-    setDeadMsg(DEAD_END_MSGS[Math.floor(Math.random() * DEAD_END_MSGS.length)])
-    drawingRef.current = false
-    deadCountRef.current = 0
-    timerRef.current = setTimeout(() => {
-      const trimmed = trail.filter(([r,c]) => solSet.has(`${r},${c}`))
-      trailRef.current = trimmed
-      setCellTrail([...trimmed])
-      phaseRef.current = 'idle'
-      setPhase('idle')
-    }, 1500)
-  }
-
-  function handleAt(clientX, clientY) {
-    const [sx, sy] = svgPoint(svgRef.current, clientX, clientY)
-    const cell = hitCell(sx, sy, cols, rows)
-    if (cell) handleCell(cell[0], cell[1])
-  }
-
-  const onMouseDown = useCallback(e => { e.preventDefault(); handleAt(e.clientX, e.clientY) }, [grid, solSet])
-  const onMouseMove = useCallback(e => { if (drawingRef.current) handleAt(e.clientX, e.clientY) }, [grid, solSet])
+  const onMouseDown = useCallback(e => { e.preventDefault(); handleAt(e.clientX, e.clientY) }, [grid, wallSegs, cols, rows])
+  const onMouseMove = useCallback(e => { if (drawingRef.current) handleAt(e.clientX, e.clientY) }, [grid, wallSegs, cols, rows])
   const onMouseUp   = useCallback(() => { drawingRef.current = false }, [])
 
-  const onTouchStart = useCallback(e => { e.preventDefault(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, solSet])
-  const onTouchMove  = useCallback(e => { e.preventDefault(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, solSet])
+  const onTouchStart = useCallback(e => { e.preventDefault(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, wallSegs, cols, rows])
+  const onTouchMove  = useCallback(e => { e.preventDefault(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, wallSegs, cols, rows])
   const onTouchEnd   = useCallback(() => { drawingRef.current = false }, [])
 
   useEffect(() => {
@@ -333,14 +326,13 @@ export default function Maze({ child, quota, featureConfig }) {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const isSuccess  = phase === 'success'
-  const isDeadEnd  = phase === 'deadend'
-  const trailSet   = new Set(cellTrail.map(([r,c]) => `${r},${c}`))
-  const WALL_W     = 3
-  const { cw, ch } = cellGeom(0, 0, cols, rows)
-  const iconSize   = Math.min(cw, ch) * 0.55
+  const isSuccess = phase === 'success'
+  const isWall    = phase === 'wall'
+  const WALL_W    = 3
+  const iconSize  = Math.min(cw, ch) * 0.55
   const [startX, startY] = cellCenter(0, 0, cols, rows)
   const [endX, endY]     = cellCenter(rows - 1, cols - 1, cols, rows)
+  const pathStr = pathPts.map(([x, y]) => `${x},${y}`).join(' ')
 
   const fsStyle = fullscreen ? {
     position: 'fixed', inset: 0, zIndex: 9999,
@@ -359,7 +351,6 @@ export default function Maze({ child, quota, featureConfig }) {
         </div>
       )}
 
-      {/* Header */}
       {!fullscreen && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom:12 }}>
           <span style={{ fontSize:28 }}>{theme.startEmoji}</span>
@@ -368,14 +359,13 @@ export default function Maze({ child, quota, featureConfig }) {
               Guide {theme.startEmoji} to {theme.endEmoji}!
             </div>
             <div style={{ fontSize:12, color:'#888', marginTop:2 }}>
-              {cols}×{rows} maze · start top-left · new maze every time!
+              {cols}×{rows} maze · draw from {theme.startEmoji} to {theme.endEmoji}
             </div>
           </div>
           <span style={{ fontSize:28 }}>{theme.endEmoji}</span>
         </div>
       )}
 
-      {/* Canvas */}
       <div style={{ position:'relative', width:'100%' }}>
         <svg
           ref={svgRef}
@@ -393,25 +383,23 @@ export default function Maze({ child, quota, featureConfig }) {
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
         >
-          {/* Cell floors */}
-          {grid.flat().map(({ r, c }) => {
-            const { x, y } = cellGeom(r, c, cols, rows)
-            const k = `${r},${c}`
-            const inTrail = trailSet.has(k)
-            const onSol   = solSet.has(k)
-            return (
-              <rect key={k} x={x + 1} y={y + 1} width={cw - 2} height={ch - 2}
-                fill={inTrail
-                  ? (isDeadEnd ? '#ff6b6b' : onSol ? 'var(--primary,#ff6b6b)' : '#ff9800')
-                  : theme.floor}
-                opacity={inTrail ? 0.55 : 1}
-              />
-            )
-          })}
+          {/* Freehand path */}
+          {pathPts.length > 1 && (
+            <polyline
+              points={pathStr}
+              fill="none"
+              stroke={isWall ? '#ff6b6b' : isSuccess ? '#6bcb77' : 'var(--primary,#ff6b6b)'}
+              strokeWidth={strokeW}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.8}
+            />
+          )}
 
           {/* Walls */}
           {grid.flat().map(({ r, c, walls }) => {
-            const { x, y } = cellGeom(r, c, cols, rows)
+            const x = MARGIN + c * cw
+            const y = MARGIN + r * ch
             return (
               <g key={`w-${r}-${c}`}>
                 {walls.N && <line x1={x}    y1={y}    x2={x+cw} y2={y}    stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
@@ -426,21 +414,21 @@ export default function Maze({ child, quota, featureConfig }) {
           <rect x={MARGIN} y={MARGIN} width={SVG_W - MARGIN * 2} height={SVG_H - MARGIN * 2}
             fill="none" stroke={theme.wall} strokeWidth={WALL_W + 1} />
 
-          {/* Start cell highlight */}
+          {/* Start */}
           <circle cx={startX} cy={startY} r={Math.min(cw, ch) * 0.38}
             fill="var(--primary,#ff6b6b)" opacity={0.85} />
           <text x={startX} y={startY + iconSize * 0.38} textAnchor="middle" fontSize={iconSize}>
             {theme.startEmoji}
           </text>
 
-          {/* End cell highlight */}
+          {/* End */}
           <circle cx={endX} cy={endY} r={Math.min(cw, ch) * 0.38}
             fill={isSuccess ? '#6bcb77' : 'var(--accent,#ffa502)'} opacity={0.85} />
           <text x={endX} y={endY + iconSize * 0.38} textAnchor="middle" fontSize={iconSize}>
             {theme.endEmoji}
           </text>
 
-          {/* Status messages */}
+          {/* Status overlay in SVG */}
           {isSuccess && (
             <>
               <circle cx={endX} cy={endY} r={Math.min(cw, ch) * 0.6} fill="#6bcb77" opacity={0.2} />
@@ -449,14 +437,14 @@ export default function Maze({ child, quota, featureConfig }) {
               </text>
             </>
           )}
-          {isDeadEnd && (
+          {isWall && (
             <text x={SVG_W / 2} y={MARGIN - 8} textAnchor="middle" fontSize={20} fontWeight="900" fill="#e53935">
-              {deadMsg}
+              {wallMsg}
             </text>
           )}
         </svg>
 
-        {/* Success story overlay (fullscreen only) */}
+        {/* Success story (fullscreen overlay) */}
         {isSuccess && fullscreen && (
           <div style={{
             position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)',
@@ -470,7 +458,6 @@ export default function Maze({ child, quota, featureConfig }) {
           </div>
         )}
 
-        {/* Fullscreen buttons (same icons as Draw) */}
         {!fullscreen && (
           <button onClick={() => containerRef.current?.requestFullscreen()} title="Fullscreen"
             style={{ position:'absolute', top:10, right:10, zIndex:10, width:32, height:32, minWidth:32, minHeight:32, borderRadius:8, border:'1.5px solid rgba(0,0,0,0.1)', background:'rgba(255,255,255,0.9)', color:'#888', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
@@ -489,14 +476,13 @@ export default function Maze({ child, quota, featureConfig }) {
         )}
       </div>
 
-      {/* Success story (non-fullscreen) */}
+      {/* Success story (normal mode) */}
       {isSuccess && !fullscreen && (
         <div style={{ background:'linear-gradient(135deg,#6bcb77,#4caf50)', borderRadius:16, padding:'16px 20px', margin:'16px 0', color:'white', textAlign:'center', fontWeight:800, fontSize:16 }}>
           {theme.story}
         </div>
       )}
 
-      {/* Navigation */}
       <div style={{ display:'flex', gap:8, marginTop:12 }}>
         <button onClick={resetDraw}
           style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background:'var(--primary-lt)', color:'var(--primary,#ff6b6b)', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>

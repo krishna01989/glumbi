@@ -1,6 +1,6 @@
 # 🎈 Glumbi
 
-**Glumbi** is an AI-powered learning companion for kids. Parents create a profile for their child, and Glumbi generates personalised stories, activities, curiosity questions, reading quizzes, and writing exercises — all tailored to the child's age, interests, and learning goals.
+**Glumbi** is an AI-powered learning companion for kids. Parents create a profile for their child, and Glumbi generates personalised stories, activities, curiosity questions, reading quizzes, writing exercises, mazes, and riddles — all tailored to the child's age, interests, and learning goals.
 
 Live at **[glumbi.com](https://glumbi.com)**
 
@@ -15,10 +15,13 @@ Live at **[glumbi.com](https://glumbi.com)**
 | 🔭 **Curiosity** | Daily "wonder" questions to spark curiosity and critical thinking. 🔗 button shows related questions via semantic search. |
 | 📝 **Read & Quiz** | Generate comprehension quizzes from any story topic. Track scores over time. |
 | ✍️ **My Writing** | Kids write their own stories and get AI writing-coach feedback. Supports multi-chapter series: chapters are linked via `parentStoryId`/`seriesId`, grouped in the list, and the previous chapter's coaching tip is carried forward as a collapsible "Last time's tip" strip in the editor. Cascade-deletes the entire series when the root is removed. Character limit (4,000 chars) with a live warning counter prevents oversized feedback requests. |
-| 🎨 **Draw** | Free-draw canvas for kids to illustrate their stories. |
+| 🎨 **Draw** | Free-draw canvas for kids to illustrate their stories. AI drawing guide available. Supports fullscreen mode. |
 | 📓 **Journal** | A private journal for kids to record their thoughts. |
 | ✏️ **Learn to Write** | Guided letter and word tracing in English, Tamil, and Hindi. Canvas drawing validated by AI — any visible stroke counts as correct to encourage effort. Completed letters and words appear in the Timeline. |
-| 🔐 **Parental Lock & Session Timer** | Parents set a 4-digit PIN and optional time limit before handing the device over. Timer counts only active foreground time — it pauses when the tab is hidden, when the device sleeps, and while the screen-time popup is open. Children can extend time N configurable times (snoozes); once snoozes are exhausted, locked sessions require the PIN to continue and unlocked sessions return to the child list. |
+| 🌀 **Maze** | Procedurally generated mazes using a DFS algorithm — a new unique maze every time, never the same layout twice. Grid complexity scales by age: 4×3 for toddlers up to 11×7 for age 11+. Dead-end branches are structural (anything off the BFS solution path); tracing into one for 3+ cells triggers a "Dead end!" warning and auto-trims the wrong portion. AI themes generate age-appropriate emoji characters and completion stories. Supports fullscreen mode and touch tracing. |
+| 🧩 **Riddles** | Claude crafts 5 age-appropriate riddles per round. Kids type the answer; hints are available. Two wrong attempts reveals the answer and moves on. Score tracked across the 5-riddle set. Bundled riddles work offline; AI generates fresh sets using one credit. |
+| 🧠 **Memory Play** | Card-matching memory game with AI-generated themed card sets. |
+| 🔐 **Parental Lock & Session Timer** | Parents set a 4-digit PIN and optional time limit before handing the device over. Timer counts only active foreground time — it pauses when the tab is hidden, when the device sleeps, and while the screen-time popup is open. Children can extend time N configurable times (snoozes); once snoozes are exhausted, locked sessions require the PIN to continue and unlocked sessions return to the child list. "I'm done" from the screen-time popup forces the PIN screen with no Cancel escape — the child cannot bypass back to the app. |
 | 🔒 **Safe & Private** | All content passes a safety guard before being shown to kids. Raw server errors, stack traces, and host details are never exposed to users. Static coral-themed error pages served by Vercel CDN for 404/500 even when the app is down. |
 | 🌍 **Multilingual** | Stories can be read and narrated in English, Spanish, French, Hindi, Tamil, and more. Runtime voice picker lets kids choose accent (US, India, British, Australian) and gender (♀/♂) while listening. |
 | 🎙️ **Custom Story Voices** | Parents can record their own voice (or a family member's) directly in the browser, or upload an audio file. Up to 5 named voices per family (Mom, Dad, Granny…). Stories are narrated in the selected voice across all languages. Voice selection is remembered per child. |
@@ -76,7 +79,7 @@ Vercel CDN — React SPA (static)
     ▼ API calls → api.glumbi.com
 Railway — Spring Boot
     ├── PostgreSQL + pgvector  (content + 1024-dim embeddings)
-    ├── Anthropic Claude API  (story / quiz / writing generation)
+    ├── Anthropic Claude API  (story / quiz / writing / maze / riddle generation)
     ├── Voyage AI             (semantic embeddings — called once at save, async)
     ├── Google Cloud TTS      (audio narration — default voices)
     └── ElevenLabs API        (custom voice cloning — when parent has set a voice)
@@ -111,7 +114,7 @@ git clone git@github.com:YOUR_USERNAME/glumbi.git
 cd glumbi
 
 # 2. Start backend (set env vars first — see backend/README.md)
-cd backend && mvn spring-boot:run
+cd backend && ./mvnw spring-boot:run
 
 # 3. Start frontend (in a new terminal)
 cd frontend && npm install && npm run dev

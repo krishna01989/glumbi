@@ -19,46 +19,54 @@ React 18 + Vite SPA for the Glumbi kids learning app.
 ```
 src/
 ├── api/
-│   └── client.js          # Axios instance + all API call helpers
+│   └── client.js              # Axios instance + all API call helpers
 ├── components/
-│   ├── AudioPlayer.jsx     # Story audio player (speed, volume, seek, HTTP range)
-│   ├── ConfirmDialog.jsx   # Reusable delete-confirmation modal
-│   ├── NotificationBell.jsx # In-app notification bell with unread count badge
-│   ├── QuotaBanner.jsx     # Displays monthly credit usage
-│   ├── ErrorBox.jsx        # Inline error message display
-│   ├── AppFooter.jsx       # Authenticated app footer
-│   ├── Footer.jsx          # Public page footer
-│   ├── MobileMenu.jsx      # Hamburger nav for mobile
-│   ├── PublicHeader.jsx    # Landing / public page header
-│   └── ThemeLoader.jsx     # Applies child theme CSS variables
+│   ├── AudioPlayer.jsx         # Story audio player (speed, volume, seek, HTTP range)
+│   ├── ConfirmDialog.jsx       # Reusable delete-confirmation modal
+│   ├── FeatureBanner.jsx       # Animated header banner per feature (canvas particle effect)
+│   ├── NotificationBell.jsx    # In-app notification bell with unread count badge
+│   ├── QuotaBanner.jsx         # Displays monthly credit usage
+│   ├── ErrorBox.jsx            # Inline error message display
+│   ├── AppFooter.jsx           # Authenticated app footer
+│   ├── Footer.jsx              # Public page footer
+│   ├── MobileMenu.jsx          # Hamburger nav for mobile
+│   ├── PublicHeader.jsx        # Landing / public page header
+│   └── ThemeLoader.jsx         # Applies child theme CSS variables + loading animation
+├── contexts/
+│   └── OfflineContext.jsx      # Online/offline detection context
 ├── hooks/
-│   └── useIsMobile.js      # Returns true when viewport < 640px
+│   └── useIsMobile.js          # Returns true when viewport < 640px
 ├── pages/
-│   ├── LandingPage.jsx     # Public home page
-│   ├── AuthPage.jsx        # Login / register (email + Google OAuth)
-│   ├── DemoPage.jsx        # Public demo (Cloudflare Turnstile protected)
-│   ├── ChildList.jsx       # Parent dashboard — child switcher
-│   ├── ChildForm.jsx       # Add / edit child profile
-│   ├── ChildSetup.jsx      # Onboarding wizard for new child
-│   ├── Stories.jsx         # AI story generation + audio player + runtime voice/accent/gender picker
-│   ├── Activities.jsx      # Activity suggestions per story
-│   ├── Curiosity.jsx       # Daily curiosity questions
-│   ├── ReadQuiz.jsx        # Read & quiz with history
-│   ├── MyWriting.jsx       # Kids writing + AI coach feedback
-│   ├── Draw.jsx            # Free-draw canvas
-│   ├── Journal.jsx         # Private kid journal
-│   ├── LearnPage.jsx       # Learn to Write — letter/word tracing with AI validation
-│   ├── Timeline.jsx        # Activity timeline view
-│   ├── ProfilePage.jsx     # Child profile view
-│   ├── AdminPage.jsx       # Admin dashboard (ADMIN / SUPER_ADMIN role)
-│   ├── AdminProfilePage.jsx # Admin profile — change password, delete account (no voice/theme)
-│   ├── ErrorPage.jsx       # 404 / error fallback
-│   └── legal/              # Privacy, Terms, Contact pages
-├── themes.js               # Theme definitions (colours per child theme)
-├── tour.js                 # driver.js tour step config
-├── App.jsx                 # Router, auth state, layout shell
-├── main.jsx                # React entry point
-└── index.css               # Global styles + CSS variables
+│   ├── LandingPage.jsx         # Public home page with feature carousel
+│   ├── AuthPage.jsx            # Login / register (email + Google OAuth)
+│   ├── DemoPage.jsx            # Public demo (Cloudflare Turnstile protected)
+│   ├── ChildList.jsx           # Parent dashboard — child switcher
+│   ├── ChildForm.jsx           # Add / edit child profile
+│   ├── AdminPage.jsx           # Admin dashboard (ADMIN / SUPER_ADMIN role)
+│   ├── AdminProfilePage.jsx    # Admin profile — change password, delete account
+│   ├── ProfilePage.jsx         # Parent account settings + custom story voices
+│   ├── HelpPage.jsx            # Help & FAQ
+│   ├── ErrorPage.jsx           # 404 / error fallback
+│   └── legal/                  # Privacy, Terms, Contact pages
+├── features/
+│   ├── stories/Stories.jsx     # AI story generation + TTS + voice/accent picker
+│   ├── draw/Draw.jsx           # Free-draw canvas + AI drawing guide + fullscreen
+│   ├── journal/Journal.jsx     # Private kid journal
+│   ├── curiosity/Curiosity.jsx # Daily curiosity questions + semantic similar
+│   ├── learn/LearnPage.jsx     # Letter/word tracing with AI validation + fullscreen
+│   ├── readquiz/ReadQuiz.jsx   # Read-along + comprehension quiz
+│   ├── mywriting/MyWriting.jsx # Kids writing + AI coach + "What happens next?"
+│   ├── memory/MemoryPlay.jsx   # Memory card-matching game + fullscreen
+│   ├── activities/Activities.jsx # Activity suggestions + semantic similar
+│   ├── timeline/Timeline.jsx   # Child progress timeline
+│   └── trace/
+│       └── Maze.jsx            # Procedurally generated maze game (see below)
+│       └── Riddle.jsx          # Age-adaptive riddles (see below)
+├── themes.js                   # Theme definitions (colours per child theme)
+├── tour.js                     # driver.js tour step config
+├── App.jsx                     # Router, auth state, layout shell, parental lock
+├── main.jsx                    # React entry point
+└── index.css                   # Global styles + CSS variables
 ```
 
 ---
@@ -117,7 +125,7 @@ Output goes to `dist/`. Vercel runs this automatically on every push to `main`.
 All API calls go through the Axios instance in `client.js`. It:
 - Sets `baseURL` from `VITE_API_URL` env var (falls back to localhost)
 - Attaches the JWT `Authorization: Bearer` header from `localStorage` on every request
-- Exposes typed helper functions for each feature (`storyApi`, `activityApi`, `quizApi`, etc.)
+- Exposes typed helper functions for each feature (`storyApi`, `activityApi`, `quizApi`, `mazeApi`, `riddleApi`, etc.)
 - Intercepts all errors and sanitises them — raw server messages, stack traces, and host details are never surfaced to the user; 401 → `/error/401`, 403 → `/error/403`, 502/503 → `/error/502`, no-response (server down) → `/error/502`
 
 ### Error pages
@@ -126,6 +134,26 @@ All API calls go through the Axios instance in `client.js`. It:
 - `public/404.html` and `public/500.html` are static coral-themed pages served by Vercel CDN for route-level errors or when the React app itself fails to load
 - `index.html` includes an inline fallback rendered inside `#root` that stays visible if the JS bundle errors before React mounts; disappears automatically once React takes over
 - `vercel.json` wires `404.html` and `500.html` as Vercel error pages
+
+### Maze (`features/trace/Maze.jsx`)
+
+Procedurally generated mazes using a **DFS recursive backtracker**:
+
+- `generateMaze(cols, rows, seed)` — iterative DFS using a seeded LCG RNG; walls are removed to carve open corridors; every cell is reachable (perfect maze)
+- `solveMaze(grid, rows, cols)` — BFS from `(0,0)` to `(rows-1, cols-1)`; returns the solution path as a cell list
+- **Grid size by age:** 4×3 (age ≤4) → 5×4 (≤6) → 7×5 (≤8) → 9×6 (≤10) → 11×7 (11+)
+- **Dead-end detection:** any cell not on the BFS solution path is a dead end; entering 3+ consecutive dead-end cells triggers a "Dead end!" flash, auto-trims the trail back to the last solution cell
+- **Touch tracing:** uses imperative `addEventListener({ passive: false })` to override React's passive default and call `preventDefault()` — required for fullscreen touch tracing. Coordinates mapped via `svg.getScreenCTM().inverse()` for correct fullscreen coordinate offset
+- **New Maze / AI Theme:** `New Maze` picks a new random seed and rotates the built-in theme (5 colour themes). `AI Theme` calls the backend (`POST /api/trace/generate`) for age-appropriate emojis + completion story, and also generates a new maze layout
+- Backtracking is supported: dragging back over the previous cell trims the trail
+
+### Riddles (`features/riddle/Riddle.jsx`)
+
+- 8 bundled riddles shuffled into sets of 5 — works fully offline
+- `riddleApi.generate()` uses one credit to get 5 fresh AI riddles from the backend
+- Two wrong attempts reveals the answer and advances automatically (1.2 s delay)
+- Score tracked across the 5-riddle round with ⭐/🏆/🎯 completion screen
+- Prev/Next overlay buttons inside the riddle card for navigating back
 
 ### Daily Streak
 
@@ -152,8 +180,6 @@ activityApi.getSimilar(id)  // GET /api/activities/{id}/similar
 **How it works (no Voyage AI at read time):**
 The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding column — zero external API calls on navigation. Voyage AI was already called (async, fire-and-forget) when the record was first saved.
 
-**Activities note:** the similar-activities query returns only `completed = true` activities, so the panel genuinely shows "activities your child has done that are similar to this one", not pending suggestions.
-
 ### Story Continuation
 
 - **Stories page** — any story has a **▶ Continue** button in the action row; calls `POST /api/stories/generate` with `previousStoryId` set; the backend passes the last 600 chars of the original as context to `StoryAgent.continueStory()`. Result is saved as a new story and appears at the top of the list.
@@ -163,9 +189,10 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 ### Parental Lock & Session Timer
 
 - Parents set a 4-digit PIN + optional time limit on the child list page before handing the device over
-- The lock modal has preset time chips (5 / 15 / 30 / 60 / 90 min) plus a **Custom** chip that reveals a minute input (1–480). "No limit" option was intentionally removed — every session must have a time boundary. The "Lock App" button is disabled until a valid time > 0 is chosen.
+- PIN inputs are wrapped in `<form>` elements (suppresses browser console warnings); the unlock form submits on Enter
+- PIN inputs have `autoComplete="new-password"` (setup) / `"current-password"` (unlock) and a hidden `username` field for accessibility
+- "I'm done — lock 🔒" from the screen-time popup sets `lockModalForced = true`, removing the Cancel button — the child cannot bypass back to the app without the parent entering the PIN
 - Lock state is session-based (`sessionStorage`); PIN is never sent to the server
-- Unlock access modal follows the child's colour theme (`THEMES[child.theme]`)
 
 **Session timer (per child, applies regardless of lock state):**
 - Each child has its own independent timer, keyed by child ID in `localStorage`: `glm_session_start_<childId>`, `glm_snooze_count_<childId>`, `glm_session_limit_<childId>`, `glm_session_max_snooze_<childId>`
@@ -176,7 +203,7 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 - **Reselecting the same child** from the list → no stored key found → fresh timer from 0 (not the old count)
 - **Switching to a different child** → same clear happens; new child always starts from 0
 - While inside a child session, the child can extend time N times (configured per child via `maxSnoozeCount`)
-- Once all snoozes are used up: locked session → shows PIN unlock modal; unlocked session → navigates back to child list (no forced logout)
+- Once all snoozes are used up: locked session → shows PIN unlock modal (forced, no Cancel); unlocked session → navigates back to child list
 
 ### Authentication
 
@@ -188,7 +215,7 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 
 ### Theming
 
-Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` reads the active child's theme and injects CSS custom properties (`--primary`, `--accent`, etc.) onto `:root`. All components use these variables so the entire UI re-skins per child.
+Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` reads the active child's theme and injects CSS custom properties (`--primary`, `--accent`, `--primary-lt`, `--header-grad`, etc.) onto `:root`. All feature components use these variables so the entire UI re-skins per child. The Maze and Riddle features use `var(--primary)` and `var(--accent)` for all interactive buttons.
 
 ### Responsive layout
 
@@ -240,6 +267,7 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 - **Kebab menu**: uses `position: fixed` + `getBoundingClientRect()` to escape clipping. Flips upward when there is not enough space below. Returns `null` (no popup) when the caller has no valid actions on that row.
 - **Dashboard**: manual 🔄 refresh + auto-refresh interval dropdown; AI Credits total sourced from `ai_usage_log`.
 - **AI Agents**: toggle individual weekly-notification agents on/off.
+- **Feature Credits**: enable/disable features globally, set per-feature credit costs. `FEATURE_META` map at the bottom of `AdminPage.jsx` drives the credits tab — new features must be added here as well as `FEATURE_DISPLAY_MAP` (used by the user feature override modal).
 - **Scheduler History**: live run history — RUNNING ⏳ / SUCCESS ✅ / FAILED ❌, timestamps, duration, agents ran/skipped, errors.
 - **Admin profile** (`/admin/profile` → `AdminProfilePage.jsx`): separate page with dark indigo theme, no voice/theming features. Email fetched from `GET /api/users/profile` (not localStorage). Change password + two-step delete account. Super admins see a note that another super admin must exist before self-delete.
 
@@ -268,17 +296,18 @@ All routes are defined in `App.jsx`. The `vercel.json` at the root of `frontend/
 | `/auth` | Login / register |
 | `/demo` | Public demo |
 | `/children` | Child switcher (parent) |
-| `/child` | Child dashboard |
-| `/stories` | Stories |
-| `/activities` | Activities |
-| `/curiosity` | Curiosity |
-| `/readquiz` | Read & Quiz |
-| `/writing` | My Writing |
-| `/draw` | Draw |
-| `/journal` | Journal |
-| `/timeline` | Timeline |
-| `/learn` | Learn to Write |
-| `/profile` | Child profile |
+| `/child/:id/stories` | Stories |
+| `/child/:id/activities` | Activities |
+| `/child/:id/curiosity` | Curiosity |
+| `/child/:id/readquiz` | Read & Quiz |
+| `/child/:id/mywriting` | My Writing |
+| `/child/:id/draw` | Draw |
+| `/child/:id/journal` | Journal |
+| `/child/:id/timeline` | Timeline |
+| `/child/:id/learn` | Learn to Write |
+| `/child/:id/memory` | Memory Play |
+| `/child/:id/maze` | Maze (redirects from `/trace`) |
+| `/child/:id/riddle` | Riddles |
 | `/admin/profile` | Admin profile (change password, delete account) |
 | `/admin/*` | Admin panel |
 | `/privacy`, `/terms`, `/contact` | Legal pages |

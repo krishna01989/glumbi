@@ -23,7 +23,7 @@ Spring Boot 3.2.5 REST API powering the Glumbi kids learning app.
 
 ```
 src/main/java/com/glumbi/
-├── agent/          # Claude AI agents (story, quiz, writing coach, safety guard…)
+├── agent/          # Claude AI agents (story, quiz, writing coach, maze, riddle, safety guard…)
 ├── config/         # CORS, Security, Google credentials Spring config
 ├── controller/     # REST endpoints
 ├── dto/            # Request/response DTOs
@@ -35,6 +35,7 @@ src/main/java/com/glumbi/
                 #   ↳ StoryEmbeddingService     — embed + store story vectors
                 #   ↳ CuriosityEmbeddingService — embed + store curiosity entry vectors
                 #   ↳ ActivityEmbeddingService  — embed + store activity vectors
+                #   ↳ FeatureConfigSeeder       — seeds default feature configs on startup
 ```
 
 ### RAG / Semantic Similarity (pgvector + Voyage AI)
@@ -78,6 +79,8 @@ Voyage AI embeddings are normalized to unit vectors, so L2 distance and cosine s
 | `ReadQuizAgent` | Generates comprehension quiz questions |
 | `WritingCoachAgent` | Reviews a child's writing and gives feedback |
 | `TranslationAgent` | Translates story title + content to a target language |
+| `TraceAgent` | Generates a maze theme (start/end emoji, completion story, background colour) for a given child age and difficulty level. Used by the Maze feature. |
+| `RiddleAgent` | Generates 5 age-appropriate riddles (question, hint, answer, emoji) for a child. Falls back to 3 safe defaults on parse failure. |
 | `SafetyGuard` | Checks all AI output for child-appropriateness before saving |
 | `RelevanceGuard` | Ensures writing submissions are on-topic |
 | `ProgressReportAgent` | Generates weekly progress-report notifications per child |
@@ -87,6 +90,8 @@ Voyage AI embeddings are normalized to unit vectors, so L2 distance and cosine s
 | `LearnToWriteAgent` | Summarises letters and words a child practised writing that week |
 
 Weekly notification agents are toggled on/off individually via the admin panel. Each agent's enabled state is stored in `AppSetting`.
+
+All agents call `AnthropicClient.callWithCachedSystem()` which sends the system prompt with `cache_control: ephemeral` for prompt caching. `PromptLoader` reads prompt templates from `src/main/resources/prompts/`.
 
 ### Key Controllers
 
@@ -102,9 +107,10 @@ Weekly notification agents are toggled on/off individually via the admin panel. 
 | `ChildController` | `/api/children` | Child profile management; `POST /{id}/checkin` updates the daily streak counter |
 | `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`) |
 | `FamilyVoiceController` | `/api/voices` | CRUD for custom story voices — list, create (upload + clone via ElevenLabs), rename, delete. Capped at 5 voices per family. |
+| `TraceController` | `/api/trace` | `POST /generate` — calls `TraceAgent` to produce a maze theme (emojis, story, bg colour) for the Maze feature. Feature key: `maze`. |
+| `RiddleController` | `/api/riddle` | `POST /generate` — calls `RiddleAgent` to produce 5 age-appropriate riddles. Feature key: `riddle`. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
 | `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. |
-| `UserController` | `/api/users` | Parent quota, per-child credit breakdown. `DELETE /api/users/me` (deleteAccount): blocks the last SUPER_ADMIN from self-deleting — returns 400 if `countByRole(SUPER_ADMIN) <= 1`. |
 
 ---
 
@@ -172,7 +178,7 @@ The app uses `ddl-auto: update` — it will not create these columns automatical
 createdb glumbi
 
 # From the backend/ directory
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 API available at: http://localhost:8080/api  
@@ -183,7 +189,7 @@ Health check: http://localhost:8080/api/auth/health → returns `ok`
 ## Building
 
 ```bash
-mvn package -DskipTests
+./mvnw package -DskipTests
 java -jar target/glumbi-backend-0.0.1-SNAPSHOT.jar
 ```
 
@@ -265,6 +271,19 @@ This lets the admin panel show live job state rather than only completed runs.
 - `POST /api/learn/word` — same leniency rules, returns richer JSON (meaning, fun fact, emoji, translations)
 - `GET /api/learn/audio` — TTS pronunciation for a letter or word
 
+## Maze & Riddle Prompts
+
+Prompt templates live in `src/main/resources/prompts/`:
+
+| File | Used by | Description |
+|---|---|---|
+| `trace-user.txt` | `TraceAgent` | Generates a maze theme: start/end emoji, completion story, bg colour. Age-guide in prompt maps difficulty → expected vocabulary and theme complexity. |
+| `riddle-user.txt` | `RiddleAgent` | Generates 5 riddles. Age-guide covers 5 brackets (3–4, 5–6, 7–8, 9–10, 11+). Returns JSON array with `question`, `hint`, `answer`, `emoji`. |
+
+Both agents use `callWithCachedSystem()` — the system prompt block is cached via the Anthropic prompt caching API.
+
+**Feature key note:** `TraceController` checks and deducts quota against feature key `"maze"` (not `"trace"`). The endpoint path `/api/trace/generate` is kept for backwards compatibility with the frontend `traceApi` client helper.
+
 ---
 
 ## Error Handling
@@ -322,6 +341,8 @@ Schema is managed by JPA `ddl-auto: update` — tables are created/altered autom
 > **Quota design:** `AppUser.monthlyApiCalls` is used for fast enforcement (incremented on every `tryConsume`). `AiUsageLog` is the source of truth for display — parent credit header reads the counter (reflects resets), admin dashboard and per-child breakdown read the log (permanent history).
 
 > **New user quota:** `quotaLimit` is set to the current global default at registration time (not 0). Users without a personal override inherit the default stored at signup; changing the global default only affects future signups. To migrate existing users: `UPDATE app_user SET quota_limit = <new> WHERE quota_limit = <old>`.
+
+> **Feature config seeding:** `FeatureConfigSeeder` inserts a default `FeatureConfig` row for each feature key on startup if none exists. Current keys: `story`, `activity`, `curiosity`, `read-quiz`, `writing-coach`, `learn-validate`, `learn-word`, `translation`, `draw`, `memory-flashcards`, `word-of-day`, `memory-match`, `journal-ai`, `draw-guide`, `maze`, `riddle`.
 
 > **Note:** the `notifications.type` column has a CHECK constraint. When adding new `NotificationType` enum values, run:
 > ```sql

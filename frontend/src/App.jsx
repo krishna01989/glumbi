@@ -857,14 +857,14 @@ export default function App() {
 
             <form onSubmit={e => { e.preventDefault(); if (isSetup) handleLockSetup(); else handleLockVerify() }} autoComplete="off">
               <div style={{ position: 'relative', marginBottom: 8 }}>
-                <input type="text" name="username" autoComplete="username" defaultValue="parent" style={{ display:'none' }} readOnly />
-                <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4}
-                  placeholder="• • • •" autoComplete="new-password"
+                <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+                  placeholder="• • • •" autoComplete="off" data-form-type="other"
                   className="pin-input"
                   value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
                   autoFocus
                   style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900,
-                    border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 20 }} />
+                    border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 20,
+                    WebkitTextSecurity: showPin ? 'none' : 'disc' }} />
                 <button type="button" onClick={() => setShowPin(p => !p)}
                   style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                     background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
@@ -898,12 +898,12 @@ export default function App() {
           </div>
           <form onSubmit={e => { e.preventDefault(); handleUnlock() }} autoComplete="off">
             <div style={{ position: 'relative', marginBottom: 8 }}>
-              <input type="text" name="username" autoComplete="username" defaultValue="parent" style={{ display:'none' }} readOnly />
-              <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="••••" autoComplete="current-password"
+              <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="••••" autoComplete="off" data-form-type="other"
                 value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
                 autoFocus
                 style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900,
-                  border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 10 }} />
+                  border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 10,
+                  WebkitTextSecurity: showPin ? 'none' : 'disc' }} />
               <button type="button" onClick={() => setShowPin(p => !p)}
                 style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                   background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Routes, Route, NavLink, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { THEMES, THEME_GROUPS, applyTheme } from './themes'
 import { childApi, userApi, memoryApi } from './api/client'
@@ -40,17 +40,42 @@ function ErrorPageRoute() {
   return <ErrorPage code={code} />
 }
 
-const ALL_NAV = [
-  { path: 'stories',    label: 'Stories',       mobileLabel: 'Stories',    emoji: '📖', id: 'tour-stories-tab' },
-  { path: 'activities', label: 'Activities',    mobileLabel: 'Activities', emoji: '🎮', id: 'tour-activities-tab' },
-  { path: 'learn',      label: 'Learn to Write',mobileLabel: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
-  { path: 'curiosity',  label: 'Curiosity',     mobileLabel: 'Curiosity',  emoji: '🔍', id: 'tour-curiosity-tab' },
-  { path: 'draw',       label: 'Draw',          mobileLabel: 'Draw',       emoji: '🎨', id: 'tour-draw-tab' },
-  { path: 'readquiz',   label: 'Read & Quiz',   mobileLabel: 'Read & Quiz',       emoji: '📚', id: 'tour-readquiz-tab' },
-  { path: 'mywriting',  label: 'My Writing',    mobileLabel: 'My Writing',    emoji: '✍️', id: 'tour-writing-tab'  },
-  { path: 'memory',     label: 'Memory Play',   mobileLabel: 'Memory Play',     emoji: '🧠', id: 'tour-memory-tab' },
-  { path: 'journal',    label: 'Journal',       mobileLabel: 'Journal',    emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
-  { path: 'timeline',   label: 'Timeline',      mobileLabel: 'Timeline',   emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
+const NAV_GROUPS = [
+  {
+    id: 'stories', label: 'Stories', emoji: '📖',
+    items: [
+      { path: 'stories',   label: 'Stories',     emoji: '📖', id: 'tour-stories-tab'  },
+      { path: 'mywriting', label: 'My Writing',  emoji: '✍️', id: 'tour-writing-tab'  },
+      { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚', id: 'tour-readquiz-tab' },
+    ]
+  },
+  {
+    id: 'play', label: 'Play', emoji: '🎮',
+    items: [
+      { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab'     },
+      { path: 'activities', label: 'Activities', emoji: '🎯', id: 'tour-activities-tab' },
+    ]
+  },
+  {
+    id: 'curiosity', label: 'Curiosity', emoji: '🔍',
+    items: [
+      { path: 'curiosity', label: 'Ask Anything', emoji: '🔍', id: 'tour-curiosity-tab' },
+    ]
+  },
+  {
+    id: 'create', label: 'Create', emoji: '🎨',
+    items: [
+      { path: 'draw',  label: 'Draw',        emoji: '🎨', id: 'tour-draw-tab'  },
+      { path: 'learn', label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
+    ]
+  },
+  {
+    id: 'parent', label: 'Parent Corner', emoji: '👪', parentOnly: true,
+    items: [
+      { path: 'journal',  label: 'Journal',  emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
+      { path: 'timeline', label: 'Timeline', emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
+    ]
+  },
 ]
 
 function calcChildAge(birthYear) {
@@ -58,16 +83,23 @@ function calcChildAge(birthYear) {
   return new Date().getFullYear() - parseInt(birthYear)
 }
 
-function navForChild(child, locked = false) {
-  let nav = ALL_NAV
-  if (child?.enabledFeatures) {
-    try {
-      const enabled = JSON.parse(child.enabledFeatures)
-      nav = nav.filter(n => enabled.includes(n.path))
-    } catch {}
-  }
-  if (locked) nav = nav.filter(n => !n.parentOnly)
-  return nav
+function groupsForChild(child, locked = false) {
+  const enabledKeys = child?.enabledFeatures
+    ? (() => { try { return JSON.parse(child.enabledFeatures) } catch { return null } })()
+    : null
+  return NAV_GROUPS
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => {
+        if (enabledKeys && !enabledKeys.includes(item.path)) return false
+        if (locked && item.parentOnly) return false
+        return true
+      })
+    }))
+    .filter(group => {
+      if (locked && group.parentOnly) return false
+      return group.items.length > 0
+    })
 }
 
 function useBreakpoint() {
@@ -237,6 +269,7 @@ export default function App() {
   const [toasts, setToasts]       = useState([])
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [mgmtMenuOpen, setMgmtMenuOpen]     = useState(false)
+  const [openGroupId, setOpenGroupId]       = useState(null)
   const [offlineMode, setOfflineMode] = useState(false)
   const [sidebarWotd, setSidebarWotd] = useState(null)
   const [sessionStart, setSessionStart]         = useState(null)
@@ -284,6 +317,14 @@ export default function App() {
   useEffect(() => {
     setCollapsed(isTablet)
   }, [isTablet])
+
+  // Auto-expand the group matching the current route
+  const currentSegment = location.pathname.split('/').pop()
+  const activeGroupId = useMemo(
+    () => NAV_GROUPS.find(g => g.items.some(i => i.path === currentSegment))?.id ?? null,
+    [currentSegment]
+  )
+  useEffect(() => { if (activeGroupId) setOpenGroupId(activeGroupId) }, [activeGroupId])
 
   // Fetch quota + feature credits when authenticated (not admin), refresh quota every 5 min
   useEffect(() => {
@@ -1053,7 +1094,8 @@ export default function App() {
 
   const theme = THEMES[child.theme] || THEMES.coral
   const SW = isTV ? 260 : collapsed ? 64 : 220
-  const NAV = navForChild(child, childLocked)
+  const GROUPS = groupsForChild(child, childLocked)
+  const childGroups = GROUPS.filter(g => !g.parentOnly)
   const childAge = calcChildAge(child.birthYear)
 
   return (
@@ -1193,25 +1235,94 @@ export default function App() {
         })()}
 
         {/* Nav links */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, padding: collapsed ? '0 8px' : '0 12px' }}>
-          {NAV.map(n => (
-            <div key={n.path} id={n.id}>
-              <NavLink to={`/child/${child.id}/${n.path}`}
-                style={({ isActive }) => ({
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: collapsed ? '12px 0' : isTV ? '14px 18px' : '11px 14px',
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  borderRadius: 12, textDecoration: 'none',
-                  fontWeight: 700, fontSize: isTV ? 16 : 14,
-                  background: isActive ? 'rgba(255,255,255,0.25)' : 'transparent',
-                  color: 'white', transition: 'background 0.15s',
-                })}
-                title={collapsed ? n.label : undefined}>
-                <span style={{ fontSize: isTV ? 24 : 20, flexShrink: 0 }}>{n.emoji}</span>
-                {!collapsed && <span>{n.label}</span>}
-              </NavLink>
-            </div>
-          ))}
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: collapsed ? '0 8px' : '0 10px', overflowY: 'auto' }}>
+          {GROUPS.map((group, gi) => {
+            const isOpen = openGroupId === group.id
+            const groupActive = group.items.some(i => i.path === currentSegment)
+            const isSingleItem = group.items.length === 1
+
+            if (collapsed) {
+              return (
+                <button key={group.id}
+                  onClick={() => {
+                    if (isSingleItem) {
+                      navigate(`/child/${child.id}/${group.items[0].path}`)
+                    } else {
+                      setCollapsed(false)
+                      setOpenGroupId(group.id)
+                    }
+                  }}
+                  title={group.label}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '11px 0', border: 'none', borderRadius: 12, cursor: 'pointer',
+                    background: groupActive ? 'rgba(255,255,255,0.25)' : 'transparent',
+                    color: 'white', fontSize: isTV ? 26 : 22,
+                  }}>
+                  {group.emoji}
+                </button>
+              )
+            }
+
+            return (
+              <div key={group.id} style={{ marginBottom: gi < GROUPS.length - 1 ? 2 : 0 }}>
+                {/* Parent Corner: add a visual divider before it */}
+                {group.parentOnly && (
+                  <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '6px 4px 8px' }} />
+                )}
+
+                {/* Group header — if single item, act as direct nav link */}
+                {isSingleItem ? (
+                  <NavLink to={`/child/${child.id}/${group.items[0].path}`} id={group.items[0].id}
+                    style={({ isActive }) => ({
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: isTV ? '13px 16px' : '10px 12px',
+                      borderRadius: 12, textDecoration: 'none',
+                      fontWeight: 800, fontSize: isTV ? 16 : 13,
+                      background: isActive ? 'rgba(255,255,255,0.25)' : 'transparent',
+                      color: 'white', transition: 'background 0.15s',
+                    })}>
+                    <span style={{ fontSize: isTV ? 22 : 18 }}>{group.emoji}</span>
+                    <span style={{ flex: 1 }}>{group.label}</span>
+                  </NavLink>
+                ) : (
+                  <button onClick={() => setOpenGroupId(isOpen ? null : group.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                      padding: isTV ? '13px 16px' : '10px 12px',
+                      border: 'none', borderRadius: 12, cursor: 'pointer',
+                      background: groupActive && !isOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
+                      color: 'white', fontWeight: 800, fontSize: isTV ? 16 : 13,
+                    }}>
+                    <span style={{ fontSize: isTV ? 22 : 18 }}>{group.emoji}</span>
+                    <span style={{ flex: 1, textAlign: 'left' }}>{group.label}</span>
+                    <span style={{ fontSize: 10, opacity: 0.6, transition: 'transform 0.2s', display: 'inline-block', transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</span>
+                  </button>
+                )}
+
+                {/* Sub-items */}
+                {!isSingleItem && isOpen && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, paddingLeft: 8, marginTop: 2 }}>
+                    {group.items.map(item => (
+                      <NavLink key={item.path} to={`/child/${child.id}/${item.path}`} id={item.id}
+                        style={({ isActive }) => ({
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          padding: isTV ? '10px 16px' : '8px 12px',
+                          borderRadius: 10, textDecoration: 'none',
+                          fontWeight: isActive ? 800 : 600, fontSize: isTV ? 14 : 13,
+                          background: isActive ? 'rgba(255,255,255,0.25)' : 'transparent',
+                          color: isActive ? 'white' : 'rgba(255,255,255,0.8)',
+                          transition: 'background 0.15s',
+                        })}>
+                        <span style={{ fontSize: isTV ? 18 : 15 }}>{item.emoji}</span>
+                        <span>{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </nav>
 
         {/* Utility links — Profile removed from child context (parent-only feature) */}
@@ -1406,23 +1517,27 @@ export default function App() {
 
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
-      {/* ── Bottom nav (mobile only) — pinned favourites + menu ── */}
+      {/* ── Bottom nav (mobile only) — group icons + menu ── */}
       <nav className="bottom-nav">
-        {NAV.slice(0, 4).map(n => (
-          <NavLink key={n.path} to={`/child/${child.id}/${n.path}`}
-            style={({ isActive }) => ({
-              flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: 2,
-              textDecoration: 'none', fontSize: 9, fontWeight: 700,
-              color: isActive ? theme.primary : '#bbb',
-              borderTop: isActive ? `3px solid ${theme.primary}` : '3px solid transparent',
-              paddingTop: 4,
-              transition: 'color 0.15s',
-            })}>
-            <span style={{ fontSize: 22 }}>{n.emoji}</span>
-            <span style={{ whiteSpace: 'nowrap' }}>{n.mobileLabel}</span>
-          </NavLink>
-        ))}
+        {childGroups.slice(0, 4).map(group => {
+          const groupActive = group.items.some(i => i.path === currentSegment)
+          const firstItem = group.items[0]
+          return (
+            <button key={group.id}
+              onClick={() => navigate(`/child/${child.id}/${firstItem.path}`)}
+              style={{
+                flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 2,
+                background: 'none', border: 'none', fontSize: 9, fontWeight: 700,
+                color: groupActive ? theme.primary : '#bbb',
+                borderTop: groupActive ? `3px solid ${theme.primary}` : '3px solid transparent',
+                paddingTop: 4, cursor: 'pointer', transition: 'color 0.15s',
+              }}>
+              <span style={{ fontSize: 22 }}>{group.emoji}</span>
+              <span style={{ whiteSpace: 'nowrap' }}>{group.label}</span>
+            </button>
+          )
+        })}
         <button onClick={() => setMobileMenuOpen(true)}
           style={{
             flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column',

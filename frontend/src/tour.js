@@ -3,123 +3,43 @@ import 'driver.js/dist/driver.css'
 
 // ── Desktop tour ───────────────────────────────────────────────────────────────
 
-const NAV_STEPS = [
+const DESKTOP_STEPS = [
   {
-    feature: 'stories',
+    popover: {
+      title: '👋 Welcome to Glumbi!',
+      description: 'Let\'s take a quick tour so you know where everything is. It only takes a minute!',
+      side: 'over', align: 'center',
+    },
+  },
+  {
     element: '#tour-stories-tab',
     popover: {
-      title: '📖 Stories',
-      description: 'Generate personalized bedtime stories for your child. Just type a few keywords and AI does the magic!',
+      title: '📖 Everything\'s in the sidebar',
+      description: 'Features are grouped on the left — <strong>Stories</strong>, <strong>Play</strong>, <strong>Curiosity</strong>, <strong>Create</strong>, and a <strong>Parent Corner</strong>. Click any group to expand it and jump straight in.',
       side: 'right',
     },
   },
-  {
-    feature: 'activities',
-    element: '#tour-activities-tab',
-    popover: {
-      title: '🎮 Activities',
-      description: 'Get age-appropriate activity ideas based on the time of day and weather. Rate them to get better suggestions next time.',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'learn',
-    element: '#tour-learn-tab',
-    popover: {
-      title: '✏️ Learn to Write',
-      description: 'Practice writing English and Tamil letters, numbers, and words! Tap a letter to hear it, draw it on the canvas, and get instant AI feedback. Write full words and discover their meaning and translation.',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'curiosity',
-    element: '#tour-curiosity-tab',
-    popover: {
-      title: '🔍 Curiosity Corner',
-      description: 'When your child asks "why?" — type their question here. Get fun facts, analogies, and a mini quiz with a sticker reward!',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'draw',
-    element: '#tour-draw-tab',
-    popover: {
-      title: '🎨 Draw',
-      description: 'A free-hand drawing canvas! Draw anything, then hit "What did I draw?" and AI will guess with a fun, encouraging response.',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'readquiz',
-    element: '#tour-readquiz-tab',
-    popover: {
-      title: '📚 Read & Quiz',
-      description: 'Read an AI-generated story then answer 3 comprehension questions to earn a score. Great for building reading skills!',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'mywriting',
-    element: '#tour-writing-tab',
-    popover: {
-      title: '✍️ My Writing',
-      description: 'Your child writes their own story and gets warm, encouraging feedback from an AI writing coach.',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'memory',
-    element: '#tour-memory-tab',
-    popover: {
-      title: '🧠 Memory Play',
-      description: 'Flashcards, Word of the Day, and Memory Match games — all powered by AI to make learning stick!',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'journal',
-    element: '#tour-journal-tab',
-    popover: {
-      title: '📝 Journal',
-      description: 'A parent diary for your child\'s learning journey. Log moods, milestones, and memories — or let AI write a heartfelt entry from today\'s activities.',
-      side: 'right',
-    },
-  },
-  {
-    feature: 'timeline',
-    element: '#tour-timeline-tab',
-    popover: {
-      title: '🗓️ Timeline',
-      description: 'See everything in one place — stories, journal entries, activities, and curiosity moments, grouped by month.',
-      side: 'right',
-    },
-  },
-]
-
-
-
-const DESKTOP_UTILITY_STEPS = [
   {
     element: '#tour-theme-btn',
     popover: {
       title: '🎨 Change Theme',
-      description: 'Click the palette icon to change the app\'s look. Pick from 20 themes — Superheroes, Festivals, Nature, and more!',
+      description: 'Click the palette to change the app\'s look. Pick from 20+ themes — Superheroes, Festivals, Nature, and more!',
       side: 'bottom', align: 'end',
-    },
-  },
-  {
-    popover: {
-      title: '🏠 Child Selection Page',
-      description: 'Head back to the child selection page to find: <strong>🤖 AI / Practice mode</strong> per child, <strong>🔔 Notifications</strong>, <strong>monthly AI credit balance</strong>, and the <strong>💡 Help</strong> guide — all in one place.',
-      side: 'over', align: 'center',
     },
   },
   {
     element: '#tour-child-name',
     popover: {
-      title: '🔀 Switch Child',
-      description: 'Managing stories for multiple children? Hit Switch to change who you\'re viewing.',
-      side: 'bottom', align: 'end',
+      title: '🔀 Switch Child & Parent Tools',
+      description: 'Click <strong>Switch child</strong> to go back and manage AI / Practice mode, notifications, monthly AI credit balance, and Help — all on the child selection page.',
+      side: 'bottom', align: 'start',
+    },
+  },
+  {
+    popover: {
+      title: '🌟 You\'re all set!',
+      description: 'Start by generating your first story. Type something like "dragon, brave girl, magic forest" and watch the magic happen!',
+      side: 'over', align: 'center',
     },
   },
 ]
@@ -234,35 +154,7 @@ export function startTour(enabledFeatures, quota, featureConfig = []) { // featu
     ]
     makeDriver(steps).drive()
   } else {
-    const navSteps = NAV_STEPS
-      .filter(s => {
-        if (enabledFeatures && !enabledFeatures.includes(s.feature)) return false
-        return present(s.element)
-      })
-      .map(({ element, popover }) => ({ element, popover }))
-
-    const utilitySteps = [
-      ...DESKTOP_UTILITY_STEPS.filter(s => present(s.element)),
-    ]
-
-    const steps = [
-      {
-        popover: {
-          title: '👋 Welcome to Glumbi!',
-          description: 'Let\'s take a quick tour so you know where everything is. It only takes a minute!',
-          side: 'over', align: 'center',
-        },
-      },
-      ...navSteps,
-      ...utilitySteps,
-      {
-        popover: {
-          title: '🌟 You\'re all set!',
-          description: 'Start by generating your first story. Type something like "dragon, brave girl, magic forest" and watch the magic happen!',
-          side: 'over', align: 'center',
-        },
-      },
-    ]
+    const steps = DESKTOP_STEPS.filter(s => !s.element || present(s.element))
     makeDriver(steps).drive()
   }
 }

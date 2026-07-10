@@ -1249,12 +1249,17 @@ export default function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: '#333' }}>{child.name}</span>
                 {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: '#aaa' }}>{childAge} yrs</span>}
-                {!childLocked && (
-                  <button onClick={() => navigate(`/child/${child.id}/edit`)}
-                    title="Edit child"
-                    style={{ background: '#f5f5f5', border: 'none', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700, color: '#888', cursor: 'pointer', lineHeight: '18px' }}>
-                    ✏️ Edit
-                  </button>
+                {child?.streakCount > 0 && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 2,
+                    background: 'linear-gradient(135deg, #ff6b35, #f7a800)',
+                    borderRadius: 50, padding: '2px 7px',
+                    fontSize: 10, fontWeight: 800, color: 'white',
+                    boxShadow: '0 2px 6px rgba(247,168,0,0.35)',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    🔥 {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
+                  </span>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1268,11 +1273,6 @@ export default function App() {
                   <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700,
                     color: lockTimeLimit > 0 && sessionMinutes >= lockTimeLimit ? '#cc0033' : '#aaa' }}>
                     ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}
-                  </span>
-                )}
-                {child?.streakCount > 0 && (
-                  <span title={`${child.streakCount}-day streak!`} style={{ fontSize: isTV ? 13 : 11, fontWeight: 800, color: '#f7a800', display: 'flex', alignItems: 'center', gap: 2 }}>
-                    🔥 {child.streakCount}
                   </span>
                 )}
               </div>
@@ -1318,8 +1318,20 @@ export default function App() {
               {childLocked && <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>}
             </span>
             <div style={{ lineHeight: 1.2 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>
-                {child.name}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
+                {child?.streakCount > 0 && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    background: 'linear-gradient(135deg, #ff6b35, #f7a800)',
+                    borderRadius: 50, padding: '2px 7px',
+                    fontSize: 10, fontWeight: 800, color: 'white',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    🔥 {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
+                  </span>
+                )}
               </div>
               {sessionStart && childLocked
                 ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>

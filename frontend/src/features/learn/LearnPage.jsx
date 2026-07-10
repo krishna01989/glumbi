@@ -624,35 +624,39 @@ function LetterGrid({ letters, selected, onSelect, script, pulli, engFontFamily 
 
 // ── Compound table ─────────────────────────────────────────────────────────────
 
-function CompoundTable({ selected, onSelect }) {
+function CompoundTable({ selected, onSelect, isMobile }) {
+  const cellH = isMobile ? 38 : 52
+  const fs = isMobile ? 13 : 17
+  const hfs = isMobile ? 12 : 16
+  const colW = isMobile ? 34 : undefined
   return (
     <div style={{ overflowX:'auto' }}>
-      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Tamil",serif', width:'100%', tableLayout:'fixed' }}>
+      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Tamil",serif', ...(isMobile ? { minWidth: 13 * 34 } : { width:'100%', tableLayout:'fixed' }) }}>
         <thead>
           <tr>
             <th style={th()}></th>
             {TAMIL_VOWELS.map(v => (
-              <th key={v.char} style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{v.char}</th>
+              <th key={v.char} style={{ ...th(), color:'var(--primary)', fontSize:hfs }}>{v.char}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {COMPOUND_TABLE.map(row => (
             <tr key={row.consonant.char}>
-              <td style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{row.consonant.char + '்'}</td>
+              <td style={{ ...th(), color:'var(--primary)', fontSize:hfs }}>{row.consonant.char + '்'}</td>
               {row.compounds.map(cell => (
                 <td key={cell.char} style={{ padding:0 }}>
                   <button onClick={() => onSelect(cell)}
                     style={{
-                      width:'100%', height:52, border:'none', borderRadius:8, cursor:'pointer',
-                      fontFamily:'"Noto Sans Tamil",serif', fontSize:17, fontWeight:400,
+                      width:'100%', height:cellH, border:'none', borderRadius:8, cursor:'pointer',
+                      fontFamily:'"Noto Sans Tamil",serif', fontSize:fs, fontWeight:400,
                       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
                       background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
                       color: selected?.char === cell.char ? 'white' : '#444',
                       transition:'all 0.12s',
                     }}>
                     <span>{cell.char}</span>
-                    <span style={{ fontSize:7, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.7, lineHeight:1 }}>{cell.roman}</span>
+                    {!isMobile && <span style={{ fontSize:7, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.7, lineHeight:1 }}>{cell.roman}</span>}
                   </button>
                 </td>
               ))}
@@ -668,35 +672,38 @@ function th() { return { padding:'4px 6px', textAlign:'center', fontSize:14, fon
 
 // ── Hindi barakhadi table ──────────────────────────────────────────────────────
 
-function HindiCompoundTable({ selected, onSelect }) {
+function HindiCompoundTable({ selected, onSelect, isMobile }) {
+  const cellH = isMobile ? 38 : 52
+  const fs = isMobile ? 13 : 17
+  const hfs = isMobile ? 12 : 16
   return (
     <div style={{ overflowX:'auto' }}>
-      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Devanagari",serif', width:'100%', tableLayout:'fixed' }}>
+      <table style={{ borderCollapse:'collapse', fontFamily:'"Noto Sans Devanagari",serif', ...(isMobile ? { minWidth: 13 * 34 } : { width:'100%', tableLayout:'fixed' }) }}>
         <thead>
           <tr>
             <th style={th()}></th>
             {HINDI_VOWELS.map(v => (
-              <th key={v.char} style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{v.char}</th>
+              <th key={v.char} style={{ ...th(), color:'var(--primary)', fontSize:hfs }}>{v.char}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {HINDI_COMPOUND_TABLE.map(row => (
             <tr key={row.consonant.char}>
-              <td style={{ ...th(), color:'var(--primary)', fontSize:16 }}>{row.consonant.char + '्'}</td>
+              <td style={{ ...th(), color:'var(--primary)', fontSize:hfs }}>{row.consonant.char + '्'}</td>
               {row.compounds.map(cell => (
                 <td key={cell.char} style={{ padding:0 }}>
                   <button onClick={() => onSelect(cell)}
                     style={{
-                      width:'100%', height:52, border:'none', borderRadius:8, cursor:'pointer',
-                      fontFamily:'"Noto Sans Devanagari",serif', fontSize:17,
+                      width:'100%', height:cellH, border:'none', borderRadius:8, cursor:'pointer',
+                      fontFamily:'"Noto Sans Devanagari",serif', fontSize:fs, fontWeight:400,
                       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:1,
                       background: selected?.char === cell.char ? 'var(--primary)' : 'transparent',
                       color: selected?.char === cell.char ? 'white' : '#444',
                       transition:'all 0.12s',
                     }}>
                     <span>{cell.char}</span>
-                    <span style={{ fontSize:7, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.7, lineHeight:1 }}>{cell.roman}</span>
+                    {!isMobile && <span style={{ fontSize:7, fontFamily:'Nunito,sans-serif', fontWeight:700, opacity:0.7, lineHeight:1 }}>{cell.roman}</span>}
                   </button>
                 </td>
               ))}
@@ -1306,9 +1313,9 @@ export default function LearnPage({ child, quota }) {
             {/* Letter grid / compound table */}
             <div>
               {cat.key === 'compound' ? (
-                <CompoundTable selected={selected} onSelect={selectLetter} />
+                <CompoundTable selected={selected} onSelect={selectLetter} isMobile={window.innerWidth < 768} />
               ) : cat.key === 'barakhadi' ? (
-                <HindiCompoundTable selected={selected} onSelect={selectLetter} />
+                <HindiCompoundTable selected={selected} onSelect={selectLetter} isMobile={window.innerWidth < 768} />
               ) : (
                 <LetterGrid letters={cat.letters} selected={selected} onSelect={selectLetter} script={script}
                   pulli={cat.key === 'consonants' ? (script === 'tamil' ? '்' : script === 'hindi' ? '्' : null) : null}

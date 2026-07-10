@@ -17,7 +17,7 @@ import Draw        from './features/draw/Draw'
 import ReadQuiz    from './features/readquiz/ReadQuiz'
 import MyWriting   from './features/mywriting/MyWriting'
 import MemoryPlay  from './features/memory/MemoryPlay'
-import Trace       from './features/trace/Trace'
+import Maze        from './features/trace/Maze'
 import Riddle      from './features/riddle/Riddle'
 import DemoPage    from './pages/DemoPage'
 import LearnPage   from './features/learn/LearnPage'
@@ -56,7 +56,7 @@ const NAV_GROUPS = [
     items: [
       { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab'     },
       { path: 'activities', label: 'Activities', emoji: '🎯', id: 'tour-activities-tab' },
-      { path: 'trace',      label: 'Trace',      emoji: '🐾', id: 'tour-trace-tab'      },
+      { path: 'maze',       label: 'Maze',       emoji: '🌀', id: 'tour-maze-tab'       },
     ]
   },
   {
@@ -237,7 +237,7 @@ const FEATURE_DISPLAY = {
   'learn-validate': { label: 'Letter Check',  icon: '🔤' },
   'learn-word':     { label: 'Learn Word',    icon: '✏️'  },
   'memory-flashcards': { label: 'Memory Play', icon: '🧠' },
-  'trace':  { label: 'Trace',  icon: '🐾' },
+  'maze':   { label: 'Maze',   icon: '🌀' },
   'riddle': { label: 'Riddle', icon: '🧩' },
 }
 
@@ -855,32 +855,35 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ position: 'relative', marginBottom: 8 }}>
-              <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4}
-                placeholder="• • • •"
-                className="pin-input"
-                value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
-                autoFocus
-                style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900, letterSpacing: 12,
-                  border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 20 }} />
-              <button type="button" onClick={() => setShowPin(p => !p)}
-                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
-                {showPin ? '🙈' : '👁️'}
-              </button>
-            </div>
-            {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button onClick={() => { setLockModal(null); setLockPin(''); setShowPin(false); if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) } }}
-                style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                Cancel
-              </button>
-              <button onClick={isSetup ? handleLockSetup : handleLockVerify}
-                disabled={lockTimeLimit <= 0}
-                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: lockTimeLimit <= 0 ? 'not-allowed' : 'pointer', fontSize: 14, opacity: lockTimeLimit <= 0 ? 0.5 : 1 }}>
-                Lock App 🔒
-              </button>
-            </div>
+            <form onSubmit={e => { e.preventDefault(); if (isSetup) handleLockSetup(); else handleLockVerify() }} autoComplete="off">
+              <div style={{ position: 'relative', marginBottom: 8 }}>
+                <input type="text" name="username" autoComplete="username" defaultValue="parent" style={{ display:'none' }} readOnly />
+                <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4}
+                  placeholder="• • • •" autoComplete="new-password"
+                  className="pin-input"
+                  value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
+                  autoFocus
+                  style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900,
+                    border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 20 }} />
+                <button type="button" onClick={() => setShowPin(p => !p)}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
+                  {showPin ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button type="button" onClick={() => { setLockModal(null); setLockPin(''); setShowPin(false); if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) } }}
+                  style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                  Cancel
+                </button>
+                <button type="submit"
+                  disabled={lockTimeLimit <= 0}
+                  style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: lockTimeLimit <= 0 ? 'not-allowed' : 'pointer', fontSize: 14, opacity: lockTimeLimit <= 0 ? 0.5 : 1 }}>
+                  Lock App 🔒
+                </button>
+              </div>
+            </form>
           </>
         })()}
         {lockModal === 'unlock' && <>
@@ -893,31 +896,34 @@ export default function App() {
               ? `Great session, ${child?.name}! 🌟 Ask a parent to enter the PIN to continue.`
               : 'Enter your 4-digit PIN to unlock'}
           </div>
-          <div style={{ position: 'relative', marginBottom: 8 }}>
-            <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="••••"
-              value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
-              autoFocus
-              style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900,
-                border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 10 }} />
-            <button type="button" onClick={() => setShowPin(p => !p)}
-              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
-              {showPin ? '🙈' : '👁️'}
-            </button>
-          </div>
-          {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
-          <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-            {!lockModalForced && (
-              <button onClick={() => { setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false) }}
-                style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                Cancel
+          <form onSubmit={e => { e.preventDefault(); handleUnlock() }} autoComplete="off">
+            <div style={{ position: 'relative', marginBottom: 8 }}>
+              <input type="text" name="username" autoComplete="username" defaultValue="parent" style={{ display:'none' }} readOnly />
+              <input type={showPin ? 'text' : 'password'} inputMode="numeric" pattern="[0-9]*" maxLength={4} placeholder="••••" autoComplete="current-password"
+                value={lockPin} onChange={e => { setLockPin(e.target.value.replace(/\D/g,'').slice(0,4)); setLockPinError('') }}
+                autoFocus
+                style={{ width: '100%', textAlign: 'center', fontSize: 28, fontWeight: 900,
+                  border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12, padding: '12px 48px 12px 12px', boxSizing: 'border-box', letterSpacing: showPin ? 12 : 10 }} />
+              <button type="button" onClick={() => setShowPin(p => !p)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
+                {showPin ? '🙈' : '👁️'}
               </button>
-            )}
-            <button onClick={handleUnlock}
-              style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
-              Unlock 🔓
-            </button>
-          </div>
+            </div>
+            {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 8 }}>{lockPinError}</div>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              {!lockModalForced && (
+                <button type="button" onClick={() => { setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false) }}
+                  style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+                  Cancel
+                </button>
+              )}
+              <button type="submit"
+                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+                Unlock 🔓
+              </button>
+            </div>
+          </form>
         </>}
       </div>
     </div>
@@ -1166,8 +1172,8 @@ export default function App() {
               <button onClick={() => {
                   setScreenTimeAlert(false)
                   if (childLocked) {
-                    // Locked session: don't log out — show the unlock PIN modal for parent to take back
-                    setLockPin(''); setLockPinError(''); setLockModal('unlock')
+                    // Force-unlock: parent must enter PIN — no Cancel escape
+                    setLockPin(''); setLockPinError(''); setLockModalForced(true); setLockModal('unlock')
                   } else {
                     handleLogout()
                   }
@@ -1506,7 +1512,8 @@ export default function App() {
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/memory"    element={<FeatureGuard featureName="memory-flashcards" featureConfig={featureConfig}><MemoryPlay child={child} quota={quota} /></FeatureGuard>} />
-              <Route path="/child/:childId/trace"   element={<FeatureGuard featureName="trace"  featureConfig={featureConfig}><Trace  child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
+              <Route path="/child/:childId/maze"    element={<FeatureGuard featureName="maze"   featureConfig={featureConfig}><Maze   child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
+              <Route path="/child/:childId/trace"   element={<Navigate to={`/child/${child?.id}/maze`} replace />} />
               <Route path="/child/:childId/riddle"  element={<FeatureGuard featureName="riddle" featureConfig={featureConfig}><Riddle child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
               <Route path="/child/:id/edit"      element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildForm onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} inChildContext />} />
               <Route path="/child/:childId/profile" element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />

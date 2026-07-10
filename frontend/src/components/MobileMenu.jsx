@@ -14,7 +14,7 @@ const NAV_GROUPS = [
     items: [
       { path: 'memory',     label: 'Memory',     emoji: '🧠' },
       { path: 'activities', label: 'Activities', emoji: '🎯' },
-      { path: 'trace',      label: 'Trace',      emoji: '🐾' },
+      { path: 'maze',       label: 'Maze',       emoji: '🌀' },
     ]
   },
   {

@@ -24,9 +24,9 @@ public class TraceController {
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@RequestBody Map<String, String> body,
                                       @AuthenticationPrincipal AuthUser user) {
-        if (!quotaService.isFeatureEnabled(user.id(), "trace")) {
+        if (!quotaService.isFeatureEnabled(user.id(), "maze")) {
             return ResponseEntity.status(403)
-                    .body(Map.of("error", "Trace game is currently unavailable."));
+                    .body(Map.of("error", "Maze game is currently unavailable."));
         }
         if (!rateLimiter.tryConsume(user.id(), Endpoint.CURIOSITY)) {
             return ResponseEntity.status(429)
@@ -37,7 +37,7 @@ public class TraceController {
         int childAge     = Integer.parseInt(body.get("childAge"));
         String difficulty = body.getOrDefault("difficulty", "easy");
 
-        if (!quotaService.tryConsume(user.id(), "trace", childId)) {
+        if (!quotaService.tryConsume(user.id(), "maze", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }

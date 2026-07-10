@@ -11,7 +11,7 @@ const FEATURE_META = {
   mywriting:  { emoji: '✍️', title: 'My Writing',     subtitle: 'Tell your own story!',               floaters: ['💭','✨','📖','🌟','🦄'] },
   memory:     { emoji: '🧠', title: 'Memory Play',    subtitle: 'Train your brain!',                  floaters: ['📇','🎴','💡','⭐','🌟'] },
   timeline:   { emoji: '🗓️', title: 'Timeline',       subtitle: 'Your journey so far!',               floaters: ['⭐','🌈','✨','💫','🎉'] },
-  trace:      { emoji: '🐾', title: 'Trace',          subtitle: 'Follow the path and help friends!',   floaters: ['🐄','🚀','🐝','🌸','⭐','🌈'] },
+  maze:       { emoji: '🌀', title: 'Maze',            subtitle: 'Find the right path through the maze!', floaters: ['🦊','🚀','🐝','🐱','⭐','🌈'] },
   riddle:     { emoji: '🧩', title: 'Riddle',         subtitle: 'Can you crack the riddle?',           floaters: ['💡','🌟','❓','🧠','✨','🎯'] },
 }
 

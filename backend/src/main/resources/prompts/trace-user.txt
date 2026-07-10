@@ -1,4 +1,4 @@
-Generate a trace game level theme for a child named %s who is %d years old. Difficulty: %s.
+Generate a maze game theme for a child named %s who is %d years old. Difficulty: %s.
 
 Difficulty guide:
 - easy (age 3-4): very familiar animals and objects, simple destinations, short warm story (e.g. bunny to carrot, duck to pond)

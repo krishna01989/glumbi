@@ -21,7 +21,7 @@ const ALL_FEATURES = [
   { key: 'readquiz',   label: 'Read & Quiz',     emoji: '📚', minAge: 7, featureName: 'read-quiz' },
   { key: 'mywriting',  label: 'My Writing',      emoji: '✍️', minAge: 7, featureName: 'writing-coach' },
   { key: 'memory',     label: 'Memory Play',     emoji: '🧠', minAge: 3, featureName: 'memory' },
-  { key: 'trace',      label: 'Trace',           emoji: '🐾', minAge: 3, featureName: 'trace'  },
+  { key: 'maze',       label: 'Maze',            emoji: '🌀', minAge: 3, featureName: 'maze'   },
   { key: 'riddle',     label: 'Riddle',          emoji: '🧩', minAge: 4, featureName: 'riddle' },
 ]
 

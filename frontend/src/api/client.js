@@ -205,6 +205,7 @@ export const traceApi = {
   generate: (childId, childName, childAge, difficulty) =>
     api.post('/trace/generate', { childId: String(childId), childName, childAge: String(childAge), difficulty }).then(r => r.data),
 }
+export const mazeApi = traceApi
 
 export const riddleApi = {
   generate: (childId, childName, childAge) =>

@@ -201,6 +201,16 @@ export const memoryApi = {
   deleteMatch: (id) => api.delete(`/memory/match/${id}`),
 }
 
+export const traceApi = {
+  generate: (childId, childName, childAge, difficulty) =>
+    api.post('/trace/generate', { childId: String(childId), childName, childAge: String(childAge), difficulty }).then(r => r.data),
+}
+
+export const riddleApi = {
+  generate: (childId, childName, childAge) =>
+    api.post('/riddle/generate', { childId: String(childId), childName, childAge: String(childAge) }).then(r => r.data),
+}
+
 export const timelineApi = {
   getPage: (childId, page, size, from, to) =>
     api.get(`/timeline/${childId}`, { params: { page, size, from, to } }).then(r => r.data),

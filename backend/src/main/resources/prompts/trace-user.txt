@@ -1,0 +1,12 @@
+Generate a trace game level theme for a child named %s who is %d years old. Difficulty: %s.
+
+Difficulty guide:
+- easy (age 3-4): very familiar animals and objects, simple destinations, short warm story (e.g. bunny to carrot, duck to pond)
+- medium (age 5-7): slightly more imaginative themes, mild adventure (e.g. astronaut to planet, pirate to treasure)
+- hard (age 8+): creative or surprising themes with richer vocabulary in the completion story (e.g. wizard to spellbook, explorer to ancient ruins)
+
+Return ONLY valid JSON (no markdown, no code block):
+{"theme":"a bunny hopping home to its burrow","startEmoji":"🐰","endEmoji":"🕳️","startLabel":"Bunny","endLabel":"Burrow","completionStory":"The bunny made it home just in time for dinner! What a great helper you are! 🌙","bgColor":"#f3e5f5"}
+
+Fields: theme, startEmoji, endEmoji, startLabel (1-2 words), endLabel (1-2 words), completionStory (2 warm fun sentences matching the child's age), bgColor (soft pastel hex).
+Vary themes creatively — animals, space, ocean, fantasy, seasons. Make it feel personal and exciting for %s.

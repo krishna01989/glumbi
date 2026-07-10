@@ -17,6 +17,8 @@ import Draw        from './features/draw/Draw'
 import ReadQuiz    from './features/readquiz/ReadQuiz'
 import MyWriting   from './features/mywriting/MyWriting'
 import MemoryPlay  from './features/memory/MemoryPlay'
+import Trace       from './features/trace/Trace'
+import Riddle      from './features/riddle/Riddle'
 import DemoPage    from './pages/DemoPage'
 import LearnPage   from './features/learn/LearnPage'
 import ProfilePage from './pages/ProfilePage'
@@ -54,12 +56,14 @@ const NAV_GROUPS = [
     items: [
       { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab'     },
       { path: 'activities', label: 'Activities', emoji: '🎯', id: 'tour-activities-tab' },
+      { path: 'trace',      label: 'Trace',      emoji: '🐾', id: 'tour-trace-tab'      },
     ]
   },
   {
     id: 'curiosity', label: 'Curiosity', emoji: '🔍',
     items: [
       { path: 'curiosity', label: 'Ask Anything', emoji: '🔍', id: 'tour-curiosity-tab' },
+      { path: 'riddle',    label: 'Riddle',       emoji: '🧩', id: 'tour-riddle-tab'    },
     ]
   },
   {
@@ -233,6 +237,8 @@ const FEATURE_DISPLAY = {
   'learn-validate': { label: 'Letter Check',  icon: '🔤' },
   'learn-word':     { label: 'Learn Word',    icon: '✏️'  },
   'memory-flashcards': { label: 'Memory Play', icon: '🧠' },
+  'trace':  { label: 'Trace',  icon: '🐾' },
+  'riddle': { label: 'Riddle', icon: '🧩' },
 }
 
 // Guards a feature route — shows unavailable screen if the feature is disabled for this user
@@ -1500,6 +1506,8 @@ export default function App() {
               <Route path="/child/:childId/learn"      element={<FeatureGuard featureName="learn-validate" featureConfig={featureConfig}><LearnPage  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/mywriting"  element={<FeatureGuard featureName="writing-coach" featureConfig={featureConfig}><MyWriting  child={child} quota={quota} /></FeatureGuard>} />
               <Route path="/child/:childId/memory"    element={<FeatureGuard featureName="memory-flashcards" featureConfig={featureConfig}><MemoryPlay child={child} quota={quota} /></FeatureGuard>} />
+              <Route path="/child/:childId/trace"   element={<FeatureGuard featureName="trace"  featureConfig={featureConfig}><Trace  child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
+              <Route path="/child/:childId/riddle"  element={<FeatureGuard featureName="riddle" featureConfig={featureConfig}><Riddle child={child} quota={quota} featureConfig={featureConfig} /></FeatureGuard>} />
               <Route path="/child/:id/edit"      element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildForm onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} inChildContext />} />
               <Route path="/child/:childId/profile" element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />
               <Route path="/profile"             element={childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ProfilePage onLogout={handleLogout} />} />

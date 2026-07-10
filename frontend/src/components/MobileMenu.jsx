@@ -14,12 +14,14 @@ const NAV_GROUPS = [
     items: [
       { path: 'memory',     label: 'Memory',     emoji: '🧠' },
       { path: 'activities', label: 'Activities', emoji: '🎯' },
+      { path: 'trace',      label: 'Trace',      emoji: '🐾' },
     ]
   },
   {
     id: 'curiosity', label: 'Curiosity', emoji: '🔍',
     items: [
       { path: 'curiosity', label: 'Ask Anything', emoji: '🔍' },
+      { path: 'riddle',    label: 'Riddle',       emoji: '🧩' },
     ]
   },
   {

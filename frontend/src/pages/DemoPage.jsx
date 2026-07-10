@@ -332,7 +332,7 @@ export default function DemoPage() {
               But that's just the start
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-              {['🎮 Activities', '🔍 Curiosity', '✏️ Learn to Write', '🎨 Draw', '📚 Read & Quiz', '🧠 Memory Play'].map(f => (
+              {['🎮 Activities', '🔍 Curiosity', '✏️ Learn to Write', '🎨 Draw', '📚 Read & Quiz', '🧠 Memory Play', '🐾 Trace Game', '🧩 Riddles'].map(f => (
                 <span key={f} style={{ background: '#fff0f0', color: '#f4845f', fontWeight: 700, fontSize: 13, padding: '6px 14px', borderRadius: 50, border: '1.5px solid #ffcdb8' }}>{f}</span>
               ))}
             </div>

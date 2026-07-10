@@ -15,4 +15,6 @@ public class StoryRequest {
     private String keywords;
 
     private Long previousStoryId; // optional — when set, generates a continuation
+
+    private String category; // optional — e.g. "adventure", "bedtime", "funny"; defaults to "adventure"
 }

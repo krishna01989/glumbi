@@ -24,27 +24,33 @@ public class StoryService {
         Child child = childService.getByIdUnchecked(req.getChildId());
         int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
+        String category = req.getCategory() != null ? req.getCategory() : "adventure";
+
         StoryAgent.StoryResult result;
         Story prev = null;
         if (req.getPreviousStoryId() != null) {
             prev = repo.findById(req.getPreviousStoryId())
                     .orElseThrow(() -> new RuntimeException("Previous story not found"));
+            // Inherit category from the root story so the series stays thematically consistent
+            String inheritedCategory = prev.getCategory() != null ? prev.getCategory() : category;
             // Strip the "Root · " prefix so the AI doesn't mimic it in the new chapter title
             String prevTitleForAi = prev.getTitle().contains(" · ")
                     ? prev.getTitle().substring(prev.getTitle().indexOf(" · ") + 3)
                     : prev.getTitle();
             result = storyAgent.continueStory(
-                    child.getName(), age, child.getGender(), prevTitleForAi, prev.getContent()
+                    child.getName(), age, child.getGender(), prevTitleForAi, prev.getContent(), inheritedCategory
             );
+            category = inheritedCategory;
         } else {
             result = storyAgent.generateStory(
-                    child.getName(), age, child.getGender(), req.getKeywords()
+                    child.getName(), age, child.getGender(), req.getKeywords(), category
             );
         }
 
         Story story = new Story();
         story.setChild(child);
         story.setContent(result.content());
+        story.setCategory(category);
         if (prev != null) {
             story.setKeywords(prev.getKeywords());
             // Always use the root story title as prefix so chaining doesn't nest titles

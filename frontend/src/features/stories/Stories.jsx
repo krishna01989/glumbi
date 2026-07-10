@@ -7,6 +7,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import ErrorBox from '../../components/ErrorBox'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import { runPageCurl } from '../../utils/pageCurl'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)
@@ -17,6 +18,16 @@ function useIsMobile() {
   }, [])
   return m
 }
+
+const STORY_CATEGORIES = [
+  { id: 'adventure',  emoji: '⚡', label: 'Adventure' },
+  { id: 'bedtime',    emoji: '🌙', label: 'Bedtime' },
+  { id: 'funny',      emoji: '😂', label: 'Funny' },
+  { id: 'mystery',    emoji: '🔍', label: 'Mystery' },
+  { id: 'friendship', emoji: '🤝', label: 'Friendship' },
+  { id: 'nature',     emoji: '🌿', label: 'Nature' },
+  { id: 'space',      emoji: '🚀', label: 'Space' },
+]
 
 // Free keyword → illustration mapping (no API cost)
 const SCENE_MAP = {
@@ -155,7 +166,8 @@ function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
 export default function Stories({ child, quota }) {
   const offline = useOffline()
   const [stories, setStories] = useState([])
-  const [keywords, setKeywords] = useState('')
+  const [keywords, setKeywords]           = useState('')
+  const [category, setCategory]           = useState('adventure')
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState(null)
   const [speaking, setSpeaking]         = useState(false)
@@ -178,10 +190,15 @@ export default function Stories({ child, quota }) {
   const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
   const [showList, setShowList]         = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [flipState, setFlipState]       = useState(null) // { dir: 'forward'|'back', to: story } | null
   const isMobile = useIsMobile()
-  const langPickerRef = useRef(null)
-  const langBtnRef    = useRef(null)
-  const fsRef         = useRef(null)
+  const langPickerRef      = useRef(null)
+  const langBtnRef         = useRef(null)
+  const fsRef              = useRef(null)
+  const touchStartX        = useRef(null)
+  const oldPageTurningRef  = useRef(null)
+  const foldShadowRef      = useRef(null)
+  const foldHighlightRef   = useRef(null)
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
@@ -231,7 +248,7 @@ export default function Stories({ child, quota }) {
     setLoading(true)
     setError('')
     try {
-      const res = await storyApi.generate({ childId: child.id, keywords })
+      const res = await storyApi.generate({ childId: child.id, keywords, category })
       const story = res.story ?? res   // fallback if backend not yet updated
       const similar = res.similar ?? []
       setStories(prev => [story, ...prev])
@@ -282,6 +299,57 @@ export default function Stories({ child, quota }) {
 
   const deletingStory = stories.find(s => s.id === confirmDelete)
   const deletingHasSeries = deletingStory && stories.some(s => s.seriesId === deletingStory.id)
+
+  // Series chapter navigation
+  const seriesChapters = (() => {
+    if (!selected) return []
+    const rootId = selected.seriesId || selected.id
+    const root = stories.find(s => s.id === rootId)
+    if (!root) return []
+    const chapters = stories
+      .filter(s => s.seriesId === rootId)
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    return [root, ...chapters]
+  })()
+  const chapterIndex = seriesChapters.findIndex(s => s.id === selected?.id)
+  const hasPrev = chapterIndex > 0
+  const hasNext = chapterIndex < seriesChapters.length - 1
+
+  function navigateChapter(dir) {
+    const next = dir === 'right' ? seriesChapters[chapterIndex + 1] : seriesChapters[chapterIndex - 1]
+    if (!next || flipState) return
+    setFlipState({ dir: dir === 'right' ? 'forward' : 'back', to: next })
+  }
+
+  function handleFlipEnd() {
+    if (!flipState) return
+    setSelected(flipState.to)
+    setSimilarStories([])
+    storyApi.getSimilar(flipState.to.id).then(setSimilarStories).catch(() => {})
+    setFlipState(null)
+  }
+
+  // Start the canvas-free curved page-curl animation whenever a flip begins
+  useEffect(() => {
+    if (!flipState) return
+    return runPageCurl(
+      oldPageTurningRef, foldShadowRef, foldHighlightRef,
+      flipState.dir,
+      handleFlipEnd,
+    )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flipState?.dir, flipState?.to?.id])
+
+  useEffect(() => {
+    function onKey(e) {
+      if (!selected || seriesChapters.length < 2) return
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'ArrowRight' && hasNext && !flipState) navigateChapter('right')
+      if (e.key === 'ArrowLeft' && hasPrev && !flipState) navigateChapter('left')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selected, hasPrev, hasNext])
 
   async function toggleFav(storyId) {
     const updated = await storyApi.toggleFavorite(storyId)
@@ -385,6 +453,10 @@ export default function Stories({ child, quota }) {
       onConfirm={confirmDeleteStory}
       onCancel={() => setConfirmDelete(null)}
     />
+    <style>{`
+      .chapter-nav-btn { transition: opacity 0.2s, background 0.2s; }
+      .chapter-nav-btn:hover { opacity: 1 !important; }
+    `}</style>
     <FeatureBanner feature="stories" child={child} isMobile={isMobile} />
     <div style={{
       display: isMobile ? 'flex' : 'grid',
@@ -411,6 +483,21 @@ export default function Stories({ child, quota }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 28 }}>🪄</span>
             <h3 style={{ fontSize: 18, color: 'var(--primary)' }}>Story Magic</h3>
+          </div>
+          {/* Category chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {STORY_CATEGORIES.map(cat => (
+              <button key={cat.id} type="button" onClick={() => setCategory(cat.id)}
+                style={{
+                  padding: '5px 12px', borderRadius: 50, border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 700, transition: 'all 0.15s',
+                  background: category === cat.id ? 'var(--primary)' : 'white',
+                  color: category === cat.id ? 'white' : 'var(--primary)',
+                  boxShadow: category === cat.id ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                }}>
+                {cat.emoji} {cat.label}
+              </button>
+            ))}
           </div>
           <textarea
             placeholder={`What should ${child.name}'s story be about?\n\ne.g. dragon, brave girl, magic forest`}
@@ -471,7 +558,42 @@ export default function Stories({ child, quota }) {
         } : {
           borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--shadow)',
           display: 'flex', flexDirection: 'column', height: '100%',
+          position: 'relative',
         }}>
+
+          {/* Chapter navigation arrows + dots */}
+          {seriesChapters.length > 1 && (
+            <>
+              <button className="chapter-nav-btn" onClick={() => navigateChapter('left')} disabled={!hasPrev || !!flipState}
+                style={{
+                  position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', zIndex:20,
+                  width:38, height:38, borderRadius:'50%', border:'none', cursor: hasPrev ? 'pointer' : 'default',
+                  background:'rgba(0,0,0,0.18)', backdropFilter:'blur(6px)',
+                  color:'white', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center',
+                  opacity: hasPrev ? 0.75 : 0.15, padding:0, boxShadow:'0 2px 8px rgba(0,0,0,0.2)',
+                }}>‹</button>
+              <button className="chapter-nav-btn" onClick={() => navigateChapter('right')} disabled={!hasNext || !!flipState}
+                style={{
+                  position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', zIndex:20,
+                  width:38, height:38, borderRadius:'50%', border:'none', cursor: hasNext ? 'pointer' : 'default',
+                  background:'rgba(0,0,0,0.18)', backdropFilter:'blur(6px)',
+                  color:'white', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center',
+                  opacity: hasNext ? 0.75 : 0.15, padding:0, boxShadow:'0 2px 8px rgba(0,0,0,0.2)',
+                }}>›</button>
+              <div style={{ position:'absolute', bottom:14, left:'50%', transform:'translateX(-50%)', display:'flex', gap:6, zIndex:20 }}>
+                {seriesChapters.map((_, i) => (
+                  <div key={i} onClick={() => {
+                    if (i === chapterIndex || flipState) return
+                    navigateChapter(i > chapterIndex ? 'right' : 'left')
+                  }} style={{
+                    width: i === chapterIndex ? 20 : 6, height:6, borderRadius:3, cursor: i === chapterIndex ? 'default' : 'pointer',
+                    background: i === chapterIndex ? 'var(--primary)' : 'rgba(0,0,0,0.18)',
+                    transition:'all 0.3s',
+                  }} />
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Fullscreen header — themed banner with title + controls */}
           {isFullscreen ? (
@@ -593,6 +715,7 @@ export default function Stories({ child, quota }) {
                     boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.2)' : 'none' }}>
                   {selected.favorite ? '⭐' : '☆'}
                 </button>
+                {chapterIndex === seriesChapters.length - 1 && (
                 <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
                   title={offline ? 'AI is off — go online to continue stories' : 'Continue this story'}
                   style={{ padding:'7px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none',
@@ -604,6 +727,7 @@ export default function Stories({ child, quota }) {
                     backdropFilter: isFullscreen ? 'blur(6px)' : 'none' }}>
                   {offline ? '✈️ AI is off' : '▶ Continue'}
                 </button>
+                )}
                 <button onClick={() => handleDelete(selected.id)}
                   style={{ padding:'7px 12px', fontSize:13, borderRadius:50, border:'none', cursor:'pointer',
                     background: isFullscreen ? 'rgba(255,0,0,0.3)' : '#fee', color: isFullscreen ? 'white' : '#e55' }}>
@@ -695,10 +819,12 @@ export default function Stories({ child, quota }) {
                     style={{ padding:'8px 14px', fontSize:18, background:selected.favorite?'#fff3cd':'#f5f5f5', borderRadius:50, border:'none', cursor:'pointer' }}>
                     {selected.favorite ? '⭐' : '☆'}
                   </button>
+                  {chapterIndex === seriesChapters.length - 1 && (
                   <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
                     style={{ padding:'8px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none', cursor:loading||offline||quota?.used>=quota?.limit?'not-allowed':'pointer', background:'var(--primary-lt)', color:'var(--primary)', opacity:loading||offline?0.5:1, whiteSpace:'nowrap' }}>
                     {offline ? '✈️ AI is off' : '▶ Continue'}
                   </button>
+                  )}
                   <button onClick={() => handleDelete(selected.id)} className="btn-danger" style={{ padding:'8px 14px', fontSize:13 }}>🗑</button>
                   {/* Fullscreen button in normal mode */}
                   <button onClick={toggleFullscreen} title="Fullscreen reading mode"
@@ -713,14 +839,23 @@ export default function Stories({ child, quota }) {
           )}
 
           {/* ── Story body (shared between FS and normal mode) ── */}
-          <div style={{
-            flex:1, overflowY:'auto',
-            background: isFullscreen ? 'rgba(255,255,255,0.96)' : 'white',
-            padding: isFullscreen ? '28px max(28px, calc(50% - 360px))' : '16px 28px 24px',
-            display:'flex', flexDirection:'column', gap:16,
-            borderRadius: isFullscreen ? '20px 20px 0 0' : 0,
-            marginTop: isFullscreen ? 0 : 0,
-          }}>
+          <div
+            onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+            onTouchEnd={e => {
+              if (touchStartX.current === null) return
+              const dx = e.changedTouches[0].clientX - touchStartX.current
+              touchStartX.current = null
+              if (Math.abs(dx) < 50) return
+              if (dx < 0 && hasNext) navigateChapter('right')
+              else if (dx > 0 && hasPrev) navigateChapter('left')
+            }}
+            style={{
+              flex:1, overflowY:'auto', position:'relative',
+              background: isFullscreen ? 'rgba(255,255,255,0.96)' : 'white',
+              padding: isFullscreen ? '28px max(28px, calc(50% - 360px))' : '16px 28px 24px',
+              display:'flex', flexDirection:'column', gap:16,
+              borderRadius: isFullscreen ? '20px 20px 0 0' : 0,
+            }}>
 
             {/* Audio player */}
             {speaking && audioRef.current && speakingStoryId === selected?.id && (
@@ -730,22 +865,96 @@ export default function Stories({ child, quota }) {
 
             <div style={{ height:2, background:'linear-gradient(to right,var(--primary),var(--accent),var(--green))', borderRadius:4 }} />
 
-            {/* Story text */}
-            <div style={{
-              lineHeight:2, fontSize: isFullscreen ? 19 : 17, color:'#444',
-              whiteSpace:'pre-wrap', fontFamily:'Nunito, sans-serif',
-              background:'#fffdf9', borderRadius:14,
-              padding:'20px 24px', border:'1.5px solid #f5ede4',
-            }}>
-              {selected.content.slice(0,1) && (
-                <>
+            {/* Category + keywords tags */}
+            {(() => {
+              const cat = selected.category ? STORY_CATEGORIES.find(c => c.id === selected.category) : null
+              const kwTag = selected.keywords && selected.keywords.toLowerCase() !== 'continue'
+                ? selected.keywords.split(',')[0].trim() : null
+              if (!cat && !kwTag) return null
+              return (
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:-4 }}>
+                  {cat && (
+                    <span style={{ fontSize:12, fontWeight:700, background:'var(--primary-lt)', color:'var(--primary)', padding:'3px 10px', borderRadius:50 }}>
+                      {cat.emoji} {cat.label}
+                    </span>
+                  )}
+                  {kwTag && (
+                    <span style={{ fontSize:12, fontWeight:700, background:'#f0f0f0', color:'#666', padding:'3px 10px', borderRadius:50 }}>
+                      {kwTag}
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Story text — with page-turn when navigating chapters */}
+            {(() => {
+              const textStyle = {
+                lineHeight:2, fontSize: isFullscreen ? 19 : 17, color:'#444',
+                whiteSpace:'pre-wrap', fontFamily:'Nunito, sans-serif',
+                background:'#fffdf9', borderRadius:14,
+                padding:'20px 24px', border:'1.5px solid #f5ede4',
+              }
+              const renderText = (story) => story.content.slice(0,1) ? (
+                <div style={textStyle}>
                   <span style={{ float:'left', fontSize:64, lineHeight:0.8, marginRight:8, marginTop:8, color:'var(--primary)', fontFamily:'Nunito, sans-serif' }}>
-                    {selected.content[0]}
+                    {story.content[0]}
                   </span>
-                  {selected.content.slice(1)}
-                </>
-              )}
-            </div>
+                  {story.content.slice(1)}
+                </div>
+              ) : <div style={textStyle}>{story.content}</div>
+
+              if (!flipState) return renderText(selected)
+
+              const isFwd = flipState.dir === 'forward'
+              // Initial clip-path for the turning half (right or left side of page)
+              const initClip = isFwd
+                ? 'polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%)'
+                : 'polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%)'
+              // Initial shadow position and highlight position
+              const initShadowLeft = isFwd ? '45%' : '50%'
+              const initHlLeft     = isFwd ? '50%' : '50%'
+
+              return (
+                <div style={{ position:'relative', borderRadius:14, overflow:'hidden' }}>
+                  {/* Layer 1 — new chapter (underneath, full width) */}
+                  {renderText(flipState.to)}
+
+                  {/* Layer 2 — static remaining half of old page */}
+                  <div style={{
+                    position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none',
+                    clipPath: isFwd ? 'inset(0 50% 0 0)' : 'inset(0 0 0 50%)',
+                  }}>
+                    {renderText(selected)}
+                  </div>
+
+                  {/* Layer 3 — turning half with animated curved clip-path */}
+                  <div ref={oldPageTurningRef} style={{
+                    position:'absolute', inset:0, overflow:'hidden', pointerEvents:'none',
+                    clipPath: initClip,
+                  }}>
+                    {renderText(selected)}
+                  </div>
+
+                  {/* Layer 4a — fold shadow (gradient, follows the fold) */}
+                  <div ref={foldShadowRef} style={{
+                    position:'absolute', top:0, bottom:0, width:'6%',
+                    left: initShadowLeft, pointerEvents:'none', zIndex:5,
+                    background: isFwd
+                      ? 'linear-gradient(to left, rgba(0,0,0,0.25), transparent)'
+                      : 'linear-gradient(to right, rgba(0,0,0,0.25), transparent)',
+                    opacity: 0.22,
+                  }} />
+
+                  {/* Layer 4b — fold highlight (thin bright line at the fold edge) */}
+                  <div ref={foldHighlightRef} style={{
+                    position:'absolute', top:0, bottom:0, width:2,
+                    left: initHlLeft, pointerEvents:'none', zIndex:6,
+                    background: 'rgba(255,255,255,0.65)',
+                  }} />
+                </div>
+              )
+            })()}
 
             {/* Similar stories — RAG recommendations */}
             {similarStories.length > 0 && (

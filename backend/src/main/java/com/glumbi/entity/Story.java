@@ -30,6 +30,8 @@ public class Story {
 
     private String keywords;    // comma-separated: "dragon, brave girl, forest"
 
+    private String category;    // e.g. "adventure", "bedtime", "funny"
+
     private boolean favorite = false;
 
     // Series / lineage — null for standalone stories

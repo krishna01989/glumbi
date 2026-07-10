@@ -5,6 +5,7 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import { useOffline } from '../../contexts/OfflineContext'
 import FeatureBanner from '../../components/FeatureBanner'
 import ThemeLoader from '../../components/ThemeLoader'
+import { runPageCurl } from '../../utils/pageCurl'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)
@@ -97,10 +98,15 @@ export default function MyWriting({ child, quota }) {
   const [prevFeedback, setPrevFeedback] = useState(null)
   const [showPrevTips, setShowPrevTips] = useState(false)
   const [error,    setError]    = useState('')
+  const [flipState, setFlipState] = useState(null) // { dir: 'forward'|'back', to: entry }
   const savedId = useRef(null)       // id of the saved draft being edited
   const parentStoryIdRef = useRef(null)
   const seriesIdRef = useRef(null)
   const autoSaveRef = useRef(null)
+  const oldPageTurningRef  = useRef(null)
+  const foldShadowRef      = useRef(null)
+  const foldHighlightRef   = useRef(null)
+  const touchStartX        = useRef(null)
 
   useEffect(() => {
     writingApi.getByChild(child.id).then(setEntries).catch(() => {})
@@ -227,6 +233,50 @@ export default function MyWriting({ child, quota }) {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const deletingEntry = entries.find(e => e.id === confirmDelete)
   const deletingHasSeries = deletingEntry && entries.some(e => e.seriesId === deletingEntry.id)
+
+  // Chapter navigation — mirrors the same pattern as Stories
+  const seriesChapters = (() => {
+    if (!selected) return []
+    const rootId = selected.seriesId || selected.id
+    const root = entries.find(e => e.id === rootId)
+    if (!root) return []
+    const chapters = entries.filter(e => e.seriesId === rootId)
+      .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+    return [root, ...chapters]
+  })()
+  const chapterIndex = seriesChapters.findIndex(e => e.id === selected?.id)
+  const hasPrev = chapterIndex > 0
+  const hasNext = chapterIndex < seriesChapters.length - 1
+
+  function navigateChapter(dir) {
+    const next = dir === 'right' ? seriesChapters[chapterIndex + 1] : seriesChapters[chapterIndex - 1]
+    if (!next || flipState) return
+    setFlipState({ dir: dir === 'right' ? 'forward' : 'back', to: next })
+  }
+
+  function handleFlipEnd() {
+    if (!flipState) return
+    openEntry(flipState.to)
+    setFlipState(null)
+  }
+
+  useEffect(() => {
+    if (!flipState) return
+    return runPageCurl(oldPageTurningRef, foldShadowRef, foldHighlightRef, flipState.dir, handleFlipEnd)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flipState?.dir, flipState?.to?.id])
+
+  useEffect(() => {
+    function onKey(e) {
+      if (!selected || editing || seriesChapters.length < 2) return
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+      if (e.key === 'ArrowRight' && hasNext && !flipState) navigateChapter('right')
+      if (e.key === 'ArrowLeft'  && hasPrev && !flipState) navigateChapter('left')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selected, editing, hasPrev, hasNext, flipState])
+
   const wc = wordCount(content)
   const MAX_CHARS = 4000
   const charCount = content.length
@@ -443,9 +493,67 @@ export default function MyWriting({ child, quota }) {
                   </button>
                 </div>
               </div>
-              <div style={{ lineHeight: 2, fontSize: 'clamp(14px,1.8vw,16px)', color: '#444', whiteSpace: 'pre-wrap', background: '#fafafa', borderRadius: 12, padding: 'clamp(14px,2vw,20px)', border: '1.5px solid #f0f0f0' }}>
-                {selected.content}
-              </div>
+              {/* Chapter nav arrows + dots (only for series) */}
+              {seriesChapters.length > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 4 }}>
+                  <button onClick={() => navigateChapter('left')} disabled={!hasPrev || !!flipState}
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasPrev ? 'var(--primary-lt)' : '#f0f0f0', color: hasPrev ? 'var(--primary)' : '#ccc', cursor: hasPrev ? 'pointer' : 'default', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                    ‹
+                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {seriesChapters.map((_, i) => (
+                      <button key={i} onClick={() => {
+                        if (i === chapterIndex || flipState) return
+                        navigateChapter(i > chapterIndex ? 'right' : 'left')
+                      }} style={{ width: i === chapterIndex ? 18 : 8, height: 8, borderRadius: 4, border: 'none', padding: 0, cursor: i === chapterIndex ? 'default' : 'pointer', background: i === chapterIndex ? 'var(--primary)' : '#ddd', transition: 'all 0.2s' }} />
+                    ))}
+                  </div>
+                  <button onClick={() => navigateChapter('right')} disabled={!hasNext || !!flipState}
+                    style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: hasNext ? 'var(--primary-lt)' : '#f0f0f0', color: hasNext ? 'var(--primary)' : '#ccc', cursor: hasNext ? 'pointer' : 'default', fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
+                    ›
+                  </button>
+                </div>
+              )}
+
+              {/* Story content with page-curl on chapter navigation */}
+              {(() => {
+                const textStyle = { lineHeight: 2, fontSize: 'clamp(14px,1.8vw,16px)', color: '#444', whiteSpace: 'pre-wrap', background: '#fafafa', borderRadius: 12, padding: 'clamp(14px,2vw,20px)', border: '1.5px solid #f0f0f0' }
+                const renderText = (entry) => <div style={textStyle}>{entry.content}</div>
+
+                if (!flipState) return (
+                  <div
+                    onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+                    onTouchEnd={e => {
+                      if (touchStartX.current === null) return
+                      const dx = e.changedTouches[0].clientX - touchStartX.current
+                      touchStartX.current = null
+                      if (Math.abs(dx) < 50) return
+                      if (dx < 0 && hasNext) navigateChapter('right')
+                      else if (dx > 0 && hasPrev) navigateChapter('left')
+                    }}>
+                    {renderText(selected)}
+                  </div>
+                )
+
+                const isFwd = flipState.dir === 'forward'
+                const initClip = isFwd
+                  ? 'polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%)'
+                  : 'polygon(0% 0%, 50% 0%, 50% 100%, 0% 100%)'
+
+                return (
+                  <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden' }}>
+                    {renderText(flipState.to)}
+                    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', clipPath: isFwd ? 'inset(0 50% 0 0)' : 'inset(0 0 0 50%)' }}>
+                      {renderText(selected)}
+                    </div>
+                    <div ref={oldPageTurningRef} style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', clipPath: initClip }}>
+                      {renderText(selected)}
+                    </div>
+                    <div ref={foldShadowRef} style={{ position: 'absolute', top: 0, bottom: 0, width: '6%', left: isFwd ? '45%' : '50%', pointerEvents: 'none', zIndex: 5, background: isFwd ? 'linear-gradient(to left,rgba(0,0,0,0.25),transparent)' : 'linear-gradient(to right,rgba(0,0,0,0.25),transparent)', opacity: 0.22 }} />
+                    <div ref={foldHighlightRef} style={{ position: 'absolute', top: 0, bottom: 0, width: 2, left: '50%', pointerEvents: 'none', zIndex: 6, background: 'rgba(255,255,255,0.65)' }} />
+                  </div>
+                )
+              })()}
               {!selected.feedbackReceived && (
                 <button onClick={() => !offline && editEntry(selected)} disabled={offline}
                   style={{ marginTop: 16, padding: '12px 24px', borderRadius: 50, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
@@ -492,9 +600,9 @@ export default function MyWriting({ child, quota }) {
               )
             )}
 
-            {/* Continue story suggestion */}
+            {/* Continue story suggestion — only on the last chapter */}
             <div style={{ marginTop: 16 }}>
-              {!continuation && (
+              {!continuation && chapterIndex === seriesChapters.length - 1 && (
                 <button
                   onClick={() => handleContinue(selected)}
                   disabled={contLoading || offline || quota?.used >= quota?.limit}

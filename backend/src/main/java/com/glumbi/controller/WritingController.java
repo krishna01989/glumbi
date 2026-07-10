@@ -93,7 +93,7 @@ public class WritingController {
         int age = ChildService.ageFromBirthYear(child != null ? child.getBirthYear() : null);
         String gender = child != null ? child.getGender() : null;
         String name = child != null ? child.getName() : "you";
-        StoryAgent.StoryResult result = storyAgent.continueStory(name, age, gender, entry.getTitle(), entry.getContent());
+        StoryAgent.StoryResult result = storyAgent.continueStory(name, age, gender, entry.getTitle(), entry.getContent(), "adventure");
         return ResponseEntity.ok(Map.of("title", result.title(), "content", result.content()));
     }
 

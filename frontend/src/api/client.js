@@ -143,8 +143,8 @@ export const learnApi = {
 }
 
 export const demoApi = {
-  story: (childName, keywords, turnstileToken) =>
-    api.post('/demo/story', { childName, keywords, turnstileToken }).then(r => r.data),
+  story: (childName, keywords, turnstileToken, category = 'adventure') =>
+    api.post('/demo/story', { childName, keywords, turnstileToken, category }).then(r => r.data),
 }
 
 export const readQuizApi = {

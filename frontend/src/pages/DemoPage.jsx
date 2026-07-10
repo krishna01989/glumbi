@@ -28,10 +28,21 @@ function getScene(keywords = '') {
   return SCENE_MAP.default
 }
 
+const DEMO_CATEGORIES = [
+  { id: 'adventure',  emoji: '⚡', label: 'Adventure' },
+  { id: 'bedtime',    emoji: '🌙', label: 'Bedtime' },
+  { id: 'funny',      emoji: '😂', label: 'Funny' },
+  { id: 'mystery',    emoji: '🔍', label: 'Mystery' },
+  { id: 'friendship', emoji: '🤝', label: 'Friendship' },
+  { id: 'nature',     emoji: '🌿', label: 'Nature' },
+  { id: 'space',      emoji: '🚀', label: 'Space' },
+]
+
 export default function DemoPage() {
   const navigate = useNavigate()
   const [childName, setChildName] = useState('')
   const [keywords,  setKeywords]  = useState('')
+  const [category,  setCategory]  = useState('adventure')
   const [story,     setStory]     = useState(null)
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
@@ -73,7 +84,7 @@ export default function DemoPage() {
 
     setLoading(true)
     try {
-      const result = await demoApi.story(childName, keywords, turnstileToken.current || '')
+      const result = await demoApi.story(childName, keywords, turnstileToken.current || '', category)
       setStory(result)
       // Reset widget so they get a fresh token for next generation
       if (widgetIdRef.current != null) {
@@ -107,7 +118,7 @@ export default function DemoPage() {
             ✨ Try Glumbi Live
           </div>
           <p style={{ fontSize: 'clamp(14px,2.5vw,17px)', color: '#888', maxWidth: 480, margin: '0 auto' }}>
-            Enter any child's name and a few story ideas — watch Glumbi AI create a magical bedtime story in seconds. No sign-up needed!
+            Enter any child's name, pick a story type, and a few ideas — watch Glumbi AI create a magical story in seconds. No sign-up needed!
           </p>
           <div style={{ display: 'inline-block', marginTop: 12, background: '#fff3cd', color: '#856404', padding: '6px 16px', borderRadius: 50, fontSize: 12, fontWeight: 700 }}>
             🎁 2 free stories per day • No credit card
@@ -132,6 +143,25 @@ export default function DemoPage() {
                   maxLength={30} required
                   style={{ padding: '12px 16px', borderRadius: 12, border: '2px solid #eee', fontSize: 15, width: '100%', boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }}
                 />
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 800, color: '#555', display: 'block', marginBottom: 8 }}>
+                  🎭 Story type
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                  {DEMO_CATEGORIES.map(cat => (
+                    <button key={cat.id} type="button" onClick={() => setCategory(cat.id)}
+                      style={{
+                        padding: '6px 14px', borderRadius: 50, fontSize: 13, fontWeight: 700,
+                        cursor: 'pointer', border: 'none', transition: 'all 0.15s',
+                        background: category === cat.id ? 'linear-gradient(135deg,#ff6b6b,#ff8e53)' : '#f5f5f5',
+                        color:      category === cat.id ? 'white' : '#555',
+                        boxShadow:  category === cat.id ? '0 2px 8px rgba(255,107,107,0.3)' : 'none',
+                      }}>
+                      {cat.emoji} {cat.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 800, color: '#555', display: 'block', marginBottom: 8 }}>

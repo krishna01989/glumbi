@@ -37,6 +37,7 @@ public class DemoController {
 
         String childName = body.getOrDefault("childName", "").trim();
         String keywords  = body.getOrDefault("keywords",  "").trim();
+        String category  = body.getOrDefault("category",  "adventure").trim();
 
         if (childName.isBlank() || keywords.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Please enter a name and some keywords"));
@@ -47,7 +48,7 @@ public class DemoController {
 
         try {
             String gender = (childName.hashCode() % 2 == 0) ? "girl" : "boy";
-            StoryAgent.StoryResult result = storyAgent.generateStory(childName, 5, gender, keywords);
+            StoryAgent.StoryResult result = storyAgent.generateStory(childName, 5, gender, keywords, category);
             return ResponseEntity.ok(Map.of(
                 "title",   result.title(),
                 "content", result.content()

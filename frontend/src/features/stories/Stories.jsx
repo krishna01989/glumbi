@@ -739,7 +739,7 @@ export default function Stories({ child, quota }) {
             /* Normal mode header: illustration + title/buttons */
             <>
               <StoryIllustration story={selected} />
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:10, padding:'24px 28px 0' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:10, padding:'16px 28px 14px' }}>
                 <h2 style={{ fontSize: isMobile ? 20 : 26, color:'var(--text)', lineHeight:1.2, margin:0 }}>{selected.title}</h2>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center', position:'relative' }}>
                   {(!speaking || speakingStoryId !== selected?.id) && (
@@ -852,7 +852,7 @@ export default function Stories({ child, quota }) {
             style={{
               flex:1, overflowY:'auto', position:'relative',
               background: isFullscreen ? 'rgba(255,255,255,0.96)' : 'white',
-              padding: isFullscreen ? '28px max(28px, calc(50% - 360px))' : '16px 28px 24px',
+              padding: isFullscreen ? '28px max(28px, calc(50% - 360px))' : '28px 28px 24px',
               display:'flex', flexDirection:'column', gap:16,
               borderRadius: isFullscreen ? '20px 20px 0 0' : 0,
             }}>

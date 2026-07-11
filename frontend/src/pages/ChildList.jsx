@@ -329,7 +329,8 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
     return () => window.removeEventListener('keydown', handler)
   }, [prev, next])
 
-  // Load data
+  // Load data on mount ([] = runs once per mount; React Router unmounts ChildList on navigation
+  // so this naturally re-runs each time the user returns to the child list)
   useEffect(() => {
     childApi.getAll().then(data => {
       setChildren(data)
@@ -344,6 +345,9 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
       data.children.forEach(c => { map[c.childId] = c })
       setBreakdown(map)
     }).catch(() => {})
+
+    // Refresh the quota pill in the header too
+    window.__glumbiRefreshQuota?.()
 
     const openInfo = () => setShowCreditInfo(true)
     window.addEventListener('glumbi:credit-info', openInfo)

@@ -210,7 +210,7 @@ export default function Maze({ child, quota, featureConfig }) {
   const resumeRadius = Math.min(cw, ch) * 0.7
   const startRadius  = Math.min(cw, ch) * 0.85
   const endRadius    = Math.min(cw, ch) * 0.6
-  const strokeW      = Math.min(cw, ch) * 0.28
+  const strokeW      = Math.min(cw, ch) * 0.13
 
   function handleAt(clientX, clientY) {
     if (phaseRef.current === 'success') return
@@ -247,8 +247,12 @@ export default function Maze({ child, quota, featureConfig }) {
     // Wall collision check
     const t = firstWallHit(lx, ly, sx, sy, wallSegs)
     if (t !== null) {
-      const ix = lx + (sx - lx) * t
-      const iy = ly + (sy - ly) * t
+      // Nudge tip 5 SVG units back from the wall so the next
+      // collision check starts with t well above the 0.01 threshold
+      const moveDist = Math.hypot(sx - lx, sy - ly)
+      const tipT = Math.max(0, t - 5 / moveDist)
+      const ix = lx + (sx - lx) * tipT
+      const iy = ly + (sy - ly) * tipT
       const newPts = [...pts, [ix, iy]]
       pathRef.current = newPts
       setPathPts([...newPts])
@@ -261,7 +265,7 @@ export default function Maze({ child, quota, featureConfig }) {
           phaseRef.current = 'idle'
           setPhase('idle')
         }
-      }, 2200)
+      }, 1500)
       return
     }
 

@@ -87,7 +87,7 @@ public class ApiQuotaService {
         }
 
         int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : getDefaultMonthlyCredits();
-        if (user.getMonthlyApiCalls() >= limit) {
+        if (user.getMonthlyApiCalls() + cost > limit) {
             return false;
         }
 

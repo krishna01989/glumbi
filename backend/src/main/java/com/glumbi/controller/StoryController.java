@@ -95,8 +95,12 @@ public class StoryController {
     @GetMapping("/{id}/translate")
     public TranslationAgent.TranslationResult translate(
             @PathVariable Long id,
-            @RequestParam String language) {
+            @RequestParam String language,
+            @AuthenticationPrincipal AuthUser user) {
         Story story = service.getById(id);
+        if (user != null) {
+            quotaService.tryConsume(user.id(), "translation", story.getChild().getId());
+        }
         return translationAgent.translate(story.getTitle(), story.getContent(), language);
     }
 
@@ -149,6 +153,11 @@ public class StoryController {
                     title   = story.getTitle();
                     content = story.getContent();
                 } else {
+                    // Charge 5 translation credits for non-English TTS (cache miss only)
+                    if (authUser != null) {
+                        quotaService.tryConsume(authUser.id(), "translation",
+                                story.getChild() != null ? story.getChild().getId() : null);
+                    }
                     TranslationAgent.TranslationResult translated =
                             translationAgent.translate(story.getTitle(), story.getContent(), language);
                     title   = translated.title();

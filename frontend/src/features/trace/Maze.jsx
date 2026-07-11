@@ -214,6 +214,8 @@ export default function Maze({ child, quota, featureConfig }) {
 
   function handleAt(clientX, clientY) {
     if (phaseRef.current === 'success') return
+    // Block all input while the wall-hit message is showing — let the timer clear it
+    if (phaseRef.current === 'wall') return
     const [sx, sy] = svgPoint(svgRef.current, clientX, clientY)
     const pts = pathRef.current
 
@@ -223,11 +225,6 @@ export default function Maze({ child, quota, featureConfig }) {
         const [lx, ly] = pts[pts.length - 1]
         if (Math.hypot(sx - lx, sy - ly) < resumeRadius) {
           drawingRef.current = true
-          if (phaseRef.current === 'wall') {
-            clearTimeout(timerRef.current)
-            phaseRef.current = 'drawing'
-            setPhase('drawing')
-          }
           return
         }
       }
@@ -264,7 +261,7 @@ export default function Maze({ child, quota, featureConfig }) {
           phaseRef.current = 'idle'
           setPhase('idle')
         }
-      }, 1200)
+      }, 2200)
       return
     }
 

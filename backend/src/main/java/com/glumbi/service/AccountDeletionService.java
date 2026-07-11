@@ -61,7 +61,6 @@ public class AccountDeletionService {
         });
 
         // 3. Delete remaining user records
-        usageLogRepository.deleteByUserId(userId);
         userRepository.deleteById(userId);
     }
 }

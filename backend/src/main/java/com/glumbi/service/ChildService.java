@@ -30,7 +30,6 @@ public class ChildService {
     private final MemoryMatchRepository memoryMatchRepository;
     private final WordOfDayRepository   wordOfDayRepository;
     private final NotificationRepository notificationRepository;
-    private final AiUsageLogRepository  aiUsageLogRepository;
     private final R2Service             r2Service;
     private final ObjectMapper          objectMapper;
 
@@ -130,7 +129,6 @@ public class ChildService {
         memoryMatchRepository.deleteByChildId(childId);
         wordOfDayRepository.deleteByChildId(childId);
         notificationRepository.deleteByChildId(childId);
-        aiUsageLogRepository.deleteByChildId(childId);
 
         repo.delete(child);
     }

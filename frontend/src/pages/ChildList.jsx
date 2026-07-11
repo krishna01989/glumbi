@@ -111,7 +111,7 @@ function CreditModal({ c, t, stats, onClose }) {
   const activeFeatures = stats.features.filter(f => f.credits > 0)
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', maxHeight: '90vh', overflowY: 'auto' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
         <div style={{ fontSize: 52, marginBottom: 10 }}>{c.avatarEmoji}</div>
         <div style={{ fontWeight: 900, fontSize: 18, color: t.primary, marginBottom: 4, fontFamily: 'Nunito, sans-serif' }}>{c.name}</div>
@@ -119,7 +119,7 @@ function CreditModal({ c, t, stats, onClose }) {
         {activeFeatures.length === 0 ? (
           <div style={{ color: '#bbb', fontSize: 14, padding: '12px 0 20px' }}>✨ No AI usage this month</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, textAlign: 'left' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, textAlign: 'left', maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
             {activeFeatures.map(f => (
               <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: t.primaryLt }}>
                 <span style={{ fontSize: 18 }}>{f.icon}</span>

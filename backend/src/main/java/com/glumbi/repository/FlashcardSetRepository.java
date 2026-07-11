@@ -13,4 +13,5 @@ public interface FlashcardSetRepository extends JpaRepository<FlashcardSet, Long
     long countByCreatedAtAfter(LocalDateTime since);
     long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<FlashcardSet> findTop5ByOrderByCreatedAtDesc();
+    void deleteByChildId(Long childId);
 }

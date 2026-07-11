@@ -34,4 +34,5 @@ public interface AiUsageLogRepository extends JpaRepository<AiUsageLog, Long> {
     long sumCreditsByUser(@Param("userId") Long userId, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     void deleteByUserId(Long userId);
+    void deleteByChildId(Long childId);
 }

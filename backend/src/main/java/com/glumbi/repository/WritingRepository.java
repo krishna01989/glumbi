@@ -14,4 +14,5 @@ public interface WritingRepository extends JpaRepository<WritingEntry, Long> {
     List<WritingEntry> findTop5ByOrderByCreatedAtDesc();
     List<WritingEntry> findBySeriesId(Long seriesId);
     void deleteBySeriesId(Long seriesId);
+    void deleteByChildId(Long childId);
 }

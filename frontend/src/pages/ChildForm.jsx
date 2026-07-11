@@ -52,10 +52,12 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   const isEdit  = !!id
   const navigate = useNavigate()
 
-  const [form, setForm]         = useState(EMPTY_FORM)
-  const [features, setFeatures] = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [fetching, setFetching] = useState(isEdit)
+  const [form, setForm]             = useState(EMPTY_FORM)
+  const [features, setFeatures]     = useState(null)
+  const [loading, setLoading]       = useState(false)
+  const [fetching, setFetching]     = useState(isEdit)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting]     = useState(false)
 
   useEffect(() => {
     if (!isEdit) { if (!inChildContext) applyTheme('coral'); return }
@@ -81,6 +83,17 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   const primary = theme.primary
   const primaryLt = theme.primaryLt
   const headerGrad = theme.headerGrad
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await childApi.delete(id)
+      navigate('/child')
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -291,6 +304,49 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
             <div style={{ fontSize: 11, color: '#bbb', marginTop: 10 }}>
               Toggle features on/off for this child. Features marked 🚫 are currently unavailable.
             </div>
+          </div>
+        )}
+
+        {isEdit && (
+          <div style={{ marginBottom: 16 }}>
+            {!confirmDelete ? (
+              <button type="button" onClick={() => setConfirmDelete(true)}
+                style={{
+                  width: '100%', padding: '13px', fontSize: 14, fontWeight: 700, borderRadius: 50,
+                  background: 'transparent', border: '1.5px solid #ffb3b3', color: '#e55',
+                  cursor: 'pointer', fontFamily: 'Nunito, sans-serif', transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#fff0f0' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+                🗑️ Delete {form.name || 'Child'}'s Profile
+              </button>
+            ) : (
+              <div style={{ background: '#fff5f5', border: '1.5px solid #ffb3b3', borderRadius: 16, padding: '18px 20px' }}>
+                <div style={{ fontWeight: 800, color: '#c0392b', fontSize: 14, marginBottom: 6 }}>
+                  Delete {form.name || 'this child'}'s profile?
+                </div>
+                <div style={{ fontSize: 13, color: '#888', marginBottom: 16, lineHeight: 1.5 }}>
+                  This will permanently delete all stories, journals, activities, and every other piece of content for this profile. This cannot be undone.
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button type="button" onClick={() => setConfirmDelete(false)}
+                    style={{
+                      flex: 1, padding: '11px', borderRadius: 50, fontSize: 13, fontWeight: 700,
+                      background: '#f5f5f5', border: 'none', color: '#888', cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
+                    }}>
+                    Cancel
+                  </button>
+                  <button type="button" onClick={handleDelete} disabled={deleting}
+                    style={{
+                      flex: 1, padding: '11px', borderRadius: 50, fontSize: 13, fontWeight: 700,
+                      background: deleting ? '#ccc' : '#e55', border: 'none', color: 'white',
+                      cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'Nunito, sans-serif',
+                    }}>
+                    {deleting ? 'Deleting…' : 'Yes, Delete'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

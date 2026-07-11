@@ -13,4 +13,5 @@ public interface MemoryMatchRepository extends JpaRepository<MemoryMatch, Long> 
     long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<MemoryMatch> findTop5ByOrderByCreatedAtDesc();
     List<MemoryMatch> findByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
+    void deleteByChildId(Long childId);
 }

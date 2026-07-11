@@ -14,4 +14,5 @@ public interface WordOfDayRepository extends JpaRepository<WordOfDay, Long> {
     List<WordOfDay> findByChildIdOrderByDateDesc(Long childId);
     long countByCreatedAtAfter(LocalDateTime since);
     List<WordOfDay> findTop5ByOrderByCreatedAtDesc();
+    void deleteByChildId(Long childId);
 }

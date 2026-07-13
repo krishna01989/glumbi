@@ -86,10 +86,6 @@ export default function AdminProfilePage({ onLogout }) {
 
       {/* Top bar */}
       <div style={{ height: 60, background: '#0f172a', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 14 }}>
-        <button onClick={() => navigate(-1)}
-          style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          ← Back
-        </button>
         <div style={{ fontSize: 16, fontWeight: 900, color: 'white' }}>My Profile</div>
         <div style={{ marginLeft: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 50, background: isSA ? 'rgba(245,158,11,0.25)' : 'rgba(99,102,241,0.25)', color: isSA ? '#fbbf24' : '#818cf8' }}>
@@ -99,6 +95,18 @@ export default function AdminProfilePage({ onLogout }) {
       </div>
 
       <div style={{ maxWidth: 520, margin: '24px auto', padding: '0 16px' }}>
+        <button onClick={() => navigate(-1)}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.transform = 'translateX(-2px)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
+          style={{
+            background: 'transparent', border: '1.5px solid #c7d2fe', color: '#6366f1',
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            transition: 'all 0.15s ease',
+          }}>
+          ← Back
+        </button>
 
         {/* Account info */}
         <div style={card}>

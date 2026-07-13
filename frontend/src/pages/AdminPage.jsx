@@ -1916,12 +1916,11 @@ export default function AdminPage({ onBack, onLogout }) {
             <button key={item.id} onClick={() => { navigate(`/admin/${item.id}`); setSidebarOpen(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                padding: '11px 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
-                background: active === item.id ? 'rgba(99,102,241,0.2)' : 'transparent',
-                color: active === item.id ? '#818cf8' : 'rgba(255,255,255,0.55)',
+                padding: '11px 14px', borderRadius: 50, border: 'none', cursor: 'pointer',
+                background: active === item.id ? 'rgba(255,255,255,0.92)' : 'transparent',
+                color: active === item.id ? '#6366f1' : 'rgba(255,255,255,0.55)',
                 fontWeight: active === item.id ? 700 : 500, fontSize: 14,
                 textAlign: 'left', width: '100%',
-                borderLeft: active === item.id ? '3px solid #818cf8' : '3px solid transparent',
                 transition: 'all 0.15s',
               }}>
               <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -1933,12 +1932,12 @@ export default function AdminPage({ onBack, onLogout }) {
         {/* Bottom actions */}
         <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button onClick={() => { navigate('/admin/profile'); setSidebarOpen(false) }}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 50, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
             👤 My Profile
           </button>
           {onLogout && (
             <button onClick={onLogout}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.15)', color: '#ff6b6b', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 50, border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.15)', color: '#ff6b6b', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
               🚪 Sign Out
             </button>
           )}

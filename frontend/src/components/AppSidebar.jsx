@@ -73,9 +73,9 @@ export default function AppSidebar({
                 title={group.label}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '11px 0', border: 'none', borderRadius: 12, cursor: 'pointer',
-                  background: groupActive ? 'rgba(255,255,255,0.25)' : 'transparent',
-                  color: 'white', fontSize: isTV ? 26 : 22,
+                  padding: '11px 0', border: 'none', borderRadius: 50, cursor: 'pointer',
+                  background: groupActive ? 'rgba(255,255,255,0.92)' : 'transparent',
+                  color: groupActive ? theme.primary : 'white', fontSize: isTV ? 26 : 22,
                 }}>
                 {group.emoji}
               </button>
@@ -92,11 +92,12 @@ export default function AppSidebar({
                 <NavLink to={`/child/${child.id}/${group.items[0].path}`} id={group.items[0].id}
                   style={({ isActive }) => ({
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: isTV ? '13px 16px' : '10px 12px',
-                    borderRadius: 12, textDecoration: 'none',
+                    padding: isTV ? '13px 13px' : '10px 9px',
+                    borderRadius: 50, textDecoration: 'none',
                     fontWeight: 800, fontSize: isTV ? 16 : 13,
-                    background: isActive ? 'rgba(255,255,255,0.25)' : 'transparent',
-                    color: 'white', transition: 'background 0.15s',
+                    background: isActive ? 'rgba(255,255,255,0.92)' : 'transparent',
+                    color: isActive ? theme.primary : 'white',
+                    transition: 'background 0.15s',
                   })}>
                   <span style={{ fontSize: isTV ? 22 : 18 }}>{group.emoji}</span>
                   <span style={{ flex: 1 }}>{group.label}</span>
@@ -105,10 +106,11 @@ export default function AppSidebar({
                 <button onClick={() => setOpenGroupId(isOpen ? null : group.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                    padding: isTV ? '13px 16px' : '10px 12px',
-                    border: 'none', borderRadius: 12, cursor: 'pointer',
-                    background: groupActive && !isOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
-                    color: 'white', fontWeight: 800, fontSize: isTV ? 16 : 13,
+                    padding: isTV ? '13px 13px' : '10px 9px',
+                    border: 'none', borderRadius: 50, cursor: 'pointer',
+                    background: groupActive && !isOpen ? 'rgba(255,255,255,0.92)' : 'transparent',
+                    color: groupActive && !isOpen ? theme.primary : 'white',
+                    fontWeight: 800, fontSize: isTV ? 16 : 13,
                   }}>
                   <span style={{ fontSize: isTV ? 22 : 18 }}>{group.emoji}</span>
                   <span style={{ flex: 1, textAlign: 'left' }}>{group.label}</span>
@@ -122,11 +124,11 @@ export default function AppSidebar({
                     <NavLink key={item.path} to={`/child/${child.id}/${item.path}`} id={item.id}
                       style={({ isActive }) => ({
                         display: 'flex', alignItems: 'center', gap: 10,
-                        padding: isTV ? '10px 16px' : '8px 12px',
-                        borderRadius: 10, textDecoration: 'none',
+                        padding: isTV ? '10px 13px' : '8px 9px',
+                        borderRadius: 50, textDecoration: 'none',
                         fontWeight: isActive ? 800 : 600, fontSize: isTV ? 14 : 13,
-                        background: isActive ? 'rgba(255,255,255,0.25)' : 'transparent',
-                        color: isActive ? 'white' : 'rgba(255,255,255,0.8)',
+                        background: isActive ? 'rgba(255,255,255,0.92)' : 'transparent',
+                        color: isActive ? theme.primary : 'rgba(255,255,255,0.8)',
                         transition: 'background 0.15s',
                       })}>
                       <span style={{ fontSize: isTV ? 18 : 15 }}>{item.emoji}</span>

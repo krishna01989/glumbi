@@ -20,7 +20,21 @@ React 18 + Vite SPA for the Glumbi kids learning app.
 src/
 ├── api/
 │   └── client.js              # Axios instance + all API call helpers
+├── hooks/
+│   ├── useAuth.js             # Auth state, quota polling, feature config, logout
+│   ├── useChildSession.js     # Child selection, offline mode, WOTD fetch, restore-from-URL
+│   ├── useLockSession.js      # PIN lock, screen-time timer, snooze, session persistence
+│   └── useIsMobile.js         # Returns true when viewport < 640px
+├── routes/
+│   ├── PublicRoutes.jsx       # Unauthenticated routes (landing, login, legal)
+│   └── ChildRoutes.jsx        # All child session routes (wrapped in FeatureGuard)
+├── layouts/
+│   └── ManagementLayout.jsx   # Sticky header + mobile drawer for management pages
 ├── components/
+│   ├── AppSidebar.jsx          # Left nav sidebar (desktop/tablet/TV)
+│   ├── LockModal.jsx           # PIN lock/setup/unlock modal
+│   ├── ScreenTimeModal.jsx     # Screen time alert with snooze options
+│   ├── FeatureGuard.jsx        # Disabled-feature screen for feature-flagged routes
 │   ├── AudioPlayer.jsx         # Story audio player (speed, volume, seek, HTTP range)
 │   ├── ConfirmDialog.jsx       # Reusable delete-confirmation modal
 │   ├── FeatureBanner.jsx       # Animated header banner per feature (canvas particle effect)
@@ -34,14 +48,12 @@ src/
 │   └── ThemeLoader.jsx         # Applies child theme CSS variables + loading animation
 ├── contexts/
 │   └── OfflineContext.jsx      # Online/offline detection context
-├── hooks/
-│   └── useIsMobile.js          # Returns true when viewport < 640px
 ├── pages/
 │   ├── LandingPage.jsx         # Public home page with feature carousel
 │   ├── AuthPage.jsx            # Login / register (email + Google OAuth)
 │   ├── DemoPage.jsx            # Public demo (Cloudflare Turnstile protected)
 │   ├── ChildList.jsx           # Parent dashboard — child switcher
-│   ├── ChildForm.jsx           # Add / edit child profile
+│   ├── ChildForm.jsx           # Add / edit child profile (with two-step delete)
 │   ├── AdminPage.jsx           # Admin dashboard (ADMIN / SUPER_ADMIN role)
 │   ├── AdminProfilePage.jsx    # Admin profile — change password, delete account
 │   ├── ProfilePage.jsx         # Parent account settings + custom story voices
@@ -56,15 +68,15 @@ src/
 │   ├── learn/LearnPage.jsx     # Letter/word tracing with AI validation + fullscreen
 │   ├── readquiz/ReadQuiz.jsx   # Read-along + comprehension quiz
 │   ├── mywriting/MyWriting.jsx # Kids writing + AI coach + "What happens next?"
-│   ├── memory/MemoryPlay.jsx   # Memory card-matching game + fullscreen
+│   ├── memory/MemoryPlay.jsx   # Memory card-matching game + Word of Day
 │   ├── activities/Activities.jsx # Activity suggestions + semantic similar
 │   ├── timeline/Timeline.jsx   # Child progress timeline
 │   └── trace/
-│       └── Maze.jsx            # Procedurally generated maze game (see below)
+│       ├── Maze.jsx            # Procedurally generated maze game (see below)
 │       └── Riddle.jsx          # Age-adaptive riddles (see below)
 ├── themes.js                   # Theme definitions (colours per child theme)
 ├── tour.js                     # driver.js tour step config
-├── App.jsx                     # Router, auth state, layout shell, parental lock
+├── App.jsx                     # Layout shell, headers, bottom nav, hook composition (~540 lines)
 ├── main.jsx                    # React entry point
 └── index.css                   # Global styles + CSS variables
 ```
@@ -186,13 +198,14 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 - **My Writing page** — any saved story has a **✨ What happens next?** button; calls `POST /api/writing/{id}/continue`; the backend generates a continuation via the same `StoryAgent.continueStory()` but does **not** save the result — it is shown as inspiration only. The child can adopt it into the editor via "Use this — keep writing!" or regenerate with "Try another idea".
 - Both flows show the themed `ThemeLoader` animation and call `window.__glumbiRefreshQuota?.()` on success to refresh the credit counter
 
-### Parental Lock & Session Timer
+### Parental Lock & Session Timer (`hooks/useLockSession.js`)
 
 - Parents set a 4-digit PIN + optional time limit on the child list page before handing the device over
+- All lock state lives in `useLockSession`; UI in `LockModal.jsx` (PIN entry) and `ScreenTimeModal.jsx` (time-up alert)
 - PIN inputs are wrapped in `<form>` elements (suppresses browser console warnings); the unlock form submits on Enter
-- PIN inputs have `autoComplete="new-password"` (setup) / `"current-password"` (unlock) and a hidden `username` field for accessibility
 - "I'm done — lock 🔒" from the screen-time popup sets `lockModalForced = true`, removing the Cancel button — the child cannot bypass back to the app without the parent entering the PIN
-- Lock state is session-based (`sessionStorage`); PIN is never sent to the server
+- Lock state persists in `localStorage`; PIN is never sent to the server
+- **Timer pauses** when the tab is hidden (`visibilitychange`) and auto-corrects for device sleep (tick delta > 45 s)
 
 **Session timer (per child, applies regardless of lock state):**
 - Each child has its own independent timer, keyed by child ID in `localStorage`: `glm_session_start_<childId>`, `glm_snooze_count_<childId>`, `glm_session_limit_<childId>`, `glm_session_max_snooze_<childId>`
@@ -209,7 +222,7 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 
 - JWT token stored in `localStorage` as `glm_token`
 - User role stored as `glm_role` (`PARENT`, `ADMIN`, or `SUPER_ADMIN`)
-- `App.jsx` reads these on mount and initialises auth state synchronously from `window.location.pathname`
+- `hooks/useAuth.js` reads these on mount and initialises auth state synchronously from `window.location.pathname`
 - Google Sign-In uses the Google Identity Services script loaded in `index.html`
 - Admin accounts are always password-only — Google OAuth is not available for `ADMIN` or `SUPER_ADMIN` roles
 
@@ -288,7 +301,13 @@ Global font rules in `index.css`:
 
 ## Routing
 
-All routes are defined in `App.jsx`. The `vercel.json` at the root of `frontend/` rewrites all paths to `index.html` so React Router handles navigation on refresh.
+Routes are split across three files. `App.jsx` selects which set to render based on auth state; `vercel.json` rewrites all paths to `index.html` so React Router handles navigation on refresh.
+
+| File | Routes |
+|---|---|
+| `routes/PublicRoutes.jsx` | `/`, `/about`, `/demo`, `/login`, `/privacy`, `/terms`, `/contact` |
+| `layouts/ManagementLayout.jsx` (children from `App.jsx`) | `/child`, `/child/new`, `/child/:id/edit`, `/profile`, `/help` |
+| `routes/ChildRoutes.jsx` | All `/child/:childId/*` feature routes |
 
 | Path | Page |
 |---|---|

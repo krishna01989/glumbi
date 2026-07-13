@@ -192,7 +192,7 @@ function WordOfDayTab({ child }) {
   const fetchedRef = useRef(false)
 
   useEffect(() => {
-    if (offline || fetchedRef.current) return
+    if (fetchedRef.current) return
     fetchedRef.current = true
     setLoading(true)
     Promise.all([
@@ -204,14 +204,7 @@ function WordOfDayTab({ child }) {
     }).catch(err => setError(err.message))
       .finally(() => setLoading(false))
     window.__glumbiRefreshQuota?.()
-  }, [child.id, offline])
-
-  if (offline) return (
-    <div className="card" style={{ textAlign: 'center', padding: 40 }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>✈️</div>
-      <div style={{ fontWeight: 700, color: '#888' }}>Word of Day is unavailable in offline mode</div>
-    </div>
-  )
+  }, [child.id])
 
   if (loading) return <ThemeLoader theme={child.theme} />
 

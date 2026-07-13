@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { THEMES, THEME_GROUPS, applyTheme } from './themes'
 import { childApi } from './api/client'
@@ -245,7 +245,7 @@ export default function App() {
   }
 
   // Auto-collapse sidebar on tablet
-  useEffect(() => { setCollapsed(isTablet) }, [isTablet])
+  useLayoutEffect(() => { setCollapsed(isTablet) }, [isTablet])
 
   // Auto-expand sidebar group matching current route
   const currentSegment = location.pathname.split('/').pop()
@@ -256,7 +256,7 @@ export default function App() {
   useEffect(() => { if (activeGroupId) setOpenGroupId(activeGroupId) }, [activeGroupId])
 
   // Reset to neutral theme on management pages
-  useEffect(() => {
+  useLayoutEffect(() => {
     const isManagement = /^\/child(\/new|\/\d+\/edit)?$|^\/(profile|help|privacy|terms|contact)/.test(location.pathname)
     if (isManagement && !child) applyTheme('coral')
   }, [location.pathname])

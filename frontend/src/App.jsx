@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { THEMES, THEME_GROUPS, applyTheme } from './themes'
+import { ThemeContext } from './context/ThemeContext'
 import { childApi } from './api/client'
 import { startTour } from './tour'
 import { useAuth }         from './hooks/useAuth'
@@ -360,6 +361,7 @@ export default function App() {
   const childAge   = calcChildAge(child.birthYear)
 
   return (
+    <ThemeContext.Provider value={theme}>
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
 
       {screenTimeAlert === true && (
@@ -386,7 +388,7 @@ export default function App() {
       {lockModalEl}
 
       <AppSidebar
-        child={child} theme={theme} isTV={isTV}
+        child={child} isTV={isTV}
         collapsed={collapsed} setCollapsed={setCollapsed}
         GROUPS={GROUPS}
         openGroupId={openGroupId} setOpenGroupId={setOpenGroupId}
@@ -484,7 +486,7 @@ export default function App() {
 
         <MobileMenu
           open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}
-          onLogout={handleLogout} child={child} theme={theme}
+          onLogout={handleLogout} child={child}
           onSwitchChild={() => { setChild(null); navigate('/child') }}
           onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
           wotd={sidebarWotd}
@@ -538,5 +540,6 @@ export default function App() {
         </button>
       </nav>
     </div>
+    </ThemeContext.Provider>
   )
 }

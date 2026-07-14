@@ -1,10 +1,12 @@
 import { NavLink } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
 
 export default function AppSidebar({
-  child, theme, isTV, collapsed, setCollapsed,
+  child, isTV, collapsed, setCollapsed,
   GROUPS, openGroupId, setOpenGroupId, currentSegment,
   sidebarWotd, childLocked, navigate,
 }) {
+  const theme = useTheme()
   const SW = isTV ? 260 : collapsed ? 64 : 220
 
   return (

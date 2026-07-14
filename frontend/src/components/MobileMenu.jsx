@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useTheme } from '../context/ThemeContext'
 
 const NAV_GROUPS = [
   {
@@ -40,7 +41,8 @@ const NAV_GROUPS = [
   },
 ]
 
-export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, theme, onTour, wotd, childLocked, onUnlock }) {
+export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, onTour, wotd, childLocked, onUnlock }) {
+  const theme = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
 

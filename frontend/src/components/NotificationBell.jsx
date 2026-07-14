@@ -8,6 +8,7 @@ const TYPE_ICON = {
   LEARNING_INSIGHT:     '💡',
   LEARN_TO_WRITE:       '✏️',
   MEMORY_PLAY:          '🧠',
+  QUOTA_WARNING:        '⚠️',
 }
 
 const TYPE_LABEL = {
@@ -17,6 +18,7 @@ const TYPE_LABEL = {
   LEARNING_INSIGHT:     'Learning Insight',
   LEARN_TO_WRITE:       'Learn to Write',
   MEMORY_PLAY:          'Memory Play',
+  QUOTA_WARNING:        'Quota Warning',
 }
 
 export default function NotificationBell({ isMobile = false }) {

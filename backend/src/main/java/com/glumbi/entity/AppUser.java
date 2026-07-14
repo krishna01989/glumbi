@@ -40,6 +40,8 @@ public class AppUser {
     private int quotaLimit = 0;  // 0 = use global default from app.quota.default-monthly-credits
     @Column(columnDefinition = "varchar(7)")
     private String quotaWarnMonth; // "YYYY-MM" — tracks when 80% warning was last sent
+    @Column(columnDefinition = "varchar(7)")
+    private String quotaExhaustedMonth; // "YYYY-MM" — tracks when 100% exhausted notification was last sent
 
     @Column(nullable = true, columnDefinition = "boolean default false")
     private boolean onHold = false;

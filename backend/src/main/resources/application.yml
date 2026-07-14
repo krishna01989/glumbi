@@ -71,6 +71,7 @@ app:
     verify-url: https://challenges.cloudflare.com/turnstile/v0/siteverify
   quota:
     default-monthly-credits: 200
+    notification-history-days: 30
 
 voyage:
   api-key: ${VOYAGE_API_KEY:}

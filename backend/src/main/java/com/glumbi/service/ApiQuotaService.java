@@ -84,6 +84,7 @@ public class ApiQuotaService {
             user.setApiCallMonth(thisMonth);
             user.setMonthlyApiCalls(0);
             user.setQuotaWarnMonth(null);
+            user.setQuotaExhaustedMonth(null);
         }
 
         int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : getDefaultMonthlyCredits();
@@ -95,6 +96,7 @@ public class ApiQuotaService {
         userRepository.save(user);
 
         int used = user.getMonthlyApiCalls();
+
         boolean crossed80      = used >= (int) Math.ceil(limit * 0.8);
         boolean warnNotSentYet = !thisMonth.equals(user.getQuotaWarnMonth());
         if (crossed80 && warnNotSentYet) {
@@ -102,11 +104,20 @@ public class ApiQuotaService {
             userRepository.save(user);
             notificationService.save(
                 user, null, NotificationType.QUOTA_WARNING,
-                String.format(
-                    "⚠️ You've used %d of your %d AI credits this month (%.0f%%). " +
-                    "Consider switching to Practice Mode to keep learning without using credits.",
-                    used, limit, (used * 100.0) / limit
-                )
+                "⚠️ You've used over 80% of your monthly AI credits. " +
+                "Consider switching to Practice Mode to keep learning without using credits."
+            );
+        }
+
+        boolean crossed100          = used >= limit;
+        boolean exhaustedNotSentYet = !thisMonth.equals(user.getQuotaExhaustedMonth());
+        if (crossed100 && exhaustedNotSentYet) {
+            user.setQuotaExhaustedMonth(thisMonth);
+            userRepository.save(user);
+            notificationService.save(
+                user, null, NotificationType.QUOTA_WARNING,
+                "🚫 You've used all your monthly AI credits. AI features are paused until next month. " +
+                "Switch to Practice Mode to keep learning without credits."
             );
         }
 
@@ -133,6 +144,7 @@ public class ApiQuotaService {
                 user.setMonthlyApiCalls(0);
                 user.setApiCallMonth(thisMonth);
                 user.setQuotaWarnMonth(null);
+                user.setQuotaExhaustedMonth(null);
                 userRepository.save(user);
                 usersReset++;
             }

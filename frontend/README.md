@@ -147,6 +147,7 @@ All API calls go through the Axios instance in `client.js`. It:
 - `public/404.html` and `public/500.html` are static coral-themed pages served by Vercel CDN for route-level errors or when the React app itself fails to load
 - `index.html` includes an inline fallback rendered inside `#root` that stays visible if the JS bundle errors before React mounts; disappears automatically once React takes over
 - `vercel.json` wires `404.html` and `500.html` as Vercel error pages
+- **Admin 502 redirect loop:** The admin `Routes` block in `App.jsx` must include `<Route path="/error/:code" element={<ErrorPage .../>} />` before its wildcard `path="*"` catch-all. Without it, `/error/502` matches the wildcard and redirects back to `/admin/dashboard`, triggering another 502 — an infinite loop. Child routes avoid this via an early `if (/^\/error\//.test(location.pathname))` guard that runs before the Routes tree.
 
 ### Maze (`features/trace/Maze.jsx`)
 
@@ -292,6 +293,60 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 - **Feature Credits**: enable/disable features globally, set per-feature credit costs. `FEATURE_META` map at the bottom of `AdminPage.jsx` drives the credits tab — new features must be added here as well as `FEATURE_DISPLAY_MAP` (used by the user feature override modal).
 - **Scheduler History**: live run history — RUNNING ⏳ / SUCCESS ✅ / FAILED ❌, timestamps, duration, agents ran/skipped, errors.
 - **Admin profile** (`/admin/profile` → `AdminProfilePage.jsx`): separate page with dark indigo theme, no voice/theming features. Email fetched from `GET /api/users/profile` (not localStorage). Change password + two-step delete account. Super admins see a note that another super admin must exist before self-delete.
+
+### Analytics — Activity Tracking
+
+#### `useActivityTracker` hook (`src/hooks/useActivityTracker.js`)
+
+Offline-first event queue for child activity analytics:
+
+- `track(feature, eventType, metadata)` — enqueues an event to `localStorage` key `glm_activity_queue`, then flushes immediately if online
+- Events survive page refresh (localStorage write is synchronous) and are flushed on the next `track()` call when back online
+- Each event carries: `childId`, `feature`, `eventType`, `durationSeconds`, `clientKey` (UUID for server-side dedup), `occurredAt` (UTC ISO string)
+- Batch sent to `POST /api/activity-events/batch`
+- **Concurrent-enqueue safety:** `flush()` snapshots `queue.length` before the `await`, then slices off only those items after the POST resolves — any events enqueued during the async wait are preserved. A self-recursive `flush()` call at the end drains them immediately. Without this, multiple synchronous `track()` calls (e.g. a quiz forEach loop) lose all but the first event.
+
+#### `useFeatureDuration` hook (`src/hooks/useFeatureDuration.js`)
+
+Fires a `session` event with `durationSeconds` on component unmount. Excludes idle time (hidden tab, locked session). Use for any feature that mounts/unmounts on navigation:
+
+```js
+const { track } = useFeatureDuration('featureName', track)
+```
+
+#### MemoryMatchTab — always-mounted session tracking
+
+`MemoryMatchTab` stays mounted (hidden via `display: none`) to preserve mid-game state, so `useFeatureDuration` (unmount-based) doesn't fire on tab switch within MemoryPlay. Pattern:
+
+- `isActive` prop passed from the parent
+- **Effect 1** — watches `isActive`: starts a `Date.now()` ref on `true`, fires session event on `false` (tab switch)
+- **Effect 2** — unmount cleanup: fires session event if still active (navigating away from MemoryPlay)
+- Minimum 5 s threshold before emitting to avoid noise from accidental taps
+
+#### Event taxonomy
+
+| Event type | When | Counted in sessions? |
+|---|---|---|
+| `session` | Feature unmount / tab deactivate, with `durationSeconds` | ✅ Yes |
+| `correct`, `wrong` | Answer right/wrong in quiz features | ❌ No |
+| `match`, `mismatch` | Memory match card flip | ❌ No |
+| `complete` | Game/quiz completed | ❌ No |
+
+Only `session` events appear in `featureBreakdown` (parent popup) and session totals. Other events are stored for future analysis but excluded from aggregation.
+
+#### `ACTIVITY_FEATURES` map
+
+Maps internal feature keys to display labels — used to label bars in the parent activity popup. All features are shown; there is no `.slice()` cap (was removed to avoid silently dropping newly added features).
+
+#### Touch-friendly analytics charts
+
+All chart bars and heatmap cells use **click-based inline popups**, never `title` attributes (hover-only, invisible on touch devices):
+
+- **Parent popup (ChildList.jsx):** two separate states — `activeDailyBar` (daily sessions chart) and `activeHourBar` (hourly activity chart) — each chart renders its own popup inline, immediately below its own bars
+- **Admin heatmap (AdminPage.jsx):** `activeCell` state — popup renders as an inline div below the gradient legend, inside the heatmap container (not `position: fixed`)
+- All popups have a ✕ close button using the standard circular button style
+
+---
 
 ### Notifications (`NotificationBell.jsx`)
 

@@ -249,6 +249,85 @@ CORS policy on the R2 bucket must expose `Content-Length`, `Content-Range`, and 
 - `ElevenLabsService` is a no-dependency HTTP client using Java's built-in `HttpClient` — no extra libraries needed
 - `ELEVENLABS_API_KEY` env var must be set; if absent, `ElevenLabsService.isConfigured()` returns false and voice cloning endpoints return 503
 
+## Analytics System
+
+### ChildActivityEvent entity & repository
+
+`ChildActivityEvent` stores every event fired by the frontend tracker. Key fields: `childId`, `userId`, `feature`, `eventType`, `durationSeconds`, `online`, `occurredAt` (UTC), `clientKey` (UUID for idempotency).
+
+`ChildActivityEventRepository` native SQL queries:
+
+| Query | Filter | Purpose |
+|---|---|---|
+| `countByFeatureForChild` | `event_type = 'session'` | Per-feature session count for parent popup |
+| `countByFeatureSince` | `event_type = 'session'` | Per-feature session count for admin dashboard |
+| `countByDateForChild` | — | Daily activity chart (all events) |
+| `countByHourForChild` | — | Hourly distribution (all events) |
+| `sumDurationByFeatureForChild` | `event_type = 'session'` | Total engagement seconds per feature |
+| `countByHourAndDayOfWeekSince` | — | 7×24 heatmap for admin |
+| `existsByClientKey` | — | Idempotency check on batch ingest |
+
+**Why session-only for feature counts:** Other event types (`correct`, `wrong`, `match`, `mismatch`, `complete`, etc.) are internal analytics events — counting them would inflate session totals. Only `session` events represent a child actually engaging with a feature.
+
+### ChildActivityEventService
+
+`getChildAnalytics(childId, userId, days, tz)`:
+- Calls `normalizeTimezone(tz)` before any DB query to map legacy IANA names to modern equivalents
+- Builds full date series in the user's local timezone (zero-filled), then fills actuals
+- `featureBreakdown` — map of feature → session count (session events only)
+- `totalSessions` = sum of all featureBreakdown values (computed server-side, returned in response)
+- `totalEvents` = raw count of all event types (separate from `totalSessions`)
+- `durationByFeature` — sum of `durationSeconds` per feature from session events
+- `totalEngagementSeconds` — sum across all features
+
+`getAdminAnalytics(days)`:
+- Uses UTC `from` date (no timezone adjustment — platform-wide aggregation)
+- Same session-only filter on `featureBreakdown`
+- Returns 7×24 `heatmap` (day-of-week × hour, UTC)
+- Does not return `totalSessions` (admin view uses `totalEvents` for platform-wide totals)
+
+### normalizeTimezone()
+
+```java
+private static String normalizeTimezone(String tz) {
+    if (tz == null || tz.isBlank()) return "UTC";
+    return switch (tz) {
+        case "Asia/Calcutta"   -> "Asia/Kolkata";
+        case "Asia/Katmandu"   -> "Asia/Kathmandu";
+        case "America/Godthab" -> "America/Nuuk";
+        case "Pacific/Ponape"  -> "Pacific/Pohnpei";
+        default -> tz;
+    };
+}
+```
+
+Railway's PostgreSQL has a stricter TZDB than local Postgres — legacy names like `Asia/Calcutta` are rejected. This helper normalises before any DB query.
+
+### Batch ingest — `POST /api/activity-events/batch`
+
+`ChildActivityEventController.saveBatch()` accepts a list of events. Per-event guards:
+1. Skip if `childId`, `feature`, or `eventType` is null
+2. Skip if `clientKey` already exists (idempotency)
+3. Skip if the child doesn't belong to the calling user
+
+### Native query cast syntax — no `::` allowed
+
+Spring Data JPA's named-parameter binder scans the query string for `:paramName` tokens. PostgreSQL shorthand casts (`::json`, `::boolean`, `::integer`, `::float`) start with `::` which the binder misreads as a parameter prefix, producing `ERROR: syntax error at or near ":"`. Always use ANSI `CAST(expr AS type)` in any `@Query(nativeQuery = true)` annotation:
+
+```sql
+-- ❌ breaks at startup / runtime
+metadata::json->>'field'
+(metadata::json->>'correct')::boolean
+
+-- ✅ safe
+CAST(metadata AS json)->>'field'
+CAST(CAST(metadata AS json)->>'correct' AS boolean)
+```
+
+Events are stored with `occurredAt` from the client (UTC) or `LocalDateTime.now()` if the client value is unparseable. `syncedAt` is always the server time.
+
+---
+
 ## Schedulers
 
 | Scheduler | Trigger | Description |

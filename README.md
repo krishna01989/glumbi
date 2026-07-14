@@ -125,6 +125,17 @@ Frontend: http://localhost:5173
 
 ---
 
+## Analytics System
+
+Glumbi tracks child engagement through an offline-first analytics pipeline:
+
+- **Frontend:** `useActivityTracker` hook queues events to `localStorage` (`glm_activity_queue`) and flushes to the backend when online. `useFeatureDuration` fires a `session` event with `durationSeconds` on feature unmount. Events carry a `clientKey` UUID for server-side dedup.
+- **Always-mounted components:** `MemoryMatchTab` stays mounted to preserve game state, so it uses an `isActive` prop + two effects pattern instead of unmount-based tracking.
+- **Backend:** `POST /api/activity-events/batch` ingests events. `ChildActivityEventService` computes daily/hourly activity, feature breakdown (session events only), engagement duration, streaks, and a 7×24 heatmap for admin.
+- **Session vs event distinction:** Only `event_type = 'session'` events are counted in feature breakdowns and totals. Other event types (`correct`, `wrong`, `match`, `mismatch`, `complete`) are stored but excluded from aggregation queries.
+- **Timezone safety:** `normalizeTimezone()` maps legacy IANA names (e.g. `Asia/Calcutta` → `Asia/Kolkata`) before any DB query — Railway's PostgreSQL rejects the legacy forms.
+- **Touch-friendly charts:** All bars and heatmap cells use click-based inline popups (no `title` attributes, which are hover-only and invisible on touch devices).
+
 ## Admin Panel
 
 Accessible at `/admin` by users with the `ADMIN` or `SUPER_ADMIN` role. Admin accounts are always password-based (no Google OAuth) and are created exclusively through the admin panel — users cannot self-register as admins.

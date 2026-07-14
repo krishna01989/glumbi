@@ -145,16 +145,16 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
                     <button key={item.path} onClick={() => go(path)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 14,
-                        width: '100%', padding: '10px 20px 10px 17px', border: 'none',
-                        borderLeft: active ? `4px solid ${theme?.primary || 'white'}` : '4px solid transparent',
+                        width: 'calc(100% - 24px)', margin: '2px 12px',
+                        padding: '10px 16px', border: 'none', borderRadius: 50,
                         fontSize: 14, fontWeight: active ? 900 : 700,
                         color: active ? (theme?.primary || 'white') : 'white',
                         cursor: 'pointer', textAlign: 'left',
-                        background: active ? 'rgba(255,255,255,0.92)' : 'none',
+                        background: active ? 'rgba(255,255,255,0.92)' : 'transparent',
                         transition: 'background 0.15s',
                       }}
                       onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'none' }}>
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
                       <span style={{ fontSize: 17, width: 22, textAlign: 'center' }}>{item.emoji}</span>
                       {item.label}
                     </button>

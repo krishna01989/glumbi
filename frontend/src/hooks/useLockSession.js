@@ -77,7 +77,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
 
     const elapsed = Math.max(0, Math.floor((Date.now() - start) / 60000))
     setSessionStart(start)
-    setSessionMinutes(elapsed)
+    setSessionMinutes(restoredLimit > 0 ? Math.min(elapsed, restoredLimit) : elapsed)
     setScreenTimeAlert(false)
 
     if (restoredLimit > 0 && elapsed >= restoredLimit) {
@@ -108,7 +108,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
 
       if (document.hidden || screenTimeAlertRef.current) return
       const elapsed = Math.max(0, Math.floor((Date.now() - sessionStartRef.current) / 60000))
-      setSessionMinutes(elapsed)
+      setSessionMinutes(lockTimeLimit > 0 ? Math.min(elapsed, lockTimeLimit) : elapsed)
       if (!lockTimeLimit || sessionEndedRef.current) return
       if (elapsed >= lockTimeLimit) {
         setSnoozeCount(current => {
@@ -248,6 +248,12 @@ export function useLockSession({ child, setChild, prevChildId }) {
     setChild(null); navigate('/child')
   }
 
+  function endSessionLocked() {
+    sessionEndedRef.current = true
+    setLockPin(''); setLockPinError(''); setLockModalForced(true); setLockModal('unlock')
+    setScreenTimeAlert(false)
+  }
+
   function resetLock() {
     setChildLocked(false)
     setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false)
@@ -276,7 +282,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
     snoozeCount,
     originalLimitRef,
     handleLockSetup, handleLockVerify, handleUnlock,
-    handleScreenTimeSnooze,
+    handleScreenTimeSnooze, endSessionLocked,
     engageLock,
     resetLock,
     formatElapsed,

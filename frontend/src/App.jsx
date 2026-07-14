@@ -236,7 +236,7 @@ export default function App() {
     screenTimeAlert, setScreenTimeAlert,
     snoozeCount, originalLimitRef,
     handleLockSetup, handleLockVerify, handleUnlock,
-    handleScreenTimeSnooze, engageLock, resetLock, formatElapsed,
+    handleScreenTimeSnooze, endSessionLocked, engageLock, resetLock, formatElapsed,
   } = lock
 
   function handleLogout() {
@@ -374,10 +374,10 @@ export default function App() {
           originalLimitRef={originalLimitRef}
           onSnooze={handleScreenTimeSnooze}
           onDone={() => {
-            setScreenTimeAlert(false)
             if (childLocked) {
-              setLockPin(''); setLockPinError(''); setLockModalForced(true); setLockModal('unlock')
+              endSessionLocked()
             } else {
+              setScreenTimeAlert(false)
               handleLogout()
             }
           }}

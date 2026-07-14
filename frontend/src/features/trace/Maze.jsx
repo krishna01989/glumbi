@@ -209,7 +209,7 @@ export default function Maze({ child, quota, featureConfig }) {
   const { cw, ch } = cellGeom(cols, rows)
   const resumeRadius = Math.min(cw, ch) * 0.7
   const startRadius  = Math.min(cw, ch) * 0.85
-  const endRadius    = Math.min(cw, ch) * 0.6
+  const endRadius    = Math.min(cw, ch) * 0.42   // kept inside cell — never bleeds past the border wall
   const strokeW      = Math.min(cw, ch) * 0.13
 
   function handleAt(clientX, clientY) {
@@ -244,6 +244,30 @@ export default function Maze({ child, quota, featureConfig }) {
     const [lx, ly] = pts[pts.length - 1]
     if (Math.hypot(sx - lx, sy - ly) < 3) return
 
+    // Out-of-bounds check — reject points outside the outer border
+    if (sx < MARGIN || sy < MARGIN || sx > SVG_W - MARGIN || sy > SVG_H - MARGIN) {
+      const moveDist = Math.hypot(sx - lx, sy - ly)
+      const tipT = moveDist > 0 ? Math.max(0, (Math.min(
+        sx < MARGIN ? (lx - MARGIN) / (lx - sx) : 1,
+        sy < MARGIN ? (ly - MARGIN) / (ly - sy) : 1,
+        sx > SVG_W - MARGIN ? (SVG_W - MARGIN - lx) / (sx - lx) : 1,
+        sy > SVG_H - MARGIN ? (SVG_H - MARGIN - ly) / (sy - ly) : 1,
+      ) - 5 / moveDist)) : 0
+      const ix = lx + (sx - lx) * tipT
+      const iy = ly + (sy - ly) * tipT
+      const newPts = [...pts, [ix, iy]]
+      pathRef.current = newPts
+      setPathPts([...newPts])
+      drawingRef.current = false
+      phaseRef.current = 'wall'
+      setPhase('wall')
+      setWallMsg(WALL_MSGS[Math.floor(Math.random() * WALL_MSGS.length)])
+      timerRef.current = setTimeout(() => {
+        if (phaseRef.current === 'wall') { phaseRef.current = 'idle'; setPhase('idle') }
+      }, 1500)
+      return
+    }
+
     // Wall collision check
     const t = firstWallHit(lx, ly, sx, sy, wallSegs)
     if (t !== null) {
@@ -273,9 +297,10 @@ export default function Maze({ child, quota, featureConfig }) {
     pathRef.current = newPts
     setPathPts([...newPts])
 
-    // Success — reached end cell
+    // Success — reached end cell (must be inside maze bounds)
     const [ex, ey] = cellCenter(rows - 1, cols - 1, cols, rows)
-    if (Math.hypot(sx - ex, sy - ey) < endRadius) {
+    const inBounds = sx > MARGIN && sy > MARGIN && sx < SVG_W - MARGIN && sy < SVG_H - MARGIN
+    if (inBounds && Math.hypot(sx - ex, sy - ey) < endRadius) {
       phaseRef.current = 'success'
       setPhase('success')
       drawingRef.current = false

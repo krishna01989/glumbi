@@ -399,11 +399,26 @@ function ActivityModal({ child, t, onClose }) {
                   </div>
                 </div>
                 {allFeatures.map(({ feature, count, sec }) => {
-                  const meta  = ACTIVITY_FEATURES[feature] || { label: feature, emoji: '🎮' }
-                  const val   = featureMode === 'time' ? sec : count
-                  const pct   = Math.round((val / featureMax) * 100)
-                  const label = featureMode === 'time' ? (fmtDuration(sec) ?? '—') : `${count}×`
-                  const sub   = featureMode === 'time' ? `${count} sessions` : (fmtDuration(sec) ? fmtDuration(sec) : null)
+                  const meta     = ACTIVITY_FEATURES[feature] || { label: feature, emoji: '🎮' }
+                  const val      = featureMode === 'time' ? sec : count
+                  const pct      = Math.round((val / featureMax) * 100)
+                  const label    = featureMode === 'time' ? (fmtDuration(sec) ?? '—') : `${count}×`
+                  const sub      = featureMode === 'time' ? `${count} sessions` : (fmtDuration(sec) ? fmtDuration(sec) : null)
+                  const accuracy    = data?.accuracyByFeature?.[feature]
+                  const completions = data?.completionsByFeature?.[feature]
+                  const flipEff     = feature === 'memorymatch' && data?.flipEfficiency > 0 ? data.flipEfficiency : null
+                  // Feature-specific insight chips
+                  const extraChips = []
+                  if (feature === 'stories' && data?.storiesSimilarViewed > 0)
+                    extraChips.push({ key: 'sim', icon: '🔗', text: `${data.storiesSimilarViewed} similar explored`, color: '#0ea5e9', bg: '#f0f9ff' })
+                  if (feature === 'maze' && (data?.mazeGaveUpCount > 0 || data?.mazeAvgWallHits > 0))
+                    extraChips.push({ key: 'maze', icon: '🧱', text: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, color: '#f97316', bg: '#fff7ed' })
+                  if (feature === 'riddle' && data?.riddleHints > 0)
+                    extraChips.push({ key: 'hints', icon: '💡', text: `Used ${data.riddleHints} hint${data.riddleHints !== 1 ? 's' : ''}`, color: '#f59e0b', bg: '#fffbeb' })
+                  if (feature === 'mywriting' && data?.mywritingAvgWordCount > 0)
+                    extraChips.push({ key: 'words', icon: '✍️', text: `avg ${data.mywritingAvgWordCount} words/submission`, color: '#10b981', bg: '#f0fdf4' })
+                  if (feature === 'memorymatch' && data?.topMemoryMatchTheme)
+                    extraChips.push({ key: 'theme', icon: '⭐', text: `Fav theme: ${data.topMemoryMatchTheme}`, color: '#8b5cf6', bg: '#faf5ff' })
                   return (
                     <div key={feature} style={{ marginBottom: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>
@@ -419,6 +434,33 @@ function ActivityModal({ child, t, onClose }) {
                       <div style={{ background: '#f0f0f0', borderRadius: 6, height: 7, overflow: 'hidden' }}>
                         <div style={{ width: `${pct}%`, background: t.primary, height: '100%', borderRadius: 6, opacity: 0.75, transition: 'width 0.4s ease' }} />
                       </div>
+                      {/* Performance + insight chips */}
+                      {(accuracy || completions || flipEff || extraChips.length > 0) && (
+                        <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+                          {accuracy && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: accuracy.rate >= 70 ? '#22c55e' : accuracy.rate >= 40 ? '#f59e0b' : '#ef4444',
+                              background: accuracy.rate >= 70 ? '#f0fdf4' : accuracy.rate >= 40 ? '#fffbeb' : '#fef2f2',
+                              borderRadius: 50, padding: '2px 8px' }}>
+                              ✓ {accuracy.rate}% accurate
+                            </span>
+                          )}
+                          {completions && count > 0 && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#f0f0ff', borderRadius: 50, padding: '2px 8px' }}>
+                              🏁 {completions}/{count} completed
+                            </span>
+                          )}
+                          {flipEff && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#8b5cf6', background: '#faf5ff', borderRadius: 50, padding: '2px 8px' }}>
+                              🃏 avg {flipEff} flips/game
+                            </span>
+                          )}
+                          {extraChips.map(c => (
+                            <span key={c.key} style={{ fontSize: 10, fontWeight: 700, color: c.color, background: c.bg, borderRadius: 50, padding: '2px 8px' }}>
+                              {c.icon} {c.text}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })}

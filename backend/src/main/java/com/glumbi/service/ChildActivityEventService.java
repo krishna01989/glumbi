@@ -130,6 +130,41 @@ public class ChildActivityEventService {
             byEventType.add(m);
         }
 
+        // Performance metrics — accuracy, completions, flip efficiency
+        Map<String, Map<String, Long>> perfRaw = new LinkedHashMap<>();
+        for (Object[] row : repo.countPerformanceByFeatureForChild(childId, from)) {
+            String feat = row[0].toString();
+            String type = row[1].toString();
+            long   cnt  = ((Number) row[2]).longValue();
+            perfRaw.computeIfAbsent(feat, k -> new LinkedHashMap<>()).put(type, cnt);
+        }
+        // accuracyByFeature — features that have correct/wrong events
+        Map<String, Object> accuracyByFeature = new LinkedHashMap<>();
+        for (var entry : perfRaw.entrySet()) {
+            long correct = entry.getValue().getOrDefault("correct", 0L);
+            long wrong   = entry.getValue().getOrDefault("wrong",   0L);
+            if (correct + wrong == 0) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("correct", correct);
+            m.put("wrong",   wrong);
+            m.put("rate",    Math.round((correct * 100.0) / (correct + wrong)));
+            accuracyByFeature.put(entry.getKey(), m);
+        }
+        // completionsByFeature — features that have complete events
+        Map<String, Long> completionsByFeature = new LinkedHashMap<>();
+        for (var entry : perfRaw.entrySet()) {
+            long completions = entry.getValue().getOrDefault("complete", 0L);
+            if (completions > 0) completionsByFeature.put(entry.getKey(), completions);
+        }
+        // flipEfficiency — memory match: (match + mismatch) / completions
+        double flipEfficiency = 0;
+        if (perfRaw.containsKey("memorymatch")) {
+            var mm = perfRaw.get("memorymatch");
+            long flips = mm.getOrDefault("match", 0L) + mm.getOrDefault("mismatch", 0L);
+            long comps = mm.getOrDefault("complete", 0L);
+            if (comps > 0) flipEfficiency = Math.round((flips * 10.0) / comps) / 10.0;
+        }
+
         // Streaks (all-time)
         int[] streaks = computeStreaks(repo.getDistinctActiveDates(childId));
 
@@ -162,6 +197,59 @@ public class ChildActivityEventService {
         result.put("byEventType",            byEventType);
         result.put("currentStreak",          streaks[0]);
         result.put("longestStreak",          streaks[1]);
+        // Letter accuracy (Learn to Write — ai_validate events)
+        List<Map<String, Object>> letterAccuracy = new ArrayList<>();
+        for (Object[] row : repo.getLetterAccuracyForChild(childId, from)) {
+            if (row[0] == null) continue;
+            long passed = ((Number) row[2]).longValue();
+            long tot    = ((Number) row[3]).longValue();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("letter", row[0].toString());
+            m.put("script", row[1] != null ? row[1].toString() : "english");
+            m.put("passed", passed);
+            m.put("total",  tot);
+            m.put("rate",   Math.round((passed * 100.0) / tot));
+            letterAccuracy.add(m);
+        }
+        // Word accuracy (Learn to Write — ai_word events)
+        List<Map<String, Object>> wordAccuracy = new ArrayList<>();
+        for (Object[] row : repo.getWordAccuracyForChild(childId, from)) {
+            if (row[0] == null) continue;
+            long passed = ((Number) row[2]).longValue();
+            long tot    = ((Number) row[3]).longValue();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("word",   row[0].toString());
+            m.put("script", row[1] != null ? row[1].toString() : "english");
+            m.put("passed", passed);
+            m.put("total",  tot);
+            m.put("rate",   Math.round((passed * 100.0) / tot));
+            wordAccuracy.add(m);
+        }
+        // Maze: gave_up count + avg wall hits on complete
+        long   mazeGaveUp  = repo.countByChildFeatureEventType(childId, "maze",    "gave_up",      from);
+        Double mazeAvgWalls = repo.avgMazeWallHitsForChild(childId, from);
+        // Riddle: hint count
+        long riddleHints = repo.countByChildFeatureEventType(childId, "riddle",  "hint_used",    from);
+        // Stories: similar_viewed count
+        long storiesSimilar = repo.countByChildFeatureEventType(childId, "stories", "similar_viewed", from);
+        // MyWriting: avg word count at feedback time
+        Double mywritingAvgWords = repo.avgWritingWordCountForChild(childId, from);
+        // Memory match: top theme
+        String topMemoryTheme = null;
+        List<Object[]> themeRows = repo.getTopMemoryMatchThemeForChild(childId, from);
+        if (!themeRows.isEmpty() && themeRows.get(0)[0] != null) topMemoryTheme = themeRows.get(0)[0].toString();
+
+        result.put("accuracyByFeature",      accuracyByFeature);
+        result.put("completionsByFeature",   completionsByFeature);
+        result.put("flipEfficiency",         flipEfficiency);
+        result.put("letterAccuracy",         letterAccuracy);
+        result.put("wordAccuracy",           wordAccuracy);
+        result.put("mazeGaveUpCount",        mazeGaveUp);
+        result.put("mazeAvgWallHits",        mazeAvgWalls != null ? mazeAvgWalls : 0);
+        result.put("riddleHints",            riddleHints);
+        result.put("storiesSimilarViewed",   storiesSimilar);
+        result.put("mywritingAvgWordCount",  mywritingAvgWords != null ? mywritingAvgWords.longValue() : null);
+        result.put("topMemoryMatchTheme",    topMemoryTheme);
         result.put("totalEvents",            total);
         result.put("totalSessions",          totalSessions);
         result.put("onlineCount",            online);
@@ -209,6 +297,7 @@ public class ChildActivityEventService {
         long total  = repo.countByOccurredAtAfter(from);
         long online = repo.countByOnlineTrueAndOccurredAtAfter(from);
         long activeChildren = repo.countDistinctChildrenSince(from);
+        long totalSessions = featureBreakdown.values().stream().mapToLong(Long::longValue).sum();
 
         // Duration per feature — session events only
         Map<String, Long> durationByFeature = new LinkedHashMap<>();
@@ -238,6 +327,38 @@ public class ChildActivityEventService {
             heatmapRows.add(row);
         }
 
+        // Performance metrics — admin platform-wide
+        Map<String, Map<String, Long>> adminPerfRaw = new LinkedHashMap<>();
+        for (Object[] row : repo.countPerformanceByFeatureSince(from)) {
+            String feat = row[0].toString();
+            String type = row[1].toString();
+            long   cnt  = ((Number) row[2]).longValue();
+            adminPerfRaw.computeIfAbsent(feat, k -> new LinkedHashMap<>()).put(type, cnt);
+        }
+        Map<String, Object> adminAccuracyByFeature = new LinkedHashMap<>();
+        for (var entry : adminPerfRaw.entrySet()) {
+            long correct = entry.getValue().getOrDefault("correct", 0L);
+            long wrong   = entry.getValue().getOrDefault("wrong",   0L);
+            if (correct + wrong == 0) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("correct", correct);
+            m.put("wrong",   wrong);
+            m.put("rate",    Math.round((correct * 100.0) / (correct + wrong)));
+            adminAccuracyByFeature.put(entry.getKey(), m);
+        }
+        Map<String, Long> adminCompletionsByFeature = new LinkedHashMap<>();
+        for (var entry : adminPerfRaw.entrySet()) {
+            long completions = entry.getValue().getOrDefault("complete", 0L);
+            if (completions > 0) adminCompletionsByFeature.put(entry.getKey(), completions);
+        }
+        double adminFlipEfficiency = 0;
+        if (adminPerfRaw.containsKey("memorymatch")) {
+            var mm = adminPerfRaw.get("memorymatch");
+            long flips = mm.getOrDefault("match", 0L) + mm.getOrDefault("mismatch", 0L);
+            long comps = mm.getOrDefault("complete", 0L);
+            if (comps > 0) adminFlipEfficiency = Math.round((flips * 10.0) / comps) / 10.0;
+        }
+
         LocalDateTime now = LocalDateTime.now();
         long totalCreditsUsed = usageLogRepo.sumCreditsInPeriod(from, now);
 
@@ -250,9 +371,23 @@ public class ChildActivityEventService {
         result.put("hourlyActivity",         hourlyActivity);
         result.put("heatmap",               heatmapRows);
         result.put("totalEvents",            total);
+        result.put("totalSessions",          totalSessions);
         result.put("onlineCount",            online);
         result.put("offlineCount",           total - online);
         result.put("activeChildren",         activeChildren);
+        // Platform-wide engagement signals
+        long   adminMazeGaveUp   = repo.countByFeatureEventTypeSince("maze",    "gave_up",       from);
+        Double adminMazeAvgWalls = repo.avgMazeWallHitsSince(from);
+        long   adminRiddleHints  = repo.countByFeatureEventTypeSince("riddle",  "hint_used",     from);
+        long   adminSimilarViewed= repo.countByFeatureEventTypeSince("stories", "similar_viewed",from);
+
+        result.put("accuracyByFeature",      adminAccuracyByFeature);
+        result.put("completionsByFeature",   adminCompletionsByFeature);
+        result.put("flipEfficiency",         adminFlipEfficiency);
+        result.put("mazeGaveUpCount",        adminMazeGaveUp);
+        result.put("mazeAvgWallHits",        adminMazeAvgWalls != null ? adminMazeAvgWalls : 0);
+        result.put("riddleHints",            adminRiddleHints);
+        result.put("storiesSimilarViewed",   adminSimilarViewed);
         result.put("totalCreditsUsed",       totalCreditsUsed);
         return result;
     }

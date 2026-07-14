@@ -154,8 +154,19 @@ export default function Maze({ child, quota, featureConfig }) {
   const phaseRef     = useRef('idle')
   const drawingRef   = useRef(false)
   const timerRef     = useRef(null)
-  const mazeStartTime = useRef(Date.now())
+  const mazeStartTime  = useRef(Date.now())
+  const wallHitsRef    = useRef(0)
+  const completedRef   = useRef(false)
   useFeatureDuration('maze', track)
+
+  useEffect(() => {
+    return () => {
+      if (!completedRef.current) {
+        const secs = Math.round((Date.now() - mazeStartTime.current) / 1000)
+        if (secs >= 5) track('maze', 'gave_up', { metadata: { cols, rows, wallHits: wallHitsRef.current }, durationSeconds: secs })
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const grid = useMemo(() => generateMaze(cols, rows, seed), [cols, rows, seed])
 
@@ -263,6 +274,7 @@ export default function Maze({ child, quota, featureConfig }) {
       const newPts = [...pts, [ix, iy]]
       pathRef.current = newPts
       setPathPts([...newPts])
+      wallHitsRef.current += 1
       drawingRef.current = false
       phaseRef.current = 'wall'
       setPhase('wall')
@@ -285,6 +297,7 @@ export default function Maze({ child, quota, featureConfig }) {
       const newPts = [...pts, [ix, iy]]
       pathRef.current = newPts
       setPathPts([...newPts])
+      wallHitsRef.current += 1
       drawingRef.current = false
       phaseRef.current = 'wall'
       setPhase('wall')
@@ -308,7 +321,8 @@ export default function Maze({ child, quota, featureConfig }) {
     if (inBounds && Math.hypot(sx - ex, sy - ey) < endRadius) {
       phaseRef.current = 'success'
       setPhase('success')
-      track('maze', 'complete', { metadata: { cols, rows }, durationSeconds: Math.round((Date.now() - mazeStartTime.current) / 1000) })
+      completedRef.current = true
+      track('maze', 'complete', { metadata: { cols, rows, wallHits: wallHitsRef.current }, durationSeconds: Math.round((Date.now() - mazeStartTime.current) / 1000) })
       drawingRef.current = false
     }
   }

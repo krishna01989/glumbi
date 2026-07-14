@@ -253,7 +253,7 @@ export default function Riddle({ child, quota, featureConfig }) {
           {/* Hint button */}
           {!showHint && !feedback && (
             <div style={{ textAlign: 'center', marginBottom: 16 }}>
-              <button onClick={() => setShowHint(true)} style={{
+              <button onClick={() => { setShowHint(true); track('riddle', 'hint_used', { metadata: { riddle: current?.question } }) }} style={{
                 background: 'var(--primary-lt)', border: '2px solid var(--primary)', borderRadius: 50, padding: '8px 20px',
                 color: 'var(--primary)', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
               }}>

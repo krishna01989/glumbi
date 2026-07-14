@@ -73,6 +73,108 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
         """, nativeQuery = true)
     List<java.sql.Date> getDistinctActiveDates(@Param("childId") Long childId);
 
+    // Performance events (correct/wrong/match/mismatch/complete) grouped by feature + type
+    @Query(value = """
+        SELECT feature, event_type, COUNT(*) AS cnt
+        FROM child_activity_events
+        WHERE child_id = :childId
+          AND event_type IN ('correct','wrong','match','mismatch','complete')
+          AND occurred_at >= :from
+        GROUP BY feature, event_type
+        """, nativeQuery = true)
+    List<Object[]> countPerformanceByFeatureForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
+    // Admin version — platform-wide
+    @Query(value = """
+        SELECT feature, event_type, COUNT(*) AS cnt
+        FROM child_activity_events
+        WHERE event_type IN ('correct','wrong','match','mismatch','complete')
+          AND occurred_at >= :from
+        GROUP BY feature, event_type
+        """, nativeQuery = true)
+    List<Object[]> countPerformanceByFeatureSince(@Param("from") LocalDateTime from);
+
+    // Generic count by feature + event type — used for hint_used, similar_viewed, gave_up, etc.
+    @Query(value = "SELECT COUNT(*) FROM child_activity_events WHERE child_id = :childId AND feature = :feature AND event_type = :eventType AND occurred_at >= :from",
+           nativeQuery = true)
+    long countByChildFeatureEventType(@Param("childId") Long childId, @Param("feature") String feature, @Param("eventType") String eventType, @Param("from") LocalDateTime from);
+
+    // Admin version (platform-wide)
+    @Query(value = "SELECT COUNT(*) FROM child_activity_events WHERE feature = :feature AND event_type = :eventType AND occurred_at >= :from",
+           nativeQuery = true)
+    long countByFeatureEventTypeSince(@Param("feature") String feature, @Param("eventType") String eventType, @Param("from") LocalDateTime from);
+
+    // Letter accuracy from ai_validate metadata
+    @Query(value = """
+        SELECT CAST(metadata AS json)->>'letter' AS letter,
+               CAST(metadata AS json)->>'script' AS script,
+               SUM(CASE WHEN CAST(CAST(metadata AS json)->>'correct' AS boolean) THEN 1 ELSE 0 END) AS passed,
+               COUNT(*) AS total
+        FROM child_activity_events
+        WHERE child_id = :childId AND feature = 'learn' AND event_type = 'ai_validate'
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'letter' IS NOT NULL
+        GROUP BY letter, script
+        ORDER BY (SUM(CASE WHEN CAST(CAST(metadata AS json)->>'correct' AS boolean) THEN 1 ELSE 0 END) / CAST(COUNT(*) AS float)) ASC
+        """, nativeQuery = true)
+    List<Object[]> getLetterAccuracyForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
+    // Word accuracy from ai_word metadata
+    @Query(value = """
+        SELECT CAST(metadata AS json)->>'word' AS word,
+               CAST(metadata AS json)->>'script' AS script,
+               SUM(CASE WHEN CAST(CAST(metadata AS json)->>'correct' AS boolean) THEN 1 ELSE 0 END) AS passed,
+               COUNT(*) AS total
+        FROM child_activity_events
+        WHERE child_id = :childId AND feature = 'learn' AND event_type = 'ai_word'
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'word' IS NOT NULL
+        GROUP BY word, script
+        ORDER BY (SUM(CASE WHEN CAST(CAST(metadata AS json)->>'correct' AS boolean) THEN 1 ELSE 0 END) / CAST(COUNT(*) AS float)) ASC
+        """, nativeQuery = true)
+    List<Object[]> getWordAccuracyForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
+    // Avg wall hits from maze complete events
+    @Query(value = """
+        SELECT ROUND(AVG(CAST(CAST(metadata AS json)->>'wallHits' AS integer)), 1)
+        FROM child_activity_events
+        WHERE child_id = :childId AND feature = 'maze' AND event_type = 'complete'
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'wallHits' IS NOT NULL
+        """, nativeQuery = true)
+    Double avgMazeWallHitsForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
+    // Admin version (platform-wide)
+    @Query(value = """
+        SELECT ROUND(AVG(CAST(CAST(metadata AS json)->>'wallHits' AS integer)), 1)
+        FROM child_activity_events
+        WHERE feature = 'maze' AND event_type = 'complete'
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'wallHits' IS NOT NULL
+        """, nativeQuery = true)
+    Double avgMazeWallHitsSince(@Param("from") LocalDateTime from);
+
+    // Avg word count from mywriting feedback events
+    @Query(value = """
+        SELECT ROUND(AVG(CAST(CAST(metadata AS json)->>'wordCount' AS integer)))
+        FROM child_activity_events
+        WHERE child_id = :childId AND feature = 'mywriting' AND event_type = 'feedback'
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'wordCount' IS NOT NULL
+        """, nativeQuery = true)
+    Double avgWritingWordCountForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
+    // Top memory match theme from session events
+    @Query(value = """
+        SELECT CAST(metadata AS json)->>'theme' AS theme, COUNT(*) AS cnt
+        FROM child_activity_events
+        WHERE child_id = :childId AND feature = 'memorymatch' AND event_type = 'session'
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'theme' IS NOT NULL
+        GROUP BY theme ORDER BY cnt DESC LIMIT 1
+        """, nativeQuery = true)
+    List<Object[]> getTopMemoryMatchThemeForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
     long countByChildId(Long childId);
     long countByChildIdAndOnlineTrue(Long childId);
     long countByChildIdAndOccurredAtAfter(Long childId, LocalDateTime from);

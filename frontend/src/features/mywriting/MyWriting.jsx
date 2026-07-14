@@ -207,7 +207,7 @@ export default function MyWriting({ child, quota }) {
     setError(''); setFbLoading(true)
     try {
       const result = await writingApi.feedback(savedId.current)
-      track('mywriting', 'feedback')
+      track('mywriting', 'feedback', { metadata: { wordCount: wordCount(content) } })
       setFeedback({
         praise: result.feedbackPraise,
         suggestion: result.feedbackSuggestion,

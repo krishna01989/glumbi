@@ -19,14 +19,19 @@ export default function useActivityTracker(child, isOffline) {
     const queue = readQueue()
     if (queue.length === 0) return
     flushingRef.current = true
+    const sending = queue.length
     try {
       await analyticsApi.batchEvents(queue)
-      writeQueue([])
+      // Only remove the items we sent — new events may have been enqueued during the await
+      const current = readQueue()
+      writeQueue(current.slice(sending))
     } catch {
       // keep in queue; retry next time
     } finally {
       flushingRef.current = false
     }
+    // If events were enqueued while we were awaiting, flush them now
+    if (readQueue().length > 0) flush()
   }, [])
 
   // Flush when network comes back

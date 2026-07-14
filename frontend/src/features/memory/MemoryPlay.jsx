@@ -526,6 +526,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
   const offline = useOffline()
   const matchStartRef = useRef(null)
   const matchElapsedRef = useRef(0)
+  const activeThemeRef = useRef(null)
 
   useEffect(() => {
     if (isActive) {
@@ -533,7 +534,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
       matchElapsedRef.current = 0
     } else if (matchStartRef.current !== null) {
       const seconds = Math.round((matchElapsedRef.current + Date.now() - matchStartRef.current) / 1000)
-      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds })
+      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds, metadata: activeThemeRef.current ? { theme: activeThemeRef.current } : undefined })
       matchStartRef.current = null
       matchElapsedRef.current = 0
     }
@@ -544,7 +545,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
     return () => {
       if (matchStartRef.current === null) return
       const seconds = Math.round((matchElapsedRef.current + Date.now() - matchStartRef.current) / 1000)
-      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds })
+      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds, metadata: activeThemeRef.current ? { theme: activeThemeRef.current } : undefined })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [theme, setTheme] = useState('')
@@ -580,6 +581,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
       const pairs = typeof match.pairs === 'string' ? JSON.parse(match.pairs) : match.pairs
       setActiveMatch(match)
       setActivePairs(pairs)
+      activeThemeRef.current = match.theme ?? null
     } catch {}
   }
 

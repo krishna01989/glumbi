@@ -286,6 +286,7 @@ export default function App() {
       <Routes>
         <Route path="/admin/profile" element={<AdminProfilePage onLogout={handleLogout} />} />
         <Route path="/admin/*"       element={<AdminPage onLogout={handleLogout} />} />
+        <Route path="/error/:code"   element={<ErrorPage code={location.pathname.split('/').pop()} />} />
         <Route path="*"              element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     )

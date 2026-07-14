@@ -74,7 +74,10 @@ export default function ReadQuiz({ child, quota }) {
   function openEntry(entry) {
     const questions = entry.questions || JSON.parse(entry.questionsJson || '[]')
     setSelected({ ...entry, questions })
-    setAnswers([null, null, null])
+    const savedAnswers = entry.completed && entry.answersJson
+      ? JSON.parse(entry.answersJson)
+      : [null, null, null]
+    setAnswers(savedAnswers)
     setSubmitted(entry.completed)
   }
 
@@ -90,8 +93,8 @@ export default function ReadQuiz({ child, quota }) {
         track('readquiz', correct ? 'correct' : 'wrong', { metadata: { question: q.question, questionIndex: qi + 1 } })
       })
       track('readquiz', 'complete', { metadata: { score: result.score, total: 3 }, durationSeconds: quizStartTime.current ? Math.round((Date.now() - quizStartTime.current) / 1000) : null })
-      setSelected({ ...selected, score: result.score, completed: true })
-      setEntries(prev => prev.map(e => e.id === result.id ? { ...e, score: result.score, completed: true } : e))
+      setSelected({ ...selected, score: result.score, completed: true, answersJson: result.answersJson })
+      setEntries(prev => prev.map(e => e.id === result.id ? { ...e, score: result.score, completed: true, answersJson: result.answersJson } : e))
       setSubmitted(true)
     } catch (e) { setError(e.message) }
   }

@@ -627,7 +627,7 @@ function ActivityAnalytics() {
           {/* Summary stat row */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
             {[
-              { label: 'Total events',     value: (data.totalEvents ?? 0).toLocaleString(),                                                    icon: '⚡' },
+              { label: 'Total sessions',    value: (data.totalSessions ?? 0).toLocaleString(),                                                  icon: '⚡' },
               { label: 'Active children',  value: (data.activeChildren ?? 0).toLocaleString(),                                                 icon: '🧒' },
               { label: 'Total engage time',value: fmtDurAdmin(data.totalEngagementSeconds ?? 0),                                               icon: '⏱️' },
               { label: 'AI credits used',  value: (data.totalCreditsUsed ?? 0).toLocaleString(),                                               icon: '🪙' },
@@ -706,6 +706,84 @@ function ActivityAnalytics() {
             )}
           </div>
 
+          {/* Accuracy & completion stats */}
+          {(() => {
+            const accuracy     = data.accuracyByFeature    ?? {}
+            const completions  = data.completionsByFeature ?? {}
+            const flipEff      = data.flipEfficiency       ?? 0
+            const featNames    = Array.from(new Set([...Object.keys(accuracy), ...Object.keys(completions)]))
+            if (featNames.length === 0 && flipEff === 0) return null
+            return (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Accuracy &amp; completion</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {featNames.map(f => {
+                    const acc  = accuracy[f]
+                    const comp = completions[f]
+                    const sessions = data.featureBreakdown?.[f] ?? 0
+                    const name = ACTIVITY_FEATURE_NAMES[f] || f
+                    return (
+                      <div key={f} style={{ background: '#f8f9fa', borderRadius: 12, padding: '10px 14px', minWidth: 140, flex: '1 1 140px' }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: '#333', marginBottom: 6 }}>{name}</div>
+                        {acc && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <div style={{ flex: 1, background: '#e8e8e8', borderRadius: 4, height: 5, overflow: 'hidden' }}>
+                              <div style={{ width: `${acc.rate}%`, height: '100%', borderRadius: 4,
+                                background: acc.rate >= 70 ? '#22c55e' : acc.rate >= 40 ? '#f59e0b' : '#ef4444', transition: 'width 0.4s' }} />
+                            </div>
+                            <span style={{ fontSize: 11, fontWeight: 900,
+                              color: acc.rate >= 70 ? '#22c55e' : acc.rate >= 40 ? '#f59e0b' : '#ef4444' }}>
+                              {acc.rate}%
+                            </span>
+                          </div>
+                        )}
+                        {acc && <div style={{ fontSize: 10, color: '#aaa' }}>{acc.correct} correct · {acc.wrong} wrong</div>}
+                        {comp && sessions > 0 && (
+                          <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 700, marginTop: acc ? 4 : 0 }}>
+                            🏁 {comp}/{sessions} completed ({Math.round(comp/sessions*100)}%)
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {flipEff > 0 && (
+                    <div style={{ background: '#faf5ff', borderRadius: 12, padding: '10px 14px', minWidth: 140, flex: '1 1 140px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#333', marginBottom: 6 }}>Memory Match</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: '#8b5cf6' }}>{flipEff}</div>
+                      <div style={{ fontSize: 10, color: '#aaa' }}>avg flips per completed game</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Engagement signals */}
+          {(() => {
+            const signals = []
+            if ((data.mazeGaveUpCount ?? 0) > 0 || (data.mazeAvgWallHits ?? 0) > 0)
+              signals.push({ key: 'maze', icon: '🧱', label: 'Maze', primary: `${data.mazeGaveUpCount ?? 0} gave up`, sub: `avg ${data.mazeAvgWallHits ?? 0} wall hits on completed runs`, color: '#f97316', bg: '#fff7ed' })
+            if ((data.riddleHints ?? 0) > 0)
+              signals.push({ key: 'hints', icon: '💡', label: 'Riddles', primary: `${data.riddleHints} hints used`, sub: 'platform total', color: '#f59e0b', bg: '#fffbeb' })
+            if ((data.storiesSimilarViewed ?? 0) > 0)
+              signals.push({ key: 'sim', icon: '🔗', label: 'Stories', primary: `${data.storiesSimilarViewed} similar explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
+            if (signals.length === 0) return null
+            return (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Engagement signals</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {signals.map(s => (
+                    <div key={s.key} style={{ background: s.bg, borderRadius: 12, padding: '10px 14px', minWidth: 140, flex: '1 1 140px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#333', marginBottom: 4 }}>{s.icon} {s.label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: s.color }}>{s.primary}</div>
+                      <div style={{ fontSize: 10, color: '#aaa', marginTop: 2 }}>{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* 7×24 day-hour heatmap */}
           {data.heatmap?.length > 0 && (() => {
             const HOUR_LABELS = ['12a','','','','','','6a','','','','','','12p','','','','','','6p','','','','','11p']
@@ -771,7 +849,7 @@ function ActivityAnalytics() {
             )
           })()}
 
-          {data.totalEvents === 0 && (
+          {data.totalSessions === 0 && (
             <div style={{ textAlign: 'center', padding: '16px 0', color: '#bbb', fontSize: 13 }}>No activity events recorded yet.</div>
           )}
         </>

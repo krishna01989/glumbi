@@ -258,6 +258,7 @@ export default function Stories({ child, quota }) {
       const similar = res.similar ?? []
       setStories(prev => [story, ...prev])
       setSelected(story)
+      if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'generate' } })
       setSimilarStories(similar)
       setKeywords('')
       window.__glumbiRefreshQuota?.()
@@ -281,6 +282,7 @@ export default function Stories({ child, quota }) {
       const similar = res.similar ?? []
       setStories(prev => [continued, ...prev])
       setSelected(continued)
+      if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'continue' } })
       setSimilarStories(similar)
       window.__glumbiRefreshQuota?.()
     } catch (e) {
@@ -331,7 +333,7 @@ export default function Stories({ child, quota }) {
     if (!flipState) return
     setSelected(flipState.to)
     setSimilarStories([])
-    storyApi.getSimilar(flipState.to.id).then(setSimilarStories).catch(() => {})
+    storyApi.getSimilar(flipState.to.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
     setFlipState(null)
   }
 
@@ -530,7 +532,7 @@ export default function Stories({ child, quota }) {
           function handleSelect(s) {
             if (selected?.id === s.id) return
             setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
-            storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {})
+            storyApi.getSimilar(s.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
             if (isMobile) setShowList(false)
             track('stories', 'read', { metadata: { category: s.category } })
           }
@@ -975,7 +977,7 @@ export default function Stories({ child, quota }) {
                   {similarStories.map(s => (
                     <button key={s.id} onClick={() => {
                       const target = s.seriesId ? (stories.find(r => r.id === s.seriesId) ?? s) : s
-                      setSelected(target); setSimilarStories([]); storyApi.getSimilar(target.id).then(setSimilarStories).catch(() => {})
+                      setSelected(target); setSimilarStories([]); track('stories', 'similar_clicked'); storyApi.getSimilar(target.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'similar_nav' } }) }).catch(() => {})
                     }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,

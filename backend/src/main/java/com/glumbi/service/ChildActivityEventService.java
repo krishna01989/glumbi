@@ -70,10 +70,22 @@ public class ChildActivityEventService {
 
     // ── Child analytics ───────────────────────────────────────────────────────
 
+    private static String normalizeTimezone(String tz) {
+        if (tz == null || tz.isBlank()) return "UTC";
+        return switch (tz) {
+            case "Asia/Calcutta"    -> "Asia/Kolkata";
+            case "Asia/Katmandu"    -> "Asia/Kathmandu";
+            case "America/Godthab" -> "America/Nuuk";
+            case "Pacific/Ponape"  -> "Pacific/Pohnpei";
+            default -> tz;
+        };
+    }
+
     public Map<String, Object> getChildAnalytics(Long childId, Long userId, int days, String tz) {
         childRepo.findByIdAndOwnerId(childId, userId)
             .orElseThrow(() -> new RuntimeException("Child not found"));
 
+        tz = normalizeTimezone(tz);
         java.time.ZoneId zoneId = java.time.ZoneId.of(tz, java.time.ZoneId.SHORT_IDS);
         LocalDateTime from = LocalDateTime.now(zoneId).minusDays(days);
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -122,8 +134,9 @@ public class ChildActivityEventService {
         int[] streaks = computeStreaks(repo.getDistinctActiveDates(childId));
 
         // Totals for the window
-        long total   = repo.countByChildIdAndOccurredAtAfter(childId, from);
-        long online  = repo.countByChildIdAndOnlineTrueAndOccurredAtAfter(childId, from);
+        long total         = repo.countByChildIdAndOccurredAtAfter(childId, from);
+        long online        = repo.countByChildIdAndOnlineTrueAndOccurredAtAfter(childId, from);
+        long totalSessions = featureBreakdown.values().stream().mapToLong(Long::longValue).sum();
 
         // Duration per feature (seconds) — session events only
         Map<String, Long> durationByFeature = new LinkedHashMap<>();
@@ -150,6 +163,7 @@ public class ChildActivityEventService {
         result.put("currentStreak",          streaks[0]);
         result.put("longestStreak",          streaks[1]);
         result.put("totalEvents",            total);
+        result.put("totalSessions",          totalSessions);
         result.put("onlineCount",            online);
         result.put("offlineCount",           total - online);
         result.put("creditsUsedInPeriod",    creditsUsed);

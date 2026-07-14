@@ -192,6 +192,7 @@ const HISTORY_DAYS = 7
 
 function WordOfDayTab({ child }) {
   const { track } = useTracker()
+  useFeatureDuration('wordofday', track)
   const offline = useOffline()
   const [word, setWord] = useState(null)
   const [history, setHistory] = useState([])
@@ -520,9 +521,32 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   )
 }
 
-function MemoryMatchTab({ child, quota }) {
+function MemoryMatchTab({ child, quota, isActive }) {
   const { track } = useTracker()
   const offline = useOffline()
+  const matchStartRef = useRef(null)
+  const matchElapsedRef = useRef(0)
+
+  useEffect(() => {
+    if (isActive) {
+      matchStartRef.current = Date.now()
+      matchElapsedRef.current = 0
+    } else if (matchStartRef.current !== null) {
+      const seconds = Math.round((matchElapsedRef.current + Date.now() - matchStartRef.current) / 1000)
+      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds })
+      matchStartRef.current = null
+      matchElapsedRef.current = 0
+    }
+  }, [isActive]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fire session on page navigation (unmount while active)
+  useEffect(() => {
+    return () => {
+      if (matchStartRef.current === null) return
+      const seconds = Math.round((matchElapsedRef.current + Date.now() - matchStartRef.current) / 1000)
+      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [theme, setTheme] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -685,7 +709,7 @@ export default function MemoryPlay({ child, quota }) {
       <div style={{ flex: 1, minHeight: 400 }}>
         {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} />}
         {tab === 'wordofday'  && <WordOfDayTab  child={child} />}
-        <div style={{ display: tab === 'match' ? 'block' : 'none' }}><MemoryMatchTab child={child} quota={quota} /></div>
+        <div style={{ display: tab === 'match' ? 'block' : 'none' }}><MemoryMatchTab child={child} quota={quota} isActive={tab === 'match'} /></div>
       </div>
     </div>
   )

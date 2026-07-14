@@ -37,7 +37,7 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
     @Query(value = """
         SELECT feature, COUNT(*) AS cnt
         FROM child_activity_events
-        WHERE child_id = :childId AND occurred_at >= :from
+        WHERE child_id = :childId AND event_type = 'session' AND occurred_at >= :from
         GROUP BY feature
         ORDER BY cnt DESC
         """, nativeQuery = true)
@@ -92,7 +92,7 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
     @Query(value = """
         SELECT feature, COUNT(*) AS cnt
         FROM child_activity_events
-        WHERE occurred_at >= :from
+        WHERE event_type = 'session' AND occurred_at >= :from
         GROUP BY feature
         ORDER BY cnt DESC
         """, nativeQuery = true)

@@ -566,6 +566,7 @@ function ActivityAnalytics() {
   const [data, setData]         = useState(null)
   const [loading, setLoading]   = useState(true)
   const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
+  const [activeCell, setActiveCell]   = useState(null)   // { day, hour, value } for heatmap popup
 
   useEffect(() => {
     setLoading(true)
@@ -649,7 +650,7 @@ function ActivityAnalytics() {
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Daily active children</div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: days > 30 ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
                   {data.dailyActiveChildren.map((d, i) => (
-                    <div key={i} title={`${d.date}: ${d.count} children`}
+                    <div key={i}
                       style={{ flex: 1, background: d.count > 0 ? '#4facfe' : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / dailyMax * 100, d.count > 0 ? 8 : 3)}%`, opacity: d.count > 0 ? 0.7 + (d.count / dailyMax) * 0.3 : 0.3 }} />
                   ))}
                 </div>
@@ -709,9 +710,10 @@ function ActivityAnalytics() {
           {data.heatmap?.length > 0 && (() => {
             const HOUR_LABELS = ['12a','','','','','','6a','','','','','','12p','','','','','','6p','','','','','11p']
             return (
-              <div style={{ marginBottom: 8 }}>
+              <div style={{ marginBottom: 8, position: 'relative' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>
                   Activity heatmap — day × hour
+                  <span style={{ fontSize: 10, fontWeight: 400, color: '#bbb', marginLeft: 8 }}>tap a cell for details</span>
                 </div>
                 <div style={{ overflowX: 'auto' }}>
                   <div style={{ minWidth: 480 }}>
@@ -732,9 +734,13 @@ function ActivityAnalytics() {
                               const bg = v === 0
                                 ? '#f0f0f0'
                                 : `rgba(99,102,241,${0.15 + intensity * 0.85})`
+                              const isActive = activeCell?.day === day && activeCell?.hour === h
                               return (
-                                <div key={h} title={`${day} ${fmtHour(h).replace('a',' AM').replace('p',' PM')}: ${v} events`}
-                                  style={{ flex: 1, height: 16, borderRadius: 3, background: bg, transition: 'background 0.3s', cursor: 'default' }} />
+                                <div key={h}
+                                  onClick={() => setActiveCell(isActive ? null : { day, hour: h, value: v })}
+                                  style={{ flex: 1, height: 16, borderRadius: 3, background: bg,
+                                    transition: 'background 0.3s', cursor: v > 0 ? 'pointer' : 'default',
+                                    outline: isActive ? '2px solid #6366f1' : 'none', outlineOffset: 1 }} />
                               )
                             })}
                           </div>
@@ -749,6 +755,18 @@ function ActivityAnalytics() {
                     </div>
                   </div>
                 </div>
+                {/* Inline tap result — shown below the legend */}
+                {activeCell && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    marginTop: 8, background: '#f0f0ff', borderRadius: 8, padding: '7px 12px' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#6366f1' }}>
+                      {activeCell.day} {activeCell.hour === 0 ? '12 AM' : activeCell.hour < 12 ? `${activeCell.hour} AM` : activeCell.hour === 12 ? '12 PM' : `${activeCell.hour - 12} PM`}
+                      {' — '}{activeCell.value.toLocaleString()} event{activeCell.value !== 1 ? 's' : ''}
+                    </span>
+                    <button onClick={() => setActiveCell(null)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 14, padding: 0, lineHeight: 1 }}>✕</button>
+                  </div>
+                )}
               </div>
             )
           })()}
@@ -978,7 +996,10 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Recent activity */}
+      {/* Activity analytics */}
+      <ActivityAnalytics />
+
+      {/* Recent activity — always last */}
       {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
         <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 16 }}>🕐 Recent Activity</div>
         {stats.recentActivity.length === 0
@@ -997,9 +1018,6 @@ function Dashboard() {
           ))
         }
       </div>}
-
-      {/* Activity analytics */}
-      <ActivityAnalytics />
     </div>
   )
 }

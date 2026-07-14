@@ -271,6 +271,8 @@ function ActivityModal({ child, t, onClose }) {
   const [loading, setLoading] = useState(true)
   const [days, setDays]       = useState(30)
   const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
+  const [activeDailyBar, setActiveDailyBar] = useState(null)  // { label, value } for daily chart tap
+  const [activeHourBar, setActiveHourBar]   = useState(null)  // { label, value } for hourly chart tap
 
   useEffect(() => {
     setLoading(true)
@@ -280,7 +282,8 @@ function ActivityModal({ child, t, onClose }) {
       .finally(() => setLoading(false))
   }, [child.id, days])
 
-  const totalEvents  = data?.totalEvents ?? 0
+  const totalEvents   = data?.totalEvents ?? 0
+  const totalSessions = data?.totalSessions ?? 0
   const recentDays   = data?.dailyActivity?.slice(-days).filter(d => d.count > 0).length ?? 0
   const totalSec     = data?.totalEngagementSeconds ?? 0
   const peakHour     = data?.hourlyActivity
@@ -297,7 +300,7 @@ function ActivityModal({ child, t, onClose }) {
         feature: f,
         count: data.featureBreakdown?.[f] ?? 0,
         sec:   data.durationByFeature?.[f] ?? 0,
-      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count).slice(0, 6)
+      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count)
     : []
   const featureMax = allFeatures.length > 0
     ? (featureMode === 'time' ? allFeatures[0].sec : allFeatures[0].count)
@@ -336,7 +339,7 @@ function ActivityModal({ child, t, onClose }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
               {[
                 { label: 'Active days',    value: recentDays,                   icon: '📅', sub: `of ${days}` },
-                { label: 'Sessions',       value: totalEvents,                  icon: '⚡', sub: 'interactions' },
+                { label: 'Sessions',       value: totalSessions,                icon: '⚡', sub: 'play sessions' },
                 { label: 'Screen time',    value: fmtDuration(totalSec) ?? '—', icon: '⏱️', sub: 'engaged time' },
                 { label: 'Streak',         value: `${data.currentStreak ?? 0}d`,icon: '🔥', sub: `best: ${data.longestStreak ?? 0}d` },
               ].map(s => (
@@ -360,10 +363,19 @@ function ActivityModal({ child, t, onClose }) {
                   <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 8 }}>Daily sessions</div>
                   <div style={{ display: 'flex', alignItems: 'flex-end', gap: days > 30 ? 1 : 2, height: 52, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
                     {recent.map((d, i) => (
-                      <div key={i} title={`${d.date}: ${d.count} sessions`}
-                        style={{ flex: 1, background: d.count > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / maxVal * 100, d.count > 0 ? 12 : 4)}%`, opacity: d.count > 0 ? 0.8 + (d.count / maxVal) * 0.2 : 0.3, transition: 'height 0.3s ease', cursor: 'default' }} />
+                      <div key={i}
+                        onClick={() => d.count > 0 && setActiveDailyBar(b => b?.label === d.date ? null : { label: d.date, value: `${d.count} session${d.count !== 1 ? 's' : ''}` })}
+                        style={{ flex: 1, background: d.count > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / maxVal * 100, d.count > 0 ? 12 : 4)}%`, opacity: d.count > 0 ? 0.8 + (d.count / maxVal) * 0.2 : 0.3, transition: 'height 0.3s ease', cursor: d.count > 0 ? 'pointer' : 'default' }} />
                     ))}
                   </div>
+                  {activeDailyBar && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      marginTop: 4, background: t.primaryLt || '#f0f0ff', borderRadius: 8, padding: '6px 10px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: t.primary }}>{activeDailyBar.label} — {activeDailyBar.value}</span>
+                      <button onClick={() => setActiveDailyBar(null)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', marginTop: 3 }}>
                     <span>{recent[0]?.date?.slice(5)}</span>
                     <span>{recent[recent.length - 1]?.date?.slice(5)}</span>
@@ -423,10 +435,19 @@ function ActivityModal({ child, t, onClose }) {
                   </div>
                   <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 36, background: '#fafafa', borderRadius: 10, padding: '4px 6px', boxSizing: 'border-box' }}>
                     {data.hourlyActivity.map((v, h) => (
-                      <div key={h} title={`${fmtHour(h)}: ${v} sessions`}
-                        style={{ flex: 1, background: v > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(v / max * 100, v > 0 ? 12 : 5)}%`, opacity: v > 0 ? 0.6 + (v / max) * 0.4 : 0.3 }} />
+                      <div key={h}
+                        onClick={() => v > 0 && setActiveHourBar(b => b?.label === fmtHour(h) ? null : { label: fmtHour(h), value: `${v} session${v !== 1 ? 's' : ''}` })}
+                        style={{ flex: 1, background: v > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(v / max * 100, v > 0 ? 12 : 5)}%`, opacity: v > 0 ? 0.6 + (v / max) * 0.4 : 0.3, cursor: v > 0 ? 'pointer' : 'default' }} />
                     ))}
                   </div>
+                  {activeHourBar && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      marginTop: 4, background: t.primaryLt || '#f0f0ff', borderRadius: 8, padding: '6px 10px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: t.primary }}>{activeHourBar.label} — {activeHourBar.value}</span>
+                      <button onClick={() => setActiveHourBar(null)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', marginTop: 3 }}>
                     <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11 PM</span>
                   </div>

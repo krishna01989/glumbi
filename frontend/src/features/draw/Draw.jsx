@@ -634,7 +634,9 @@ export default function Draw({ child, quota, featureConfig }) {
               <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 14,
                 color: 'var(--primary)' }}>🖼️ Draw a {guideSubject}</div>
               <button onClick={() => setGuide('')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: 16 }}>✕</button>
+                style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
+                  background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.8, color: '#444', whiteSpace: 'pre-wrap' }}>{guide}</div>
           </div>
@@ -687,7 +689,9 @@ export default function Draw({ child, quota, featureConfig }) {
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                 <div style={{ fontWeight:900, fontSize:13, color:'var(--primary)' }}>🖼️ {guideSubject}</div>
                 <button onClick={() => setGuide('')}
-                  style={{ background:'none', border:'none', cursor:'pointer', color:'#ccc', fontSize:14 }}>✕</button>
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
+                    background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
               </div>
               <div style={{ fontSize:12, lineHeight:1.7, color:'#444', whiteSpace:'pre-wrap' }}>{guide}</div>
             </div>
@@ -727,8 +731,12 @@ export default function Draw({ child, quota, featureConfig }) {
             {aiReply && (
               <div style={{ flex:1, fontSize:13, fontWeight:600, color:'#444',
                 background:'var(--primary-lt)', borderRadius:12,
-                padding:'8px 14px', lineHeight:1.5 }}>
-                {aiReply}
+                padding:'8px 14px', lineHeight:1.5, display:'flex', alignItems:'flex-start', gap:8 }}>
+                <span style={{ flex:1 }}>{aiReply}</span>
+                <button onClick={() => setAiReply('')}
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
+                    background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
               </div>
             )}
             {!aiReply && !loading && (
@@ -768,9 +776,13 @@ export default function Draw({ child, quota, featureConfig }) {
             flex: 1, background: 'var(--primary-lt)',
             borderRadius: 16, padding: '14px 20px',
             border: '2px solid var(--primary-lt)', fontSize: 15, fontWeight: 600, color: '#444',
-            animation: 'fadeIn 0.4s ease',
+            animation: 'fadeIn 0.4s ease', display: 'flex', alignItems: 'flex-start', gap: 10,
           }}>
-            {aiReply}
+            <span style={{ flex: 1 }}>{aiReply}</span>
+            <button onClick={() => setAiReply('')}
+              style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
+                background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
           </div>
         )}
       </div>

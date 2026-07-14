@@ -217,6 +217,12 @@ export const timelineApi = {
     api.get(`/timeline/${childId}`, { params: { page, size, from, to } }).then(r => r.data),
 }
 
+export const analyticsApi = {
+  batchEvents:      (events)           => api.post('/analytics/events/batch', { events }).then(r => r.data),
+  getChildAnalytics:(childId, days=90) => api.get(`/analytics/child/${childId}`, { params: { days, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } }).then(r => r.data),
+  getAdminAnalytics:(days=30)          => api.get('/analytics/admin', { params: { days } }).then(r => r.data),
+}
+
 export const adminApi = {
   getStats:          (range = '7d') => api.get('/admin/stats', { params: { range } }).then(r => r.data),
   getUsers:          ()             => api.get('/admin/users').then(r => r.data),

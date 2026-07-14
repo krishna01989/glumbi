@@ -3,6 +3,8 @@ import { learnApi } from '../../api/client'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import FeatureBanner from '../../components/FeatureBanner'
 
 // ── Tamil data ─────────────────────────────────────────────────────────────────
@@ -726,6 +728,7 @@ const PRACTICE_MSGS = [
 ]
 
 function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
@@ -760,9 +763,11 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
 
   async function handleAiCheck(imageData) {
     setLoading(true); setFeedback(null)
+    track('learn', 'trace', { metadata: { script } })
     try {
       const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
       const result = await learnApi.validate(imageData, selected.char, script, child?.name || 'you', age, child?.id)
+      track('learn', 'ai_validate', { metadata: { script, correct: result.correct } })
       setFeedback({ type: 'ai', correct: result.correct, text: result.feedback, emoji: result.correct ? '🎉' : '💪' })
       window.__glumbiRefreshQuota?.()
     } catch { setFeedback({ type: 'ai', correct: true, text: 'Great effort! Keep practising! 🌟', emoji: '🌟' }) }
@@ -936,6 +941,7 @@ function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5) }
 const BANK_SIZE = 10
 
 function WordMode({ script, child, quota }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const [targetWord,    setTargetWord]    = useState('')
   const [customWord,    setCustomWord]    = useState('')
@@ -978,8 +984,10 @@ function WordMode({ script, child, quota }) {
 
   async function handleSubmit(imageData) {
     setLoading(true); setResult(null); setExtraLang(null)
+    track('learn', 'trace', { metadata: { script } })
     try {
       const data = await learnApi.identifyWord(imageData, script, childName, childAge, child?.id, targetWord)
+      track('learn', 'ai_word', { metadata: { script, correct: data.correct } })
       setResult(data)
       window.__glumbiRefreshQuota?.()
       if (data.correct && data.translations?.[crossKey]) play(data.translations[crossKey], crossTts)
@@ -1178,6 +1186,8 @@ const HINDI_CATS = [
 // ENG_CATS is generated dynamically based on engStyle in the component
 
 export default function LearnPage({ child, quota }) {
+  const { track } = useTracker()
+  useFeatureDuration('learn', track)
   const [script,    setScript]    = useState('tamil')
   const [mode,      setMode]      = useState('letters')   // 'letters' | 'words'
   const [catKey,    setCatKey]    = useState('vowels')

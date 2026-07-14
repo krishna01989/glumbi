@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { riddleApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
@@ -43,6 +45,9 @@ function checkAnswer(userInput, correct) {
 }
 
 export default function Riddle({ child, quota, featureConfig }) {
+  const { track } = useTracker()
+  useFeatureDuration('riddle', track)
+  const riddleStartTime = useRef(null)
   const offline = useOffline()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
@@ -76,6 +81,8 @@ export default function Riddle({ child, quota, featureConfig }) {
     setError('')
     try {
       const result = await riddleApi.generate(child.id, child.name, childAge)
+      track('riddle', 'generate')
+      riddleStartTime.current = Date.now()
       setRiddles(result.slice(0, 5))
       setCurrentIdx(0)
       setInput('')
@@ -109,6 +116,7 @@ export default function Riddle({ child, quota, featureConfig }) {
     setTimeout(() => {
       if (currentIdx + 1 >= riddles.length) {
         setCompleted(true)
+        track('riddle', 'complete', { metadata: { score: newScore, total: riddles.length }, durationSeconds: riddleStartTime.current ? Math.round((Date.now() - riddleStartTime.current) / 1000) : null })
       } else {
         setCurrentIdx(i => i + 1)
         setInput('')
@@ -123,15 +131,18 @@ export default function Riddle({ child, quota, featureConfig }) {
     if (!input.trim() || feedback) return
     if (checkAnswer(input, current.answer)) {
       setFeedback('correct')
+      track('riddle', 'correct', { metadata: { riddle: current.question, attempt: wrongCount + 1 } })
       advanceOrComplete(true)
     } else {
       const newWrong = wrongCount + 1
       setWrongCount(newWrong)
       if (newWrong >= 2) {
         setFeedback('revealed')
+        track('riddle', 'revealed', { metadata: { riddle: current.question } })
         advanceOrComplete(false)
       } else {
         setFeedback('wrong')
+        track('riddle', 'wrong', { metadata: { riddle: current.question, attempt: newWrong } })
         setTimeout(() => { setFeedback(null); setInput('') }, 1000)
       }
     }

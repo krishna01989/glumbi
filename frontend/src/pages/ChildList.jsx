@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { childApi, userApi } from '../api/client'
+import { childApi, userApi, analyticsApi } from '../api/client'
 import { THEMES } from '../themes'
 import QuotaBadge from '../components/QuotaBadge'
 
@@ -143,7 +143,7 @@ function CreditModal({ c, t, stats, onClose }) {
 /* ══════════════════════════════════════════════════════
    CHILD CAROUSEL CARD — the big focused card
 ══════════════════════════════════════════════════════ */
-function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggleOffline, onShowCredit, animDir }) {
+function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggleOffline, onShowCredit, onShowActivity, animDir }) {
   const age = calcAge(c.birthYear)
 
   return (
@@ -210,6 +210,7 @@ function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggl
           { icon: offline ? '✈️' : '🤖', label: offline ? 'AI off' : 'AI on', action: e => { e.stopPropagation(); onToggleOffline(e, c) } },
           { icon: '✏️', label: 'Edit', action: e => { e.stopPropagation(); onEdit(c) } },
           { icon: '📊', label: 'Credits', action: e => { e.stopPropagation(); onShowCredit(c) } },
+          { icon: '📈', label: 'Activity', action: e => { e.stopPropagation(); onShowActivity(c) } },
         ].map(btn => (
           <button
             key={btn.label}
@@ -235,6 +236,215 @@ function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggl
             <span>{btn.label}</span>
           </button>
         ))}
+      </div>
+    </div>
+  )
+}
+
+const ACTIVITY_FEATURES = {
+  stories:     { label: 'Stories',        emoji: '📖' },
+  draw:        { label: 'Draw',           emoji: '🎨' },
+  journal:     { label: 'Journal',        emoji: '📓' },
+  curiosity:   { label: 'Curiosity',      emoji: '🔍' },
+  readquiz:    { label: 'Read & Quiz',    emoji: '📚' },
+  activities:  { label: 'Activities',     emoji: '🎮' },
+  mywriting:   { label: 'My Writing',     emoji: '✍️' },
+  riddle:      { label: 'Riddles',        emoji: '🎯' },
+  maze:        { label: 'Maze',           emoji: '🌀' },
+  learn:       { label: 'Learn',          emoji: '✏️' },
+  flashcards:  { label: 'Flashcards',     emoji: '📇' },
+  wordofday:   { label: 'Word of Day',    emoji: '🌟' },
+  memorymatch: { label: 'Memory Match',   emoji: '🧠' },
+}
+
+function fmtDuration(sec) {
+  if (!sec || sec < 60) return sec > 0 ? `${sec}s` : null
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
+  return `${m}m`
+}
+
+/* ── Child Activity Modal ── */
+function ActivityModal({ child, t, onClose }) {
+  const [data, setData]       = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [days, setDays]       = useState(30)
+  const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
+
+  useEffect(() => {
+    setLoading(true)
+    analyticsApi.getChildAnalytics(child.id, days)
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
+  }, [child.id, days])
+
+  const totalEvents  = data?.totalEvents ?? 0
+  const recentDays   = data?.dailyActivity?.slice(-days).filter(d => d.count > 0).length ?? 0
+  const totalSec     = data?.totalEngagementSeconds ?? 0
+  const peakHour     = data?.hourlyActivity
+    ? data.hourlyActivity.reduce((best, v, i) => v > data.hourlyActivity[best] ? i : best, 0)
+    : null
+  const fmtHour = h => h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`
+
+  // Merge count + duration per feature, sorted by selected mode
+  const allFeatures = data
+    ? Array.from(new Set([
+        ...Object.keys(data.featureBreakdown ?? {}),
+        ...Object.keys(data.durationByFeature ?? {}),
+      ])).map(f => ({
+        feature: f,
+        count: data.featureBreakdown?.[f] ?? 0,
+        sec:   data.durationByFeature?.[f] ?? 0,
+      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count).slice(0, 6)
+    : []
+  const featureMax = allFeatures.length > 0
+    ? (featureMode === 'time' ? allFeatures[0].sec : allFeatures[0].count)
+    : 1
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '24px 20px', maxWidth: 420, width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.35)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', fontFamily: 'Nunito, sans-serif', overflowY: 'auto' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 13, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <span style={{ fontSize: 28 }}>{child.avatarEmoji}</span>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 16, color: t.primary, lineHeight: 1.2 }}>{child.name}'s Activity</div>
+            <div style={{ fontSize: 11, color: '#aaa' }}>Learning insights for parents</div>
+          </div>
+        </div>
+
+        {/* Range pills */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {[7, 30, 90].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              style={{ padding: '4px 14px', borderRadius: 50, fontSize: 12, fontWeight: 800, border: 'none', cursor: 'pointer', background: days === d ? t.primary : '#f0f0f0', color: days === d ? 'white' : '#777', transition: 'all 0.15s' }}>
+              {d === 7 ? 'Last week' : d === 30 ? 'Last month' : 'Last 3 months'}
+            </button>
+          ))}
+        </div>
+
+        {loading && <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa', fontSize: 13 }}>Loading…</div>}
+        {!loading && !data && <div style={{ textAlign: 'center', padding: '32px 0', color: '#bbb', fontSize: 13 }}>No activity data yet.</div>}
+
+        {!loading && data && (
+          <>
+            {/* 4-stat row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+              {[
+                { label: 'Active days',    value: recentDays,                   icon: '📅', sub: `of ${days}` },
+                { label: 'Sessions',       value: totalEvents,                  icon: '⚡', sub: 'interactions' },
+                { label: 'Screen time',    value: fmtDuration(totalSec) ?? '—', icon: '⏱️', sub: 'engaged time' },
+                { label: 'Streak',         value: `${data.currentStreak ?? 0}d`,icon: '🔥', sub: `best: ${data.longestStreak ?? 0}d` },
+              ].map(s => (
+                <div key={s.label} style={{ background: t.primaryLt, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>{s.icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: 18, color: t.primary, lineHeight: 1.1 }}>{s.value}</div>
+                    <div style={{ fontSize: 10, color: '#888', marginTop: 1 }}>{s.label}</div>
+                    <div style={{ fontSize: 10, color: '#bbb' }}>{s.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Daily activity bar chart */}
+            {data.dailyActivity?.length > 0 && (() => {
+              const recent = data.dailyActivity.slice(-days)
+              const maxVal = Math.max(...recent.map(d => d.count), 1)
+              return (
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 8 }}>Daily sessions</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: days > 30 ? 1 : 2, height: 52, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
+                    {recent.map((d, i) => (
+                      <div key={i} title={`${d.date}: ${d.count} sessions`}
+                        style={{ flex: 1, background: d.count > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / maxVal * 100, d.count > 0 ? 12 : 4)}%`, opacity: d.count > 0 ? 0.8 + (d.count / maxVal) * 0.2 : 0.3, transition: 'height 0.3s ease', cursor: 'default' }} />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', marginTop: 3 }}>
+                    <span>{recent[0]?.date?.slice(5)}</span>
+                    <span>{recent[recent.length - 1]?.date?.slice(5)}</span>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Feature breakdown with count/time toggle */}
+            {allFeatures.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>Top features</div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {['count', 'time'].map(m => (
+                      <button key={m} onClick={() => setFeatureMode(m)}
+                        style={{ padding: '3px 10px', borderRadius: 50, fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer', background: featureMode === m ? t.primary : '#f0f0f0', color: featureMode === m ? 'white' : '#999' }}>
+                        {m === 'count' ? '# Sessions' : '⏱ Time'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {allFeatures.map(({ feature, count, sec }) => {
+                  const meta  = ACTIVITY_FEATURES[feature] || { label: feature, emoji: '🎮' }
+                  const val   = featureMode === 'time' ? sec : count
+                  const pct   = Math.round((val / featureMax) * 100)
+                  const label = featureMode === 'time' ? (fmtDuration(sec) ?? '—') : `${count}×`
+                  const sub   = featureMode === 'time' ? `${count} sessions` : (fmtDuration(sec) ? fmtDuration(sec) : null)
+                  return (
+                    <div key={feature} style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ fontSize: 15 }}>{meta.emoji}</span>
+                          {meta.label}
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ fontWeight: 900, color: t.primary }}>{label}</span>
+                          {sub && <span style={{ color: '#ccc', fontSize: 10 }}>{sub}</span>}
+                        </span>
+                      </div>
+                      <div style={{ background: '#f0f0f0', borderRadius: 6, height: 7, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, background: t.primary, height: '100%', borderRadius: 6, opacity: 0.75, transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Hourly activity — dot strip */}
+            {data.hourlyActivity?.length === 24 && totalEvents > 0 && (() => {
+              const max = Math.max(...data.hourlyActivity, 1)
+              return (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 8 }}>
+                    When is {child.name} most active?
+                  </div>
+                  <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 36, background: '#fafafa', borderRadius: 10, padding: '4px 6px', boxSizing: 'border-box' }}>
+                    {data.hourlyActivity.map((v, h) => (
+                      <div key={h} title={`${fmtHour(h)}: ${v} sessions`}
+                        style={{ flex: 1, background: v > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(v / max * 100, v > 0 ? 12 : 5)}%`, opacity: v > 0 ? 0.6 + (v / max) * 0.4 : 0.3 }} />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', marginTop: 3 }}>
+                    <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11 PM</span>
+                  </div>
+                  {peakHour !== null && (
+                    <div style={{ marginTop: 6, fontSize: 11, color: '#888', textAlign: 'center' }}>
+                      Peak time: <strong style={{ color: t.primary }}>{fmtHour(peakHour)}</strong>
+                      {' · '}AI credits this period: <strong style={{ color: t.primary }}>{data.creditsUsedInPeriod ?? 0} 🪙</strong>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {totalEvents === 0 && (
+              <div style={{ textAlign: 'center', padding: '16px 0', color: '#bbb', fontSize: 13 }}>✨ No activity recorded in this period.</div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )
@@ -291,6 +501,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
   const [creditChild, setCreditChild]  = useState(null)
+  const [activityChild, setActivityChild] = useState(null)
   const [showCreditInfo, setShowCreditInfo] = useState(false)
   const [breakdown, setBreakdown]     = useState({})
 
@@ -476,6 +687,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                     onEdit={c => navigate(`/child/${c.id}/edit`)}
                     onToggleOffline={handleToggleOffline}
                     onShowCredit={setCreditChild}
+                    onShowActivity={setActivityChild}
                     animDir={animDir}
                   />
                 ) : (
@@ -548,6 +760,13 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
           t={THEMES[creditChild.theme] || THEMES.coral}
           stats={breakdown[creditChild.id] || { features: [], totalCredits: 0 }}
           onClose={() => setCreditChild(null)}
+        />
+      )}
+      {activityChild && (
+        <ActivityModal
+          child={activityChild}
+          t={THEMES[activityChild.theme] || THEMES.coral}
+          onClose={() => setActivityChild(null)}
         />
       )}
       {pendingChild && (

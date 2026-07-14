@@ -5,6 +5,8 @@ import ErrorBox from '../../components/ErrorBox'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 
 const TIMES   = [{ value: 'morning', label: '🌅 Morning' }, { value: 'afternoon', label: '☀️ Afternoon' }, { value: 'evening', label: '🌙 Evening' }]
 const WEATHERS = [{ value: 'sunny', label: '☀️ Sunny' }, { value: 'cloudy', label: '⛅ Cloudy' }, { value: 'rainy', label: '🌧️ Rainy' }, { value: 'windy', label: '💨 Windy' }, { value: 'snowy', label: '❄️ Snowy' }]
@@ -32,6 +34,8 @@ function StarRating({ value, onChange }) {
 }
 
 export default function Activities({ child, quota }) {
+  const { track } = useTracker()
+  useFeatureDuration('activities', track)
   const offline = useOffline()
   const [activities, setActivities] = useState([])
   const [loading, setLoading]       = useState(false)
@@ -62,6 +66,7 @@ export default function Activities({ child, quota }) {
     try {
       await activityApi.deletePending(child.id)
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
+      track('activities', 'generate')
       setActivities(prev => [...newOnes, ...prev])
       window.__glumbiRefreshQuota?.()
     } catch (e) {
@@ -76,6 +81,7 @@ export default function Activities({ child, quota }) {
     try {
       await activityApi.deletePending(child.id)
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
+      track('activities', 'generate')
       setActivities(prev => [...newOnes, ...prev])
       window.__glumbiRefreshQuota?.()
     } catch (e) {
@@ -93,6 +99,7 @@ export default function Activities({ child, quota }) {
       setSimilarMap(m => { const n = { ...m }; delete n[id]; return n })
       return
     }
+    track('activities', 'similar')
     try {
       const similar = await activityApi.getSimilar(id)
       setSimilarMap(m => ({ ...m, [id]: similar }))
@@ -106,11 +113,13 @@ export default function Activities({ child, quota }) {
 
   async function handleComplete(id) {
     const updated = await activityApi.markComplete(id, null)
+    track('activities', 'complete')
     setActivities(prev => prev.map(a => a.id === id ? updated : a))
   }
 
   async function handleRate(id, rating) {
     const updated = await activityApi.markComplete(id, rating)
+    track('activities', 'complete', { metadata: { rating } })
     setActivities(prev => prev.map(a => a.id === id ? updated : a))
   }
 

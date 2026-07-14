@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useParams } from 'react-router-dom'
-import { OfflineContext } from '../contexts/OfflineContext'
+import { OfflineContext, useOffline } from '../contexts/OfflineContext'
+import { ActivityTrackerContext } from '../contexts/ActivityTrackerContext'
+import useActivityTracker from '../hooks/useActivityTracker'
 import FeatureGuard    from '../components/FeatureGuard'
 import Stories         from '../features/stories/Stories'
 import Journal         from '../features/journal/Journal'
@@ -28,6 +30,16 @@ function ErrorPageRoute() {
   return <ErrorPage code={code} />
 }
 
+function TrackerProvider({ child, children }) {
+  const isOffline = useOffline()
+  const { track } = useActivityTracker(child, isOffline)
+  return (
+    <ActivityTrackerContext.Provider value={{ track }}>
+      {children}
+    </ActivityTrackerContext.Provider>
+  )
+}
+
 export default function ChildRoutes({
   child, childLocked, offlineMode,
   quota, featureConfig,
@@ -41,6 +53,7 @@ export default function ChildRoutes({
 
   return (
     <OfflineContext.Provider value={offlineMode}>
+      <TrackerProvider child={child}>
       <div className="page-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Routes>
           <Route path="/child/:childId/stories"    element={guard('story',              <Stories    child={child} quota={quota} />)} />
@@ -69,6 +82,7 @@ export default function ChildRoutes({
           <Route path="*"                          element={<Navigate to={`/child/${child?.id}/stories`} replace />} />
         </Routes>
       </div>
+      </TrackerProvider>
     </OfflineContext.Provider>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { readQuizApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
@@ -6,6 +6,8 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)
@@ -34,6 +36,9 @@ const LESSON_COLORS = {
 }
 
 export default function ReadQuiz({ child, quota }) {
+  const { track } = useTracker()
+  useFeatureDuration('readquiz', track)
+  const quizStartTime = useRef(null)
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
   const [selected, setSelected] = useState(null)
@@ -55,6 +60,8 @@ export default function ReadQuiz({ child, quota }) {
     setLoading(true); setError('')
     try {
       const entry = await readQuizApi.generate(child.id, topic)
+      track('readquiz', 'generate', { metadata: { topic } })
+      quizStartTime.current = Date.now()
       const questions = JSON.parse(entry.questionsJson || '[]')
       setEntries(prev => [{ ...entry, questions }, ...prev])
       openEntry({ ...entry, questions })
@@ -78,6 +85,11 @@ export default function ReadQuiz({ child, quota }) {
     setError('')
     try {
       const result = await readQuizApi.submit(selected.id, answers)
+      selected.questions?.forEach((q, qi) => {
+        const correct = answers[qi] === q.correctIndex
+        track('readquiz', correct ? 'correct' : 'wrong', { metadata: { question: q.question, questionIndex: qi + 1 } })
+      })
+      track('readquiz', 'complete', { metadata: { score: result.score, total: 3 }, durationSeconds: quizStartTime.current ? Math.round((Date.now() - quizStartTime.current) / 1000) : null })
       setSelected({ ...selected, score: result.score, completed: true })
       setEntries(prev => prev.map(e => e.id === result.id ? { ...e, score: result.score, completed: true } : e))
       setSubmitted(true)

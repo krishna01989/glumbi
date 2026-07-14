@@ -2,7 +2,7 @@ import LegalLayout from './LegalLayout'
 
 export default function PrivacyPage({ inApp = false }) {
   return (
-    <LegalLayout title="Privacy Policy" updated="4 July 2026" inApp={inApp}>
+    <LegalLayout title="Privacy Policy" updated="14 July 2026" inApp={inApp}>
       <p>Glumbi ("we", "us", "our") is committed to protecting the privacy of families who use our service. This policy explains what data we collect, why, and how we protect it.</p>
 
       <h2>1. Who we are</h2>
@@ -36,14 +36,15 @@ export default function PrivacyPage({ inApp = false }) {
       </ul>
       <h3>Usage data</h3>
       <ul>
-        <li>Monthly API call count — to enforce fair-use limits.</li>
+        <li>Monthly AI credit count — to enforce fair-use limits.</li>
         <li>Account creation timestamp.</li>
+        <li><strong>Child activity events</strong> — when a feature is opened or completed (e.g. a maze game started, a story read), how long the session lasted, and whether the device was online. This data is used solely to show parents a summary of how their child uses the app and to help us understand which features are most valuable. It is never shared with third parties or used for advertising.</li>
       </ul>
 
       <h2>3. What we do NOT collect</h2>
       <ul>
         <li>We do not use cookies on our website.</li>
-        <li>We do not run advertising, tracking pixels, or analytics scripts (no Google Analytics, no Facebook Pixel).</li>
+        <li>We do not run advertising, tracking pixels, or third-party analytics scripts (no Google Analytics, no Facebook Pixel). Any usage analytics we collect are first-party, stored on our own servers, and surfaced only to you as the parent.</li>
         <li>We do not sell your data to any third party.</li>
         <li>We do not collect your location, device fingerprint, or IP address for profiling.</li>
       </ul>
@@ -73,6 +74,7 @@ export default function PrivacyPage({ inApp = false }) {
         <li>Your account and all associated data is retained for as long as your account is active.</li>
         <li>You can delete your account and all data at any time by emailing <a href="mailto:privacy@glumbi.com">privacy@glumbi.com</a>.</li>
         <li>Individual stories, journal entries, and curiosity answers can be deleted by you at any time within the app.</li>
+        <li><strong>Activity analytics</strong> — child activity event logs (feature usage timestamps, durations, and counts) are retained after account deletion for platform improvement purposes. These records contain only a child's first name and your email address alongside usage metrics; no story content, journal entries, or other personal content is retained. If you would like these records fully removed, email <a href="mailto:privacy@glumbi.com">privacy@glumbi.com</a> and we will delete them within 30 days.</li>
       </ul>
 
       <h2>7. Children's privacy (COPPA / DPDP)</h2>
@@ -90,7 +92,7 @@ export default function PrivacyPage({ inApp = false }) {
       <p>Depending on your jurisdiction, you may have the right to access, correct, or delete your personal data. To exercise any of these rights, email <a href="mailto:privacy@glumbi.com">privacy@glumbi.com</a>. We will respond within 30 days.</p>
 
       <h2>10. Changes to this policy</h2>
-      <p>We may update this policy from time to time. Material changes will be notified via email or an in-app notice. The "last updated" date at the top of this page always reflects the current version.</p>
+      <p>We may update this policy from time to time. The "last updated" date at the top of this page always reflects the current version. We recommend checking this page periodically for any changes.</p>
     </LegalLayout>
   )
 }

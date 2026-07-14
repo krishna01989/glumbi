@@ -5,6 +5,8 @@ import ThemeLoader from '../../components/ThemeLoader'
 import QuotaBanner from '../../components/QuotaBanner'
 import FeatureBanner from '../../components/FeatureBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 
 const SAMPLE_QUESTIONS = [
   'Why is the sky blue?', 'Why do stars shine?', 'Why do we dream?',
@@ -13,6 +15,7 @@ const SAMPLE_QUESTIONS = [
 
 const QuizCard = memo(function QuizCard({ entry, onCorrect }) {
   const [answered, setAnswered] = useState(null)
+  const { track } = useTracker()
 
   const [options] = useState(() =>
     [entry.quizOption1, entry.quizOption2, entry.quizOption3].sort(() => Math.random() - 0.5)
@@ -21,7 +24,9 @@ const QuizCard = memo(function QuizCard({ entry, onCorrect }) {
   function handleAnswer(opt) {
     if (answered) return
     setAnswered(opt)
-    if (opt === entry.quizOption1) onCorrect()  // quizOption1 is always correct
+    const correct = opt === entry.quizOption1
+    track('curiosity', correct ? 'quiz_correct' : 'quiz_wrong', { metadata: { question: entry.quizQuestion } })
+    if (correct) onCorrect()
   }
 
   return (
@@ -60,17 +65,19 @@ function CuriosityCard({ entry, onDelete }) {
   const [won, setWon]             = useState(false)
   const [related, setRelated]     = useState(null)
   const [relLoading, setRelLoading] = useState(false)
+  const { track } = useTracker()
 
   async function selectTab(tab) {
     if (activeTab === tab) {
       setActiveTab(null)
       if (tab === 'quiz') setWon(false)
-      if (tab === 'related') setRelated(null) // clear cache so next open is always fresh
+      if (tab === 'related') setRelated(null)
       return
     }
     setActiveTab(tab)
     if (tab === 'quiz') setWon(false)
     if (tab === 'related') {
+      track('curiosity', 'related', { metadata: { question: entry.question } })
       setRelLoading(true)
       try { setRelated(await curiosityApi.getSimilar(entry.id)) }
       catch { setRelated([]) }
@@ -170,6 +177,8 @@ function CuriosityCard({ entry, onDelete }) {
 }
 
 export default function Curiosity({ child, quota }) {
+  const { track } = useTracker()
+  useFeatureDuration('curiosity', track)
   const offline = useOffline()
   const [entries, setEntries] = useState([])
   const [question, setQuestion] = useState('')
@@ -190,6 +199,7 @@ export default function Curiosity({ child, quota }) {
     setError('')
     try {
       const entry = await curiosityApi.ask({ childId: child.id, question })
+      track('curiosity', 'ask')
       setEntries(prev => [entry, ...prev])
       setQuestion('')
       window.__glumbiRefreshQuota?.()

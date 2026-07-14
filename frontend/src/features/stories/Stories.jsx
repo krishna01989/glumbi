@@ -7,6 +7,8 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import ErrorBox from '../../components/ErrorBox'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { runPageCurl } from '../../utils/pageCurl'
 
 function useIsMobile() {
@@ -164,6 +166,8 @@ function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
 }
 
 export default function Stories({ child, quota }) {
+  const { track } = useTracker()
+  useFeatureDuration('stories', track)
   const offline = useOffline()
   const [stories, setStories] = useState([])
   const [keywords, setKeywords]           = useState('')
@@ -249,6 +253,7 @@ export default function Stories({ child, quota }) {
     setError('')
     try {
       const res = await storyApi.generate({ childId: child.id, keywords, category })
+      track('stories', 'generate', { metadata: { category } })
       const story = res.story ?? res   // fallback if backend not yet updated
       const similar = res.similar ?? []
       setStories(prev => [story, ...prev])
@@ -263,6 +268,7 @@ export default function Stories({ child, quota }) {
   }
 
   async function handleContinue(story) {
+    track('stories', 'continue', { metadata: { category: story.category } })
     setLoading(true)
     setError('')
     try {
@@ -355,6 +361,7 @@ export default function Stories({ child, quota }) {
     const updated = await storyApi.toggleFavorite(storyId)
     setStories(prev => prev.map(s => s.id === storyId ? updated : s))
     if (selected?.id === storyId) setSelected(updated)
+    track('stories', updated.favorite ? 'favorite' : 'unfavorite')
   }
 
   const audioRef = useRef(null)
@@ -400,6 +407,7 @@ export default function Stories({ child, quota }) {
 
   async function handleListen(story, lang, voice) {
     if (speaking && speakingStoryId === story.id && speakingLang === lang) { stopSpeaking(); return }
+    track('stories', 'listen', { metadata: { language: lang } })
     stopSpeaking()
     if (offline && !storyHasCachedAudio(story, lang)) {
       setAudioError('Audio not available in practice mode. Turn AI on to listen for the first time.')
@@ -524,6 +532,7 @@ export default function Stories({ child, quota }) {
             setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
             storyApi.getSimilar(s.id).then(setSimilarStories).catch(() => {})
             if (isMobile) setShowList(false)
+            track('stories', 'read', { metadata: { category: s.category } })
           }
           return (
             <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>

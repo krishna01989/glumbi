@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { adminApi } from '../api/client'
+import { adminApi, analyticsApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ErrorBox from '../components/ErrorBox'
 
@@ -534,6 +534,234 @@ const AUTO_REFRESH_OPTIONS = [
   { label: '30 min', value: 1800000},
 ]
 
+// ─── Activity analytics section (child feature usage) ────────────────────────
+const ACTIVITY_FEATURE_NAMES = {
+  stories:     '📖 Stories',
+  draw:        '🎨 Draw',
+  journal:     '📓 Journal',
+  curiosity:   '🔍 Curiosity',
+  readquiz:    '📚 Read & Quiz',
+  activities:  '🎮 Activities',
+  mywriting:   '✍️ My Writing',
+  riddle:      '🎯 Riddles',
+  maze:        '🌀 Maze',
+  learn:       '✏️ Learn',
+  flashcards:  '📇 Flashcards',
+  wordofday:   '🌟 Word of Day',
+  memorymatch: '🧠 Memory Match',
+}
+
+const ACTIVITY_COLORS = ['#4facfe', '#43e97b', '#fa709a', '#f093fb', '#ffa726', '#a78bfa']
+
+function fmtDurAdmin(sec) {
+  if (!sec || sec < 60) return sec > 0 ? `${sec}s` : '—'
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
+  return `${m}m`
+}
+
+function ActivityAnalytics() {
+  const [days, setDays]         = useState(30)
+  const [data, setData]         = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
+
+  useEffect(() => {
+    setLoading(true)
+    analyticsApi.getAdminAnalytics(days)
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
+  }, [days])
+
+  const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
+
+  const peakHour = data?.hourlyActivity
+    ? data.hourlyActivity.reduce((best, v, i) => v > data.hourlyActivity[best] ? i : best, 0)
+    : null
+
+  // Merge count + duration per feature
+  const allFeatures = data
+    ? Array.from(new Set([
+        ...Object.keys(data.featureBreakdown ?? {}),
+        ...Object.keys(data.durationByFeature ?? {}),
+      ])).map(f => ({
+        feature: f,
+        count: data.featureBreakdown?.[f] ?? 0,
+        sec:   data.durationByFeature?.[f] ?? 0,
+      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count).slice(0, 8)
+    : []
+  const featureMax   = allFeatures.length > 0 ? (featureMode === 'time' ? allFeatures[0].sec : allFeatures[0].count) : 1
+  const featureTotal = allFeatures.reduce((s, r) => s + (featureMode === 'time' ? r.sec : r.count), 0)
+
+  const dailyMax = data?.dailyActiveChildren
+    ? Math.max(...data.dailyActiveChildren.map(d => d.count), 1)
+    : 1
+
+  // 7×24 heatmap — find global max for color scaling
+  const heatmapMax = data?.heatmap
+    ? Math.max(...data.heatmap.flatMap(r => r.hours), 1)
+    : 1
+
+  return (
+    <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
+        <div style={{ fontWeight: 800, fontSize: 13, color: '#333', flex: 1 }}>🎮 Child Activity Analytics</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[7, 30, 90].map(d => (
+            <button key={d} onClick={() => setDays(d)}
+              style={{ padding: '4px 14px', borderRadius: 50, fontSize: 12, fontWeight: 800, border: 'none', cursor: 'pointer', background: days === d ? '#1a1a2e' : '#f0f0f0', color: days === d ? 'white' : '#666' }}>
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — last {days} days</div>
+
+      {loading && <div style={{ textAlign: 'center', padding: '24px 0', color: '#aaa', fontSize: 13 }}>Loading…</div>}
+
+      {!loading && data && (
+        <>
+          {/* Summary stat row */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Total events',     value: (data.totalEvents ?? 0).toLocaleString(),                                                    icon: '⚡' },
+              { label: 'Active children',  value: (data.activeChildren ?? 0).toLocaleString(),                                                 icon: '🧒' },
+              { label: 'Total engage time',value: fmtDurAdmin(data.totalEngagementSeconds ?? 0),                                               icon: '⏱️' },
+              { label: 'AI credits used',  value: (data.totalCreditsUsed ?? 0).toLocaleString(),                                               icon: '🪙' },
+              { label: 'Peak hour',        value: peakHour !== null ? (peakHour === 0 ? '12 AM' : peakHour < 12 ? `${peakHour} AM` : peakHour === 12 ? '12 PM' : `${peakHour - 12} PM`) : '—', icon: '⏰' },
+            ].map(s => (
+              <div key={s.label} style={{ flex: '1 1 100px', background: '#f8f9fa', borderRadius: 12, padding: '12px 10px', textAlign: 'center' }}>
+                <div style={{ fontSize: 18 }}>{s.icon}</div>
+                <div style={{ fontWeight: 900, fontSize: 16, color: '#1a1a2e', marginTop: 4 }}>{s.value}</div>
+                <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Top row: daily bar chart + feature breakdown */}
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 20 }}>
+
+            {/* Daily active children */}
+            {data.dailyActiveChildren?.length > 0 && (
+              <div style={{ flex: '1 1 240px' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Daily active children</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: days > 30 ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
+                  {data.dailyActiveChildren.map((d, i) => (
+                    <div key={i} title={`${d.date}: ${d.count} children`}
+                      style={{ flex: 1, background: d.count > 0 ? '#4facfe' : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / dailyMax * 100, d.count > 0 ? 8 : 3)}%`, opacity: d.count > 0 ? 0.7 + (d.count / dailyMax) * 0.3 : 0.3 }} />
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#bbb', marginTop: 4 }}>
+                  <span>{data.dailyActiveChildren[0]?.date?.slice(5)}</span>
+                  <span>{data.dailyActiveChildren[data.dailyActiveChildren.length - 1]?.date?.slice(5)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Feature breakdown with count/time toggle */}
+            {allFeatures.length > 0 && (
+              <div style={{ flex: '1 1 260px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>
+                    Feature {featureMode === 'time' ? 'engagement' : 'popularity'}
+                    <span style={{ fontWeight: 400, color: '#aaa', marginLeft: 6 }}>
+                      ({featureMode === 'time' ? fmtDurAdmin(featureTotal) : featureTotal.toLocaleString()})
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {['count', 'time'].map(m => (
+                      <button key={m} onClick={() => setFeatureMode(m)}
+                        style={{ padding: '3px 9px', borderRadius: 50, fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer', background: featureMode === m ? '#1a1a2e' : '#f0f0f0', color: featureMode === m ? 'white' : '#999' }}>
+                        {m === 'count' ? 'Sessions' : '⏱ Time'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {allFeatures.map(({ feature, count, sec }, i) => {
+                  const val   = featureMode === 'time' ? sec : count
+                  const label = featureMode === 'time' ? fmtDurAdmin(sec) : count.toLocaleString()
+                  const sub   = featureMode === 'time' ? `${count.toLocaleString()} sessions` : (sec > 0 ? fmtDurAdmin(sec) : null)
+                  const pct   = featureMax > 0 ? Math.round((val / featureMax) * 100) : 0
+                  const share = featureTotal > 0 ? Math.round((val / featureTotal) * 100) : 0
+                  return (
+                    <div key={feature} style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#555', marginBottom: 4 }}>
+                        <span>{ACTIVITY_FEATURE_NAMES[feature] || feature}</span>
+                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                          <span style={{ color: '#333', fontWeight: 900 }}>{label}</span>
+                          <span style={{ color: '#bbb', fontSize: 10 }}>{share}%</span>
+                          {sub && <span style={{ color: '#ccc', fontSize: 10 }}>· {sub}</span>}
+                        </span>
+                      </div>
+                      <div style={{ background: '#f0f0f0', borderRadius: 6, height: 8, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, background: ACTIVITY_COLORS[i % ACTIVITY_COLORS.length], height: '100%', borderRadius: 6, transition: 'width 0.4s ease' }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 7×24 day-hour heatmap */}
+          {data.heatmap?.length > 0 && (() => {
+            const HOUR_LABELS = ['12a','','','','','','6a','','','','','','12p','','','','','','6p','','','','','11p']
+            return (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>
+                  Activity heatmap — day × hour
+                </div>
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: 480 }}>
+                    {/* Hour axis */}
+                    <div style={{ display: 'flex', marginLeft: 32, marginBottom: 3 }}>
+                      {HOUR_LABELS.map((lbl, h) => (
+                        <div key={h} style={{ flex: 1, fontSize: 9, color: '#bbb', textAlign: 'center' }}>{lbl}</div>
+                      ))}
+                    </div>
+                    {/* Day rows */}
+                    {data.heatmap.map(({ day, hours }) => {
+                      return (
+                        <div key={day} style={{ display: 'flex', alignItems: 'center', marginBottom: 3 }}>
+                          <div style={{ width: 28, fontSize: 10, color: '#888', fontWeight: 700, flexShrink: 0 }}>{day}</div>
+                          <div style={{ display: 'flex', flex: 1, gap: 2 }}>
+                            {hours.map((v, h) => {
+                              const intensity = heatmapMax > 0 ? v / heatmapMax : 0
+                              const bg = v === 0
+                                ? '#f0f0f0'
+                                : `rgba(99,102,241,${0.15 + intensity * 0.85})`
+                              return (
+                                <div key={h} title={`${day} ${fmtHour(h).replace('a',' AM').replace('p',' PM')}: ${v} events`}
+                                  style={{ flex: 1, height: 16, borderRadius: 3, background: bg, transition: 'background 0.3s', cursor: 'default' }} />
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                    {/* Gradient legend */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, marginLeft: 32 }}>
+                      <span style={{ fontSize: 9, color: '#bbb' }}>Low</span>
+                      <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'linear-gradient(to right, rgba(99,102,241,0.15), rgba(99,102,241,1))' }} />
+                      <span style={{ fontSize: 9, color: '#bbb' }}>High ({heatmapMax})</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          {data.totalEvents === 0 && (
+            <div style={{ textAlign: 'center', padding: '16px 0', color: '#bbb', fontSize: 13 }}>No activity events recorded yet.</div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── Dashboard section ────────────────────────────────────────────────────────
 function Dashboard() {
   const [range, setRange]         = useState('7d')
@@ -769,6 +997,9 @@ function Dashboard() {
           ))
         }
       </div>}
+
+      {/* Activity analytics */}
+      <ActivityAnalytics />
     </div>
   )
 }

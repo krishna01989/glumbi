@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { useSearchParams } from 'react-router-dom'
 import { memoryApi, learnApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
@@ -6,6 +7,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
 
 const TABS = [
   { key: 'flashcards', label: '📇 Flashcards' },
@@ -17,10 +19,14 @@ const MATCH_THEMES = ['Animals', 'Space', 'Food', 'Nature', 'Sports']
 
 // ── Flashcard flip card ──────────────────────────────────────────────────────
 
-function FlipCard({ q, a, index }) {
+function FlipCard({ q, a, index, onFirstFlip }) {
   const [flipped, setFlipped] = useState(false)
+  function handleClick() {
+    if (!flipped && onFirstFlip) onFirstFlip()
+    setFlipped(f => !f)
+  }
   return (
-    <div onClick={() => setFlipped(f => !f)}
+    <div onClick={handleClick}
       style={{
         perspective: 800,
         cursor: 'pointer',
@@ -74,10 +80,13 @@ function FlipCard({ q, a, index }) {
 // ── Flashcards tab ────────────────────────────────────────────────────────────
 
 function FlashcardsTab({ child, quota }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const [topic, setTopic] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const flipTracked = useRef(false)
+  useFeatureDuration('flashcards', track)
   const [sets, setSets] = useState([])
   const [activeSet, setActiveSet] = useState(null)
 
@@ -91,6 +100,7 @@ function FlashcardsTab({ child, quota }) {
     setLoading(true); setError('')
     try {
       const set = await memoryApi.generateFlashcards(child.id, topic)
+      track('flashcards', 'generate', { metadata: { topic } })
       setSets(prev => [set, ...prev])
       setActiveSet(set)
       setTopic('')
@@ -143,7 +153,7 @@ function FlashcardsTab({ child, quota }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {parsedActive.map((card, i) => (
-              <FlipCard key={i} index={i} q={card.q} a={card.a} />
+              <FlipCard key={i} index={i} q={card.q} a={card.a} onFirstFlip={() => { if (!flipTracked.current) { flipTracked.current = true; track('flashcards', 'view') } }} />
             ))}
           </div>
         </div>
@@ -181,6 +191,7 @@ function FlashcardsTab({ child, quota }) {
 const HISTORY_DAYS = 7
 
 function WordOfDayTab({ child }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const [word, setWord] = useState(null)
   const [history, setHistory] = useState([])
@@ -199,6 +210,7 @@ function WordOfDayTab({ child }) {
       memoryApi.getWordOfDay(child.id),
       memoryApi.getWordOfDayHistory(child.id),
     ]).then(([today, hist]) => {
+      if (today) track('wordofday', 'view')
       setWord(today)
       setHistory(hist.filter(h => h.id !== today.id).slice(0, HISTORY_DAYS))
     }).catch(err => setError(err.message))
@@ -220,6 +232,7 @@ function WordOfDayTab({ child }) {
     if (offline) return
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
     if (speakingId === id) { setSpeaking(false); setSpeakingId(null); return }
+    track('wordofday', 'listen', { metadata: { word: w } })
     setSpeaking(true); setSpeakingId(id)
     const audio = new Audio(learnApi.audioUrl(w, 'en-US'))
     audioRef.current = audio
@@ -290,6 +303,7 @@ const DIFFICULTIES = [
 ]
 
 function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
+  const { track } = useTracker()
   const diff = DIFFICULTIES.find(d => d.key === difficulty) || DIFFICULTIES[2]
   const slicedPairs = pairs.slice(0, diff.pairs)
 
@@ -302,6 +316,7 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   const [flippedIds, setFlippedIds] = useState([])
   const [locked, setLocked] = useState(false)
   const [moves, setMoves] = useState(0)
+  const matchStartTime = useRef(Date.now())
 
   // Reset cards when difficulty changes without unmounting (preserves fullscreen)
   useEffect(() => {
@@ -309,8 +324,14 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
     setFlippedIds([])
     setLocked(false)
     setMoves(0)
+    matchStartTime.current = Date.now()
   }, [difficulty]) // eslint-disable-line react-hooks/exhaustive-deps
   const won = cards.every(c => c.matched)
+  const prevWonRef = useRef(false)
+  useEffect(() => {
+    if (won && !prevWonRef.current) track('memorymatch', 'complete', { metadata: { difficulty, moves }, durationSeconds: Math.round((Date.now() - matchStartTime.current) / 1000) })
+    prevWonRef.current = won
+  }, [won]) // eslint-disable-line react-hooks/exhaustive-deps
   const cardsRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -346,12 +367,14 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
       setMoves(m => m + 1)
       const [a, b] = newFlipped.map(id => cards.find(c => c.id === id))
       if (a && b && a.label === b.label) {
+        track('memorymatch', 'match', { metadata: { pair: a.label } })
         setTimeout(() => {
           setCards(prev => prev.map(c => newFlipped.includes(c.id) ? { ...c, matched: true } : c))
           setFlippedIds([])
           setLocked(false)
         }, 600)
       } else {
+        track('memorymatch', 'mismatch')
         setTimeout(() => {
           setCards(prev => prev.map(c => newFlipped.includes(c.id) ? { ...c, flipped: false } : c))
           setFlippedIds([])
@@ -498,6 +521,7 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
 }
 
 function MemoryMatchTab({ child, quota }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const [theme, setTheme] = useState('')
   const [loading, setLoading] = useState(false)
@@ -517,6 +541,7 @@ function MemoryMatchTab({ child, quota }) {
     setLoading(true); setError('')
     try {
       const match = await memoryApi.generateMatch(child.id, theme)
+      track('memorymatch', 'generate', { metadata: { theme } })
       setMatches(prev => [match, ...prev])
       startMatch(match)
       setTheme('')
@@ -656,11 +681,11 @@ export default function MemoryPlay({ child, quota }) {
         ))}
       </div>
 
-      {/* Tab content — always mounted to preserve game state */}
+      {/* FlashcardsTab and WordOfDayTab mount on demand; MemoryMatchTab stays mounted to preserve mid-game state */}
       <div style={{ flex: 1, minHeight: 400 }}>
-        <div style={{ display: tab === 'flashcards' ? 'block' : 'none' }}><FlashcardsTab child={child} quota={quota} /></div>
-        <div style={{ display: tab === 'wordofday'  ? 'block' : 'none' }}><WordOfDayTab  child={child} /></div>
-        <div style={{ display: tab === 'match'      ? 'block' : 'none' }}><MemoryMatchTab child={child} quota={quota} /></div>
+        {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} />}
+        {tab === 'wordofday'  && <WordOfDayTab  child={child} />}
+        <div style={{ display: tab === 'match' ? 'block' : 'none' }}><MemoryMatchTab child={child} quota={quota} /></div>
       </div>
     </div>
   )

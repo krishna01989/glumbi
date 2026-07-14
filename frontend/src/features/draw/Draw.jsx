@@ -1,6 +1,8 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { drawApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
@@ -69,11 +71,14 @@ function Divider() {
 }
 
 export default function Draw({ child, quota, featureConfig }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const canvasRef  = useRef(null)
   const colorInput = useRef(null)
   const drawing    = useRef(false)
   const lastPos    = useRef(null)
+  const sessionTracked = useRef(false)
+  useFeatureDuration('draw', track, { condition: sessionTracked })
   const fsRef      = useRef(null)
 
   const historyRef = useRef([])
@@ -98,6 +103,7 @@ export default function Draw({ child, quota, featureConfig }) {
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
+
 
   useEffect(() => {
     const update = () => {
@@ -247,6 +253,9 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function startDraw(e) {
     e.preventDefault()
+    if (!sessionTracked.current) {
+      sessionTracked.current = true
+    }
     if (fillMode) {
       saveSnapshot()
       const canvas = canvasRef.current
@@ -299,6 +308,7 @@ export default function Draw({ child, quota, featureConfig }) {
     setAiReply('')
     try {
       const { response } = await drawApi.identify(imageData, child?.name || 'you', age, guideSubject)
+      track('draw', 'ai_praise')
       setAiReply(response)
     } catch {
       setAiReply('Wow, what an amazing drawing! 🌟')
@@ -314,6 +324,7 @@ export default function Draw({ child, quota, featureConfig }) {
     const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
     try {
       const { guide: text } = await drawApi.guide(guideInput.trim(), child?.name || 'you', age)
+      track('draw', 'ai_guide', { metadata: { subject: guideInput.trim() } })
       setGuide(text)
       setGuideSubject(guideInput.trim())
       setGuideInput('')

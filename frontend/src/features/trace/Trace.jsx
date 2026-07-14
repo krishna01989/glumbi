@@ -4,6 +4,8 @@ import { useOffline } from '../../contexts/OfflineContext'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 
 function useBreakpoint() {
   const get = () => window.innerWidth < 640 ? 'mobile' : 'desktop'
@@ -116,6 +118,8 @@ function StarBurst({ x, y }) {
 
 export default function Trace({ child, quota, featureConfig }) {
   const offline = useOffline()
+  const { track } = useTracker()
+  useFeatureDuration('trace', track)
   const isMobile = useBreakpoint() === 'mobile'
   const svgRef = useRef(null)
   const pathSamplesRef = useRef({})
@@ -188,7 +192,10 @@ export default function Trace({ child, quota, featureConfig }) {
   const allDoneRef = useRef(allDone)
   useEffect(() => { activeIdRef.current = activeId }, [activeId])
   useEffect(() => { completedIdsRef.current = completedIds }, [completedIds])
-  useEffect(() => { allDoneRef.current = allDone }, [allDone])
+  useEffect(() => {
+    allDoneRef.current = allDone
+    if (allDone) track('trace', 'complete', { metadata: { mazeIdx } })
+  }, [allDone]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const drawnPtsRef = useRef([])
   useEffect(() => { drawnPtsRef.current = [] }, [mazeIdx, activeId])

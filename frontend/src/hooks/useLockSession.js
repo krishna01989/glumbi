@@ -151,6 +151,17 @@ export function useLockSession({ child, setChild, prevChildId }) {
     if (document.fullscreenElement) document.exitFullscreen?.()
   }, [screenTimeAlert])
 
+  // Pause feature duration timers when any blocking overlay is visible
+  useEffect(() => {
+    const blocked = screenTimeAlert !== false
+    window.dispatchEvent(new Event(blocked ? 'glumbi:activity-paused' : 'glumbi:activity-resumed'))
+  }, [screenTimeAlert])
+
+  useEffect(() => {
+    const blocked = lockModal !== null
+    window.dispatchEvent(new Event(blocked ? 'glumbi:activity-paused' : 'glumbi:activity-resumed'))
+  }, [lockModal])
+
   // Auto-end session when all snoozes exhausted
   useEffect(() => {
     if (screenTimeAlert !== 'force-end') return

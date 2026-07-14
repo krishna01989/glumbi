@@ -104,6 +104,12 @@ export default function AuthPage({ onAuth }) {
         {GOOGLE_CLIENT_ID && (
           <>
             <div ref={googleBtnRef} style={{ width: '100%', marginBottom: 8 }} />
+            <p style={{ fontSize: 11, color: '#aaa', textAlign: 'center', margin: '0 0 4px', lineHeight: 1.5 }}>
+              By continuing with Google you agree to our{' '}
+              <a href="/terms" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Terms of Service</a>
+              {' '}and acknowledge our{' '}
+              <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Privacy Policy</a>.
+            </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
               <div style={{ flex: 1, height: 1, background: '#eee' }} />
               <span style={{ fontSize: 12, color: '#bbb', fontWeight: 700 }}>OR</span>
@@ -171,6 +177,15 @@ export default function AuthPage({ onAuth }) {
               ? <><span className="spinner" />&nbsp;{mode === 'login' ? 'Signing in…' : 'Creating account…'}</>
               : mode === 'login' ? '✨ Sign In' : '🌟 Create Account'}
           </button>
+
+          {mode === 'register' && (
+            <p style={{ fontSize: 11, color: '#aaa', textAlign: 'center', margin: '4px 0 0', lineHeight: 1.5 }}>
+              By creating an account you agree to our{' '}
+              <a href="/terms" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Terms of Service</a>
+              {' '}and acknowledge our{' '}
+              <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Privacy Policy</a>.
+            </p>
+          )}
         </form>
       </div>
     </div>

@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { traceApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
@@ -131,6 +133,7 @@ const BASE_THEMES = [
 const WALL_MSGS = ['Oops! That\'s a wall! 🧱', 'Blocked! Try another way! 🔄', 'Hit a wall! Go back! ↩️']
 
 export default function Maze({ child, quota, featureConfig }) {
+  const { track } = useTracker()
   const offline = useOffline()
   const childAge = child?.birthYear ? new Date().getFullYear() - child.birthYear : 6
   const { cols, rows } = gridSize(childAge)
@@ -151,6 +154,8 @@ export default function Maze({ child, quota, featureConfig }) {
   const phaseRef     = useRef('idle')
   const drawingRef   = useRef(false)
   const timerRef     = useRef(null)
+  const mazeStartTime = useRef(Date.now())
+  useFeatureDuration('maze', track)
 
   const grid = useMemo(() => generateMaze(cols, rows, seed), [cols, rows, seed])
 
@@ -303,6 +308,7 @@ export default function Maze({ child, quota, featureConfig }) {
     if (inBounds && Math.hypot(sx - ex, sy - ey) < endRadius) {
       phaseRef.current = 'success'
       setPhase('success')
+      track('maze', 'complete', { metadata: { cols, rows }, durationSeconds: Math.round((Date.now() - mazeStartTime.current) / 1000) })
       drawingRef.current = false
     }
   }
@@ -340,6 +346,7 @@ export default function Maze({ child, quota, featureConfig }) {
     try {
       const difficulty = childAge <= 4 ? 'easy' : childAge <= 7 ? 'medium' : 'hard'
       const result = await traceApi.generate(child.id, child.name, childAge, difficulty)
+      track('maze', 'ai_theme', { metadata: { difficulty } })
       setSeed((Math.random() * 1e8) | 0)
       setThemeIdx(i => (i + 1) % BASE_THEMES.length)
       setAiSkin(result)

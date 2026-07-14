@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { journalApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 
@@ -21,6 +23,8 @@ function moodFor(value) {
 }
 
 export default function Journal({ child, featureConfig }) {
+  const { track } = useTracker()
+  useFeatureDuration('journal', track)
   const offline = useOffline()
   const [entries, setEntries]     = useState([])
   const [content, setContent]     = useState('')
@@ -46,6 +50,7 @@ export default function Journal({ child, featureConfig }) {
     setSaving(true)
     try {
       const entry = await journalApi.create({ childId: child.id, content, mood, milestone })
+      track('journal', 'save')
       setEntries(prev => [entry, ...prev])
       setContent(''); setMood(''); setMilestone('')
     } finally { setSaving(false) }
@@ -56,6 +61,7 @@ export default function Journal({ child, featureConfig }) {
     setAiLoading(true); setAiError('')
     try {
       const result = await journalApi.generateAiEntry(child.id)
+      track('journal', 'ai_generate')
       setContent(result.content || '')
       if (result.mood)      setMood(result.mood)
       if (result.milestone) setMilestone(result.milestone)

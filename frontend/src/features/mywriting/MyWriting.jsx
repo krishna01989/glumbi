@@ -3,6 +3,8 @@ import { writingApi, storyApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { useOffline } from '../../contexts/OfflineContext'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
+import useFeatureDuration from '../../hooks/useFeatureDuration'
 import FeatureBanner from '../../components/FeatureBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 import { runPageCurl } from '../../utils/pageCurl'
@@ -82,6 +84,8 @@ function SeriesGroup({ root, chapters, selected, onOpen }) {
 }
 
 export default function MyWriting({ child, quota }) {
+  const { track } = useTracker()
+  useFeatureDuration('mywriting', track)
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
   const [selected, setSelected] = useState(null)  // entry being viewed
@@ -132,6 +136,7 @@ export default function MyWriting({ child, quota }) {
     setContLoading(true); setContinuation(null)
     try {
       const result = await writingApi.continue(entry.id)
+      track('mywriting', 'ai_continue')
       setContinuation(result)
       window.__glumbiRefreshQuota?.()
     } catch (e) { setError(e.message) }
@@ -180,6 +185,7 @@ export default function MyWriting({ child, quota }) {
         saved = await writingApi.save(data)
         savedId.current = saved.id
       }
+      track('mywriting', 'save')
       setEntries(prev => {
         const exists = prev.find(e => e.id === saved.id)
         if (!exists) return [saved, ...prev]
@@ -201,6 +207,7 @@ export default function MyWriting({ child, quota }) {
     setError(''); setFbLoading(true)
     try {
       const result = await writingApi.feedback(savedId.current)
+      track('mywriting', 'feedback')
       setFeedback({
         praise: result.feedbackPraise,
         suggestion: result.feedbackSuggestion,

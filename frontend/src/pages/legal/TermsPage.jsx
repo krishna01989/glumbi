@@ -2,7 +2,7 @@ import LegalLayout from './LegalLayout'
 
 export default function TermsPage({ inApp = false }) {
   return (
-    <LegalLayout title="Terms of Service" updated="30 June 2025" inApp={inApp}>
+    <LegalLayout title="Terms of Service" updated="14 July 2026" inApp={inApp}>
       <p>Please read these Terms of Service ("Terms") carefully before using Glumbi. By creating an account or using any part of the service, you agree to be bound by these Terms.</p>
 
       <h2>1. About Glumbi</h2>
@@ -80,7 +80,7 @@ export default function TermsPage({ inApp = false }) {
       <p>These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts of Bengaluru, India.</p>
 
       <h2>13. Changes to these Terms</h2>
-      <p>We may update these Terms from time to time. Continued use of the service after changes are posted constitutes acceptance of the new Terms. We will notify you of material changes via email.</p>
+      <p>We may update these Terms from time to time. The "last updated" date at the top of this page always reflects the current version. Continued use of the service after changes are posted constitutes acceptance of the new Terms. We recommend checking this page periodically.</p>
 
       <h2>14. Contact</h2>
       <p>For any questions about these Terms, email us at <a href="mailto:legal@glumbi.com">legal@glumbi.com</a>.</p>

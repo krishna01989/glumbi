@@ -47,7 +47,8 @@ src/
 │   ├── PublicHeader.jsx        # Landing / public page header
 │   └── ThemeLoader.jsx         # Applies child theme CSS variables + loading animation
 ├── contexts/
-│   └── OfflineContext.jsx      # Online/offline detection context
+│   ├── OfflineContext.jsx      # Online/offline detection context (used in ChildRoutes)
+│   └── ThemeContext.jsx        # Active child theme object — consumed via useTheme()
 ├── pages/
 │   ├── LandingPage.jsx         # Public home page with feature carousel
 │   ├── AuthPage.jsx            # Login / register (email + Google OAuth)
@@ -228,7 +229,15 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 
 ### Theming
 
-Each child has a colour theme (e.g. Ocean, Forest, Sunset). `ThemeLoader.jsx` reads the active child's theme and injects CSS custom properties (`--primary`, `--accent`, `--primary-lt`, `--header-grad`, etc.) onto `:root`. All feature components use these variables so the entire UI re-skins per child. The Maze and Riddle features use `var(--primary)` and `var(--accent)` for all interactive buttons.
+Each child has a colour theme (e.g. Ocean, Forest, Sunset). `applyTheme(key)` in `themes.js` immediately sets CSS custom properties (`--primary`, `--accent`, `--primary-lt`, `--header-grad`, etc.) on `document.documentElement` — no re-render required for any component using `var(--primary)` etc. in inline styles.
+
+For components that need the actual hex values at render time (building gradient strings, JS animations), the active theme object is published via **React Context**:
+
+- `App.jsx` wraps the child session in `<ThemeContext.Provider value={theme}>`
+- `AppSidebar` and `MobileMenu` call `const theme = useTheme()` internally — no prop drilling
+- `applyTheme` is called with `useLayoutEffect` for the management-page theme reset so CSS variables are applied before the first paint (no flash)
+
+**Nav active-item style** — sidebar and hamburger menu both use an oval pill (`borderRadius: 50`) with a near-white background (`rgba(255,255,255,0.92)`) and `theme.primary` text colour when the item is active, matching the bottom mobile nav's tab-indicator pattern.
 
 ### Responsive layout
 

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { useTheme } from '../context/ThemeContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 export default function AppSidebar({
   child, isTV, collapsed, setCollapsed,

@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useTheme } from '../context/ThemeContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 const NAV_GROUPS = [
   {

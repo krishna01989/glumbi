@@ -234,8 +234,8 @@ public class AdminController {
             alerts.add(Map.of("level", "success", "msg", newUsersThisWeek + " new users joined this week 🎉"));
         long perfectScores = quizScores.getOrDefault("3/3", 0L);
         long scoredTotal   = quizScores.values().stream().mapToLong(Long::longValue).sum();
-        if (scoredTotal > 0 && perfectScores * 100 / scoredTotal < 30)
-            alerts.add(Map.of("level", "warn", "msg", "Only " + (perfectScores * 100 / scoredTotal) + "% of quizzes scored 3/3 — content may be too hard"));
+        if (scoredTotal >= 5 && perfectScores * 100 / scoredTotal < 30)
+            alerts.add(Map.of("level", "warn", "msg", perfectScores + " of " + scoredTotal + " quizzes scored 3/3 (" + (perfectScores * 100 / scoredTotal) + "%) — content may be too hard"));
 
         String rangeLabel = switch (range) {
             case "30d" -> "Last 30 Days";

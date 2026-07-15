@@ -994,7 +994,7 @@ function Dashboard() {
       {/* Feature usage + Quiz scores side by side */}
       {stats && <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', flex: '1 1 280px' }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>🧩 Feature Usage — {rangeLabel}</div>
+          <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 4 }}>🧩 Content Created — {rangeLabel}</div>
           <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>{featureTotal.toLocaleString()} total interactions</div>
           {featureEntries.map(([label, value], i) => (
             <HBar key={label} label={label} value={value} max={featureMax} color={featureColors[i % featureColors.length]} total={featureTotal} />
@@ -1014,7 +1014,7 @@ function Dashboard() {
               </span>
               <span style={{ color: '#777' }}> perfect scores · avg {
                 scoreEntries.length > 0
-                  ? (scoreEntries.reduce((s, [k, v]) => s + parseInt(k) * v, 0) / scoreTotal).toFixed(1)
+                  ? (() => { const avg = scoreEntries.reduce((s, [k, v]) => s + parseInt(k) * v, 0) / scoreTotal; return avg % 1 === 0 ? avg.toFixed(0) : avg.toFixed(1) })()
                   : '—'
               }/3</span>
             </div>

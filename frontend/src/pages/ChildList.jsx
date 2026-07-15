@@ -432,7 +432,15 @@ function ActivityModal({ child, t, onClose }) {
                   if (feature === 'memorymatch' && data?.topMemoryMatchTheme)
                     extraChips.push({ key: 'theme', icon: '⭐', text: `Fav theme: ${data.topMemoryMatchTheme}`, color: '#8b5cf6', bg: '#faf5ff' })
                   if (feature === 'learn' && data?.learnPracticeCount > 0)
-                    extraChips.push({ key: 'practice', icon: '✏️', text: `Learn to Write: ${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
+                    extraChips.push({ key: 'practice', icon: '✏️', text: `${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
+                  if (feature === 'learn' && data?.letterAccuracy?.length > 0) {
+                    const worst = data.letterAccuracy[0]
+                    extraChips.push({ key: 'letter', icon: '🔤', text: `Hardest letter: "${worst.letter}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
+                  }
+                  if (feature === 'learn' && data?.wordAccuracy?.length > 0) {
+                    const worst = data.wordAccuracy[0]
+                    extraChips.push({ key: 'word', icon: '📝', text: `Hardest word: "${worst.word}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
+                  }
                   return (
                     <div key={feature} style={{ marginBottom: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>

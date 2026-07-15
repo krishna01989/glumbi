@@ -19,7 +19,6 @@ public class AccountDeletionService {
     private final JournalRepository     journalRepository;
     private final CuriosityRepository   curiosityRepository;
     private final FamilyVoiceRepository familyVoiceRepository;
-    private final AiUsageLogRepository  usageLogRepository;
     private final UserRepository        userRepository;
     private final ElevenLabsService     elevenLabsService;
     private final R2Service             r2Service;

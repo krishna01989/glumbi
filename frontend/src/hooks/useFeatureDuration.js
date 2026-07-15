@@ -11,31 +11,36 @@ import { useEffect, useRef } from 'react'
 //   - 'glumbi:activity-paused' event (lock modal / screen-time alert showing)
 // Resumes on visible / 'glumbi:activity-resumed'.
 export default function useFeatureDuration(feature, track, { minSeconds = 5, condition = null } = {}) {
-  const startRef   = useRef(Date.now())  // when current active period began
-  const elapsedRef = useRef(0)           // accumulated ms across all active periods
-  const pausedRef  = useRef(false)       // currently paused?
+  const startRef      = useRef(Date.now())  // when current active period began
+  const elapsedRef    = useRef(0)           // accumulated ms across all active periods
+  const pauseReasons  = useRef(new Set())   // set of active pause reasons — all must clear to resume
 
   useEffect(() => {
     startRef.current = Date.now()
     elapsedRef.current = 0
-    pausedRef.current = false
+    pauseReasons.current.clear()
 
-    function pause() {
-      if (pausedRef.current) return
-      elapsedRef.current += Date.now() - startRef.current
-      pausedRef.current = true
+    function pause(reason) {
+      if (pauseReasons.current.has(reason)) return
+      if (pauseReasons.current.size === 0) {
+        // first pause — snapshot elapsed
+        elapsedRef.current += Date.now() - startRef.current
+      }
+      pauseReasons.current.add(reason)
     }
-    function resume() {
-      if (!pausedRef.current) return
-      startRef.current = Date.now()
-      pausedRef.current = false
+    function resume(reason) {
+      pauseReasons.current.delete(reason)
+      if (pauseReasons.current.size === 0) {
+        // all pause reasons cleared — restart the active period clock
+        startRef.current = Date.now()
+      }
     }
 
     function onVisibility() {
-      document.hidden ? pause() : resume()
+      document.hidden ? pause('hidden') : resume('hidden')
     }
-    function onPause()  { pause()  }
-    function onResume() { resume() }
+    function onPause()  { pause('overlay')  }
+    function onResume() { resume('overlay') }
 
     document.addEventListener('visibilitychange', onVisibility)
     window.addEventListener('glumbi:activity-paused',  onPause)
@@ -48,7 +53,7 @@ export default function useFeatureDuration(feature, track, { minSeconds = 5, con
 
       if (condition && !condition.current) return
 
-      const total = elapsedRef.current + (pausedRef.current ? 0 : Date.now() - startRef.current)
+      const total = elapsedRef.current + (pauseReasons.current.size > 0 ? 0 : Date.now() - startRef.current)
       const seconds = Math.round(total / 1000)
       if (seconds >= minSeconds) track(feature, 'session', { durationSeconds: seconds })
     }

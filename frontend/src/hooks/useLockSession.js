@@ -177,7 +177,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
   }, [screenTimeAlert])
 
   function handleScreenTimeSnooze(extraMinutes) {
-    const newStart = alertOpenedAtRef.current ?? Date.now()
+    const newStart = Date.now()
     alertOpenedAtRef.current = null
     if (child?.id) {
       localStorage.setItem(`glm_session_start_${child.id}`, String(newStart))

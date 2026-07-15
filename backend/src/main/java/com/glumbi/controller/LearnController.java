@@ -18,15 +18,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import jakarta.annotation.PostConstruct;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/learn")
 @RequiredArgsConstructor
 public class LearnController {
 
-    private final ConcurrentHashMap<String, byte[]> audioCache = new ConcurrentHashMap<>();
+    @Value("${app.cache.tts-max-size:200}") private int ttsCacheMaxSize;
+    @Value("${app.cache.tts-ttl-hours:6}")  private int ttsCacheTtlHours;
+
+    private Cache<String, byte[]> audioCache;
+
+    @PostConstruct
+    void initCache() {
+        audioCache = Caffeine.newBuilder()
+                .maximumSize(ttsCacheMaxSize)
+                .expireAfterAccess(ttsCacheTtlHours, TimeUnit.HOURS)
+                .build();
+    }
 
     private final AnthropicClient anthropicClient;
     private final TextToSpeechService ttsService;
@@ -246,7 +260,7 @@ public class LearnController {
                 default        -> "english";
             };
             String cacheKey = text.toLowerCase().trim() + ":" + lang;
-            byte[] audio = audioCache.computeIfAbsent(cacheKey, k -> {
+            byte[] audio = audioCache.get(cacheKey, k -> {
                 try { return ttsService.synthesize(text, lang); }
                 catch (Exception e) { throw new RuntimeException(e); }
             });

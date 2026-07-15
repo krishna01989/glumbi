@@ -72,6 +72,12 @@ app:
   quota:
     default-monthly-credits: 200
     notification-history-days: 30
+  cache:
+    rate-limit-ttl-hours: 2
+    tts-max-size: 200
+    tts-ttl-hours: 6
+  embedding:
+    thread-pool-size: 4
 
 voyage:
   api-key: ${VOYAGE_API_KEY:}

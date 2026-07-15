@@ -1,23 +1,32 @@
 package com.glumbi.service;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class RateLimitService {
 
     public enum Endpoint { STORY, ACTIVITY, CURIOSITY, READ_QUIZ, WRITING, MEMORY }
 
-    // key = "userId:ENDPOINT"
-    private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+    // Evict buckets for users inactive for longer than the TTL — prevents unbounded growth
+    private final Cache<String, Bucket> buckets;
+
+    public RateLimitService(@Value("${app.cache.rate-limit-ttl-hours:2}") int ttlHours) {
+        this.buckets = Caffeine.newBuilder()
+                .expireAfterAccess(ttlHours, TimeUnit.HOURS)
+                .build();
+    }
 
     public boolean tryConsume(Long userId, Endpoint endpoint) {
         String key = userId + ":" + endpoint.name();
-        Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(endpoint));
+        Bucket bucket = buckets.get(key, k -> newBucket(endpoint));
         return bucket.tryConsume(1);
     }
 

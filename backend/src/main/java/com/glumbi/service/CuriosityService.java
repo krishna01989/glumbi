@@ -6,11 +6,13 @@ import com.glumbi.entity.Child;
 import com.glumbi.entity.CuriosityEntry;
 import com.glumbi.repository.CuriosityRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class CuriosityService {
     private final ChildService           childService;
     private final CuriosityAgent         agent;
     private final CuriosityEmbeddingService embeddingService;
+    @Qualifier("embeddingExecutor") private final ExecutorService embeddingExecutor;
 
     public CuriosityEntry explain(CuriosityRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
@@ -41,7 +44,7 @@ public class CuriosityService {
         entry.setSticker(result.sticker());
         CuriosityEntry saved = repo.save(entry);
 
-        CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved));
+        CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved), embeddingExecutor);
 
         return saved;
     }

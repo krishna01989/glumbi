@@ -330,9 +330,7 @@ export default function App() {
   }
 
   // ── Management layout (no child active, or child new/edit) ──
-  const isChildManagementRoute = child
-    ? /^\/child\/new$/.test(location.pathname)
-    : /^\/child(\/new|\/\d+\/edit|\/\d+\/insights)$/.test(location.pathname)
+  const isChildManagementRoute = /^\/child(\/new|\/\d+\/edit|\/\d+\/insights)$/.test(location.pathname)
 
   if (childLocked && child && isChildManagementRoute) {
     return <Navigate to={`/child/${child.id}/stories`} replace />

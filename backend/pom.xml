@@ -114,6 +114,12 @@
             <version>8.7.0</version>
         </dependency>
 
+        <!-- Caffeine — bounded in-memory cache with TTL/size eviction -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- pgvector — Java type support for vector columns -->
         <dependency>
             <groupId>com.pgvector</groupId>

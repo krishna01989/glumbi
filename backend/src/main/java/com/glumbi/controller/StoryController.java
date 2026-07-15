@@ -25,13 +25,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import jakarta.annotation.PostConstruct;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/stories")
@@ -49,8 +53,19 @@ public class StoryController {
     private final R2Service r2Service;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    // Hot in-memory cache — avoids even a redirect for repeated listens in same server lifecycle
-    private final ConcurrentHashMap<String, byte[]> audioCache = new ConcurrentHashMap<>();
+    @Value("${app.cache.tts-max-size:200}") private int ttsCacheMaxSize;
+    @Value("${app.cache.tts-ttl-hours:6}")  private int ttsCacheTtlHours;
+
+    // Hot in-memory cache — bounded by size and TTL to prevent unbounded growth
+    private Cache<String, byte[]> audioCache;
+
+    @PostConstruct
+    void initCache() {
+        audioCache = Caffeine.newBuilder()
+                .maximumSize(ttsCacheMaxSize)
+                .expireAfterAccess(ttsCacheTtlHours, TimeUnit.HOURS)
+                .build();
+    }
 
     @PostMapping("/generate")
     public ResponseEntity<?> generate(@Valid @RequestBody StoryRequest req,
@@ -126,7 +141,7 @@ public class StoryController {
                     + (elVoiceId != null ? ":el:" + elVoiceId : (voice != null ? ":" + voice : ""));
 
             // 1. Hot in-memory cache hit — serve bytes directly (Range-request friendly)
-            byte[] audio = audioCache.get(cacheKey);
+            byte[] audio = audioCache.getIfPresent(cacheKey);
 
             // 2. R2 persistent cache hit — redirect to CDN URL, Cloudflare handles Range requests natively
             if (audio == null && r2Service.isConfigured()) {

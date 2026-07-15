@@ -16,7 +16,10 @@ export function useChildSession({ authed, role, featureConfig, setRestoring, quo
   // Restore child from URL on hard refresh, or from locked-child localStorage
   useEffect(() => {
     if (!authed || role === 'ADMIN' || child) { setRestoring(false); return }
-    const urlMatch = window.location.pathname.match(/^\/child\/(\d+)\//)
+    const path = window.location.pathname
+    // Don't restore a child session for management routes — they render in ManagementLayout
+    if (/^\/child\/\d+\/(edit|insights)$/.test(path)) { setRestoring(false); return }
+    const urlMatch = path.match(/^\/child\/(\d+)\//)
     const lockedId = localStorage.getItem('glm_locked_child_id')
     const idToRestore = urlMatch?.[1] || (localStorage.getItem('glm_child_locked') === '1' && lockedId)
     if (!idToRestore) { setRestoring(false); return }

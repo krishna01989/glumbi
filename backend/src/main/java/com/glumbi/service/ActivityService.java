@@ -7,12 +7,14 @@ import com.glumbi.entity.Activity;
 import com.glumbi.entity.Child;
 import com.glumbi.repository.ActivityRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +25,7 @@ public class ActivityService {
     private final ChildService          childService;
     private final ActivityAgent         agent;
     private final ActivityEmbeddingService embeddingService;
+    @Qualifier("embeddingExecutor") private final ExecutorService embeddingExecutor;
 
     public List<Activity> generate(ActivityRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
@@ -63,7 +66,7 @@ public class ActivityService {
             a.setDuration(r.duration());
             a.setEmoji(r.emoji());
             Activity saved = repo.save(a);
-            CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved));
+            CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved), embeddingExecutor);
             return saved;
         }).collect(Collectors.toList());
     }

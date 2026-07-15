@@ -81,20 +81,25 @@ public class ApiQuotaService {
 
         String thisMonth = YearMonth.now().toString();
 
+        // Roll counter forward if the month has changed — safe to do outside the atomic update
+        // because only this transaction resets the month, and it's idempotent
         if (!thisMonth.equals(user.getApiCallMonth())) {
             user.setApiCallMonth(thisMonth);
             user.setMonthlyApiCalls(0);
             user.setQuotaWarnMonth(null);
             user.setQuotaExhaustedMonth(null);
+            userRepository.save(user);
         }
 
         int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : getDefaultMonthlyCredits();
-        if (user.getMonthlyApiCalls() + cost > limit) {
-            return false;
-        }
 
-        user.setMonthlyApiCalls(user.getMonthlyApiCalls() + cost);
-        userRepository.save(user);
+        // Atomic check-and-increment — eliminates TOCTOU race between concurrent requests
+        int updated = userRepository.atomicDeductCredits(userId, cost, thisMonth, limit);
+        if (updated == 0) return false;
+
+        // Re-fetch to get the post-update value for notification thresholds
+        user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         int used = user.getMonthlyApiCalls();
 

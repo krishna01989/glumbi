@@ -353,16 +353,26 @@ export default function ChildInsightsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const [child, setChild] = useState(null)
-  const [tab, setTab]     = useState('activity')
+  const [child, setChild]   = useState(null)
+  const [childLoading, setChildLoading] = useState(true)
+  const [tab, setTab]       = useState('activity')
 
   const t = THEMES[child?.theme] || THEMES.coral
 
   useEffect(() => {
+    setChildLoading(true)
     childApi.getAll()
       .then(list => setChild(list.find(c => String(c.id) === String(id)) || null))
       .catch(() => setChild(null))
+      .finally(() => setChildLoading(false))
   }, [id])
+
+  if (childLoading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito, sans-serif', gap: 12 }}>
+      <img src="/icon.svg" alt="Glumbi" style={{ width: 48, height: 48, opacity: 0.5 }} />
+      <div style={{ fontSize: 14, color: '#bbb', fontWeight: 700 }}>Loading…</div>
+    </div>
+  )
 
   return (
     <div style={{ background: 'white', minHeight: '100vh', fontFamily: 'Nunito, sans-serif', color: '#3d3d3d' }}>

@@ -244,7 +244,7 @@ export default function Riddle({ child, quota, featureConfig }) {
                   fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
                   whiteSpace: 'nowrap',
                 }}>
-                  Submit ✓
+                  Submit
                 </button>
               </div>
             )}

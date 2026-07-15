@@ -167,15 +167,15 @@ export default function ReadQuiz({ child, quota }) {
             <ErrorBox msg={error} />
             <button type="submit" disabled={loading || !topic.trim() || quota?.used >= quota?.limit || offline}
               style={{
-                padding: '12px', borderRadius: 50, fontWeight: 800, fontSize: 14,
+                padding: '12px', borderRadius: 50, fontWeight: 800, fontSize: 16,
                 background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none',
                 cursor: loading || !topic.trim() || offline ? 'not-allowed' : 'pointer',
                 opacity: loading || !topic.trim() || offline ? 0.6 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
               {loading
-                ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Generating…</>
-                : offline ? '✈️ AI is off' : '📖 Generate Story'}
+                ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Creating magic…</>
+                : offline ? '✈️ AI is off' : '✨ Generate Story'}
             </button>
           </form>
         </div>

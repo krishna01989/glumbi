@@ -120,9 +120,11 @@ export default function ManagementLayout({ children, lockModalEl, quota, handleL
                   <button key={item.path} onClick={() => { navigate(item.path); setMgmtMenuOpen(false) }}
                     className="mgmt-menu-item"
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 20px',
-                      border: 'none', fontSize: 15, cursor: 'pointer', textAlign: 'left',
-                      background: active ? 'rgba(255,255,255,0.25)' : 'none',
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      width: 'calc(100% - 24px)', margin: '2px 12px',
+                      padding: '10px 16px', border: 'none', borderRadius: 50,
+                      fontSize: 15, cursor: 'pointer', textAlign: 'left',
+                      background: active ? 'rgba(255,255,255,0.25)' : 'transparent',
                       fontWeight: active ? 900 : 700,
                       color: 'rgba(255,255,255,0.9)',
                     }}>

@@ -20,6 +20,9 @@ React 18 + Vite SPA for the Glumbi kids learning app.
 src/
 ├── api/
 │   └── client.js              # Axios instance + all API call helpers
+├── grpc/
+│   ├── analyticsSocket.js     # WebSocket singleton for analytics streaming (open/close/send/onAck)
+│   └── analyticsClient.js     # gRPC-Web HTTP client (legacy, kept for reference)
 ├── hooks/
 │   ├── useAuth.js             # Auth state, quota polling, feature config, logout
 │   ├── useChildSession.js     # Child selection, offline mode, WOTD fetch, restore-from-URL
@@ -296,15 +299,29 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 
 ### Analytics — Activity Tracking
 
+#### `analyticsSocket.js` (`src/grpc/analyticsSocket.js`)
+
+Singleton WebSocket client for analytics streaming:
+
+- `analyticsSocket.open()` — opens the WebSocket connection to `/ws/events?token=<jwt>`; attaches `visibilitychange` listener
+- `analyticsSocket.close()` — closes the connection cleanly on session end (code 1000)
+- `analyticsSocket.send(events)` — sends a JSON array of events; returns `false` if disconnected
+- `analyticsSocket.onAck` — callback set by `useActivityTracker`; called with the `saved` count from the server's `{"saved": N}` reply
+- **Tab lifecycle**: tab hidden → closes connection to free server resources; tab visible → reconnects immediately with backoff reset
+- **Reconnect**: exponential backoff 1s → 2s → 4s → 32s cap. Does not retry on codes 1000 (normal), 1001 (server idle timeout), or 4001 (auth rejected)
+- **Base URL**: derived from `VITE_API_URL` with `/api` suffix removed and `http` → `ws` (or `https` → `wss`) replaced
+
 #### `useActivityTracker` hook (`src/hooks/useActivityTracker.js`)
 
-Offline-first event queue for child activity analytics:
+Offline-first analytics hook using WebSocket for real-time delivery:
 
-- `track(feature, eventType, metadata)` — enqueues an event to `localStorage` key `glm_activity_queue`, then flushes immediately if online
-- Events survive page refresh (localStorage write is synchronous) and are flushed on the next `track()` call when back online
-- Each event carries: `childId`, `feature`, `eventType`, `durationSeconds`, `clientKey` (UUID for server-side dedup), `occurredAt` (UTC ISO string)
-- Batch sent to `POST /api/activity-events/batch`
-- **Concurrent-enqueue safety:** `flush()` snapshots `queue.length` before the `await`, then slices off only those items after the POST resolves — any events enqueued during the async wait are preserved. A self-recursive `flush()` call at the end drains them immediately. Without this, multiple synchronous `track()` calls (e.g. a quiz forEach loop) lose all but the first event.
+- Opens `analyticsSocket` when `childLocked = true` (child session active); closes on session end — parent sessions never open a socket
+- `track(feature, eventType, metadata)` — enqueues an event to `localStorage` key `glm_activity_queue`; flushes if socket is open
+- `flush()` — sends the pending queue via `analyticsSocket.send()`; guards against double-flush with `sendingRef.current`
+- **ACK-based dequeue**: `analyticsSocket.onAck` fires when server replies; queue is sliced by `sendingRef.current` to remove only the sent events — any events enqueued during the send are preserved
+- Events survive page refresh (localStorage write is synchronous); `clientKey` UUIDs ensure server-side dedup on retry
+- Each event carries: `childId`, `feature`, `eventType`, `durationSeconds`, `clientKey` (UUID), `occurredAt` (UTC ISO string)
+- A 2-second poll (`setInterval`) drains the queue after a reconnect — catches events that queued while disconnected
 
 #### `useFeatureDuration` hook (`src/hooks/useFeatureDuration.js`)
 

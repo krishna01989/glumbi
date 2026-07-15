@@ -63,6 +63,7 @@ See the individual READMEs for setup details:
 | Text-to-Speech | Google Cloud TTS (WaveNet voices) + ElevenLabs (custom voice cloning) |
 | Auth | JWT + Google OAuth 2.0 |
 | Bot protection | Cloudflare Turnstile |
+| Real-time | WebSocket (analytics streaming) + gRPC / gRPC-Web bridge (event ingest) |
 | Hosting | Vercel (frontend) + Railway (backend + DB) |
 | Domain & DNS | Cloudflare |
 
@@ -73,16 +74,19 @@ See the individual READMEs for setup details:
 ```
 Browser (glumbi.com)
     │
-    ▼ HTTPS
+    ▼ HTTPS / WSS
 Vercel CDN — React SPA (static)
     │
-    ▼ API calls → api.glumbi.com
-Railway — Spring Boot
+    ├── REST API calls   → api.glumbi.com/api/**
+    ├── WebSocket        → api.glumbi.com/ws/events  (analytics streaming)
+    └── gRPC-Web bridge  → api.glumbi.com/glumbi.ActivityEventService/**
+Railway — Spring Boot (port 8080)
     ├── PostgreSQL + pgvector  (content + 1024-dim embeddings)
-    ├── Anthropic Claude API  (story / quiz / writing / maze / riddle generation)
-    ├── Voyage AI             (semantic embeddings — called once at save, async)
-    ├── Google Cloud TTS      (audio narration — default voices)
-    └── ElevenLabs API        (custom voice cloning — when parent has set a voice)
+    ├── Anthropic Claude API   (story / quiz / writing / maze / riddle generation)
+    ├── Voyage AI              (semantic embeddings — called once at save, async)
+    ├── Google Cloud TTS       (audio narration — default voices)
+    ├── ElevenLabs API         (custom voice cloning — when parent has set a voice)
+    └── gRPC server (port 9090) — native gRPC for future mobile / service-to-service use
 ```
 
 - Authentication: email+password (JWT) or Sign in with Google (OAuth 2.0)
@@ -127,12 +131,15 @@ Frontend: http://localhost:5173
 
 ## Analytics System
 
-Glumbi tracks child engagement through an offline-first analytics pipeline:
+Glumbi tracks child engagement through an offline-first, real-time analytics pipeline:
 
-- **Frontend:** `useActivityTracker` hook queues events to `localStorage` (`glm_activity_queue`) and flushes to the backend when online. `useFeatureDuration` fires a `session` event with `durationSeconds` on feature unmount. Events carry a `clientKey` UUID for server-side dedup.
-- **Always-mounted components:** `MemoryMatchTab` stays mounted to preserve game state, so it uses an `isActive` prop + two effects pattern instead of unmount-based tracking.
-- **Backend:** `POST /api/activity-events/batch` ingests events. `ChildActivityEventService` computes daily/hourly activity, feature breakdown (session events only), engagement duration, streaks, and a 7×24 heatmap for admin.
+- **Transport:** `useActivityTracker` uses a persistent **WebSocket** connection (`/ws/events`) to stream events to the backend. Events queue in `localStorage` while offline or disconnected and flush on reconnect. The connection opens only when `childLocked = true` (parent sessions never generate events).
+- **Reliability:** Events survive page refresh because localStorage is written synchronously before any send. `clientKey` UUIDs deduplicate retries server-side. Server sends `{"saved": N}` ACK; client only removes from queue after ACK.
+- **Resilience:** WebSocket reconnects with exponential backoff (1s → 32s cap). Tab-hide closes the connection to free server resources; tab-visible reopens it. Server closes idle connections after 10 minutes; sends pings every 30s to detect dead connections.
+- **gRPC / gRPC-Web bridge:** A native gRPC server runs on port 9090 (JWT-protected via `GrpcAuthInterceptor`) for future mobile / service-to-service use. A Spring MVC gRPC-Web bridge at `/glumbi.ActivityEventService/BatchEvents` allows browser clients to send protobuf-encoded batches over HTTP if needed.
+- **Backend:** `ChildActivityEventService` computes daily/hourly activity, feature breakdown (session events only), engagement duration, streaks, and a 7×24 heatmap for admin.
 - **Session vs event distinction:** Only `event_type = 'session'` events are counted in feature breakdowns and totals. Other event types (`correct`, `wrong`, `match`, `mismatch`, `complete`) are stored but excluded from aggregation queries.
+- **UTC timestamps:** All entity timestamps use `LocalDateTime.now(ZoneOffset.UTC)` — never bare `LocalDateTime.now()` which picks up JVM system timezone (IST locally, unpredictable on Railway).
 - **Timezone safety:** `normalizeTimezone()` maps legacy IANA names (e.g. `Asia/Calcutta` → `Asia/Kolkata`) before any DB query — Railway's PostgreSQL rejects the legacy forms.
 - **Touch-friendly charts:** All bars and heatmap cells use click-based inline popups (no `title` attributes, which are hover-only and invisible on touch devices).
 

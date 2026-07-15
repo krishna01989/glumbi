@@ -24,13 +24,15 @@ Spring Boot 3.2.5 REST API powering the Glumbi kids learning app.
 ```
 src/main/java/com/glumbi/
 ├── agent/          # Claude AI agents (story, quiz, writing coach, maze, riddle, safety guard…)
-├── config/         # CORS, Security, Google credentials Spring config
-├── controller/     # REST endpoints
+├── config/         # CORS, Security, WebSocket, Google credentials Spring config
+├── controller/     # REST endpoints + GrpcWebBridgeController
 ├── dto/            # Request/response DTOs
 ├── entity/         # JPA entities
+├── grpc/           # gRPC server (port 9090), ProtoDecoder, GrpcAuthInterceptor
 ├── repository/     # Spring Data repositories
 ├── security/       # JwtFilter, JwtUtil
-└── service/        # Business logic, TTS, rate limiting, quota tracking
+├── service/        # Business logic, TTS, rate limiting, quota tracking
+└── websocket/      # AnalyticsWebSocketHandler, AuthHandshakeInterceptor
                 #   ↳ VoyageEmbeddingClient     — shared HTTP client for Voyage AI
                 #   ↳ StoryEmbeddingService     — embed + store story vectors
                 #   ↳ CuriosityEmbeddingService — embed + store curiosity entry vectors
@@ -303,9 +305,34 @@ private static String normalizeTimezone(String tz) {
 
 Railway's PostgreSQL has a stricter TZDB than local Postgres — legacy names like `Asia/Calcutta` are rejected. This helper normalises before any DB query.
 
+### WebSocket ingest (primary path) — `ws://host/ws/events`
+
+The primary analytics ingest path is a **persistent WebSocket connection** authenticated at handshake time by `AuthHandshakeInterceptor` (validates JWT from `?token=` query param).
+
+- **`AuthHandshakeInterceptor`** — validates JWT during WS upgrade; rejects with 403 if token is invalid or user is on-hold; stores `userId` and `email` in session attributes.
+- **`AnalyticsWebSocketHandler`** — receives JSON arrays of events, saves them via `ChildActivityEventService.saveBatch()`, replies `{"saved": N}`. Maintains a `ConcurrentHashMap<sessionId, SessionEntry>` for lifecycle management.
+- **`WebSocketConfig`** — registers `/ws/events` with the handler and interceptor; sets allowed origins from `app.cors.allowed-origins`.
+- **Heartbeat** (`@Scheduled`, every 30 s): closes sessions idle for 10+ minutes with close code 1001; sends a WebSocket ping to all others. Ping failures (dead connection) are silently removed.
+- **Close codes**: 1000 = normal/client-initiated, 1001 = server idle timeout (child walked away), 4001 = auth rejected. Frontend only reconnects on unexpected codes.
+- **Horizontal scaling**: each replica manages its own `ConcurrentHashMap`. No Redis required — all replicas write to the same PostgreSQL, so analytics are never lost. Redis pub/sub would only be needed for server → client push scenarios.
+
+### gRPC / gRPC-Web bridge
+
+A native gRPC server runs on port 9090 (JWT-protected via `GrpcAuthInterceptor`) for future mobile / service-to-service use.
+
+A Spring MVC gRPC-Web bridge (`GrpcWebBridgeController`) handles browser clients:
+- **Endpoint:** `POST /glumbi.ActivityEventService/BatchEvents`
+- **Content-Type:** `application/grpc-web+proto`
+- **`ProtoDecoder`** — hand-written protobuf decoder/encoder for the gRPC-Web wire format (5-byte frame header + protobuf bytes). Decodes `BatchEventsRequest`, encodes `BatchEventsResponse`.
+- Auth via `@AuthenticationPrincipal AuthUser` — returns gRPC status 401 if unauthenticated.
+
+### UTC timestamps
+
+All entity timestamps use `LocalDateTime.now(ZoneOffset.UTC)`. Never use bare `LocalDateTime.now()` — that picks up the JVM system timezone (IST locally, potentially different on Railway).
+
 ### Batch ingest — `POST /api/activity-events/batch`
 
-`ChildActivityEventController.saveBatch()` accepts a list of events. Per-event guards:
+`ChildActivityEventController.saveBatch()` accepts a list of events (HTTP fallback path). Per-event guards:
 1. Skip if `childId`, `feature`, or `eventType` is null
 2. Skip if `clientKey` already exists (idempotency)
 3. Skip if the child doesn't belong to the calling user
@@ -324,7 +351,7 @@ CAST(metadata AS json)->>'field'
 CAST(CAST(metadata AS json)->>'correct' AS boolean)
 ```
 
-Events are stored with `occurredAt` from the client (UTC) or `LocalDateTime.now()` if the client value is unparseable. `syncedAt` is always the server time.
+Events are stored with `occurredAt` from the client (UTC) or `LocalDateTime.now(ZoneOffset.UTC)` if the client value is unparseable. `syncedAt` is always the server UTC time.
 
 ---
 

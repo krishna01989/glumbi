@@ -657,6 +657,8 @@ public class AdminController {
         String password = body.get("password");
         if (email == null || email.isBlank() || password == null || password.isBlank())
             return ResponseEntity.badRequest().body(Map.of("error", "Email and password are required."));
+        if (!email.contains("@") || !email.contains("."))
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid email address required."));
         if (userRepo.findByEmail(email.toLowerCase().trim()).isPresent())
             return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
         AppUser admin = new AppUser();
@@ -676,6 +678,8 @@ public class AdminController {
         String password = body.get("password");
         if (email == null || email.isBlank() || password == null || password.isBlank())
             return ResponseEntity.badRequest().body(Map.of("error", "Email and password are required."));
+        if (!email.contains("@") || !email.contains("."))
+            return ResponseEntity.badRequest().body(Map.of("error", "Valid email address required."));
         if (userRepo.findByEmail(email.toLowerCase().trim()).isPresent())
             return ResponseEntity.badRequest().body(Map.of("error", "An account with this email already exists."));
         AppUser admin = new AppUser();

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { childApi, userApi, analyticsApi } from '../api/client'
+import { childApi, userApi } from '../api/client'
 import { THEMES } from '../themes'
 import QuotaBadge from '../components/QuotaBadge'
 
@@ -80,7 +80,7 @@ function QuotaPill({ quota, onInfo }) {
 }
 
 /* ── Unlock modal ── */
-function UnlockModal({ child, onClose, onLock, onParent }) {
+function UnlockModal({ child, offline, onClose, onLock, onParent, onToggleOffline }) {
   const pt = THEMES[child.theme] || THEMES.coral
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
@@ -88,11 +88,30 @@ function UnlockModal({ child, onClose, onLock, onParent }) {
         <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
         <div style={{ fontSize: 52, marginBottom: 10 }}>{child.avatarEmoji}</div>
         <div style={{ fontWeight: 900, fontSize: 18, color: pt.primary, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>Opening without child lock</div>
-        <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 24, fontFamily: 'Nunito, sans-serif' }}>
+        <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 20, fontFamily: 'Nunito, sans-serif' }}>
           <strong>{child.name}</strong>'s profile will open in <strong>parent mode</strong> — all features visible, no restrictions.
           <br /><br />
           Handing the device to {child.name}? Use <strong>🔒 Lock</strong> instead.
         </div>
+
+        {/* AI toggle row */}
+        <div
+          onClick={onToggleOffline}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: pt.primaryLt, borderRadius: 14, padding: '12px 16px', marginBottom: 20, cursor: 'pointer', userSelect: 'none' }}>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: '#333', fontFamily: 'Nunito, sans-serif' }}>
+              {offline ? '✈️' : '🤖'} AI features
+            </div>
+            <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+              {offline ? 'Taking a break from AI ✈️' : 'AI is ready to help! 🤖'}
+            </div>
+          </div>
+          {/* Toggle switch */}
+          <div style={{ width: 42, height: 24, borderRadius: 12, background: offline ? '#ddd' : pt.primary, position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+            <div style={{ position: 'absolute', top: 3, left: offline ? 3 : 21, width: 18, height: 18, borderRadius: '50%', background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
+          </div>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button onClick={onLock} style={{ background: pt.headerGrad, color: 'white', border: 'none', borderRadius: 50, padding: '13px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', boxShadow: `0 6px 20px ${pt.primary}44` }}>
             🔒 Lock & hand to {child.name}
@@ -106,44 +125,10 @@ function UnlockModal({ child, onClose, onLock, onParent }) {
   )
 }
 
-/* ── Credit modal ── */
-function CreditModal({ c, t, stats, onClose }) {
-  const activeFeatures = stats.features.filter(f => f.credits > 0)
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', maxHeight: '90vh', overflowY: 'auto' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
-        <div style={{ fontSize: 52, marginBottom: 10 }}>{c.avatarEmoji}</div>
-        <div style={{ fontWeight: 900, fontSize: 18, color: t.primary, marginBottom: 4, fontFamily: 'Nunito, sans-serif' }}>{c.name}</div>
-        <div style={{ fontSize: 13, color: '#aaa', marginBottom: 20, fontFamily: 'Nunito, sans-serif' }}>AI credits used this month</div>
-        {activeFeatures.length === 0 ? (
-          <div style={{ color: '#bbb', fontSize: 14, padding: '12px 0 20px' }}>✨ No AI usage this month</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20, textAlign: 'left', maxHeight: 300, overflowY: 'auto', paddingRight: 4 }}>
-            {activeFeatures.map(f => (
-              <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: t.primaryLt }}>
-                <span style={{ fontSize: 18 }}>{f.icon}</span>
-                <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: '#444', fontFamily: 'Nunito, sans-serif' }}>{f.label}</span>
-                <span style={{ fontSize: 12, color: '#bbb' }}>×{f.count}</span>
-                <span style={{ fontWeight: 900, fontSize: 14, color: t.primary }}>{f.credits} cr</span>
-              </div>
-            ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', fontFamily: 'Nunito, sans-serif' }}>
-              <span style={{ fontSize: 13, color: '#888', fontWeight: 700 }}>Total</span>
-              <span style={{ fontSize: 14, fontWeight: 900, color: t.primary }}>{stats.totalCredits} cr</span>
-            </div>
-          </div>
-        )}
-        <div style={{ fontSize: 11, color: '#ccc' }}>Resets on the 1st of each month</div>
-      </div>
-    </div>
-  )
-}
-
 /* ══════════════════════════════════════════════════════
    CHILD CAROUSEL CARD — the big focused card
 ══════════════════════════════════════════════════════ */
-function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggleOffline, onShowCredit, onShowActivity, animDir }) {
+function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir }) {
   const age = calcAge(c.birthYear)
 
   return (
@@ -172,16 +157,6 @@ function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggl
         onMouseLeave={e => e.currentTarget.style.transform='scale(1) translateY(0)'}
       >
         <span style={{ lineHeight: 1 }}>{c.avatarEmoji}</span>
-
-        {/* Offline badge */}
-        {offline && (
-          <div style={{
-            position: 'absolute', top: 8, right: 8,
-            background: '#555', borderRadius: '50%',
-            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, border: '2px solid white',
-          }}>✈️</div>
-        )}
       </div>
 
       {/* ── Name & age ── */}
@@ -199,18 +174,15 @@ function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggl
       </div>
 
       {/* ── Tap to open hint ── */}
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 28, fontStyle: 'italic' }}>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 20, fontStyle: 'italic' }}>
         tap avatar to open
       </div>
 
       {/* ── Action buttons ── */}
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: 10 }}>
         {[
-          { icon: '🔒', label: 'Lock', action: e => { e.stopPropagation(); onLock(c) } },
-          { icon: offline ? '✈️' : '🤖', label: offline ? 'AI off' : 'AI on', action: e => { e.stopPropagation(); onToggleOffline(e, c) } },
-          { icon: '✏️', label: 'Edit', action: e => { e.stopPropagation(); onEdit(c) } },
-          { icon: '📊', label: 'Credits', action: e => { e.stopPropagation(); onShowCredit(c) } },
-          { icon: '📈', label: 'Activity', action: e => { e.stopPropagation(); onShowActivity(c) } },
+          { icon: '✏️', label: 'Edit',     action: e => { e.stopPropagation(); onEdit(c) } },
+          { icon: '📊', label: 'Insights', action: e => { e.stopPropagation(); onInsights(c) } },
         ].map(btn => (
           <button
             key={btn.label}
@@ -220,7 +192,7 @@ function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggl
               backdropFilter: 'blur(10px)',
               color: 'white',
               border: '1.5px solid rgba(255,255,255,0.25)',
-              padding: '8px 16px',
+              padding: '8px 20px',
               borderRadius: 50,
               fontSize: 13,
               fontWeight: 700,
@@ -236,305 +208,6 @@ function ChildCard({ c, t, offline, breakdown, onSelect, onLock, onEdit, onToggl
             <span>{btn.label}</span>
           </button>
         ))}
-      </div>
-    </div>
-  )
-}
-
-const ACTIVITY_FEATURES = {
-  stories:     { label: 'Stories',        emoji: '📖' },
-  draw:        { label: 'Draw',           emoji: '🎨' },
-  journal:     { label: 'Journal',        emoji: '📓' },
-  curiosity:   { label: 'Curiosity',      emoji: '🔍' },
-  readquiz:    { label: 'Read & Quiz',    emoji: '📚' },
-  activities:  { label: 'Activities',     emoji: '🎮' },
-  mywriting:   { label: 'My Writing',     emoji: '✍️' },
-  riddle:      { label: 'Riddles',        emoji: '🎯' },
-  maze:        { label: 'Maze',           emoji: '🌀' },
-  learn:       { label: 'Learn to Write', emoji: '✏️' },
-  flashcards:  { label: 'Flashcards',     emoji: '📇' },
-  wordofday:   { label: 'Word of Day',    emoji: '🌟' },
-  memorymatch: { label: 'Memory Match',   emoji: '🧠' },
-}
-
-function fmtDuration(sec) {
-  if (!sec || sec < 60) return sec > 0 ? `${sec}s` : null
-  const h = Math.floor(sec / 3600)
-  const m = Math.floor((sec % 3600) / 60)
-  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
-  return `${m}m`
-}
-
-/* ── Child Activity Modal ── */
-function ActivityModal({ child, t, onClose }) {
-  const [data, setData]       = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [days, setDays]       = useState(30)
-  const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
-  const [activeDailyBar, setActiveDailyBar] = useState(null)  // { label, value } for daily chart tap
-  const [activeHourBar, setActiveHourBar]   = useState(null)  // { label, value } for hourly chart tap
-
-  useEffect(() => {
-    setLoading(true)
-    analyticsApi.getChildAnalytics(child.id, days)
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
-  }, [child.id, days])
-
-  const totalEvents   = data?.totalEvents ?? 0
-  const totalSessions = data?.totalSessions ?? 0
-  const recentDays   = data?.dailyActivity?.slice(-days).filter(d => d.count > 0).length ?? 0
-  const totalSec     = data?.totalEngagementSeconds ?? 0
-  const peakHour     = data?.hourlyActivity
-    ? data.hourlyActivity.reduce((best, v, i) => v > data.hourlyActivity[best] ? i : best, 0)
-    : null
-  const fmtHour = h => h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`
-  const lastActiveDate = data?.dailyActivity
-    ? (() => {
-        const last = [...data.dailyActivity].reverse().find(d => d.count > 0)
-        if (!last) return null
-        const d = new Date(last.date)
-        const today = new Date(); today.setHours(0,0,0,0)
-        const diff = Math.round((today - d) / 86400000)
-        if (diff === 0) return 'today'
-        if (diff === 1) return 'yesterday'
-        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-      })()
-    : null
-
-  // Merge count + duration per feature, sorted by selected mode
-  const allFeatures = data
-    ? Array.from(new Set([
-        ...Object.keys(data.featureBreakdown ?? {}),
-        ...Object.keys(data.durationByFeature ?? {}),
-      ])).map(f => ({
-        feature: f,
-        count: data.featureBreakdown?.[f] ?? 0,
-        sec:   data.durationByFeature?.[f] ?? 0,
-      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count)
-    : []
-  const featureMax = allFeatures.length > 0
-    ? (featureMode === 'time' ? allFeatures[0].sec : allFeatures[0].count)
-    : 1
-
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '24px 20px', maxWidth: 420, width: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.35)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', fontFamily: 'Nunito, sans-serif', overflowY: 'auto' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 13, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
-
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <span style={{ fontSize: 28 }}>{child.avatarEmoji}</span>
-          <div>
-            <div style={{ fontWeight: 900, fontSize: 16, color: t.primary, lineHeight: 1.2 }}>{child.name}'s Activity</div>
-            <div style={{ fontSize: 11, color: '#aaa' }}>Learning insights for parents</div>
-          </div>
-        </div>
-
-        {/* Range pills */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-          {[7, 30, 90].map(d => (
-            <button key={d} onClick={() => setDays(d)}
-              style={{ padding: '4px 14px', borderRadius: 50, fontSize: 12, fontWeight: 800, border: 'none', cursor: 'pointer', background: days === d ? t.primary : '#f0f0f0', color: days === d ? 'white' : '#777', transition: 'all 0.15s' }}>
-              {d === 7 ? 'Last week' : d === 30 ? 'Last month' : 'Last 3 months'}
-            </button>
-          ))}
-        </div>
-
-        {loading && <div style={{ textAlign: 'center', padding: '32px 0', color: '#aaa', fontSize: 13 }}>Loading…</div>}
-        {!loading && !data && <div style={{ textAlign: 'center', padding: '32px 0', color: '#bbb', fontSize: 13 }}>No activity data yet.</div>}
-
-        {!loading && data && (
-          <>
-            {/* 4-stat row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
-              {[
-                { label: 'Active days',    value: recentDays,                   icon: '📅', sub: `of ${days}` },
-                { label: 'Sessions',       value: totalSessions,                icon: '⚡', sub: 'play sessions' },
-                { label: 'Screen time',    value: fmtDuration(totalSec) ?? '—', icon: '⏱️', sub: 'engaged time' },
-                { label: 'Streak',         value: `${data.currentStreak ?? 0}d`,icon: '🔥', sub: lastActiveDate ? `last active: ${lastActiveDate}` : `best: ${data.longestStreak ?? 0}d` },
-              ].map(s => (
-                <div key={s.label} style={{ background: t.primaryLt, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 22 }}>{s.icon}</span>
-                  <div>
-                    <div style={{ fontWeight: 900, fontSize: 18, color: t.primary, lineHeight: 1.1 }}>{s.value}</div>
-                    <div style={{ fontSize: 10, color: '#888', marginTop: 1 }}>{s.label}</div>
-                    <div style={{ fontSize: 10, color: '#bbb' }}>{s.sub}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Daily activity bar chart */}
-            {data.dailyActivity?.length > 0 && (() => {
-              const recent = data.dailyActivity.slice(-days)
-              const maxVal = Math.max(...recent.map(d => d.count), 1)
-              return (
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 8 }}>Daily sessions</div>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: days > 30 ? 1 : 2, height: 52, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
-                    {recent.map((d, i) => (
-                      <div key={i}
-                        onClick={() => d.count > 0 && setActiveDailyBar(b => b?.label === d.date ? null : { label: d.date, value: `${d.count} session${d.count !== 1 ? 's' : ''}` })}
-                        style={{ flex: 1, background: d.count > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / maxVal * 100, d.count > 0 ? 12 : 4)}%`, opacity: d.count > 0 ? 0.8 + (d.count / maxVal) * 0.2 : 0.3, transition: 'height 0.3s ease', cursor: d.count > 0 ? 'pointer' : 'default' }} />
-                    ))}
-                  </div>
-                  {activeDailyBar && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      marginTop: 4, background: t.primaryLt || '#f0f0ff', borderRadius: 8, padding: '6px 10px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: t.primary }}>{activeDailyBar.label} — {activeDailyBar.value}</span>
-                      <button onClick={() => setActiveDailyBar(null)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', marginTop: 3 }}>
-                    <span>{recent[0]?.date?.slice(5)}</span>
-                    <span>{recent[recent.length - 1]?.date?.slice(5)}</span>
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Feature breakdown with count/time toggle */}
-            {allFeatures.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>Feature activity</div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    {['count', 'time'].map(m => (
-                      <button key={m} onClick={() => setFeatureMode(m)}
-                        style={{ padding: '3px 10px', borderRadius: 50, fontSize: 10, fontWeight: 800, border: 'none', cursor: 'pointer', background: featureMode === m ? t.primary : '#f0f0f0', color: featureMode === m ? 'white' : '#999' }}>
-                        {m === 'count' ? '# Sessions' : '⏱ Time'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {allFeatures.map(({ feature, count, sec }) => {
-                  const meta     = ACTIVITY_FEATURES[feature] || { label: feature, emoji: '🎮' }
-                  const val      = featureMode === 'time' ? sec : count
-                  const pct      = Math.round((val / featureMax) * 100)
-                  const label    = featureMode === 'time' ? (fmtDuration(sec) ?? '—') : `${count}×`
-                  const sub      = featureMode === 'time' ? `${count} sessions` : (fmtDuration(sec) ? fmtDuration(sec) : null)
-                  const accuracy    = data?.accuracyByFeature?.[feature]
-                  const completions = data?.completionsByFeature?.[feature]
-                  const flipEff     = feature === 'memorymatch' && data?.flipEfficiency > 0 ? data.flipEfficiency : null
-                  // Feature-specific insight chips
-                  const extraChips = []
-                  if (feature === 'stories' && data?.storiesSimilarViewed > 0)
-                    extraChips.push({ key: 'sim', icon: '🔗', text: `${data.storiesSimilarViewed} similar explored`, color: '#0ea5e9', bg: '#f0f9ff' })
-                  if (feature === 'maze' && (data?.mazeGaveUpCount > 0 || data?.mazeAvgWallHits > 0))
-                    extraChips.push({ key: 'maze', icon: '🧱', text: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, color: '#f97316', bg: '#fff7ed' })
-                  if (feature === 'riddle' && data?.riddleHints > 0)
-                    extraChips.push({ key: 'hints', icon: '💡', text: `Used ${data.riddleHints} hint${data.riddleHints !== 1 ? 's' : ''}`, color: '#f59e0b', bg: '#fffbeb' })
-                  if (feature === 'mywriting' && data?.mywritingAvgWordCount > 0)
-                    extraChips.push({ key: 'words', icon: '✍️', text: `avg ${data.mywritingAvgWordCount} words/submission`, color: '#10b981', bg: '#f0fdf4' })
-                  if (feature === 'memorymatch' && data?.topMemoryMatchTheme)
-                    extraChips.push({ key: 'theme', icon: '⭐', text: `Fav theme: ${data.topMemoryMatchTheme}`, color: '#8b5cf6', bg: '#faf5ff' })
-                  if (feature === 'learn' && data?.learnPracticeCount > 0)
-                    extraChips.push({ key: 'practice', icon: '✏️', text: `${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
-                  if (feature === 'learn' && data?.letterAccuracy?.length > 0) {
-                    const worst = data.letterAccuracy[0]
-                    extraChips.push({ key: 'letter', icon: '🔤', text: `Hardest letter: "${worst.letter}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
-                  }
-                  if (feature === 'learn' && data?.wordAccuracy?.length > 0) {
-                    const worst = data.wordAccuracy[0]
-                    extraChips.push({ key: 'word', icon: '📝', text: `Hardest word: "${worst.word}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
-                  }
-                  return (
-                    <div key={feature} style={{ marginBottom: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: 15 }}>{meta.emoji}</span>
-                          {meta.label}
-                        </span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontWeight: 900, color: t.primary }}>{label}</span>
-                          {sub && <span style={{ color: '#ccc', fontSize: 10 }}>{sub}</span>}
-                        </span>
-                      </div>
-                      <div style={{ background: '#f0f0f0', borderRadius: 6, height: 7, overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, background: t.primary, height: '100%', borderRadius: 6, opacity: 0.75, transition: 'width 0.4s ease' }} />
-                      </div>
-                      {/* Performance + insight chips */}
-                      {(accuracy || completions || flipEff || extraChips.length > 0) && (
-                        <div style={{ display: 'flex', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
-                          {accuracy && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: accuracy.rate >= 70 ? '#22c55e' : accuracy.rate >= 40 ? '#f59e0b' : '#ef4444',
-                              background: accuracy.rate >= 70 ? '#f0fdf4' : accuracy.rate >= 40 ? '#fffbeb' : '#fef2f2',
-                              borderRadius: 50, padding: '2px 8px' }}>
-                              ✓ {accuracy.rate}% accurate
-                            </span>
-                          )}
-                          {completions && count > 0 && feature !== 'memorymatch' && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#f0f0ff', borderRadius: 50, padding: '2px 8px' }}>
-                              🏁 {completions}/{count} completed
-                            </span>
-                          )}
-                          {feature === 'memorymatch' && completions > 0 && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#f0f0ff', borderRadius: 50, padding: '2px 8px' }}>
-                              🏁 {completions} games played
-                            </span>
-                          )}
-                          {flipEff && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: '#8b5cf6', background: '#faf5ff', borderRadius: 50, padding: '2px 8px' }}>
-                              🃏 avg {flipEff} flips/game
-                            </span>
-                          )}
-                          {extraChips.map(c => (
-                            <span key={c.key} style={{ fontSize: 10, fontWeight: 700, color: c.color, background: c.bg, borderRadius: 50, padding: '2px 8px' }}>
-                              {c.icon} {c.text}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Hourly activity — dot strip */}
-            {data.hourlyActivity?.length === 24 && totalEvents > 0 && (() => {
-              const max = Math.max(...data.hourlyActivity, 1)
-              return (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 8 }}>
-                    When is {child.name} most active?
-                  </div>
-                  <div style={{ display: 'flex', gap: 2, alignItems: 'flex-end', height: 36, background: '#fafafa', borderRadius: 10, padding: '4px 6px', boxSizing: 'border-box' }}>
-                    {data.hourlyActivity.map((v, h) => (
-                      <div key={h}
-                        onClick={() => v > 0 && setActiveHourBar(b => b?.label === fmtHour(h) ? null : { label: fmtHour(h), value: `${v} session${v !== 1 ? 's' : ''}` })}
-                        style={{ flex: 1, background: v > 0 ? t.primary : '#e8e8e8', borderRadius: 3, height: `${Math.max(v / max * 100, v > 0 ? 12 : 5)}%`, opacity: v > 0 ? 0.6 + (v / max) * 0.4 : 0.3, cursor: v > 0 ? 'pointer' : 'default' }} />
-                    ))}
-                  </div>
-                  {activeHourBar && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      marginTop: 4, background: t.primaryLt || '#f0f0ff', borderRadius: 8, padding: '6px 10px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: t.primary }}>{activeHourBar.label} — {activeHourBar.value}</span>
-                      <button onClick={() => setActiveHourBar(null)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#aaa', fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#ccc', marginTop: 3 }}>
-                    <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>11 PM</span>
-                  </div>
-                  {peakHour !== null && (
-                    <div style={{ marginTop: 6, fontSize: 11, color: '#888', textAlign: 'center' }}>
-                      Peak time: <strong style={{ color: t.primary }}>{fmtHour(peakHour)}</strong>
-                      {' · '}AI credits this period: <strong style={{ color: t.primary }}>{data.creditsUsedInPeriod ?? 0} 🪙</strong>
-                    </div>
-                  )}
-                </div>
-              )
-            })()}
-
-            {totalEvents === 0 && (
-              <div style={{ textAlign: 'center', padding: '16px 0', color: '#bbb', fontSize: 13 }}>✨ No activity recorded in this period.</div>
-            )}
-          </>
-        )}
       </div>
     </div>
   )
@@ -590,10 +263,7 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
   const [loading, setLoading]         = useState(true)
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
-  const [creditChild, setCreditChild]  = useState(null)
-  const [activityChild, setActivityChild] = useState(null)
   const [showCreditInfo, setShowCreditInfo] = useState(false)
-  const [breakdown, setBreakdown]     = useState({})
 
   // Carousel state
   const [activeIdx, setActiveIdx] = useState(0)
@@ -641,12 +311,6 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
       setLoading(false)
     }).catch(() => setLoading(false))
 
-    userApi.creditBreakdown().then(data => {
-      const map = {}
-      data.children.forEach(c => { map[c.childId] = c })
-      setBreakdown(map)
-    }).catch(() => {})
-
     // Refresh the quota pill in the header too
     window.__glumbiRefreshQuota?.()
 
@@ -656,11 +320,10 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
   }, [])
 
   function handleToggleOffline(e, c) {
-    e.stopPropagation()
+    if (e) e.stopPropagation()
     const next = !offlineModes[c.id]
     localStorage.setItem(`glm_offline_${c.id}`, next ? '1' : '0')
     setOfflineModes(prev => ({ ...prev, [c.id]: next }))
-    if (onToggleOffline) onToggleOffline(c.id)
   }
 
   // Touch swipe
@@ -770,14 +433,13 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                   <ChildCard
                     c={children[activeIdx]}
                     t={THEMES[children[activeIdx].theme] || THEMES.coral}
-                    offline={offlineModes[children[activeIdx].id]}
-                    breakdown={breakdown}
-                    onSelect={setPendingChild}
-                    onLock={onChildSelectedLocked}
+                    onSelect={c => {
+                      localStorage.setItem(`glm_offline_${c.id}`, '0')
+                      setOfflineModes(prev => ({ ...prev, [c.id]: false }))
+                      setPendingChild(c)
+                    }}
                     onEdit={c => navigate(`/child/${c.id}/edit`)}
-                    onToggleOffline={handleToggleOffline}
-                    onShowCredit={setCreditChild}
-                    onShowActivity={setActivityChild}
+                    onInsights={c => navigate(`/child/${c.id}/insights`)}
                     animDir={animDir}
                   />
                 ) : (
@@ -844,27 +506,14 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
       {showCreditInfo && (
         <CreditInfoModal featureConfig={featureConfig} onClose={() => setShowCreditInfo(false)} />
       )}
-      {creditChild && (
-        <CreditModal
-          c={creditChild}
-          t={THEMES[creditChild.theme] || THEMES.coral}
-          stats={breakdown[creditChild.id] || { features: [], totalCredits: 0 }}
-          onClose={() => setCreditChild(null)}
-        />
-      )}
-      {activityChild && (
-        <ActivityModal
-          child={activityChild}
-          t={THEMES[activityChild.theme] || THEMES.coral}
-          onClose={() => setActivityChild(null)}
-        />
-      )}
       {pendingChild && (
         <UnlockModal
           child={pendingChild}
+          offline={!!offlineModes[pendingChild.id]}
           onClose={() => setPendingChild(null)}
           onLock={() => { onChildSelectedLocked(pendingChild); setPendingChild(null) }}
           onParent={() => { onChildSelected(pendingChild); setPendingChild(null) }}
+          onToggleOffline={() => handleToggleOffline(null, pendingChild)}
         />
       )}
     </>

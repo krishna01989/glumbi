@@ -38,6 +38,12 @@ export function useChildSession({ authed, role, featureConfig, setRestoring, quo
       .finally(() => setRestoring(false))
   }, []) // intentionally run only on mount
 
+  // Sync offline mode whenever the active child changes (covers lock path where setChild is called directly)
+  useEffect(() => {
+    if (!child?.id) return
+    setOfflineMode(localStorage.getItem(`glm_offline_${child.id}`) === '1')
+  }, [child?.id])
+
   // Prefetch Word of Day when child is selected (if memory feature is enabled)
   useEffect(() => {
     setSidebarWotd(null)

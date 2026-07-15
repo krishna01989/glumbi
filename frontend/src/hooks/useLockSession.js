@@ -258,6 +258,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
       localStorage.removeItem(`glm_session_limit_${child.id}`)
       localStorage.removeItem(`glm_session_original_limit_${child.id}`)
       localStorage.removeItem(`glm_session_max_snooze_${child.id}`)
+      localStorage.removeItem(`glm_offline_${child.id}`)
     }
     originalLimitRef.current = 0
     setLockTimeLimit(0); setLockMaxSnooze(1)

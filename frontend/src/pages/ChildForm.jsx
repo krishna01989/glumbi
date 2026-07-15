@@ -88,6 +88,9 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
     setDeleting(true)
     try {
       await childApi.delete(id)
+      const prefixes = ['glm_offline_', 'glm_lock_pin_', 'glm_session_start_', 'glm_session_limit_',
+        'glm_session_original_limit_', 'glm_session_max_snooze_', 'glm_snooze_count_', 'glumbi_voice_']
+      prefixes.forEach(p => localStorage.removeItem(`${p}${id}`))
       navigate('/child')
     } finally {
       setDeleting(false)

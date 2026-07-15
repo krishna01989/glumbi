@@ -19,6 +19,7 @@ import ManagementLayout from './layouts/ManagementLayout'
 import PublicRoutes     from './routes/PublicRoutes'
 import ChildRoutes      from './routes/ChildRoutes'
 import ProfilePage      from './pages/ProfilePage'
+import ChildInsightsPage from './pages/ChildInsightsPage'
 import HelpPage         from './pages/HelpPage'
 import PrivacyPage      from './pages/legal/PrivacyPage'
 import TermsPage        from './pages/legal/TermsPage'
@@ -258,7 +259,7 @@ export default function App() {
 
   // Reset to neutral theme on management pages
   useLayoutEffect(() => {
-    const isManagement = /^\/child(\/new|\/\d+\/edit)?$|^\/(profile|help|privacy|terms|contact)/.test(location.pathname)
+    const isManagement = /^\/child(\/new|\/\d+\/edit|\/\d+\/insights)?$|^\/(profile|help|privacy|terms|contact)/.test(location.pathname)
     if (isManagement && !child) applyTheme('coral')
   }, [location.pathname])
 
@@ -331,7 +332,7 @@ export default function App() {
   // ── Management layout (no child active, or child new/edit) ──
   const isChildManagementRoute = child
     ? /^\/child\/new$/.test(location.pathname)
-    : /^\/child(\/new|\/\d+\/edit)$/.test(location.pathname)
+    : /^\/child(\/new|\/\d+\/edit|\/\d+\/insights)$/.test(location.pathname)
 
   if (childLocked && child && isChildManagementRoute) {
     return <Navigate to={`/child/${child.id}/stories`} replace />
@@ -343,7 +344,8 @@ export default function App() {
         <Routes>
           <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
           <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
-          <Route path="/child/:id/edit" element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
+          <Route path="/child/:id/edit"     element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
+          <Route path="/child/:id/insights" element={<ChildInsightsPage />} />
           <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
           <Route path="/help"           element={<HelpPage />} />
           <Route path="/privacy"        element={<PrivacyPage />} />
@@ -497,7 +499,7 @@ export default function App() {
 
         {offlineMode && (
           <div style={{ background: '#f4f6ff', borderBottom: '1px solid #dce4f7', padding: '7px 24px', fontSize: 12, fontWeight: 700, color: '#5a72c9', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <span>✈️ Practice mode — AI features are paused. Listening and browsing still work.</span>
+            <span>✈️ Taking a break from AI — {childLocked ? "you're" : "your child is"} in practice mode</span>
             {!childLocked && (
               <button onClick={() => toggleOffline()} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#5a72c9', fontWeight: 800, cursor: 'pointer', fontSize: 12, textDecoration: 'underline', padding: 0 }}>
                 Turn AI on →

@@ -759,6 +759,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
   function handlePractice() {
     const msg = PRACTICE_MSGS[Math.floor(Math.random() * PRACTICE_MSGS.length)]
     setFeedback({ type: 'practice', emoji: msg.emoji, text: msg.msg })
+    track('learn', 'practice', { metadata: { script, letter: selected?.char } })
   }
 
   async function handleAiCheck(imageData) {

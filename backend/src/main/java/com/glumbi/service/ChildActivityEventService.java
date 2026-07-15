@@ -232,6 +232,8 @@ public class ChildActivityEventService {
         long riddleHints = repo.countByChildFeatureEventType(childId, "riddle",  "hint_used",    from);
         // Stories: similar_viewed count
         long storiesSimilar = repo.countByChildFeatureEventType(childId, "stories", "similar_viewed", from);
+        // Learn: free practice attempts
+        long learnPractice = repo.countByChildFeatureEventType(childId, "learn", "practice", from);
         // MyWriting: avg word count at feedback time
         Double mywritingAvgWords = repo.avgWritingWordCountForChild(childId, from);
         // Memory match: top theme
@@ -248,6 +250,7 @@ public class ChildActivityEventService {
         result.put("mazeAvgWallHits",        mazeAvgWalls != null ? mazeAvgWalls : 0);
         result.put("riddleHints",            riddleHints);
         result.put("storiesSimilarViewed",   storiesSimilar);
+        result.put("learnPracticeCount",     learnPractice);
         result.put("mywritingAvgWordCount",  mywritingAvgWords != null ? mywritingAvgWords.longValue() : null);
         result.put("topMemoryMatchTheme",    topMemoryTheme);
         result.put("totalEvents",            total);
@@ -379,7 +382,8 @@ public class ChildActivityEventService {
         long   adminMazeGaveUp   = repo.countByFeatureEventTypeSince("maze",    "gave_up",       from);
         Double adminMazeAvgWalls = repo.avgMazeWallHitsSince(from);
         long   adminRiddleHints  = repo.countByFeatureEventTypeSince("riddle",  "hint_used",     from);
-        long   adminSimilarViewed= repo.countByFeatureEventTypeSince("stories", "similar_viewed",from);
+        long   adminSimilarViewed    = repo.countByFeatureEventTypeSince("stories", "similar_viewed",from);
+        long   adminLearnPractice    = repo.countByFeatureEventTypeSince("learn",   "practice",      from);
 
         result.put("accuracyByFeature",      adminAccuracyByFeature);
         result.put("completionsByFeature",   adminCompletionsByFeature);
@@ -388,6 +392,7 @@ public class ChildActivityEventService {
         result.put("mazeAvgWallHits",        adminMazeAvgWalls != null ? adminMazeAvgWalls : 0);
         result.put("riddleHints",            adminRiddleHints);
         result.put("storiesSimilarViewed",   adminSimilarViewed);
+        result.put("learnPracticeCount",     adminLearnPractice);
         result.put("totalCreditsUsed",       totalCreditsUsed);
         return result;
     }

@@ -251,7 +251,7 @@ const ACTIVITY_FEATURES = {
   mywriting:   { label: 'My Writing',     emoji: '✍️' },
   riddle:      { label: 'Riddles',        emoji: '🎯' },
   maze:        { label: 'Maze',           emoji: '🌀' },
-  learn:       { label: 'Learn',          emoji: '✏️' },
+  learn:       { label: 'Learn to Write', emoji: '✏️' },
   flashcards:  { label: 'Flashcards',     emoji: '📇' },
   wordofday:   { label: 'Word of Day',    emoji: '🌟' },
   memorymatch: { label: 'Memory Match',   emoji: '🧠' },
@@ -400,7 +400,7 @@ function ActivityModal({ child, t, onClose }) {
             {allFeatures.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>Top features</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>Feature activity</div>
                   <div style={{ display: 'flex', gap: 4 }}>
                     {['count', 'time'].map(m => (
                       <button key={m} onClick={() => setFeatureMode(m)}
@@ -431,6 +431,8 @@ function ActivityModal({ child, t, onClose }) {
                     extraChips.push({ key: 'words', icon: '✍️', text: `avg ${data.mywritingAvgWordCount} words/submission`, color: '#10b981', bg: '#f0fdf4' })
                   if (feature === 'memorymatch' && data?.topMemoryMatchTheme)
                     extraChips.push({ key: 'theme', icon: '⭐', text: `Fav theme: ${data.topMemoryMatchTheme}`, color: '#8b5cf6', bg: '#faf5ff' })
+                  if (feature === 'learn' && data?.learnPracticeCount > 0)
+                    extraChips.push({ key: 'practice', icon: '✏️', text: `Learn to Write: ${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
                   return (
                     <div key={feature} style={{ marginBottom: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>

@@ -545,7 +545,7 @@ const ACTIVITY_FEATURE_NAMES = {
   mywriting:   '✍️ My Writing',
   riddle:      '🎯 Riddles',
   maze:        '🌀 Maze',
-  learn:       '✏️ Learn',
+  learn:       '✏️ Learn to Write',
   flashcards:  '📇 Flashcards',
   wordofday:   '🌟 Word of Day',
   memorymatch: '🧠 Memory Match',
@@ -561,8 +561,7 @@ function fmtDurAdmin(sec) {
   return `${m}m`
 }
 
-function ActivityAnalytics() {
-  const [days, setDays]         = useState(30)
+function ActivityAnalytics({ days, refreshKey, onRefresh }) {
   const [data, setData]         = useState(null)
   const [loading, setLoading]   = useState(true)
   const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
@@ -574,7 +573,7 @@ function ActivityAnalytics() {
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [days])
+  }, [days, refreshKey])
 
   const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
 
@@ -609,14 +608,10 @@ function ActivityAnalytics() {
     <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
         <div style={{ fontWeight: 800, fontSize: 13, color: '#333', flex: 1 }}>🎮 Child Activity Analytics</div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {[7, 30, 90].map(d => (
-            <button key={d} onClick={() => setDays(d)}
-              style={{ padding: '4px 14px', borderRadius: 50, fontSize: 12, fontWeight: 800, border: 'none', cursor: 'pointer', background: days === d ? '#1a1a2e' : '#f0f0f0', color: days === d ? 'white' : '#666' }}>
-              {d}d
-            </button>
-          ))}
-        </div>
+        <button onClick={onRefresh} disabled={loading} title="Refresh now"
+          style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
+          {loading ? '…' : '🔄'}
+        </button>
       </div>
       <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — last {days} days</div>
 
@@ -772,6 +767,8 @@ function ActivityAnalytics() {
               signals.push({ key: 'hints', icon: '💡', label: 'Riddles', primary: `${data.riddleHints} hints used`, sub: 'platform total', color: '#f59e0b', bg: '#fffbeb' })
             if ((data.storiesSimilarViewed ?? 0) > 0)
               signals.push({ key: 'sim', icon: '🔗', label: 'Stories', primary: `${data.storiesSimilarViewed} similar explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
+            if ((data.learnPracticeCount ?? 0) > 0)
+              signals.push({ key: 'practice', icon: '✏️', label: 'Learn to Write', primary: `${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, sub: 'without AI check', color: '#6366f1', bg: '#eef2ff' })
             if (signals.length === 0) return null
             return (
               <div style={{ marginBottom: 20 }}>
@@ -870,6 +867,7 @@ function Dashboard() {
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
   const [autoInterval, setAutoInterval] = useState(0)
+  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0)
   const timerRef = useRef(null)
 
   const fetchStats = useCallback((r) => {
@@ -886,7 +884,7 @@ function Dashboard() {
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (autoInterval > 0) {
-      timerRef.current = setInterval(() => fetchStats(range), autoInterval)
+      timerRef.current = setInterval(() => { fetchStats(range); setAnalyticsRefreshKey(k => k + 1) }, autoInterval)
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [autoInterval, range]) // eslint-disable-line
@@ -1080,7 +1078,7 @@ function Dashboard() {
       )}
 
       {/* Activity analytics */}
-      <ActivityAnalytics />
+      <ActivityAnalytics days={parseInt(range)} refreshKey={analyticsRefreshKey} onRefresh={() => setAnalyticsRefreshKey(k => k + 1)} />
 
       {/* Recent activity — always last */}
       {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>

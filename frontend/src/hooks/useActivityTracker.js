@@ -12,7 +12,8 @@ function writeQueue(q) {
 }
 
 export default function useActivityTracker(child, isOffline, childLocked) {
-  const sendingRef = useRef(0)  // how many events are in-flight waiting for ACK
+  const sendingRef  = useRef(0)   // how many events are in-flight waiting for ACK
+  const closeTimerRef = useRef(null)
 
   const flush = useCallback(() => {
     if (sendingRef.current > 0) return  // wait for ACK before sending more
@@ -38,11 +39,26 @@ export default function useActivityTracker(child, isOffline, childLocked) {
     }
 
     return () => {
-      analyticsSocket.onAck = null
-      analyticsSocket.close()
-      sendingRef.current = 0
+      // Defer close so child effect cleanups (useFeatureDuration in feature pages) run first.
+      // React runs passive effect cleanups parent-before-child, so a synchronous flush here
+      // would see an empty queue — the session event hasn't been enqueued yet by the child.
+      // setTimeout(0) pushes the close past the current commit cycle, by which point all
+      // children have fired their session events into localStorage.
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+      closeTimerRef.current = setTimeout(() => {
+        flush()
+        analyticsSocket.onAck = null
+        analyticsSocket.close()
+        sendingRef.current = 0
+        closeTimerRef.current = null
+      }, 0)
     }
   }, [childLocked, child?.id, flush])
+
+  // Cancel any pending deferred close on full unmount
+  useEffect(() => {
+    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current) }
+  }, [])
 
   // Poll every 2s to drain the queue after a reconnect
   useEffect(() => {

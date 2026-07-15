@@ -738,9 +738,14 @@ function ActivityAnalytics() {
                           </div>
                         )}
                         {acc && <div style={{ fontSize: 10, color: '#aaa' }}>{acc.correct} correct · {acc.wrong} wrong</div>}
-                        {comp && sessions > 0 && (
+                        {comp && sessions > 0 && f !== 'memorymatch' && (
                           <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 700, marginTop: acc ? 4 : 0 }}>
                             🏁 {comp}/{sessions} completed ({Math.round(comp/sessions*100)}%)
+                          </div>
+                        )}
+                        {f === 'memorymatch' && comp > 0 && (
+                          <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 700, marginTop: acc ? 4 : 0 }}>
+                            🏁 {comp} games played
                           </div>
                         )}
                       </div>
@@ -748,7 +753,7 @@ function ActivityAnalytics() {
                   })}
                   {flipEff > 0 && (
                     <div style={{ background: '#faf5ff', borderRadius: 12, padding: '10px 14px', minWidth: 140, flex: '1 1 140px' }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: '#333', marginBottom: 6 }}>Memory Match</div>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: '#333', marginBottom: 6 }}>{ACTIVITY_FEATURE_NAMES['memorymatch'] || '🧠 Memory Match'}</div>
                       <div style={{ fontSize: 18, fontWeight: 900, color: '#8b5cf6' }}>{flipEff}</div>
                       <div style={{ fontSize: 10, color: '#aaa' }}>avg flips per completed game</div>
                     </div>

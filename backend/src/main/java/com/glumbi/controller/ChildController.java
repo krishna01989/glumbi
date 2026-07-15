@@ -50,10 +50,7 @@ public class ChildController {
     @PostMapping("/{id}/checkin")
     public ResponseEntity<Map<String, Object>> checkin(@PathVariable Long id,
                                                        @AuthenticationPrincipal AuthUser user) {
-        Child child = service.checkin(id, user.id());
-        return ResponseEntity.ok(Map.of(
-            "streakCount", child.getStreakCount(),
-            "lastStreakDate", child.getLastStreakDate().toString()
-        ));
+        int streak = service.checkin(id, user.id());
+        return ResponseEntity.ok(Map.of("streakCount", streak));
     }
 }

@@ -29,7 +29,8 @@ public class ChildService {
     private final FlashcardSetRepository flashcardSetRepository;
     private final MemoryMatchRepository memoryMatchRepository;
     private final WordOfDayRepository   wordOfDayRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationRepository       notificationRepository;
+    private final ChildActivityEventRepository activityEventRepo;
     private final R2Service             r2Service;
     private final ObjectMapper          objectMapper;
 
@@ -89,18 +90,27 @@ public class ChildService {
         return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"memory\",\"timeline\"]";
     }
 
-    public Child checkin(Long id, Long ownerId) {
-        Child child = getById(id, ownerId);
-        LocalDate today = LocalDate.now();
-        LocalDate last = child.getLastStreakDate();
-        if (last == null || last.isBefore(today.minusDays(1))) {
-            child.setStreakCount(1);
-        } else if (last.isBefore(today)) {
-            child.setStreakCount(child.getStreakCount() + 1);
+    public int checkin(Long id, Long ownerId) {
+        getById(id, ownerId); // ownership check
+        return computeCurrentStreak(activityEventRepo.getDistinctActiveDates(id));
+    }
+
+    private int computeCurrentStreak(List<java.sql.Date> rawDates) {
+        if (rawDates.isEmpty()) return 0;
+        List<LocalDate> sorted = rawDates.stream()
+            .map(java.sql.Date::toLocalDate)
+            .distinct()
+            .sorted(java.util.Comparator.reverseOrder())
+            .toList();
+        LocalDate today     = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        if (!sorted.get(0).equals(today) && !sorted.get(0).equals(yesterday)) return 0;
+        int streak = 1;
+        for (int i = 1; i < sorted.size(); i++) {
+            if (sorted.get(i).equals(sorted.get(i - 1).minusDays(1))) streak++;
+            else break;
         }
-        // same day → no-op on count
-        child.setLastStreakDate(today);
-        return repo.save(child);
+        return streak;
     }
 
     @Transactional

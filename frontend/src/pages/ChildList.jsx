@@ -290,6 +290,18 @@ function ActivityModal({ child, t, onClose }) {
     ? data.hourlyActivity.reduce((best, v, i) => v > data.hourlyActivity[best] ? i : best, 0)
     : null
   const fmtHour = h => h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`
+  const lastActiveDate = data?.dailyActivity
+    ? (() => {
+        const last = [...data.dailyActivity].reverse().find(d => d.count > 0)
+        if (!last) return null
+        const d = new Date(last.date)
+        const today = new Date(); today.setHours(0,0,0,0)
+        const diff = Math.round((today - d) / 86400000)
+        if (diff === 0) return 'today'
+        if (diff === 1) return 'yesterday'
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      })()
+    : null
 
   // Merge count + duration per feature, sorted by selected mode
   const allFeatures = data
@@ -341,7 +353,7 @@ function ActivityModal({ child, t, onClose }) {
                 { label: 'Active days',    value: recentDays,                   icon: '📅', sub: `of ${days}` },
                 { label: 'Sessions',       value: totalSessions,                icon: '⚡', sub: 'play sessions' },
                 { label: 'Screen time',    value: fmtDuration(totalSec) ?? '—', icon: '⏱️', sub: 'engaged time' },
-                { label: 'Streak',         value: `${data.currentStreak ?? 0}d`,icon: '🔥', sub: `best: ${data.longestStreak ?? 0}d` },
+                { label: 'Streak',         value: `${data.currentStreak ?? 0}d`,icon: '🔥', sub: lastActiveDate ? `last active: ${lastActiveDate}` : `best: ${data.longestStreak ?? 0}d` },
               ].map(s => (
                 <div key={s.label} style={{ background: t.primaryLt, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ fontSize: 22 }}>{s.icon}</span>
@@ -444,9 +456,14 @@ function ActivityModal({ child, t, onClose }) {
                               ✓ {accuracy.rate}% accurate
                             </span>
                           )}
-                          {completions && count > 0 && (
+                          {completions && count > 0 && feature !== 'memorymatch' && (
                             <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#f0f0ff', borderRadius: 50, padding: '2px 8px' }}>
                               🏁 {completions}/{count} completed
+                            </span>
+                          )}
+                          {feature === 'memorymatch' && completions > 0 && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#f0f0ff', borderRadius: 50, padding: '2px 8px' }}>
+                              🏁 {completions} games played
                             </span>
                           )}
                           {flipEff && (

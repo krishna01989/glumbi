@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { childApi } from '../api/client'
 
 export function useLockSession({ child, setChild, prevChildId }) {
   const navigate = useNavigate()
@@ -217,6 +218,9 @@ export function useLockSession({ child, setChild, prevChildId }) {
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
       navigate(`/child/${pendingLockedChild.id}/stories`)
+      childApi.checkin(pendingLockedChild.id)
+        .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
+        .catch(() => {})
       setPendingLockedChild(null)
     }
   }
@@ -238,6 +242,9 @@ export function useLockSession({ child, setChild, prevChildId }) {
     if (pendingLockedChild) {
       setChild(pendingLockedChild)
       navigate(`/child/${pendingLockedChild.id}/stories`)
+      childApi.checkin(pendingLockedChild.id)
+        .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
+        .catch(() => {})
       setPendingLockedChild(null)
     }
   }

@@ -11,7 +11,7 @@ function writeQueue(q) {
   try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)) } catch {}
 }
 
-export default function useActivityTracker(child, isOffline) {
+export default function useActivityTracker(child, isOffline, childLocked) {
   const flushingRef = useRef(false)
 
   const flush = useCallback(async () => {
@@ -41,7 +41,7 @@ export default function useActivityTracker(child, isOffline) {
   }, [flush])
 
   const track = useCallback((feature, eventType, opts = {}) => {
-    if (!child?.id) return
+    if (!child?.id || !childLocked) return
     const event = {
       childId:         child.id,
       childName:       child.name || '',
@@ -58,7 +58,7 @@ export default function useActivityTracker(child, isOffline) {
     writeQueue(queue)
 
     if (navigator.onLine) flush()
-  }, [child?.id, child?.name, isOffline, flush])
+  }, [child?.id, child?.name, isOffline, childLocked, flush])
 
   return { track }
 }

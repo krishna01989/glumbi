@@ -30,9 +30,9 @@ function ErrorPageRoute() {
   return <ErrorPage code={code} />
 }
 
-function TrackerProvider({ child, children }) {
+function TrackerProvider({ child, childLocked, children }) {
   const isOffline = useOffline()
-  const { track } = useActivityTracker(child, isOffline)
+  const { track } = useActivityTracker(child, isOffline, childLocked)
   return (
     <ActivityTrackerContext.Provider value={{ track }}>
       {children}
@@ -53,7 +53,7 @@ export default function ChildRoutes({
 
   return (
     <OfflineContext.Provider value={offlineMode}>
-      <TrackerProvider child={child}>
+      <TrackerProvider child={child} childLocked={childLocked}>
       <div className="page-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Routes>
           <Route path="/child/:childId/stories"    element={guard('story',              <Stories    child={child} quota={quota} />)} />

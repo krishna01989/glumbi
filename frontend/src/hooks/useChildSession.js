@@ -25,9 +25,11 @@ export function useChildSession({ authed, role, featureConfig, setRestoring, quo
         applyTheme(c.theme)
         setChild(c)
         setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
-        childApi.checkin(c.id)
-          .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
-          .catch(() => {})
+        if (localStorage.getItem('glm_child_locked') === '1') {
+          childApi.checkin(c.id)
+            .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
+            .catch(() => {})
+        }
         if (!urlMatch && localStorage.getItem('glm_child_locked') === '1') {
           navigate(`/child/${c.id}/stories`, { replace: true })
         }
@@ -72,9 +74,6 @@ export function useChildSession({ authed, role, featureConfig, setRestoring, quo
     applyTheme(c.theme)
     setChild(c)
     setOfflineMode(localStorage.getItem(`glm_offline_${c.id}`) === '1')
-    childApi.checkin(c.id)
-      .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
-      .catch(() => {})
     navigate(`/child/${c.id}/stories`)
     if (!localStorage.getItem('glm_tour_done')) {
       localStorage.setItem('glm_tour_done', '1')

@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react'
-import { analyticsApi } from '../api/client'
+import { analyticsSocket } from '../grpc/analyticsSocket'
 
 const QUEUE_KEY = 'glm_activity_queue'
 
@@ -12,27 +12,43 @@ function writeQueue(q) {
 }
 
 export default function useActivityTracker(child, isOffline, childLocked) {
-  const flushingRef = useRef(false)
+  const sendingRef = useRef(0)  // how many events are in-flight waiting for ACK
 
-  const flush = useCallback(async () => {
-    if (flushingRef.current) return
+  const flush = useCallback(() => {
+    if (sendingRef.current > 0) return  // wait for ACK before sending more
     const queue = readQueue()
-    if (queue.length === 0) return
-    flushingRef.current = true
-    const sending = queue.length
-    try {
-      await analyticsApi.batchEvents(queue)
-      // Only remove the items we sent — new events may have been enqueued during the await
-      const current = readQueue()
-      writeQueue(current.slice(sending))
-    } catch {
-      // keep in queue; retry next time
-    } finally {
-      flushingRef.current = false
-    }
-    // If events were enqueued while we were awaiting, flush them now
-    if (readQueue().length > 0) flush()
+    if (!queue.length || !analyticsSocket.isOpen()) return
+    sendingRef.current = queue.length
+    const sent = analyticsSocket.send(queue)
+    if (!sent) sendingRef.current = 0
   }, [])
+
+  // Open socket when child locks in, close when session ends
+  useEffect(() => {
+    if (!childLocked || !child?.id) return
+    analyticsSocket.open()
+
+    analyticsSocket.onAck = () => {
+      // Drop exactly the events we sent, preserving any newly enqueued ones
+      const current = readQueue()
+      writeQueue(current.slice(sendingRef.current))
+      sendingRef.current = 0
+      // Drain remaining queue if more events accumulated while we were waiting
+      if (readQueue().length > 0) flush()
+    }
+
+    return () => {
+      analyticsSocket.onAck = null
+      analyticsSocket.close()
+      sendingRef.current = 0
+    }
+  }, [childLocked, child?.id, flush])
+
+  // Poll every 2s to drain the queue after a reconnect
+  useEffect(() => {
+    const interval = setInterval(flush, 2000)
+    return () => clearInterval(interval)
+  }, [flush])
 
   // Flush when network comes back
   useEffect(() => {

@@ -2,13 +2,11 @@ package com.glumbi.controller;
 
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ChildActivityEventService;
-import com.glumbi.service.ChildActivityEventService.EventDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,22 +16,8 @@ public class AnalyticsController {
 
     private final ChildActivityEventService service;
 
-    // ── Batch event ingest (all authenticated parents) ────────────────────────
-
-    @PostMapping("/events/batch")
-    public ResponseEntity<Map<String, Object>> batchEvents(
-            @RequestBody Map<String, List<EventDto>> body,
-            @AuthenticationPrincipal AuthUser caller) {
-
-        List<EventDto> events = body.get("events");
-        if (events == null || events.isEmpty()) {
-            return ResponseEntity.ok(Map.of("saved", 0));
-        }
-        int saved = service.saveBatch(events, caller.id(), caller.email());
-        return ResponseEntity.ok(Map.of("saved", saved));
-    }
-
     // ── Parent analytics — ownership is verified in service ──────────────────
+    // Note: batch event ingest is handled by gRPC (GrpcActivityEventService)
 
     @GetMapping("/child/{childId}")
     public ResponseEntity<?> childAnalytics(

@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "child_activity_events", indexes = {
@@ -37,7 +38,7 @@ public class ChildActivityEvent {
     @Column(columnDefinition = "TEXT")      private String  metadata;
 
     @Column(name = "occurred_at", nullable = false) private LocalDateTime occurredAt;
-    @Column(name = "synced_at",   nullable = false) private LocalDateTime syncedAt = LocalDateTime.now();
+    @Column(name = "synced_at",   nullable = false) private LocalDateTime syncedAt = LocalDateTime.now(ZoneOffset.UTC);
 
     // Client-generated UUID; unique index prevents duplicate syncs on retry
     @Column(name = "client_key", unique = true, length = 64) private String clientKey;

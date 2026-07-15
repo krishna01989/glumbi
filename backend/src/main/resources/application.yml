@@ -79,3 +79,9 @@ voyage:
   model: voyage-3
   dimensions: 1024
   similar-limit: 3
+
+grpc:
+  server:
+    port: ${GRPC_PORT:9090}
+    security:
+      enabled: false   # no TLS locally; Railway handles TLS termination in prod

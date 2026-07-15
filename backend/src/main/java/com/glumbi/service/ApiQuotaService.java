@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.YearMonth;
 
 @Service
@@ -131,7 +132,7 @@ public class ApiQuotaService {
         // Insert RUNNING row immediately
         SchedulerRun run = new SchedulerRun();
         run.setSchedulerId("reset-credits");
-        run.setStartedAt(LocalDateTime.now());
+        run.setStartedAt(LocalDateTime.now(ZoneOffset.UTC));
         run.setStatus("RUNNING");
         run = schedulerRunRepo.save(run);
 
@@ -154,7 +155,7 @@ public class ApiQuotaService {
         }
 
         // Update row with result
-        run.setFinishedAt(LocalDateTime.now());
+        run.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
         run.setStatus(error == null ? "SUCCESS" : "FAILED");
         run.setChildrenProcessed(usersReset);
         run.setErrors(error != null ? "[\"" + error + "\"]" : "[]");

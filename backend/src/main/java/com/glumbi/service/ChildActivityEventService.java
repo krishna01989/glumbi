@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -54,9 +55,9 @@ public class ChildActivityEventService {
             ev.setDurationSeconds(dto.durationSeconds());
             ev.setMetadata(dto.metadata());
             ev.setClientKey(dto.clientKey());
-            ev.setSyncedAt(LocalDateTime.now());
+            ev.setSyncedAt(LocalDateTime.now(ZoneOffset.UTC));
 
-            LocalDateTime occurredAt = LocalDateTime.now();
+            LocalDateTime occurredAt = LocalDateTime.now(ZoneOffset.UTC);
             if (dto.occurredAt() != null) {
                 try { occurredAt = LocalDateTime.parse(dto.occurredAt()); } catch (Exception ignored) {}
             }
@@ -183,7 +184,7 @@ public class ChildActivityEventService {
         }
 
         // AI credits used by this parent's account in the window
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         long creditsUsed = usageLogRepo.sumCreditsByUser(userId, from, now);
 
         Map<String, Object> result = new LinkedHashMap<>();
@@ -264,7 +265,7 @@ public class ChildActivityEventService {
     // ── Admin analytics ───────────────────────────────────────────────────────
 
     public Map<String, Object> getAdminAnalytics(int days) {
-        LocalDateTime from = LocalDateTime.now().minusDays(days);
+        LocalDateTime from = LocalDateTime.now(ZoneOffset.UTC).minusDays(days);
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         // Daily active children — build full series, each item {date, count}
@@ -362,7 +363,7 @@ public class ChildActivityEventService {
             if (comps > 0) adminFlipEfficiency = Math.round((flips * 10.0) / comps) / 10.0;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         long totalCreditsUsed = usageLogRepo.sumCreditsInPeriod(from, now);
 
         Map<String, Object> result = new LinkedHashMap<>();

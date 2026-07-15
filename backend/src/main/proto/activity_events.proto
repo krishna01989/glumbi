@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option java_package = "com.glumbi.grpc";
+option java_outer_classname = "ActivityEventsProto";
+option java_multiple_files = true;
+
+package glumbi;
+
+// A single child activity event
+message ActivityEvent {
+  int64  child_id         = 1;
+  string child_name       = 2;
+  string feature          = 3;
+  string event_type       = 4;
+  bool   online           = 5;
+  int32  duration_seconds = 6;
+  string metadata         = 7;  // JSON string, optional
+  string occurred_at      = 8;  // ISO-8601 UTC, e.g. "2026-07-15T10:30:00"
+  string client_key       = 9;  // UUID for dedup
+}
+
+message BatchEventsRequest {
+  repeated ActivityEvent events = 1;
+}
+
+message BatchEventsResponse {
+  int32 saved = 1;
+}
+
+service ActivityEventService {
+  rpc BatchEvents(BatchEventsRequest) returns (BatchEventsResponse);
+}

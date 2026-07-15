@@ -24,6 +24,12 @@ public class CorsConfig {
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization")
                         .allowCredentials(true);
+                registry.addMapping("/glumbi.*/**")
+                        .allowedOrigins(origins)
+                        .allowedMethods("POST", "OPTIONS")
+                        .allowedHeaders("Content-Type", "Authorization", "X-Grpc-Web", "X-User-Agent")
+                        .exposedHeaders("grpc-status", "grpc-message")
+                        .allowCredentials(false);
             }
         };
     }

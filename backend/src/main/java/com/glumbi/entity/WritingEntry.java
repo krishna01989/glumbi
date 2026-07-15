@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "writing_entries")
@@ -41,6 +42,6 @@ public class WritingEntry {
     private boolean feedbackReceived = false;
 
     @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
+    private LocalDateTime updatedAt = LocalDateTime.now(ZoneOffset.UTC);
 }

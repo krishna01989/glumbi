@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "ai_usage_log", indexes = {
@@ -32,5 +33,5 @@ public class AiUsageLog {
     private int creditsUsed;
 
     @Column(name = "used_at", nullable = false)
-    private LocalDateTime usedAt = LocalDateTime.now();
+    private LocalDateTime usedAt = LocalDateTime.now(ZoneOffset.UTC);
 }

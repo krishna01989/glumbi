@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -37,7 +38,7 @@ public class WritingService {
             .orElseThrow(() -> new RuntimeException("Writing not found"));
         entry.setTitle(req.getTitle());
         entry.setContent(req.getContent());
-        entry.setUpdatedAt(LocalDateTime.now());
+        entry.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         // Clear old feedback when content is updated
         entry.setFeedbackReceived(false);
         entry.setFeedbackPraise(null);

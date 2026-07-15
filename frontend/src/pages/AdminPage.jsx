@@ -561,19 +561,9 @@ function fmtDurAdmin(sec) {
   return `${m}m`
 }
 
-function ActivityAnalytics({ days, refreshKey, onRefresh }) {
-  const [data, setData]         = useState(null)
-  const [loading, setLoading]   = useState(true)
+function ActivityAnalytics({ days, data, loading, onRefresh }) {
   const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
   const [activeCell, setActiveCell]   = useState(null)   // { day, hour, value } for heatmap popup
-
-  useEffect(() => {
-    setLoading(true)
-    analyticsApi.getAdminAnalytics(days)
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false))
-  }, [days, refreshKey])
 
   const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
 
@@ -615,9 +605,7 @@ function ActivityAnalytics({ days, refreshKey, onRefresh }) {
       </div>
       <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — last {days} days</div>
 
-      {loading && <div style={{ textAlign: 'center', padding: '24px 0', color: '#aaa', fontSize: 13 }}>Loading…</div>}
-
-      {!loading && data && (
+      {data && (
         <>
           {/* Summary stat row */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
@@ -864,27 +852,31 @@ function ActivityAnalytics({ days, refreshKey, onRefresh }) {
 function Dashboard() {
   const [range, setRange]         = useState('7d')
   const [stats, setStats]         = useState(null)
+  const [analyticsData, setAnalyticsData] = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState('')
   const [autoInterval, setAutoInterval] = useState(0)
-  const [analyticsRefreshKey, setAnalyticsRefreshKey] = useState(0)
   const timerRef = useRef(null)
 
-  const fetchStats = useCallback((r) => {
+  const fetchAll = useCallback((r) => {
+    const resolved = r || range
     setLoading(true)
     setError('')
-    adminApi.getStats(r || range)
-      .then(setStats)
+    Promise.all([
+      adminApi.getStats(resolved),
+      analyticsApi.getAdminAnalytics(parseInt(resolved)),
+    ])
+      .then(([s, a]) => { setStats(s); setAnalyticsData(a) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [range])
 
-  useEffect(() => { fetchStats(range) }, [range]) // eslint-disable-line
+  useEffect(() => { fetchAll(range) }, [range]) // eslint-disable-line
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (autoInterval > 0) {
-      timerRef.current = setInterval(() => { fetchStats(range); setAnalyticsRefreshKey(k => k + 1) }, autoInterval)
+      timerRef.current = setInterval(() => fetchAll(range), autoInterval)
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [autoInterval, range]) // eslint-disable-line
@@ -935,7 +927,7 @@ function Dashboard() {
         ))}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
-            onClick={() => fetchStats(range)} disabled={loading} title="Refresh now"
+            onClick={() => fetchAll(range)} disabled={loading} title="Refresh now"
             style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
             {loading ? '…' : '🔄'}
           </button>
@@ -1078,7 +1070,7 @@ function Dashboard() {
       )}
 
       {/* Activity analytics */}
-      <ActivityAnalytics days={parseInt(range)} refreshKey={analyticsRefreshKey} onRefresh={() => setAnalyticsRefreshKey(k => k + 1)} />
+      {!loading && analyticsData && <ActivityAnalytics days={parseInt(range)} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
 
       {/* Recent activity — always last */}
       {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>

@@ -216,11 +216,11 @@ const SECTIONS = [
     items: [
       {
         q: 'What is the Parental Lock?',
-        a: 'Parental Lock lets you set a 4-digit PIN on a child\'s session before handing the device over. Once locked, the child can only use that child\'s Glumbi features — they cannot go back to the child list, switch profiles, or access any parent settings. Your PIN is saved on the device so you can use it across sessions without needing to set it again each time.',
+        a: 'Parental Lock lets you set a 4-digit PIN on a child\'s profile before handing the device over. Once locked, the child can only use that child\'s Glumbi features — they cannot go back to the child list, switch profiles, or access any parent settings. Your PIN is saved securely on our servers so it works across all your devices.',
       },
       {
         q: 'How do I set a lock?',
-        a: 'On the child list, tap your child\'s avatar to open the "Hand to child" panel. From there you can set or change your 4-digit lock PIN, toggle AI on or off, choose a session time limit (15m, 30m, 45m, 1h, 90m, or custom), and set how many time extensions to allow. Tap "Lock & hand to [name]" when ready — the app enters locked mode immediately.',
+        a: 'First, set a 4-digit PIN on your child\'s profile — tap ✏️ Edit on the child list and fill in the Lock PIN field. Once set, tap the child\'s avatar to open the "Hand to child" panel, toggle AI on or off, choose a session time limit, set extensions, enter your PIN to confirm, and tap "Lock & hand to [name]" — the app enters locked mode immediately.',
       },
       {
         q: 'What happens when the time limit runs out?',
@@ -232,7 +232,7 @@ const SECTIONS = [
       },
       {
         q: 'What if I forget my PIN?',
-        a: 'Your PIN is saved on this device. If the app is currently locked, you\'ll need to remember it to unlock. To avoid this, always set or update your PIN before handing the device to your child — tap the child\'s avatar on the child list to open the "Hand to child" panel, then use Change or Clear PIN. PINs are stored only on your device and never on our servers.',
+        a: 'Your PIN is saved on your account so it works on any device. If you\'ve forgotten it, go to ✏️ Edit on the child\'s profile and set a new PIN — it will replace the old one immediately. If the app is currently locked, you\'ll need to remember your PIN to unlock it first.',
       },
       {
         q: 'Can the child extend time on their own?',

@@ -68,7 +68,6 @@ export function useAuth({ addToast }) {
         k.startsWith('glm_session_limit_') ||
         k.startsWith('glm_session_original_limit_') ||
         k.startsWith('glm_session_max_snooze_') ||
-        k.startsWith('glm_lock_pin_') ||
         k.startsWith('glm_offline_')
       )
       .forEach(k => localStorage.removeItem(k))

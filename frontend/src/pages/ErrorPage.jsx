@@ -104,7 +104,6 @@ export default function ErrorPage({ code, message }) {
         k.startsWith('glm_snooze_count_') ||
         k.startsWith('glm_session_limit_') ||
         k.startsWith('glm_session_max_snooze_') ||
-        k.startsWith('glm_lock_pin_') ||
         k.startsWith('glm_offline_')
       )
       .forEach(k => localStorage.removeItem(k))

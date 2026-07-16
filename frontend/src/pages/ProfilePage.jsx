@@ -59,15 +59,6 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const [deleteError, setDeleteError]     = useState('')
   const [showDelete, setShowDelete]       = useState(false)
 
-  // child lock PINs stored in localStorage
-  const [pinCount, setPinCount] = useState(() =>
-    Object.keys(localStorage).filter(k => k.startsWith('glm_lock_pin_')).length
-  )
-  function resetAllPins() {
-    Object.keys(localStorage).filter(k => k.startsWith('glm_lock_pin_')).forEach(k => localStorage.removeItem(k))
-    setPinCount(0)
-  }
-
   const [quota,     setQuota]     = useState(null)
   const [breakdown, setBreakdown] = useState(null)
 

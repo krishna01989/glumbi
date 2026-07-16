@@ -58,6 +58,10 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   const [fetching, setFetching]     = useState(isEdit)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting]     = useState(false)
+  const [hasPinSet, setHasPinSet]   = useState(false)
+  const [pinVal, setPinVal]         = useState('')
+  const [pinConfirm, setPinConfirm] = useState('')
+  const [pinError, setPinError]     = useState('')
 
   useEffect(() => {
     if (!isEdit) { if (!inChildContext) applyTheme('coral'); return }
@@ -65,6 +69,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
       if (!inChildContext) applyTheme(child.theme || 'coral')
       setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral' })
       setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
+      setHasPinSet(!!child.hasPinSet)
       setFetching(false)
     })
   }, [id])
@@ -88,7 +93,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
     setDeleting(true)
     try {
       await childApi.delete(id)
-      const prefixes = ['glm_offline_', 'glm_lock_pin_', 'glm_session_start_', 'glm_session_limit_',
+      const prefixes = ['glm_offline_', 'glm_session_start_', 'glm_session_limit_',
         'glm_session_original_limit_', 'glm_session_max_snooze_', 'glm_snooze_count_', 'glumbi_voice_']
       prefixes.forEach(p => localStorage.removeItem(`${p}${id}`))
       navigate('/child')
@@ -101,9 +106,14 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   async function handleSubmit(e) {
     e.preventDefault()
     if (ageTooOld || ageTooYoung) return
+    if (!isEdit && pinVal.length !== 4) { setPinError('PIN is required — enter 4 digits'); return }
+    if (!isEdit && pinVal !== pinConfirm) { setPinError('PINs do not match'); return }
+    if (isEdit && !hasPinSet && pinVal.length !== 4) { setPinError('PIN is required — enter 4 digits'); return }
+    if (isEdit && pinVal && pinVal.length !== 4) { setPinError('Enter a 4-digit PIN'); return }
+    if (isEdit && pinVal && pinVal !== pinConfirm) { setPinError('PINs do not match'); return }
     setLoading(true)
     try {
-      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null }
+      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null, ...(pinVal ? { pin: pinVal } : {}) }
       if (isEdit) {
         const updated = await childApi.update(id, payload)
         if (onChildUpdated) onChildUpdated(updated)
@@ -309,6 +319,31 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
             </div>
           </div>
         )}
+
+        <div style={sectionCard}>
+          <SectionLabel>🔐 Lock PIN {isEdit && hasPinSet
+            ? <span style={{ fontSize: 11, fontWeight: 800, color: '#27ae60', background: '#e8f8f0', border: '1.5px solid #6bcb77', borderRadius: 50, padding: '2px 10px', marginLeft: 8, textTransform: 'none', letterSpacing: 0 }}>Set — leave blank to keep</span>
+            : <span style={{ fontSize: 11, fontWeight: 700, color: '#e55', marginLeft: 6, textTransform: 'none', letterSpacing: 0 }}>required</span>
+          }</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+              placeholder="• • • •"
+              value={pinVal}
+              onChange={e => { setPinVal(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
+              style={{ padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${pinError ? '#e74c3c' : '#eee'}`, fontSize: 20, fontWeight: 900, letterSpacing: 12, textAlign: 'center', fontFamily: 'Nunito, sans-serif', WebkitTextSecurity: 'disc', outline: 'none' }} />
+            {(!isEdit || pinVal) && (
+              <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+                placeholder="Confirm PIN"
+                value={pinConfirm}
+                onChange={e => { setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
+                style={{ padding: '10px 14px', borderRadius: 12, border: `1.5px solid ${pinError ? '#e74c3c' : '#eee'}`, fontSize: 20, fontWeight: 900, letterSpacing: 12, textAlign: 'center', fontFamily: 'Nunito, sans-serif', WebkitTextSecurity: 'disc', outline: 'none' }} />
+            )}
+            {pinError && <div style={{ fontSize: 12, color: '#e74c3c', fontWeight: 700, textAlign: 'center' }}>{pinError}</div>}
+            <div style={{ fontSize: 12, color: '#aaa' }}>
+              Locks the app when handing the device to {form.name || 'your child'}.
+            </div>
+          </div>
+        </div>
 
         {isEdit && (
           <div style={{ marginBottom: 16 }}>

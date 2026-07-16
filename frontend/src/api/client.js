@@ -32,7 +32,6 @@ api.interceptors.response.use(
           k.startsWith('glm_snooze_count_') ||
           k.startsWith('glm_session_limit_') ||
           k.startsWith('glm_session_max_snooze_') ||
-          k.startsWith('glm_lock_pin_') ||
           k.startsWith('glm_offline_')
         )
         .forEach(k => localStorage.removeItem(k))
@@ -79,7 +78,10 @@ export const childApi = {
   create:   (data)       => api.post('/children', data).then(r => r.data),
   update:   (id, data)   => api.put(`/children/${id}`, data).then(r => r.data),
   delete:   (id)         => api.delete(`/children/${id}`),
-  checkin:  (id)         => api.post(`/children/${id}/checkin`).then(r => r.data),
+  checkin:    (id)       => api.post(`/children/${id}/checkin`).then(r => r.data),
+  setPin:     (id, pin)  => api.put(`/children/${id}/pin`, { pin }).then(r => r.data),
+  clearPin:   (id)       => api.delete(`/children/${id}/pin`).then(r => r.data),
+  verifyPin:  (id, pin)  => api.post(`/children/${id}/pin/verify`, { pin }).then(r => r.data),
 }
 
 export const storyApi = {

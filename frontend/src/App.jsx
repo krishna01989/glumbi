@@ -219,14 +219,13 @@ export default function App() {
     lockPin, setLockPin,
     lockPinError, setLockPinError,
     showPin, setShowPin,
-    pendingLockedChild, setPendingLockedChild,
     lockTimeLimit, setLockTimeLimit,
     lockMaxSnooze, setLockMaxSnooze,
     lockModalForced,
     sessionStart, sessionMinutes,
     screenTimeAlert, setScreenTimeAlert,
     snoozeCount, originalLimitRef,
-    handleLockSetup, handleLockVerify, handleUnlock,
+    applyLock, handleLockVerify, handleUnlock,
     handleScreenTimeSnooze, endSessionLocked, engageLock, resetLock, formatElapsed,
   } = lock
 
@@ -260,12 +259,9 @@ export default function App() {
     return () => window.removeEventListener('glumbi:mobile-menu', handler)
   }, [])
 
-  function handleChildSelectedLocked(c) {
+  function handleLockConfirmed(c, timeLimit, maxSnooze) {
     applyTheme(c.theme)
-    setPendingLockedChild(c)
-    setLockPin(''); setLockPinError('')
-    const hasPin = !!localStorage.getItem(`glm_lock_pin_${c.id}`)
-    setLockModal(hasPin ? 'lock-verify' : 'setup')
+    applyLock(c, timeLimit, maxSnooze)
   }
 
   // ── Unauthenticated ──
@@ -284,27 +280,22 @@ export default function App() {
   }
 
   // ── Lock modal (appears in both layouts) ──
-  const activeChild = pendingLockedChild || child
-  const lockGrad    = (activeChild ? (THEMES[activeChild.theme] || THEMES.coral) : THEMES.coral).headerGrad
+  const lockGrad = (child ? (THEMES[child.theme] || THEMES.coral) : THEMES.coral).headerGrad
 
   const lockModalEl = (
     <LockModal
       lockModal={lockModal}
-      activeChild={activeChild}
+      activeChild={child}
       lockGrad={lockGrad}
-      lockPin={lockPin}         setLockPin={setLockPin}
+      lockPin={lockPin}           setLockPin={setLockPin}
       lockPinError={lockPinError} setLockPinError={setLockPinError}
-      showPin={showPin}         setShowPin={setShowPin}
+      showPin={showPin}           setShowPin={setShowPin}
       lockTimeLimit={lockTimeLimit} setLockTimeLimit={setLockTimeLimit}
       lockMaxSnooze={lockMaxSnooze} setLockMaxSnooze={setLockMaxSnooze}
       lockModalForced={lockModalForced}
-      onSetup={handleLockSetup}
       onVerify={handleLockVerify}
       onUnlock={handleUnlock}
-onCancel={() => {
-        setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false)
-        if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) }
-      }}
+      onCancel={() => { setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false) }}
     />
   )
 
@@ -330,7 +321,7 @@ onCancel={() => {
     return (
       <ManagementLayout lockModalEl={lockModalEl} quota={quota} handleLogout={handleLogout}>
         <Routes>
-          <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
+          <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onLockConfirmed={handleLockConfirmed} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
           <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/edit"     element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/insights" element={<ChildInsightsPage />} />

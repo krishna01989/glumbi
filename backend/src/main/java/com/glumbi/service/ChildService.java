@@ -7,6 +7,7 @@ import com.glumbi.entity.AppUser;
 import com.glumbi.entity.Child;
 import com.glumbi.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class ChildService {
     private final ChildActivityEventRepository activityEventRepo;
     private final R2Service             r2Service;
     private final ObjectMapper          objectMapper;
+    private final PasswordEncoder       passwordEncoder;
 
     public List<Child> getByOwner(Long ownerId) {
         return repo.findByOwnerId(ownerId);
@@ -61,6 +63,8 @@ public class ChildService {
         child.setEnabledFeatures(req.getEnabledFeatures() != null
                 ? req.getEnabledFeatures()
                 : defaultFeatures(req.getBirthYear()));
+        if (req.getPin() != null && req.getPin().matches("\\d{4}"))
+            child.setPinHash(passwordEncoder.encode(req.getPin()));
         return repo.save(child);
     }
 
@@ -74,6 +78,8 @@ public class ChildService {
         if (req.getEnabledFeatures() != null) {
             child.setEnabledFeatures(req.getEnabledFeatures());
         }
+        if (req.getPin() != null && req.getPin().matches("\\d{4}"))
+            child.setPinHash(passwordEncoder.encode(req.getPin()));
         return repo.save(child);
     }
 
@@ -88,6 +94,26 @@ public class ChildService {
             return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"memory\",\"timeline\",\"readquiz\",\"mywriting\"]";
         }
         return "[\"stories\",\"activities\",\"curiosity\",\"draw\",\"journal\",\"memory\",\"timeline\"]";
+    }
+
+    public Child setPin(Long id, Long ownerId, String pin) {
+        if (pin == null || !pin.matches("\\d{4}"))
+            throw new IllegalArgumentException("PIN must be exactly 4 digits");
+        Child child = getById(id, ownerId);
+        child.setPinHash(passwordEncoder.encode(pin));
+        return repo.save(child);
+    }
+
+    public Child clearPin(Long id, Long ownerId) {
+        Child child = getById(id, ownerId);
+        child.setPinHash(null);
+        return repo.save(child);
+    }
+
+    public boolean verifyPin(Long id, Long ownerId, String pin) {
+        Child child = getById(id, ownerId);
+        if (child.getPinHash() == null) return false;
+        return passwordEncoder.matches(pin, child.getPinHash());
     }
 
     public int checkin(Long id, Long ownerId) {

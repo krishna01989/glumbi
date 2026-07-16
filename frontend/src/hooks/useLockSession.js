@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { childApi } from '../api/client'
 
@@ -10,7 +10,6 @@ export function useLockSession({ child, setChild, prevChildId }) {
   const [lockPin, setLockPin]                 = useState('')
   const [lockPinError, setLockPinError]       = useState('')
   const [showPin, setShowPin]                 = useState(false)
-  const [pendingLockedChild, setPendingLockedChild] = useState(null)
   const [lockTimeLimit, setLockTimeLimit]     = useState(30)
   const [lockMaxSnooze, setLockMaxSnooze]     = useState(1)
   const [lockModalForced, setLockModalForced] = useState(false)
@@ -196,76 +195,59 @@ export function useLockSession({ child, setChild, prevChildId }) {
   }
 
   function engageLock() {
-    const hasPin = !!localStorage.getItem(`glm_lock_pin_${child?.id}`)
     setLockPin(''); setLockPinError('')
-    setLockModal(hasPin ? 'lock-verify' : 'setup')
+    setLockModal('lock-verify')
   }
 
-  function handleLockSetup() {
-    if (lockPin.length !== 4 || !/^\d{4}$/.test(lockPin)) { setLockPinError('Enter a 4-digit PIN'); return }
-    const activeChild = pendingLockedChild || child
-    const childId = activeChild?.id
-    if (childId) localStorage.setItem(`glm_lock_pin_${childId}`, lockPin)
+  function applyLock(c, timeLimit, maxSnooze) {
+    const childId = c.id
     localStorage.setItem('glm_child_locked', '1')
-    if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
-    if (childId) {
-      localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
-      localStorage.setItem(`glm_session_original_limit_${childId}`, String(lockTimeLimit))
-      localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
-    }
+    localStorage.setItem('glm_locked_child_id', String(childId))
+    localStorage.setItem(`glm_session_limit_${childId}`, String(timeLimit))
+    localStorage.setItem(`glm_session_original_limit_${childId}`, String(timeLimit))
+    localStorage.setItem(`glm_session_max_snooze_${childId}`, String(maxSnooze))
+    originalLimitRef.current = timeLimit
+    setLockTimeLimit(timeLimit)
+    setLockMaxSnooze(maxSnooze)
+    setChildLocked(true); setLockModal(null)
+    setChild(c)
+    navigate(`/child/${c.id}/stories`)
+    childApi.checkin(c.id)
+      .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
+      .catch(() => {})
+  }
+
+  const handleLockVerify = useCallback(async () => {
+    const childId = child?.id
+    if (!childId) return
+    const result = await childApi.verifyPin(childId, lockPin)
+    if (!result.ok) { setLockPinError('Wrong PIN, try again'); return }
+    localStorage.setItem('glm_child_locked', '1')
+    localStorage.setItem('glm_locked_child_id', String(childId))
+    localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
+    localStorage.setItem(`glm_session_original_limit_${childId}`, String(lockTimeLimit))
+    localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
     originalLimitRef.current = lockTimeLimit
     setChildLocked(true); setLockModal(null); setLockPin(''); setShowPin(false)
-    if (pendingLockedChild) {
-      setChild(pendingLockedChild)
-      navigate(`/child/${pendingLockedChild.id}/stories`)
-      childApi.checkin(pendingLockedChild.id)
-        .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
-        .catch(() => {})
-      setPendingLockedChild(null)
-    }
-  }
+  }, [child, lockPin, lockTimeLimit, lockMaxSnooze])
 
-  function handleLockVerify() {
-    const activeChild = pendingLockedChild || child
-    const childId = activeChild?.id
-    const saved = localStorage.getItem(`glm_lock_pin_${childId}`)
-    if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
-    localStorage.setItem('glm_child_locked', '1')
-    if (childId) localStorage.setItem('glm_locked_child_id', String(childId))
-    if (childId) {
-      localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
-      localStorage.setItem(`glm_session_original_limit_${childId}`, String(lockTimeLimit))
-      localStorage.setItem(`glm_session_max_snooze_${childId}`, String(lockMaxSnooze))
-    }
-    originalLimitRef.current = lockTimeLimit
-    setChildLocked(true); setLockModal(null); setLockPin(''); setShowPin(false)
-    if (pendingLockedChild) {
-      setChild(pendingLockedChild)
-      navigate(`/child/${pendingLockedChild.id}/stories`)
-      childApi.checkin(pendingLockedChild.id)
-        .then(s => setChild(prev => prev ? { ...prev, streakCount: s.streakCount } : prev))
-        .catch(() => {})
-      setPendingLockedChild(null)
-    }
-  }
-
-  function handleUnlock() {
-    const saved = localStorage.getItem(`glm_lock_pin_${child?.id}`)
-    if (lockPin !== saved) { setLockPinError('Wrong PIN, try again'); return }
+  const handleUnlock = useCallback(async () => {
+    const childId = child?.id
+    if (!childId) return
+    const result = await childApi.verifyPin(childId, lockPin)
+    if (!result.ok) { setLockPinError('Wrong PIN, try again'); return }
     localStorage.removeItem('glm_child_locked')
     localStorage.removeItem('glm_locked_child_id')
-    if (child?.id) {
-      localStorage.removeItem(`glm_session_limit_${child.id}`)
-      localStorage.removeItem(`glm_session_original_limit_${child.id}`)
-      localStorage.removeItem(`glm_session_max_snooze_${child.id}`)
-      localStorage.removeItem(`glm_offline_${child.id}`)
-    }
+    localStorage.removeItem(`glm_session_limit_${childId}`)
+    localStorage.removeItem(`glm_session_original_limit_${childId}`)
+    localStorage.removeItem(`glm_session_max_snooze_${childId}`)
+    localStorage.removeItem(`glm_offline_${childId}`)
     originalLimitRef.current = 0
     setLockTimeLimit(0); setLockMaxSnooze(1)
     setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError('')
     setLockModalForced(false); setShowPin(false)
     setChild(null); navigate('/child')
-  }
+  }, [child, lockPin])
 
   function endSessionLocked() {
     sessionEndedRef.current = true
@@ -292,7 +274,6 @@ export function useLockSession({ child, setChild, prevChildId }) {
     lockPin, setLockPin,
     lockPinError, setLockPinError,
     showPin, setShowPin,
-    pendingLockedChild, setPendingLockedChild,
     lockTimeLimit, setLockTimeLimit,
     lockMaxSnooze, setLockMaxSnooze,
     lockModalForced, setLockModalForced,
@@ -300,7 +281,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
     screenTimeAlert, setScreenTimeAlert,
     snoozeCount,
     originalLimitRef,
-    handleLockSetup, handleLockVerify, handleUnlock,
+    applyLock, handleLockVerify, handleUnlock,
     handleScreenTimeSnooze, endSessionLocked,
     engageLock,
     resetLock,

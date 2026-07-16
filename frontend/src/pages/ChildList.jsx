@@ -85,58 +85,69 @@ function QuotaPill({ quota, onInfo }) {
   )
 }
 
-/* ── Unlock modal ── */
-function UnlockModal({ child, offline, onClose, onLock, onToggleOffline, onPinChanged }) {
+/* ── Hand to child modal (merged: AI + PIN mgmt + time limit + PIN entry + lock) ── */
+const TIME_OPTS = [
+  { label: '15m', value: 15 },
+  { label: '30m', value: 30 },
+  { label: '45m', value: 45 },
+  { label: '1h',  value: 60 },
+  { label: '90m', value: 90 },
+  { label: 'Custom', value: -1 },
+]
+const EXT_OPTS = [
+  { label: 'None', value: 0 },
+  { label: '1', value: 1 },
+  { label: '2', value: 2 },
+  { label: '3', value: 3 },
+]
+
+function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline }) {
   const pt = THEMES[child.theme] || THEMES.coral
-  const [hasPin, setHasPin]           = useState(() => !!localStorage.getItem(`glm_lock_pin_${child.id}`))
-  const [showPinForm, setShowPinForm] = useState(false)
-  const [pinVal, setPinVal]           = useState('')
-  const [pinConfirm, setPinConfirm]   = useState('')
-  const [pinError, setPinError]       = useState('')
 
-  function savePin() {
-    if (pinVal.length !== 4) { setPinError('Enter a 4-digit PIN'); return }
-    if (pinVal !== pinConfirm) { setPinError('PINs do not match'); return }
-    localStorage.setItem(`glm_lock_pin_${child.id}`, pinVal)
-    setHasPin(true); setShowPinForm(false)
-    setPinVal(''); setPinConfirm(''); setPinError('')
-    onPinChanged?.(String(child.id), true)
-  }
+  const [timeLimit, setTimeLimit]     = useState(30)
+  const [maxSnooze, setMaxSnooze]     = useState(1)
+  const [lockPin, setLockPin]         = useState('')
+  const [lockPinError, setLockPinError] = useState('')
+  const [locking, setLocking]         = useState(false)
 
-  function clearPin() {
-    localStorage.removeItem(`glm_lock_pin_${child.id}`)
-    setHasPin(false); setShowPinForm(false)
-    setPinVal(''); setPinConfirm(''); setPinError('')
-    onPinChanged?.(String(child.id), false)
-  }
+  const isCustomTime = !TIME_OPTS.slice(0, -1).some(o => o.value === timeLimit)
 
-  const inputStyle = (err) => ({
-    width: '100%', padding: '10px 14px', borderRadius: 12,
-    border: `1.5px solid ${err ? '#e74c3c' : '#eee'}`,
-    fontSize: 22, fontWeight: 900, letterSpacing: 14, textAlign: 'center',
-    boxSizing: 'border-box', WebkitTextSecurity: 'disc',
-    fontFamily: 'Nunito, sans-serif', outline: 'none',
+  const chipStyle = (active) => ({
+    padding: '5px 11px', borderRadius: 50, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+    border: `2px solid ${active ? pt.primary : '#eee'}`,
+    background: active ? pt.primary : 'white',
+    color: active ? 'white' : '#aaa',
+    fontFamily: 'Nunito, sans-serif',
   })
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
-        <div style={{ fontSize: 52, marginBottom: 10 }}>{child.avatarEmoji}</div>
-        <div style={{ fontWeight: 900, fontSize: 18, color: pt.primary, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>Hand to {child.name}</div>
-        <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 20, fontFamily: 'Nunito, sans-serif' }}>
-          Set AI and lock options before handing the device to {child.name}.
-        </div>
+  async function handleLock(e) {
+    e.preventDefault()
+    if (lockPin.length !== 4) { setLockPinError('Enter your 4-digit PIN'); return }
+    setLocking(true)
+    try {
+      const result = await childApi.verifyPin(child.id, lockPin)
+      if (!result.ok) { setLockPinError('Wrong PIN, try again'); return }
+      onLockConfirmed(child, timeLimit, maxSnooze)
+    } catch { setLockPinError('Something went wrong') } finally { setLocking(false) }
+  }
 
-        {/* AI toggle row */}
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16, overflowY: 'auto' }}>
+      <div style={{ background: 'white', borderRadius: 24, padding: '28px 24px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', margin: 'auto' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
+
+        <div style={{ fontSize: 44, marginBottom: 6 }}>{child.avatarEmoji}</div>
+        <div style={{ fontWeight: 900, fontSize: 17, color: pt.primary, marginBottom: 16, fontFamily: 'Nunito, sans-serif' }}>Hand to {child.name}</div>
+
+        {/* AI toggle */}
         <div onClick={onToggleOffline}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: pt.primaryLt, borderRadius: 14, padding: '12px 16px', marginBottom: 12, cursor: 'pointer', userSelect: 'none' }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: pt.primaryLt, borderRadius: 14, padding: '10px 14px', marginBottom: 12, cursor: 'pointer', userSelect: 'none' }}>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#333', fontFamily: 'Nunito, sans-serif' }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#333', fontFamily: 'Nunito, sans-serif' }}>
               {offline ? '✈️' : '🤖'} AI features
             </div>
-            <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
-              {offline ? 'Taking a break from AI ✈️' : 'AI is ready to help! 🤖'}
+            <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>
+              {offline ? 'Taking a break from AI' : 'AI is ready to help!'}
             </div>
           </div>
           <div style={{ width: 42, height: 24, borderRadius: 12, background: offline ? '#ddd' : pt.primary, position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
@@ -144,54 +155,66 @@ function UnlockModal({ child, offline, onClose, onLock, onToggleOffline, onPinCh
           </div>
         </div>
 
-        {/* PIN row */}
-        <div style={{ background: '#fafafa', borderRadius: 14, padding: '12px 16px', marginBottom: 20, textAlign: 'left' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: showPinForm ? 12 : 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontWeight: 800, fontSize: 14, color: '#333', fontFamily: 'Nunito, sans-serif' }}>
-                🔐 Lock PIN
-              </span>
-              {hasPin
-                ? <span style={{ fontSize: 11, fontWeight: 800, color: '#27ae60', background: '#e8f8f0', border: '1.5px solid #6bcb77', borderRadius: 50, padding: '2px 10px' }}>Set</span>
-                : <span style={{ fontSize: 11, fontWeight: 700, color: '#aaa', background: '#f0f0f0', borderRadius: 50, padding: '2px 10px' }}>Not set</span>
-              }
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button type="button" onClick={() => { setShowPinForm(p => !p); setPinError('') }}
-                style={{ fontSize: 11, fontWeight: 700, color: pt.primary, background: 'transparent', border: `1.5px solid ${pt.primary}55`, borderRadius: 50, padding: '3px 10px', cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
-                {showPinForm ? 'Cancel' : hasPin ? 'Change' : 'Set PIN'}
-              </button>
-              {hasPin && !showPinForm && (
-                <button type="button" onClick={clearPin}
-                  style={{ fontSize: 11, fontWeight: 700, color: '#e55', background: 'transparent', border: '1.5px solid #ffb3b3', borderRadius: 50, padding: '3px 10px', cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
-                  Clear
-                </button>
-              )}
-            </div>
+        {/* PIN note */}
+        {!child.hasPinSet && (
+          <div style={{ background: '#fff8e1', border: '1.5px solid #ffe082', borderRadius: 12, padding: '10px 14px', marginBottom: 12, fontSize: 12, color: '#888', fontFamily: 'Nunito, sans-serif', textAlign: 'left' }}>
+            🔐 No lock PIN set — go to <strong>✏️ Edit</strong> to add one before locking.
           </div>
+        )}
 
-          {showPinForm && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
-                placeholder="• • • •" autoFocus value={pinVal}
-                onChange={e => { setPinVal(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
-                style={inputStyle(pinError)} />
-              <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
-                placeholder="Confirm" value={pinConfirm}
-                onChange={e => { setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
-                style={inputStyle(pinError)} />
-              {pinError && <div style={{ fontSize: 12, color: '#e74c3c', fontWeight: 700, textAlign: 'center' }}>{pinError}</div>}
-              <button type="button" onClick={savePin}
-                style={{ padding: '10px', borderRadius: 50, border: 'none', background: pt.headerGrad, color: 'white', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
-                Save PIN
+        {/* Session time */}
+        <div style={{ textAlign: 'left', marginBottom: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, marginBottom: 6 }}>SESSION TIME</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {TIME_OPTS.map(o => (
+              <button key={o.value} style={chipStyle(o.value === -1 ? isCustomTime : timeLimit === o.value)}
+                onClick={() => { if (o.value === -1) setTimeLimit(0); else setTimeLimit(o.value) }}>
+                {o.label}
               </button>
+            ))}
+          </div>
+          {isCustomTime && (
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="number" inputMode="numeric" min={1} max={480} placeholder="Minutes"
+                value={timeLimit > 0 ? timeLimit : ''}
+                onChange={e => { const v = parseInt(e.target.value); setTimeLimit(!isNaN(v) && v > 0 ? Math.min(v, 480) : 0) }}
+                style={{ width: 80, padding: '6px 10px', borderRadius: 10, border: `2px solid ${pt.primary}`, fontSize: 14, fontWeight: 700, textAlign: 'center', outline: 'none' }} />
+              <span style={{ fontSize: 13, color: '#888', fontFamily: 'Nunito, sans-serif' }}>minutes</span>
             </div>
           )}
         </div>
 
-        <button onClick={onLock} style={{ width: '100%', background: pt.headerGrad, color: 'white', border: 'none', borderRadius: 50, padding: '13px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', boxShadow: `0 6px 20px ${pt.primary}44` }}>
-          🔒 Lock & hand to {child.name}
-        </button>
+        {/* Extensions */}
+        {timeLimit > 0 && (
+          <div style={{ textAlign: 'left', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, marginBottom: 6 }}>EXTENSIONS ALLOWED</div>
+            <div style={{ display: 'flex', gap: 5 }}>
+              {EXT_OPTS.map(o => (
+                <button key={o.value} style={chipStyle(maxSnooze === o.value)} onClick={() => setMaxSnooze(o.value)}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PIN entry to lock */}
+        <form onSubmit={handleLock} autoComplete="off">
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, marginBottom: 6, textAlign: 'left' }}>CONFIRM IT'S YOU</div>
+          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+            placeholder="• • • •" autoComplete="off" data-form-type="other"
+            value={lockPin}
+            onChange={e => { setLockPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setLockPinError('') }}
+            style={{
+              width: '100%', textAlign: 'center', fontSize: 26, fontWeight: 900, boxSizing: 'border-box',
+              border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12,
+              padding: '10px 12px', letterSpacing: 18, WebkitTextSecurity: 'disc', outline: 'none',
+              fontFamily: 'Nunito, sans-serif', marginBottom: 6,
+            }} />
+          {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>{lockPinError}</div>}
+          <button type="submit" disabled={locking || timeLimit <= 0}
+            style={{ width: '100%', marginTop: 6, background: (locking || timeLimit <= 0) ? '#eee' : pt.headerGrad, color: (locking || timeLimit <= 0) ? '#aaa' : 'white', border: 'none', borderRadius: 50, padding: '13px 20px', fontWeight: 800, fontSize: 14, cursor: (locking || timeLimit <= 0) ? 'not-allowed' : 'pointer', fontFamily: 'Nunito, sans-serif', boxShadow: (locking || timeLimit <= 0) ? 'none' : `0 6px 20px ${pt.primary}44` }}>
+            {locking ? 'Locking…' : '🔒 Lock & hand to ' + child.name}
+          </button>
+        </form>
       </div>
     </div>
   )
@@ -200,7 +223,7 @@ function UnlockModal({ child, offline, onClose, onLock, onToggleOffline, onPinCh
 /* ══════════════════════════════════════════════════════
    CHILD CAROUSEL CARD — the big focused card
 ══════════════════════════════════════════════════════ */
-function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir, hasPin }) {
+function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir }) {
   const age = calcAge(c.birthYear)
 
   return (
@@ -246,7 +269,7 @@ function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir, hasPin }) {
       </div>
 
       {/* ── PIN status ── */}
-      {hasPin
+      {c.hasPinSet
         ? <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>🔐 Lock PIN set</div>
         : <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.08)', border: '1.5px dashed rgba(255,255,255,0.2)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>○ No lock PIN</div>
       }
@@ -336,20 +359,12 @@ function AddChildSlide({ onAdd, animDir }) {
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════ */
-export default function ChildList({ onChildSelected, onLogout, onChildSelectedLocked, onToggleOffline, quota, featureConfig }) {
+export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, onToggleOffline, quota, featureConfig }) {
   const [children, setChildren]       = useState([])
   const [loading, setLoading]         = useState(true)
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
   const [showCreditInfo, setShowCreditInfo] = useState(false)
-  const [pinMap, setPinMap] = useState(() => {
-    const map = {}
-    Object.keys(localStorage).filter(k => k.startsWith('glm_lock_pin_')).forEach(k => {
-      map[k.replace('glm_lock_pin_', '')] = true
-    })
-    return map
-  })
-
   // Carousel state
   const [activeIdx, setActiveIdx] = useState(0)
   const [animDir, setAnimDir]     = useState(1)
@@ -518,7 +533,6 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
                   <ChildCard
                     c={children[activeIdx]}
                     t={THEMES[children[activeIdx].theme] || THEMES.coral}
-                    hasPin={!!pinMap[String(children[activeIdx].id)]}
                     onSelect={c => {
                       localStorage.setItem(`glm_offline_${c.id}`, '0')
                       setOfflineModes(prev => ({ ...prev, [c.id]: false }))
@@ -597,9 +611,8 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
           child={pendingChild}
           offline={!!offlineModes[pendingChild.id]}
           onClose={() => setPendingChild(null)}
-          onLock={() => { onChildSelectedLocked(pendingChild); setPendingChild(null) }}
+          onLockConfirmed={(c, timeLimit, maxSnooze) => { setPendingChild(null); onLockConfirmed(c, timeLimit, maxSnooze) }}
           onToggleOffline={() => handleToggleOffline(null, pendingChild)}
-          onPinChanged={(childId, hasPin) => setPinMap(prev => ({ ...prev, [childId]: hasPin }))}
         />
       )}
     </>

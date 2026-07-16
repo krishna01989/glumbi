@@ -1,5 +1,6 @@
 package com.glumbi.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -37,6 +38,14 @@ public class Child {
     @Column(columnDefinition = "TEXT")
     private String enabledFeatures; // JSON array e.g. ["stories","activities","curiosity"]
 
+    @JsonIgnore
+    @Column(name = "pin_hash")
+    private String pinHash;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
+
+    public boolean isHasPinSet() {
+        return pinHash != null;
+    }
 }

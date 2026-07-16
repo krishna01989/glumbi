@@ -53,4 +53,27 @@ public class ChildController {
         int streak = service.checkin(id, user.id());
         return ResponseEntity.ok(Map.of("streakCount", streak));
     }
+
+    @PutMapping("/{id}/pin")
+    public ResponseEntity<Map<String, Object>> setPin(@PathVariable Long id,
+                                                      @RequestBody Map<String, String> body,
+                                                      @AuthenticationPrincipal AuthUser user) {
+        service.setPin(id, user.id(), body.get("pin"));
+        return ResponseEntity.ok(Map.of("hasPinSet", true));
+    }
+
+    @DeleteMapping("/{id}/pin")
+    public ResponseEntity<Map<String, Object>> clearPin(@PathVariable Long id,
+                                                        @AuthenticationPrincipal AuthUser user) {
+        service.clearPin(id, user.id());
+        return ResponseEntity.ok(Map.of("hasPinSet", false));
+    }
+
+    @PostMapping("/{id}/pin/verify")
+    public ResponseEntity<Map<String, Object>> verifyPin(@PathVariable Long id,
+                                                         @RequestBody Map<String, String> body,
+                                                         @AuthenticationPrincipal AuthUser user) {
+        boolean ok = service.verifyPin(id, user.id(), body.get("pin"));
+        return ResponseEntity.ok(Map.of("ok", ok));
+    }
 }

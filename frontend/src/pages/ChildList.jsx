@@ -80,18 +80,16 @@ function QuotaPill({ quota, onInfo }) {
 }
 
 /* ── Unlock modal ── */
-function UnlockModal({ child, offline, onClose, onLock, onParent, onToggleOffline }) {
+function UnlockModal({ child, offline, onClose, onLock, onToggleOffline }) {
   const pt = THEMES[child.theme] || THEMES.coral
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 16 }}>
       <div style={{ background: 'white', borderRadius: 24, padding: '32px 28px', maxWidth: 380, width: '100%', textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.4)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both' }}>
         <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 30, height: 30, minWidth: 30, minHeight: 30, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 14, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
         <div style={{ fontSize: 52, marginBottom: 10 }}>{child.avatarEmoji}</div>
-        <div style={{ fontWeight: 900, fontSize: 18, color: pt.primary, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>Opening without child lock</div>
+        <div style={{ fontWeight: 900, fontSize: 18, color: pt.primary, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>Hand to {child.name}</div>
         <div style={{ fontSize: 14, color: '#777', lineHeight: 1.6, marginBottom: 20, fontFamily: 'Nunito, sans-serif' }}>
-          <strong>{child.name}</strong>'s profile will open in <strong>parent mode</strong> — all features visible, no restrictions.
-          <br /><br />
-          Handing the device to {child.name}? Use <strong>🔒 Lock</strong> instead.
+          Set AI and lock options before handing the device to {child.name}.
         </div>
 
         {/* AI toggle row */}
@@ -106,20 +104,14 @@ function UnlockModal({ child, offline, onClose, onLock, onParent, onToggleOfflin
               {offline ? 'Taking a break from AI ✈️' : 'AI is ready to help! 🤖'}
             </div>
           </div>
-          {/* Toggle switch */}
           <div style={{ width: 42, height: 24, borderRadius: 12, background: offline ? '#ddd' : pt.primary, position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
             <div style={{ position: 'absolute', top: 3, left: offline ? 3 : 21, width: 18, height: 18, borderRadius: '50%', background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button onClick={onLock} style={{ background: pt.headerGrad, color: 'white', border: 'none', borderRadius: 50, padding: '13px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', boxShadow: `0 6px 20px ${pt.primary}44` }}>
-            🔒 Lock & hand to {child.name}
-          </button>
-          <button onClick={onParent} style={{ background: pt.primaryLt, color: pt.primary, border: 'none', borderRadius: 50, padding: '12px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
-            Continue in parent mode
-          </button>
-        </div>
+        <button onClick={onLock} style={{ width: '100%', background: pt.headerGrad, color: 'white', border: 'none', borderRadius: 50, padding: '13px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', boxShadow: `0 6px 20px ${pt.primary}44` }}>
+          🔒 Lock & hand to {child.name}
+        </button>
       </div>
     </div>
   )
@@ -512,7 +504,6 @@ export default function ChildList({ onChildSelected, onLogout, onChildSelectedLo
           offline={!!offlineModes[pendingChild.id]}
           onClose={() => setPendingChild(null)}
           onLock={() => { onChildSelectedLocked(pendingChild); setPendingChild(null) }}
-          onParent={() => { onChildSelected(pendingChild); setPendingChild(null) }}
           onToggleOffline={() => handleToggleOffline(null, pendingChild)}
         />
       )}

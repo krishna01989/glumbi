@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { timelineApi } from '../../api/client'
-import FeatureBanner from '../../components/FeatureBanner'
+import { moodFor } from '../../constants/moods'
 
 const TYPE_META = {
   story:      { label: '📖 Story',        dot: '#ff6b6b', textColor: '#ff6b6b',  feature: 'stories' },
@@ -46,7 +46,7 @@ function enabledFeatureSet(child) {
   try { return new Set(JSON.parse(child.enabledFeatures)) } catch { return null }
 }
 
-export default function Timeline({ child }) {
+export default function Timeline({ child, t = {} }) {
   const [items, setItems]           = useState([])
   const [loading, setLoading]       = useState(false)
   const [page, setPage]             = useState(0)
@@ -73,13 +73,10 @@ export default function Timeline({ child }) {
     setLoading(true)
     const { from, to } = presetToRange(datePreset)
     try {
-      const data = await timelineApi.getPage(child.id, p, PAGE_SIZE, toIso(from), toIso(to))
-      const filtered = typeFilter === 'all'
-        ? data.items
-        : data.items.filter(i => i.type === typeFilter)
-      setItems(prev => p === 0 ? filtered : [...prev, ...filtered])
+      const data = await timelineApi.getPage(child.id, p, PAGE_SIZE, toIso(from), toIso(to), typeFilter)
+      setItems(prev => p === 0 ? data.content : [...prev, ...data.content])
       setTotalPages(data.totalPages)
-      setTotalItems(data.totalItems)
+      setTotalItems(data.totalElements)
     } finally {
       setLoading(false)
     }
@@ -100,12 +97,24 @@ export default function Timeline({ child }) {
           <p style={{ color: '#888', fontSize: 13, lineHeight: 1.6 }}>{item.content?.slice(0, 140)}…</p>
           {item.favorite && <span style={{ fontSize: 12 }}>⭐ Favorite</span>}
         </>
-      case 'journal':
+      case 'journal': {
+        const m = moodFor(item.mood)
         return <>
-          {item.milestone && <span className="tag" style={{ marginBottom: 8, display: 'inline-block' }}>🏆 {item.milestone}</span>}
-          <p style={{ color: '#444', fontSize: 14, lineHeight: 1.6 }}>{item.content}</p>
-          {item.mood && <div style={{ fontSize: 13, marginTop: 6, color: 'var(--muted)' }}>Mood: {item.mood}</div>}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+            {m && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: m.color, background: m.bg, padding: '2px 10px', borderRadius: 50 }}>
+                {m.emoji} {m.label}
+              </span>
+            )}
+            {item.milestone && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: '#fffbeb', padding: '2px 10px', borderRadius: 50 }}>
+                🏆 {item.milestone}
+              </span>
+            )}
+          </div>
+          <p style={{ color: '#444', fontSize: 14, lineHeight: 1.6, margin: 0 }}>{item.content}</p>
         </>
+      }
       case 'activity':
         return <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
@@ -177,16 +186,14 @@ export default function Timeline({ child }) {
 
   return (
     <div>
-      <FeatureBanner feature="timeline" child={child} isMobile={window.innerWidth < 1024} />
-
       {/* Date preset filter */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap', marginTop: 16 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {DATE_PRESETS.map(p => (
           <button key={p.key} onClick={() => setDatePreset(p.key)}
             style={{
               padding: '6px 14px', borderRadius: 50, fontSize: 12, fontWeight: 700,
               border: 'none', cursor: 'pointer',
-              background: datePreset === p.key ? '#333' : '#f0f0f0',
+              background: datePreset === p.key ? (t.primary || 'var(--primary)') : '#f0f0f0',
               color: datePreset === p.key ? 'white' : '#666',
             }}>
             {p.label}
@@ -201,7 +208,7 @@ export default function Timeline({ child }) {
             style={{
               padding: '6px 16px', borderRadius: 50, fontSize: 13, fontWeight: 700,
               border: 'none', cursor: 'pointer',
-              background: typeFilter === f ? 'var(--primary)' : '#f0ebe6',
+              background: typeFilter === f ? (t.primary || 'var(--primary)') : '#f0ebe6',
               color: typeFilter === f ? 'white' : '#777',
             }}>
             {f === 'all' ? '🌈 All' : TYPE_META[f].label}
@@ -236,7 +243,7 @@ export default function Timeline({ child }) {
           <h3 style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 16 }}>
             {month} · {monthItems.length} moments
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingLeft: 24, borderLeft: '3px solid #f0ebe6' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingLeft: 24, borderLeft: `3px solid ${t.primaryLt || '#f0ebe6'}` }}>
             {monthItems.map(item => {
               const meta = TYPE_META[item.type]
               return (
@@ -267,7 +274,7 @@ export default function Timeline({ child }) {
           <button onClick={() => setPage(p => p + 1)}
             style={{
               padding: '12px 32px', borderRadius: 50, fontWeight: 800, fontSize: 14,
-              background: 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer',
+              background: t.primary || 'var(--primary)', color: 'white', border: 'none', cursor: 'pointer',
               boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
             }}>
             Load more moments

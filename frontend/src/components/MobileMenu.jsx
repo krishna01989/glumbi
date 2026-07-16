@@ -28,20 +28,14 @@ const NAV_GROUPS = [
   {
     id: 'create', label: 'Create', emoji: '🎨',
     items: [
-      { path: 'draw',  label: 'Draw',        emoji: '🎨' },
-      { path: 'learn', label: 'Learn to Write', emoji: '✏️' },
-    ]
-  },
-  {
-    id: 'parent', label: 'Parent Corner', emoji: '👪', parentOnly: true,
-    items: [
-      { path: 'journal',  label: 'Journal',  emoji: '📝', parentOnly: true },
-      { path: 'timeline', label: 'Timeline', emoji: '🗓️', parentOnly: true },
+      { path: 'draw',    label: 'Draw',           emoji: '🎨' },
+      { path: 'learn',   label: 'Learn to Write', emoji: '✏️' },
+      { path: 'journal', label: 'Journal',        emoji: '📝' },
     ]
   },
 ]
 
-export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, child, onTour, wotd, childLocked, onUnlock }) {
+export default function MobileMenu({ open, onClose, onLogout, child, onTour, wotd, childLocked, onUnlock }) {
   const theme = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
@@ -60,14 +54,10 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
       ...group,
       items: group.items.filter(item => {
         if (enabledKeys && !enabledKeys.includes(item.path)) return false
-        if (childLocked && item.parentOnly) return false
         return true
       })
     }))
-    .filter(group => {
-      if (childLocked && group.parentOnly) return false
-      return group.items.length > 0
-    })
+    .filter(group => group.items.length > 0)
 
   return (
     <>
@@ -127,10 +117,6 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
 
             return (
               <div key={group.id}>
-                {/* Divider before Parent Corner */}
-                {group.parentOnly && (
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.2)', margin: '8px 20px 10px' }} />
-                )}
 
                 {/* Group label */}
                 <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, padding: gi === 0 ? '8px 20px 4px' : '4px 20px' }}>
@@ -166,11 +152,7 @@ export default function MobileMenu({ open, onClose, onLogout, onSwitchChild, chi
         </div>
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {!childLocked && <button id="tour-mobile-switch" onClick={() => { onSwitchChild(); onClose() }}
-            style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-            🔀 Switch Child
-          </button>}
-          {!childLocked && <button onClick={() => { onClose(); setTimeout(onTour, 300) }}
+          {<button onClick={() => { onClose(); setTimeout(onTour, 300) }}
             style={{ padding: '11px', borderRadius: 50, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
             🗺️ Take a Tour
           </button>}

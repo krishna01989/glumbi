@@ -86,9 +86,6 @@ export default function AppSidebar({
 
           return (
             <div key={group.id} style={{ marginBottom: gi < GROUPS.length - 1 ? 2 : 0 }}>
-              {group.parentOnly && (
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.15)', margin: '6px 4px 8px' }} />
-              )}
 
               {isSingleItem ? (
                 <NavLink to={`/child/${child.id}/${group.items[0].path}`} id={group.items[0].id}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { analyticsApi, userApi, childApi } from '../api/client'
 import { THEMES } from '../themes'
+import Timeline from '../features/timeline/Timeline'
 
 /* ── helpers ── */
 const ACTIVITY_FEATURES = {
@@ -353,9 +354,13 @@ export default function ChildInsightsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const [child, setChild]   = useState(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [child, setChild]       = useState(null)
   const [childLoading, setChildLoading] = useState(true)
-  const [tab, setTab]       = useState('activity')
+
+  const VALID_TABS = ['activity', 'credits', 'timeline']
+  const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'activity'
+  const setTab = (key) => setSearchParams({ tab: key }, { replace: true })
 
   const t = THEMES[child?.theme] || THEMES.coral
 
@@ -393,7 +398,7 @@ export default function ChildInsightsPage() {
             <div style={{ position: 'absolute', top: -16, right: -10, fontSize: 90, opacity: 0.1, lineHeight: 1 }}>{child.avatarEmoji}</div>
             <div style={{ fontSize: 36, marginBottom: 8 }}>{child.avatarEmoji}</div>
             <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 2 }}>{child.name}</div>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>Activity & Credits</div>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>Activity, Credits & Timeline</div>
           </div>
         )}
 
@@ -402,6 +407,7 @@ export default function ChildInsightsPage() {
           {[
             { key: 'activity', label: '📈 Activity' },
             { key: 'credits',  label: '🪙 Credits'  },
+            { key: 'timeline', label: '🗓️ Timeline' },
           ].map(({ key, label }) => (
             <button key={key} onClick={() => setTab(key)}
               style={{ flex: 1, padding: '10px', borderRadius: 50, fontSize: 14, fontWeight: 800, border: 'none', cursor: 'pointer', background: tab === key ? t.primary : 'white', color: tab === key ? 'white' : '#888', boxShadow: tab === key ? `0 4px 12px ${t.primary}44` : '0 1px 4px rgba(0,0,0,0.08)', transition: 'all 0.15s' }}>
@@ -412,10 +418,9 @@ export default function ChildInsightsPage() {
 
         {/* Tab content */}
         <div style={{ background: '#f7f8fc', borderRadius: 20, padding: '20px', marginBottom: 32 }}>
-          {tab === 'activity'
-            ? <ActivityTab childName={child?.name} t={t} />
-            : <CreditsTab t={t} />
-          }
+          {tab === 'activity' && <ActivityTab childName={child?.name} t={t} />}
+          {tab === 'credits'  && <CreditsTab t={t} />}
+          {tab === 'timeline' && <Timeline child={child} t={t} />}
         </div>
 
       </div>

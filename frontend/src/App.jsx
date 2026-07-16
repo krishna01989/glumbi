@@ -55,15 +55,9 @@ const NAV_GROUPS = [
   {
     id: 'create', label: 'Create', emoji: '🎨',
     items: [
-      { path: 'draw',  label: 'Draw',           emoji: '🎨', id: 'tour-draw-tab'  },
-      { path: 'learn', label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab' },
-    ]
-  },
-  {
-    id: 'parent', label: 'Parent Corner', emoji: '👪', parentOnly: true,
-    items: [
-      { path: 'journal',  label: 'Journal',  emoji: '📝', id: 'tour-journal-tab',  parentOnly: true },
-      { path: 'timeline', label: 'Timeline', emoji: '🗓️', id: 'tour-timeline-tab', parentOnly: true },
+      { path: 'draw',    label: 'Draw',           emoji: '🎨', id: 'tour-draw-tab'    },
+      { path: 'learn',   label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab'   },
+      { path: 'journal', label: 'Journal',        emoji: '📝', id: 'tour-journal-tab' },
     ]
   },
 ]
@@ -77,14 +71,10 @@ function groupsForChild(child, locked = false) {
       ...group,
       items: group.items.filter(item => {
         if (enabledKeys && !enabledKeys.includes(item.path)) return false
-        if (locked && item.parentOnly) return false
         return true
       })
     }))
-    .filter(group => {
-      if (locked && group.parentOnly) return false
-      return group.items.length > 0
-    })
+    .filter(group => group.items.length > 0)
 }
 
 function calcChildAge(birthYear) {
@@ -340,7 +330,7 @@ export default function App() {
     return (
       <ManagementLayout lockModalEl={lockModalEl} quota={quota} handleLogout={handleLogout}>
         <Routes>
-          <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelected={handleChildSelected} onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
+          <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onChildSelectedLocked={handleChildSelectedLocked} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
           <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/edit"     element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/insights" element={<ChildInsightsPage />} />
@@ -416,12 +406,6 @@ export default function App() {
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {!childLocked && (
-                  <button onClick={() => { setChild(null); navigate('/child') }}
-                    style={{ fontSize: isTV ? 13 : 11, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 700 }}>
-                    Switch child →
-                  </button>
-                )}
                 {sessionStart && childLocked && (
                   <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700, color: lockTimeLimit > 0 && sessionMinutes >= lockTimeLimit ? '#cc0033' : '#aaa' }}>
                     ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}
@@ -443,6 +427,10 @@ export default function App() {
               </button>
             )}
             {childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
+            {childLocked && (
+              <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
+                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
+            )}
             {childLocked && (
               <button onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }} title="Parent access"
                 style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #fcc', cursor: 'pointer', fontSize: 18, background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -488,7 +476,6 @@ export default function App() {
         <MobileMenu
           open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}
           onLogout={handleLogout} child={child}
-          onSwitchChild={() => { setChild(null); navigate('/child') }}
           onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
           wotd={sidebarWotd}
           childLocked={childLocked}

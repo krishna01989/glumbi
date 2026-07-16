@@ -8,7 +8,6 @@ import Stories         from '../features/stories/Stories'
 import Journal         from '../features/journal/Journal'
 import Activities      from '../features/activities/Activities'
 import Curiosity       from '../features/curiosity/Curiosity'
-import Timeline        from '../features/timeline/Timeline'
 import Draw            from '../features/draw/Draw'
 import ReadQuiz        from '../features/readquiz/ReadQuiz'
 import MyWriting       from '../features/mywriting/MyWriting'
@@ -60,8 +59,7 @@ export default function ChildRoutes({
           <Route path="/child/:childId/activities" element={guard('activity',           <Activities child={child} quota={quota} />)} />
           <Route path="/child/:childId/curiosity"  element={guard('curiosity',          <Curiosity  child={child} quota={quota} />)} />
           <Route path="/child/:childId/draw"       element={guard('draw',               <Draw       child={child} quota={quota} featureConfig={featureConfig} />)} />
-          <Route path="/child/:childId/journal"    element={blockedWhenLocked(          <Journal    child={child} featureConfig={featureConfig} />)} />
-          <Route path="/child/:childId/timeline"   element={blockedWhenLocked(          <Timeline   child={child} />)} />
+          <Route path="/child/:childId/journal"    element={<Journal    child={child} featureConfig={featureConfig} />} />
           <Route path="/child/:childId/readquiz"   element={guard('read-quiz',          <ReadQuiz   child={child} quota={quota} />)} />
           <Route path="/child/:childId/learn"      element={guard('learn-validate',     <LearnPage  child={child} quota={quota} />)} />
           <Route path="/child/:childId/mywriting"  element={guard('writing-coach',      <MyWriting  child={child} quota={quota} />)} />

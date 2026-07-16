@@ -213,8 +213,8 @@ export const riddleApi = {
 }
 
 export const timelineApi = {
-  getPage: (childId, page, size, from, to) =>
-    api.get(`/timeline/${childId}`, { params: { page, size, from, to } }).then(r => r.data),
+  getPage: (childId, page, size, from, to, type) =>
+    api.get(`/timeline/${childId}`, { params: { page, size, from, to, ...(type && type !== 'all' ? { type } : {}) } }).then(r => r.data),
 }
 
 export const analyticsApi = {

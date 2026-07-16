@@ -5,22 +5,7 @@ import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
-
-const MOODS = [
-  { value: 'happy',   emoji: '😄', label: 'Happy',   color: '#f59e0b', bg: '#fffbeb' },
-  { value: 'excited', emoji: '🤩', label: 'Excited',  color: '#ec4899', bg: '#fdf2f8' },
-  { value: 'proud',   emoji: '🥰', label: 'Proud',    color: '#10b981', bg: '#ecfdf5' },
-  { value: 'curious', emoji: '🤔', label: 'Curious',  color: '#0ea5e9', bg: '#f0f9ff' },
-  { value: 'calm',    emoji: '😌', label: 'Calm',     color: '#14b8a6', bg: '#f0fdfa' },
-  { value: 'tired',   emoji: '😴', label: 'Tired',    color: '#6366f1', bg: '#eef2ff' },
-  { value: 'sad',     emoji: '😢', label: 'Sad',      color: '#64748b', bg: '#f8fafc' },
-  { value: 'grumpy',  emoji: '😤', label: 'Grumpy',   color: '#ef4444', bg: '#fef2f2' },
-  { value: 'silly',   emoji: '🤪', label: 'Silly',    color: '#8b5cf6', bg: '#f5f3ff' },
-]
-
-function moodFor(value) {
-  return MOODS.find(m => m.value === value) || MOODS[0]
-}
+import { MOODS, moodFor } from '../../constants/moods'
 
 export default function Journal({ child, featureConfig }) {
   const { track } = useTracker()
@@ -112,17 +97,22 @@ export default function Journal({ child, featureConfig }) {
           {/* Mood pills */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', marginBottom: 8, letterSpacing: 0.5 }}>TODAY'S MOOD</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {MOODS.map(m => (
-                <button key={m.value} type="button" onClick={() => setMood(mood === m.value ? '' : m.value)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 50,
-                    border: `2px solid ${mood === m.value ? m.color : '#e8e8e8'}`,
-                    background: mood === m.value ? m.bg : 'white',
-                    cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                    color: mood === m.value ? m.color : '#888', transition: 'all 0.15s' }}>
-                  {m.emoji} {m.label}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {MOODS.map(m => {
+                const selected = mood === m.value
+                return (
+                  <button key={m.value} type="button" onClick={() => setMood(selected ? '' : m.value)}
+                    title={m.label}
+                    style={{ display: 'flex', alignItems: 'center', gap: selected ? 4 : 0,
+                      padding: selected ? '5px 12px' : '5px 8px', borderRadius: 50,
+                      border: `2px solid ${selected ? m.color : '#e8e8e8'}`,
+                      background: selected ? m.bg : 'white',
+                      cursor: 'pointer', fontSize: selected ? 13 : 18, fontWeight: 700,
+                      color: selected ? m.color : '#888', transition: 'all 0.15s' }}>
+                    {m.emoji}{selected && <span style={{ fontSize: 13 }}>{m.label}</span>}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -167,7 +157,7 @@ export default function Journal({ child, featureConfig }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 0.5 }}>PAST ENTRIES</div>
           {entries.map(entry => {
-            const m = moodFor(entry.mood)
+            const m = moodFor(entry.mood) || MOODS[0]
             return (
               <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
                 {/* Mood colour bar */}

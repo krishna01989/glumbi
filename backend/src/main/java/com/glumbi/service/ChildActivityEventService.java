@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -264,17 +265,18 @@ public class ChildActivityEventService {
 
     // ── Admin analytics ───────────────────────────────────────────────────────
 
-    public Map<String, Object> getAdminAnalytics(int days) {
-        boolean allTime = days <= 0;
-        LocalDateTime from = allTime
-                ? LocalDateTime.of(2020, 1, 1, 0, 0)
-                : LocalDateTime.now(ZoneOffset.UTC).minusDays(days);
+    public Map<String, Object> getAdminAnalytics(LocalDate fromDate, LocalDate toDate) {
+        LocalDate effectiveFrom = fromDate != null ? fromDate : LocalDate.of(2020, 1, 1);
+        LocalDate effectiveTo   = toDate   != null ? toDate   : LocalDate.now();
+        LocalDateTime from = effectiveFrom.atStartOfDay();
+        LocalDateTime toDateTime = effectiveTo.plusDays(1).atStartOfDay();
+        long days = ChronoUnit.DAYS.between(effectiveFrom, effectiveTo) + 1;
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         // Daily active children — build full series, each item {date, count}
         Map<String, Long> dacMap = new LinkedHashMap<>();
-        for (int i = days - 1; i >= 0; i--) {
-            dacMap.put(LocalDate.now().minusDays(i).format(dateFmt), 0L);
+        for (LocalDate d = effectiveFrom; !d.isAfter(effectiveTo); d = d.plusDays(1)) {
+            dacMap.put(d.format(dateFmt), 0L);
         }
         for (Object[] row : repo.countDailyActiveChildrenSince(from)) {
             dacMap.put(row[0].toString(), ((Number) row[1]).longValue());
@@ -366,8 +368,7 @@ public class ChildActivityEventService {
             if (comps > 0) adminFlipEfficiency = Math.round((flips * 10.0) / comps) / 10.0;
         }
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        long totalCreditsUsed = usageLogRepo.sumCreditsInPeriod(from, now);
+        long totalCreditsUsed = usageLogRepo.sumCreditsInPeriod(from, toDateTime);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("days",                   days);

@@ -220,11 +220,11 @@ export const timelineApi = {
 export const analyticsApi = {
   batchEvents:      (events)           => api.post('/analytics/events/batch', { events }).then(r => r.data),
   getChildAnalytics:(childId, days=90) => api.get(`/analytics/child/${childId}`, { params: { days, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } }).then(r => r.data),
-  getAdminAnalytics:(days)             => api.get('/analytics/admin', { params: days ? { days } : {} }).then(r => r.data),
+  getAdminAnalytics:(from, to)         => api.get('/analytics/admin', { params: from ? { from, to } : {} }).then(r => r.data),
 }
 
 export const adminApi = {
-  getStats:          (range = '7d') => api.get('/admin/stats', { params: { range } }).then(r => r.data),
+  getStats:          (from, to)     => api.get('/admin/stats', { params: from ? { from, to } : {} }).then(r => r.data),
   getUsers:          ()             => api.get('/admin/users').then(r => r.data),
   deleteUser:        (id)           => api.delete(`/admin/users/${id}`),
   changeRole:        (id, role)     => api.patch(`/admin/users/${id}/role`, { role }).then(r => r.data),

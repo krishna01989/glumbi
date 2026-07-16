@@ -7,8 +7,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,10 +25,10 @@ public class TimelineService {
 
     public Page<Map<String, Object>> getPage(Long childId, Pageable pageable, String from, String to, String type) {
         LocalDateTime fromDt = from != null
-            ? LocalDateTime.parse(from, DateTimeFormatter.ISO_DATE_TIME)
+            ? LocalDate.parse(from).atStartOfDay()
             : LocalDateTime.of(2000, 1, 1, 0, 0);
         LocalDateTime toDt = to != null
-            ? LocalDateTime.parse(to, DateTimeFormatter.ISO_DATE_TIME)
+            ? LocalDate.parse(to).plusDays(1).atStartOfDay()
             : LocalDateTime.now().plusDays(1);
 
         String safeType    = (type != null && VALID_TYPES.contains(type)) ? type : null;

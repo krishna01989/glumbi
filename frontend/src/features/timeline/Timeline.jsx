@@ -39,7 +39,7 @@ function presetToRange(key) {
   }
 }
 
-function toIso(d) { return d ? d.toISOString().slice(0, 19) : undefined }
+function toIso(d) { return d ? d.toISOString().slice(0, 10) : undefined }
 
 function enabledFeatureSet(child) {
   if (!child?.enabledFeatures) return null

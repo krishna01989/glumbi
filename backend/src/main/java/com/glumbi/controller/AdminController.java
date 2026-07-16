@@ -13,7 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -46,18 +48,20 @@ public class AdminController {
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
 
     @GetMapping("/stats")
-    public Map<String, Object> stats(@RequestParam(defaultValue = "7d") String range) {
+    public Map<String, Object> stats(
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
         LocalDateTime now = LocalDateTime.now();
         DateTimeFormatter dayFmt  = DateTimeFormatter.ofPattern("MMM d");
         DateTimeFormatter monFmt  = DateTimeFormatter.ofPattern("MMM yy");
 
-        // Resolve "since" cutoff and chart bucket mode
-        LocalDateTime since = switch (range) {
-            case "30d" -> now.minusDays(30);
-            case "90d" -> now.minusDays(90);
-            case "all" -> now.minusYears(2);
-            default    -> now.minusDays(7);   // 7d
-        };
+        LocalDate fromDate = from != null ? LocalDate.parse(from) : LocalDate.now().minusDays(6);
+        LocalDate toDate   = to   != null ? LocalDate.parse(to)   : LocalDate.now();
+        LocalDateTime since = fromDate.atStartOfDay();
+        long spanDays = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+        // bucket mode: ≤14d→daily, ≤90d→weekly, else→monthly
+        String bucketMode = spanDays <= 14 ? "daily" : spanDays <= 90 ? "weekly" : "monthly";
+        
         // For backwards compat keep "week" alias used in alerts
         LocalDateTime week = now.minusDays(7);
 
@@ -80,22 +84,21 @@ public class AdminController {
                 .filter(u -> u.getRole() == AppUser.Role.USER && !ownersWithChildren.contains(u.getId()))
                 .count();
 
-        // Build ordered bucket keys based on range
-        // 7d/30d → daily, 90d → weekly (every 7 days), all → monthly
-        Map<String, Long> signupsByDay = buildBuckets(now, range, dayFmt, monFmt);
-        Map<String, Long> contentByDay = buildBuckets(now, range, dayFmt, monFmt);
+        // Build ordered bucket keys based on span
+        Map<String, Long> signupsByDay = buildBuckets(fromDate, toDate, bucketMode, dayFmt, monFmt);
+        Map<String, Long> contentByDay = buildBuckets(fromDate, toDate, bucketMode, dayFmt, monFmt);
 
         // Fill signups buckets
         userRepo.findAll().stream()
             .filter(u -> u.getCreatedAt().isAfter(since))
-            .forEach(u -> fillBucket(signupsByDay, u.getCreatedAt(), now, range, dayFmt, monFmt));
+            .forEach(u -> fillBucket(signupsByDay, u.getCreatedAt(), fromDate, toDate, bucketMode, dayFmt, monFmt));
 
         // Fill content (stories) buckets
         storyRepo.findByCreatedAtAfter(since).forEach(s ->
-            fillBucket(contentByDay, s.getCreatedAt(), now, range, dayFmt, monFmt));
+            fillBucket(contentByDay, s.getCreatedAt(), fromDate, toDate, bucketMode, dayFmt, monFmt));
 
         // Feature usage — filtered by selected range
-        boolean isAllTime = range.equals("all");
+        boolean isAllTime = from == null && to == null;
         Map<String, Long> featureUsage = new LinkedHashMap<>();
         long totalFlashcards = flashcardSetRepo.count();
         long totalWordOfDay  = wordOfDayRepo.count();
@@ -237,15 +240,16 @@ public class AdminController {
         if (scoredTotal >= 5 && perfectScores * 100 / scoredTotal < 30)
             alerts.add(Map.of("level", "warn", "msg", perfectScores + " of " + scoredTotal + " quizzes scored 3/3 (" + (perfectScores * 100 / scoredTotal) + "%) — content may be too hard"));
 
-        String rangeLabel = switch (range) {
-            case "30d" -> "Last 30 Days";
-            case "90d" -> "Last 90 Days";
-            case "all" -> "All Time";
-            default    -> "Last 7 Days";
-        };
+        String rangeLabel = isAllTime ? "All Time"
+                : spanDays == 1 ? "Today"
+                : spanDays <= 14 ? "Last " + spanDays + " Days"
+                : spanDays <= 45 ? "Last 30 Days"
+                : spanDays <= 120 ? "Last 90 Days"
+                : "Custom Range";
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("range",               range);
+        result.put("from",                from != null ? from : fromDate.toString());
+        result.put("to",                  to   != null ? to   : toDate.toString());
         result.put("rangeLabel",          rangeLabel);
         result.put("totalUsers",          totalUsers);
         result.put("totalChildren",       totalChildren);
@@ -273,34 +277,43 @@ public class AdminController {
 
     // ── Chart bucketing helpers ───────────────────────────────────────────────
 
-    private Map<String, Long> buildBuckets(LocalDateTime now, String range,
+    private Map<String, Long> buildBuckets(LocalDate from, LocalDate to, String mode,
                                            DateTimeFormatter dayFmt, DateTimeFormatter monFmt) {
         Map<String, Long> m = new LinkedHashMap<>();
-        switch (range) {
-            case "30d" -> { for (int i = 29; i >= 0; i--) m.put(now.minusDays(i).format(dayFmt), 0L); }
-            case "90d" -> { for (int i = 12; i >= 0; i--) m.put(now.minusWeeks(i).format(dayFmt), 0L); }
-            case "all" -> { for (int i = 11; i >= 0; i--) m.put(now.minusMonths(i).format(monFmt), 0L); }
-            default    -> { for (int i = 6;  i >= 0; i--) m.put(now.minusDays(i).format(dayFmt),  0L); }
+        switch (mode) {
+            case "weekly" -> {
+                // Weekly anchors: every 7 days from 'from'
+                for (LocalDate anchor = from; !anchor.isAfter(to); anchor = anchor.plusWeeks(1))
+                    m.put(anchor.format(dayFmt), 0L);
+            }
+            case "monthly" -> {
+                for (LocalDate d = from.withDayOfMonth(1); !d.isAfter(to); d = d.plusMonths(1))
+                    m.put(d.format(monFmt), 0L);
+            }
+            default -> { // daily
+                for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1))
+                    m.put(d.format(dayFmt), 0L);
+            }
         }
         return m;
     }
 
-    private void fillBucket(Map<String, Long> buckets, LocalDateTime ts, LocalDateTime now,
-                            String range, DateTimeFormatter dayFmt, DateTimeFormatter monFmt) {
-        String key = switch (range) {
-            case "90d" -> {
-                // Find the Monday of the week ts falls in (among the 13 weekly anchors)
-                for (int i = 12; i >= 0; i--) {
-                    LocalDateTime anchor = now.minusWeeks(i);
-                    if (!ts.isBefore(anchor.minusDays(3).toLocalDate().atStartOfDay()) &&
-                         ts.isBefore(anchor.plusDays(4).toLocalDate().atStartOfDay())) {
+    private void fillBucket(Map<String, Long> buckets, LocalDateTime ts,
+                            LocalDate from, LocalDate to, String mode,
+                            DateTimeFormatter dayFmt, DateTimeFormatter monFmt) {
+        String key = switch (mode) {
+            case "weekly" -> {
+                // Find the weekly anchor ts falls into
+                for (LocalDate anchor = from; !anchor.isAfter(to); anchor = anchor.plusWeeks(1)) {
+                    LocalDate next = anchor.plusWeeks(1);
+                    if (!ts.toLocalDate().isBefore(anchor) && ts.toLocalDate().isBefore(next)) {
                         yield anchor.format(dayFmt);
                     }
                 }
                 yield null;
             }
-            case "all" -> ts.format(monFmt);
-            default    -> ts.format(dayFmt);
+            case "monthly" -> ts.format(monFmt);
+            default        -> ts.toLocalDate().format(dayFmt);
         };
         if (key != null) buckets.computeIfPresent(key, (k, v) -> v + 1);
     }
@@ -308,6 +321,16 @@ public class AdminController {
     @GetMapping("/users")
     public List<Map<String, Object>> listUsers() {
         String thisMonth = YearMonth.now().toString();
+        YearMonth nowMonth = YearMonth.now();
+        LocalDateTime monthStart = nowMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd   = nowMonth.atEndOfMonth().atTime(23, 59, 59);
+
+        // Load all per-user log totals in one query
+        Map<Long, Long> logTotals = new HashMap<>();
+        for (Object[] row : usageLogRepo.sumPerUserInPeriod(monthStart, monthEnd)) {
+            logTotals.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+        }
+
         return userRepo.findAll().stream().map(u -> {
             Map<String, Object> m = new java.util.HashMap<>();
             m.put("id",          u.getId());
@@ -318,11 +341,11 @@ public class AdminController {
             m.put("authMethod",  u.getGoogleSub() != null ? "google" : "password");
             m.put("onHold",      u.isOnHold());
             m.put("holdReason",  u.getHoldReason());
-            // Quota: reset month check (same logic as ApiQuotaService)
             int used  = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
             int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
-            m.put("quotaUsed",   used);
-            m.put("quotaLimit",  limit);
+            m.put("quotaUsed",        used);
+            m.put("quotaLimit",       limit);
+            m.put("quotaUsedActual",  logTotals.getOrDefault(u.getId(), 0L));
             return m;
         }).toList();
     }

@@ -33,6 +33,10 @@ public interface AiUsageLogRepository extends JpaRepository<AiUsageLog, Long> {
     @Query("SELECT COALESCE(SUM(l.creditsUsed), 0) FROM AiUsageLog l WHERE l.userId = :userId AND l.usedAt BETWEEN :from AND :to")
     long sumCreditsByUser(@Param("userId") Long userId, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
+    /** Per-user credit totals in a time window — returns [userId, total]. One query for all users. */
+    @Query("SELECT l.userId, COALESCE(SUM(l.creditsUsed), 0) FROM AiUsageLog l WHERE l.usedAt BETWEEN :from AND :to GROUP BY l.userId")
+    List<Object[]> sumPerUserInPeriod(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     void deleteByUserId(Long userId);
     void deleteByChildId(Long childId);
 }

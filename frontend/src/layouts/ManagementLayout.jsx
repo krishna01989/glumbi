@@ -94,6 +94,9 @@ export default function ManagementLayout({ children, lockModalEl, quota, handleL
               <div style={{ height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
               </div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginTop: 5 }}>
+                {quota.usedActual ?? quota.used} used this month (total)
+              </div>
             </div>
           )
         })()}

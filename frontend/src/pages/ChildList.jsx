@@ -68,9 +68,14 @@ function QuotaPill({ quota, onInfo }) {
       <div style={{ width: 48, height: 5, background: 'rgba(255,255,255,0.25)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
       </div>
-      <span style={{ fontSize: 12, fontWeight: 800, color: textColor }}>
-        {label ? `${label} · ${quota.used}/${quota.limit}` : `${Math.round(pct * 100)}% · ${quota.used}/${quota.limit} cr`}
-      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: textColor, lineHeight: 1.2 }}>
+          {label ? `${label} · ${quota.used}/${quota.limit}` : `${Math.round(pct * 100)}% · ${quota.used}/${quota.limit} cr`}
+        </span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: textColor, opacity: 0.7, lineHeight: 1.2 }}>
+          {quota.usedActual ?? quota.used} used this month
+        </span>
+      </div>
       <button onClick={e => { e.stopPropagation(); onInfo() }} title="How credits work"
         style={{ width: 20, height: 20, minWidth: 20, borderRadius: '50%', background: 'rgba(255,255,255,0.3)', border: 'none', color: 'white', fontSize: 11, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, flexShrink: 0, padding: 0 }}>
         i

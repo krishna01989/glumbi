@@ -43,10 +43,15 @@ public class UserController {
 
         int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
         long used = user.getMonthlyApiCalls();
+        java.time.YearMonth nowMonth = java.time.YearMonth.now();
+        java.time.LocalDateTime monthStart = nowMonth.atDay(1).atStartOfDay();
+        java.time.LocalDateTime monthEnd   = nowMonth.atEndOfMonth().atTime(23, 59, 59);
+        long usedActual = usageLogRepository.sumCreditsByUser(authUser.id(), monthStart, monthEnd);
         return ResponseEntity.ok(Map.of(
-            "used",  used,
-            "limit", limit,
-            "month", YearMonth.now().toString()
+            "used",        used,
+            "usedActual",  usedActual,
+            "limit",       limit,
+            "month",       nowMonth.toString()
         ));
     }
 

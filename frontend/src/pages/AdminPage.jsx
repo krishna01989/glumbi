@@ -526,6 +526,16 @@ const RANGES = [
   { value: 'all', label: 'All Time' },
 ]
 
+function rangeToDates(r) {
+  const today = new Date()
+  const fmt = d => d.toISOString().slice(0, 10)
+  const to = fmt(today)
+  if (r === 'all') return { from: null, to: null }
+  const days = r === '7d' ? 7 : r === '30d' ? 30 : 90
+  const from = fmt(new Date(today - (days - 1) * 86400000))
+  return { from, to }
+}
+
 const AUTO_REFRESH_OPTIONS = [
   { label: 'Off',    value: 0      },
   { label: '1 min',  value: 60000  },
@@ -561,7 +571,7 @@ function fmtDurAdmin(sec) {
   return `${m}m`
 }
 
-function ActivityAnalytics({ days, data, loading, onRefresh }) {
+function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
   const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
   const [activeCell, setActiveCell]   = useState(null)   // { day, hour, value } for heatmap popup
 
@@ -603,7 +613,7 @@ function ActivityAnalytics({ days, data, loading, onRefresh }) {
           {loading ? '…' : '🔄'}
         </button>
       </div>
-      <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — {days ? `last ${days} days` : 'all time'}</div>
+      <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — {rangeLabel || 'All Time'}</div>
 
       {data && (
         <>
@@ -631,7 +641,7 @@ function ActivityAnalytics({ days, data, loading, onRefresh }) {
             {data.dailyActiveChildren?.length > 0 && (
               <div style={{ flex: '1 1 240px' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Daily active children</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: (!days || days > 30) ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: (data?.dailyActiveChildren?.length > 30) ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
                   {data.dailyActiveChildren.map((d, i) => (
                     <div key={i}
                       style={{ flex: 1, background: d.count > 0 ? '#4facfe' : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / dailyMax * 100, d.count > 0 ? 8 : 3)}%`, opacity: d.count > 0 ? 0.7 + (d.count / dailyMax) * 0.3 : 0.3 }} />
@@ -860,11 +870,12 @@ function Dashboard() {
 
   const fetchAll = useCallback((r) => {
     const resolved = r || range
+    const { from, to } = rangeToDates(resolved)
     setLoading(true)
     setError('')
     Promise.all([
-      adminApi.getStats(resolved),
-      analyticsApi.getAdminAnalytics(resolved === 'all' ? null : parseInt(resolved)),
+      adminApi.getStats(from, to),
+      analyticsApi.getAdminAnalytics(from, to),
     ])
       .then(([s, a]) => { setStats(s); setAnalyticsData(a) })
       .catch(e => setError(e.message))
@@ -909,6 +920,45 @@ function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* AI Credits — always current month, not filter-controlled */}
+      {stats && (
+        <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>🤖 AI Credits — This Month</div>
+            <span style={{ fontSize: 11, fontWeight: 700, background: '#f0f0ff', color: '#6366f1', borderRadius: 50, padding: '2px 10px' }}>
+              Default: {stats.defaultMonthlyCredits ?? 100} credits/user
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>
+            Credits deducted vary by feature (1–5 per use) · per-user overrides apply · resets on the 1st · not affected by date filter
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: '#6366f1' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Credits spent this month</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>across all users</div>
+            </div>
+            <div style={{ flex: '1 1 140px', background: (stats.usersAtLimit ?? 0) > 0 ? '#fff0f0' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersAtLimit ?? 0) > 0 ? '1.5px solid #fcc' : 'none' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersAtLimit ?? 0) > 0 ? '#e74c3c' : '#aaa' }}>{stats.usersAtLimit ?? 0}</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users out of credits</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>hit their monthly limit</div>
+            </div>
+            <div style={{ flex: '1 1 140px', background: (stats.usersNearLimit ?? 0) > 0 ? '#fff8e1' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersNearLimit ?? 0) > 0 ? '1.5px solid #ffd54f' : 'none' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersNearLimit ?? 0) > 0 ? '#f57f17' : '#aaa' }}>{stats.usersNearLimit ?? 0}</div>
+              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users running low</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>used ≥80% of credits</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Divider before filter-controlled section */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#bbb', letterSpacing: 0.5 }}>FILTERED BY DATE RANGE</span>
+        <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
+      </div>
 
       {/* Range selector + refresh controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
@@ -1037,40 +1087,8 @@ function Dashboard() {
         </div>
       </div>}
 
-      {/* Quota overview */}
-      {stats && (
-        <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>🤖 AI Credits — This Month</div>
-            <span style={{ fontSize: 11, fontWeight: 700, background: '#f0f0ff', color: '#6366f1', borderRadius: 50, padding: '2px 10px' }}>
-              Default: {stats.defaultMonthlyCredits ?? 100} credits/user
-            </span>
-          </div>
-          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>
-            Credits deducted vary by feature (1–5 per use) · per-user overrides apply · resets on the 1st
-          </div>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: '#6366f1' }}>{(stats.totalQuotaCalls ?? 0).toLocaleString()}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Credits spent this month</div>
-              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>across all users</div>
-            </div>
-            <div style={{ flex: '1 1 140px', background: (stats.usersAtLimit ?? 0) > 0 ? '#fff0f0' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersAtLimit ?? 0) > 0 ? '1.5px solid #fcc' : 'none' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersAtLimit ?? 0) > 0 ? '#e74c3c' : '#aaa' }}>{stats.usersAtLimit ?? 0}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users out of credits</div>
-              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>hit their monthly limit</div>
-            </div>
-            <div style={{ flex: '1 1 140px', background: (stats.usersNearLimit ?? 0) > 0 ? '#fff8e1' : '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center', border: (stats.usersNearLimit ?? 0) > 0 ? '1.5px solid #ffd54f' : 'none' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: (stats.usersNearLimit ?? 0) > 0 ? '#f57f17' : '#aaa' }}>{stats.usersNearLimit ?? 0}</div>
-              <div style={{ fontSize: 12, color: '#888', fontWeight: 700, marginTop: 4 }}>Users running low</div>
-              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>used ≥80% of credits</div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Activity analytics */}
-      {!loading && analyticsData && <ActivityAnalytics days={range === 'all' ? null : parseInt(range)} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
+      {!loading && analyticsData && <ActivityAnalytics rangeLabel={RANGES.find(r => r.value === range)?.label} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
 
       {/* Recent activity — always last */}
       {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
@@ -1142,6 +1160,9 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
                 {user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
+              </span>
+              <span style={{ fontSize: 10, color: '#aaa', whiteSpace: 'nowrap' }}>
+                ({user.quotaUsedActual ?? 0} used this month)
               </span>
             </div>
           )

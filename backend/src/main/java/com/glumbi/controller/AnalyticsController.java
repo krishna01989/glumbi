@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -38,13 +39,15 @@ public class AnalyticsController {
 
     @GetMapping("/admin")
     public ResponseEntity<?> adminAnalytics(
-            @RequestParam(required = false) Integer days,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
             @AuthenticationPrincipal AuthUser caller) {
 
         if (!"ADMIN".equals(caller.role()) && !"SUPER_ADMIN".equals(caller.role())) {
             return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         }
-        int effectiveDays = (days == null || days < 1) ? 0 : Math.min(days, 3650);
-        return ResponseEntity.ok(service.getAdminAnalytics(effectiveDays));
+        LocalDate fromDate = from != null ? LocalDate.parse(from) : null;
+        LocalDate toDate   = to   != null ? LocalDate.parse(to)   : null;
+        return ResponseEntity.ok(service.getAdminAnalytics(fromDate, toDate));
     }
 }

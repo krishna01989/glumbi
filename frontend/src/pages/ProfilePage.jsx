@@ -264,9 +264,12 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
             <div style={{ height: 10, background: '#f0f0f0', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
               <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: childRows.length > 0 ? 20 : 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: childRows.length > 0 ? 20 : 0 }}>
               <span style={{ fontSize: 12, color: '#bbb' }}>Resets 1st of each month</span>
-              <span style={{ fontSize: 13, fontWeight: 900, color: '#555' }}>{quota.used} / {quota.limit} cr</span>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: 13, fontWeight: 900, color: '#555' }}>{quota.used} / {quota.limit} cr</span>
+                <div style={{ fontSize: 11, color: '#bbb', marginTop: 1 }}>{quota.usedActual ?? quota.used} used this month (total)</div>
+              </div>
             </div>
 
             {childRows.length > 0 && (

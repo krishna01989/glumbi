@@ -20,7 +20,7 @@ const SECTIONS = [
       },
       {
         q: 'Can I change my child\'s details or theme?',
-        a: 'Yes — tap the ✏️ edit icon on your child\'s card on the home screen, or use the Edit option inside the child\'s profile. You can update the name, age, interests, and colour theme at any time.',
+        a: 'Yes — tap your child\'s avatar on the home screen to open the "Hand to child" panel, then tap ✏️ Edit. You can update the name, birth year, avatar, colour theme, and which features are enabled at any time.',
       },
       {
         q: 'Can I enable or disable specific features for my child?',
@@ -216,11 +216,11 @@ const SECTIONS = [
     items: [
       {
         q: 'What is the Parental Lock?',
-        a: 'Parental Lock lets you set a 4-digit PIN on a child\'s session before handing the device over. Once locked, the child can only use that child\'s Glumbi features — they cannot go back to the child list, switch profiles, or access any parent settings. The lock clears automatically when the browser session ends.',
+        a: 'Parental Lock lets you set a 4-digit PIN on a child\'s session before handing the device over. Once locked, the child can only use that child\'s Glumbi features — they cannot go back to the child list, switch profiles, or access any parent settings. Your PIN is saved on the device so you can use it across sessions without needing to set it again each time.',
       },
       {
         q: 'How do I set a lock?',
-        a: 'On the child list, tap the 🔒 lock icon on a child\'s card. Choose a session time limit (No limit, 15m, 30m, 45m, 1h, or 90m) and how many time extensions to allow (None, 1, 2, or 3). Enter your 4-digit PIN and tap "Lock App". The app enters locked mode immediately.',
+        a: 'On the child list, tap your child\'s avatar to open the "Hand to child" panel. From there you can set or change your 4-digit lock PIN, toggle AI on or off, choose a session time limit (15m, 30m, 45m, 1h, 90m, or custom), and set how many time extensions to allow. Tap "Lock & hand to [name]" when ready — the app enters locked mode immediately.',
       },
       {
         q: 'What happens when the time limit runs out?',
@@ -232,7 +232,7 @@ const SECTIONS = [
       },
       {
         q: 'What if I forget my PIN?',
-        a: 'Close and reopen the browser tab — the lock is session-based and will be cleared. You can then enter the child\'s profile without a PIN and set a new lock next time. We do not store PINs on our servers.',
+        a: 'Your PIN is saved on this device. If the app is currently locked, you\'ll need to remember it to unlock. To avoid this, always set or update your PIN before handing the device to your child — tap the child\'s avatar on the child list to open the "Hand to child" panel, then use Change or Clear PIN. PINs are stored only on your device and never on our servers.',
       },
       {
         q: 'Can the child extend time on their own?',

@@ -603,7 +603,7 @@ function ActivityAnalytics({ days, data, loading, onRefresh }) {
           {loading ? '…' : '🔄'}
         </button>
       </div>
-      <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — last {days} days</div>
+      <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>Platform-wide feature usage — {days ? `last ${days} days` : 'all time'}</div>
 
       {data && (
         <>
@@ -631,7 +631,7 @@ function ActivityAnalytics({ days, data, loading, onRefresh }) {
             {data.dailyActiveChildren?.length > 0 && (
               <div style={{ flex: '1 1 240px' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Daily active children</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: days > 30 ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: (!days || days > 30) ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
                   {data.dailyActiveChildren.map((d, i) => (
                     <div key={i}
                       style={{ flex: 1, background: d.count > 0 ? '#4facfe' : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / dailyMax * 100, d.count > 0 ? 8 : 3)}%`, opacity: d.count > 0 ? 0.7 + (d.count / dailyMax) * 0.3 : 0.3 }} />
@@ -864,7 +864,7 @@ function Dashboard() {
     setError('')
     Promise.all([
       adminApi.getStats(resolved),
-      analyticsApi.getAdminAnalytics(parseInt(resolved)),
+      analyticsApi.getAdminAnalytics(resolved === 'all' ? null : parseInt(resolved)),
     ])
       .then(([s, a]) => { setStats(s); setAnalyticsData(a) })
       .catch(e => setError(e.message))
@@ -1070,7 +1070,7 @@ function Dashboard() {
       )}
 
       {/* Activity analytics */}
-      {!loading && analyticsData && <ActivityAnalytics days={parseInt(range)} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
+      {!loading && analyticsData && <ActivityAnalytics days={range === 'all' ? null : parseInt(range)} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
 
       {/* Recent activity — always last */}
       {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>

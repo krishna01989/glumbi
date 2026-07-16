@@ -38,13 +38,13 @@ public class AnalyticsController {
 
     @GetMapping("/admin")
     public ResponseEntity<?> adminAnalytics(
-            @RequestParam(defaultValue = "30") int days,
+            @RequestParam(required = false) Integer days,
             @AuthenticationPrincipal AuthUser caller) {
 
         if (!"ADMIN".equals(caller.role()) && !"SUPER_ADMIN".equals(caller.role())) {
             return ResponseEntity.status(403).body(Map.of("error", "Forbidden"));
         }
-        if (days < 1 || days > 365) days = 30;
-        return ResponseEntity.ok(service.getAdminAnalytics(days));
+        int effectiveDays = (days == null || days < 1) ? 0 : Math.min(days, 3650);
+        return ResponseEntity.ok(service.getAdminAnalytics(effectiveDays));
     }
 }

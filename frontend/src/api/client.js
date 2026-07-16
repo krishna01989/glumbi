@@ -220,7 +220,7 @@ export const timelineApi = {
 export const analyticsApi = {
   batchEvents:      (events)           => api.post('/analytics/events/batch', { events }).then(r => r.data),
   getChildAnalytics:(childId, days=90) => api.get(`/analytics/child/${childId}`, { params: { days, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } }).then(r => r.data),
-  getAdminAnalytics:(days=30)          => api.get('/analytics/admin', { params: { days } }).then(r => r.data),
+  getAdminAnalytics:(days)             => api.get('/analytics/admin', { params: days ? { days } : {} }).then(r => r.data),
 }
 
 export const adminApi = {

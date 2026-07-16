@@ -265,7 +265,10 @@ public class ChildActivityEventService {
     // ── Admin analytics ───────────────────────────────────────────────────────
 
     public Map<String, Object> getAdminAnalytics(int days) {
-        LocalDateTime from = LocalDateTime.now(ZoneOffset.UTC).minusDays(days);
+        boolean allTime = days <= 0;
+        LocalDateTime from = allTime
+                ? LocalDateTime.of(2020, 1, 1, 0, 0)
+                : LocalDateTime.now(ZoneOffset.UTC).minusDays(days);
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
         // Daily active children — build full series, each item {date, count}

@@ -104,11 +104,20 @@ const EXT_OPTS = [
 function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline }) {
   const pt = THEMES[child.theme] || THEMES.coral
 
+  const [phase, setPhase]             = useState(null) // null | 'sleeping' | 'waking'
   const [timeLimit, setTimeLimit]     = useState(30)
   const [maxSnooze, setMaxSnooze]     = useState(1)
   const [lockPin, setLockPin]         = useState('')
   const [lockPinError, setLockPinError] = useState('')
   const [locking, setLocking]         = useState(false)
+
+  const isNight = phase === 'sleeping' || (phase === null && offline)
+
+  function handleAiToggle() {
+    if (phase) return
+    setPhase(offline ? 'waking' : 'sleeping')
+    setTimeout(() => { onToggleOffline(); setPhase(null) }, 1350)
+  }
 
   const isCustomTime = !TIME_OPTS.slice(0, -1).some(o => o.value === timeLimit)
 
@@ -139,20 +148,150 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
         <div style={{ fontSize: 44, marginBottom: 6 }}>{child.avatarEmoji}</div>
         <div style={{ fontWeight: 900, fontSize: 17, color: pt.primary, marginBottom: 16, fontFamily: 'Nunito, sans-serif' }}>Hand to {child.name}</div>
 
-        {/* AI toggle */}
-        <div onClick={onToggleOffline}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: pt.primaryLt, borderRadius: 14, padding: '10px 14px', marginBottom: 12, cursor: 'pointer', userSelect: 'none' }}>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: '#333', fontFamily: 'Nunito, sans-serif' }}>
-              {offline ? '✈️' : '🤖'} AI features
+        {/* AI toggle — bedroom scene */}
+        <div onClick={handleAiToggle} style={{
+          position: 'relative', height: 108, overflow: 'hidden', borderRadius: 14, marginBottom: 12,
+          cursor: phase ? 'default' : 'pointer', userSelect: 'none',
+          border: `2px solid ${isNight ? '#3b2a7a' : pt.primary}`,
+          transition: 'border-color 0.9s ease',
+        }}>
+          {/* Day background */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #cce9ff 0%, #e8f6ff 55%, #f5faff 100%)', opacity: isNight ? 0 : 1, transition: 'opacity 0.9s ease' }} />
+          {/* Night sky */}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #0d0b2b 0%, #1e1460 55%, #2d1b69 100%)', opacity: isNight ? 1 : 0, transition: 'opacity 0.9s ease' }} />
+
+          {/* Stars */}
+          {[{r:108,t:9,s:4,d:'0s'},{r:68,t:17,s:3,d:'0.5s'},{r:148,t:13,s:5,d:'1.1s'},{r:88,t:8,s:3,d:'0.2s'}].map((x,i) => (
+            <div key={i} style={{
+              position:'absolute', right:x.r, top:x.t, width:x.s, height:x.s, borderRadius:'50%', background:'white',
+              opacity: isNight ? 1 : 0, transition:'opacity 0.9s ease',
+              animation: isNight ? `star-twinkle 2.2s ${x.d} ease-in-out infinite` : 'none',
+            }} />
+          ))}
+
+          {/* Moon / Sun */}
+          <span style={{ position:'absolute', right:62, top:7, fontSize:13, opacity: isNight ? 1 : 0, transition:'opacity 0.7s ease', zIndex:1 }}>🌙</span>
+          <span style={{ position:'absolute', right:62, top:7, fontSize:13, opacity: isNight ? 0 : 1, transition:'opacity 0.7s ease', zIndex:1 }}>☀️</span>
+
+          {/* Floor */}
+          <div style={{
+            position:'absolute', bottom:28, left:0, right:0, height:2,
+            background: isNight
+              ? `linear-gradient(to right, #3b2a7a 45%, ${pt.primary}99 45%)`
+              : `linear-gradient(to right, #b8d8f0 45%, ${pt.primary}66 45%)`,
+            transition:'background 0.9s ease',
+          }} />
+
+          {/* Bed — headboard */}
+          <div style={{ position:'absolute', right:10, bottom:28, width:10, height:34, background:pt.primary, borderRadius:'3px 3px 0 0', zIndex:3, transition:'background 0.9s ease' }} />
+          {/* Bed base */}
+          <div style={{ position:'absolute', right:10, bottom:28, width:80, height:22, background:pt.primary, borderRadius:'0 0 4px 4px', zIndex:2 }} />
+          {/* Mattress — inset so the base frame shows around it */}
+          <div style={{ position:'absolute', right:14, bottom:33, width:68, height:14, background:pt.primaryLt, borderRadius:3, zIndex:3 }} />
+          {/* Blanket — covers body/legs, head peeks out on right */}
+          <div style={{
+            position:'absolute', right:34, bottom:46, height:20,
+            background:`linear-gradient(to left, ${pt.primary}cc, ${pt.primary}ee)`,
+            borderRadius:'4px 0 0 4px', zIndex:5,
+            animation: phase==='sleeping' ? 'blanket-cover 0.45s 0.9s ease forwards'
+                     : phase==='waking'   ? 'blanket-uncover 0.25s ease forwards'
+                     : 'none',
+            width: phase==='sleeping' ? 0 : phase==='waking' ? 54 : (offline ? 54 : 0),
+          }} />
+
+          {/* 💤 — above the head on the right */}
+          <span style={{
+            position:'absolute', right:16, bottom:66, fontSize:14, lineHeight:1, display:'inline-block', zIndex:7,
+            animation: phase==='sleeping' ? 'zzz-rise 0.4s 1.0s ease forwards'
+                     : phase==='waking'   ? 'zzz-poof 0.3s ease forwards' : 'none',
+            opacity: phase ? (phase==='sleeping' ? 0 : 1) : (offline ? 1 : 0),
+            transform: 'translateY(-12px)',
+          }}>💤</span>
+
+          {/* Standing / walking robot */}
+          {(() => {
+            const walking = phase === 'sleeping' || phase === 'waking'
+            const wakeDelay = phase === 'waking' ? '0.36s' : '0s'
+            const limbAnim = (kf) => walking ? `${kf} 0.42s ${wakeDelay} ease-in-out infinite` : 'none'
+            const R = '#b8cce4', RD = '#7a9ec0', RE = '#1a2a42', RL = '#5577dd'
+            return (
+              <div style={{
+                position:'absolute', left:14, bottom:30, width:30, height:50,
+                zIndex:4,
+                animation: phase==='sleeping' ? 'robot-to-bed 1.05s ease forwards'
+                         : phase==='waking'   ? 'robot-from-bed 0.9s 0.28s both'
+                         : 'none',
+                transform: (!phase && offline) ? 'translateX(212px)' : undefined,
+                opacity: (!phase && offline) ? 0 : undefined,
+              }}>
+                <div style={{
+                  position:'relative', width:'100%', height:'100%',
+                  animation: walking ? `rlk-bob 0.42s ${wakeDelay} ease-in-out infinite`
+                           : !offline ? 'rlk-idle 1.9s ease-in-out infinite' : 'none',
+                }}>
+                  <div style={{ position:'absolute', left:14, top:1, width:2, height:7, background:RD, borderRadius:1 }} />
+                  <div style={{ position:'absolute', left:11, top:-2, width:8, height:8, borderRadius:'50%', background:RL, boxShadow:`0 0 4px ${RL}88` }} />
+                  <div style={{ position:'absolute', left:4, top:8, width:22, height:16, background:R, borderRadius:5, border:`1.5px solid ${RD}`, boxSizing:'border-box' }}>
+                    <div style={{ position:'absolute', left:3, top:4, width:4, height:4, borderRadius:'50%', background:RE }} />
+                    <div style={{ position:'absolute', left:13, top:4, width:4, height:4, borderRadius:'50%', background:RE }} />
+                    <div style={{ position:'absolute', left:5, top:10, width:10, height:2, borderRadius:1, background:RD }} />
+                  </div>
+                  <div style={{ position:'absolute', left:13, top:24, width:4, height:2, background:RD }} />
+                  <div style={{ position:'absolute', left:6, top:26, width:18, height:13, background:R, borderRadius:4, border:`1.5px solid ${RD}`, boxSizing:'border-box' }}>
+                    <div style={{ position:'absolute', left:7, top:4, width:4, height:4, borderRadius:'50%', background:RL, boxShadow:`0 0 5px ${RL}` }} />
+                  </div>
+                  <div style={{ position:'absolute', left:1, top:26, width:5, height:11, background:R, borderRadius:'2px 2px 3px 3px', border:`1px solid ${RD}`, boxSizing:'border-box', transformOrigin:'top center', animation: limbAnim('rlk-arm-l') }} />
+                  <div style={{ position:'absolute', left:24, top:26, width:5, height:11, background:R, borderRadius:'2px 2px 3px 3px', border:`1px solid ${RD}`, boxSizing:'border-box', transformOrigin:'top center', animation: limbAnim('rlk-arm-r') }} />
+                  <div style={{ position:'absolute', left:8, top:39, width:6, height:11, background:RD, borderRadius:'2px 2px 4px 4px', boxSizing:'border-box', transformOrigin:'top center', animation: limbAnim('rlk-leg-l') }} />
+                  <div style={{ position:'absolute', left:16, top:39, width:6, height:11, background:RD, borderRadius:'2px 2px 4px 4px', boxSizing:'border-box', transformOrigin:'top center', animation: limbAnim('rlk-leg-r') }} />
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Sleeping robot — just head peeking out, body under blanket */}
+          {(() => {
+            const R = '#b8cce4', RD = '#7a9ec0', RE = '#1a2a42', RL = '#5577dd'
+            const lyingOpacity = phase ? (phase === 'sleeping' ? 0 : 1) : (offline ? 1 : 0)
+            return (
+              <div style={{
+                position:'absolute', right:14, bottom:48, width:20, height:20,
+                zIndex:6,
+                animation: phase==='sleeping' ? 'lying-appear 0.35s 0.82s ease forwards'
+                         : phase==='waking'   ? 'lying-disappear 0.22s ease forwards'
+                         : 'none',
+                opacity: lyingOpacity,
+              }}>
+                {/* antenna stick */}
+                <div style={{ position:'absolute', left:8, top:-6, width:2, height:6, background:RD, borderRadius:1 }} />
+                {/* antenna ball */}
+                <div style={{ position:'absolute', left:5, top:-13, width:8, height:8, borderRadius:'50%', background:RL, boxShadow:`0 0 5px ${RL}99` }} />
+                {/* head */}
+                <div style={{ position:'absolute', left:0, top:0, width:20, height:18, background:R, borderRadius:6, border:`1.5px solid ${RD}`, boxSizing:'border-box' }}>
+                  {/* closed eyes */}
+                  <div style={{ position:'absolute', left:2, top:7, width:6, height:2, borderRadius:1, background:RE }} />
+                  <div style={{ position:'absolute', right:2, top:7, width:6, height:2, borderRadius:1, background:RE }} />
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Text row */}
+          <div style={{ position:'absolute', bottom:6, left:14, right:14, display:'flex', alignItems:'center', justifyContent:'space-between', zIndex:8 }}>
+            <div style={{ fontWeight:900, fontSize:13, fontFamily:'Nunito, sans-serif', color: isNight ? 'rgba(255,255,255,0.88)' : pt.primary, textShadow: isNight ? '0 1px 3px rgba(0,0,0,0.6)' : 'none', transition:'color 0.8s, text-shadow 0.8s' }}>
+              {offline ? 'Glumbi Bot is dreaming… 💤' : 'Glumbi Bot is awake! ✨'}
             </div>
-            <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>
-              {offline ? 'Taking a break from AI' : 'AI is ready to help!'}
+            <div style={{ fontSize:11, fontWeight:700, fontFamily:'Nunito, sans-serif', color: isNight ? 'rgba(200,190,255,0.75)' : pt.primary, transition:'color 0.8s' }}>
+              {offline ? 'wake it up! ☀️' : 'let it nap 🌙'}
             </div>
           </div>
-          <div style={{ width: 42, height: 24, borderRadius: 12, background: offline ? '#ddd' : pt.primary, position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-            <div style={{ position: 'absolute', top: 3, left: offline ? 3 : 21, width: 18, height: 18, borderRadius: '50%', background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)', transition: 'left 0.2s' }} />
-          </div>
+        </div>
+
+        {/* AI toggle hint */}
+        <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif', textAlign: 'left', marginBottom: 10, lineHeight: 1.5 }}>
+          {offline
+            ? '💡 Glumbi Bot is off — your child uses saved content only, no new AI responses.'
+            : '💡 Tap the scene above to put Glumbi Bot to sleep and limit AI responses.'}
         </div>
 
         {/* PIN note */}
@@ -453,6 +592,71 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
         @keyframes glm-fadein {
           from { opacity: 0; transform: translateY(24px) scale(0.95) }
           to   { opacity: 1; transform: translateY(0) scale(1) }
+        }
+        @keyframes robot-to-bed {
+          0%   { transform: translateX(0);     opacity:1; }
+          68%  { transform: translateX(192px); opacity:1; }
+          82%  { transform: translateX(208px); opacity:0.2; }
+          100% { transform: translateX(212px); opacity:0; }
+        }
+        @keyframes robot-from-bed {
+          0%   { transform: translateX(212px) translateY(0);    opacity:0; }
+          18%  { transform: translateX(212px) translateY(-10px); opacity:1; }
+          30%  { transform: translateX(212px) translateY(0);    opacity:1; }
+          100% { transform: translateX(0)     translateY(0);    opacity:1; }
+        }
+        @keyframes lying-appear {
+          from { opacity:0; transform:scaleX(0.6); }
+          to   { opacity:1; transform:scaleX(1); }
+        }
+        @keyframes lying-disappear {
+          from { opacity:1; }
+          to   { opacity:0; }
+        }
+        @keyframes rlk-idle {
+          0%, 100% { transform: translateY(0); }
+          50%       { transform: translateY(-4px); }
+        }
+        @keyframes rlk-leg-l {
+          0%, 100% { transform: rotate(-32deg); }
+          50%      { transform: rotate(32deg); }
+        }
+        @keyframes rlk-leg-r {
+          0%, 100% { transform: rotate(32deg); }
+          50%      { transform: rotate(-32deg); }
+        }
+        @keyframes rlk-arm-l {
+          0%, 100% { transform: rotate(28deg); }
+          50%      { transform: rotate(-28deg); }
+        }
+        @keyframes rlk-arm-r {
+          0%, 100% { transform: rotate(-28deg); }
+          50%      { transform: rotate(28deg); }
+        }
+        @keyframes rlk-bob {
+          0%, 50%, 100% { transform: translateY(3px); }
+          25%, 75%      { transform: translateY(-1px); }
+        }
+        @keyframes blanket-cover {
+          from { width: 0; }
+          to   { width: 54px; }
+        }
+        @keyframes blanket-uncover {
+          from { width: 54px; }
+          to   { width: 0; }
+        }
+        @keyframes zzz-rise {
+          0%   { opacity: 0; transform: translateY(4px) scale(0.3); }
+          60%  { opacity: 1; transform: translateY(-8px) scale(1.1); }
+          100% { opacity: 1; transform: translateY(-12px) scale(1); }
+        }
+        @keyframes zzz-poof {
+          from { opacity: 1; transform: translateY(-12px) scale(1); }
+          to   { opacity: 0; transform: translateY(-24px) scale(1.8); }
+        }
+        @keyframes star-twinkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50%       { opacity: 1;   transform: scale(1.4); }
         }
         @keyframes globe-in-right {
           from { opacity: 0; transform: perspective(700px) rotateY(35deg) translateX(80px) scale(0.88); }

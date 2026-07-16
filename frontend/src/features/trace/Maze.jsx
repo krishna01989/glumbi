@@ -398,20 +398,18 @@ export default function Maze({ child, quota, featureConfig }) {
         </div>
       )}
 
-      {!fullscreen && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom:12 }}>
-          <span style={{ fontSize:28 }}>{theme.startEmoji}</span>
-          <div style={{ textAlign:'center' }}>
-            <div style={{ fontWeight:900, fontSize:17, color:'var(--primary)' }}>
-              Guide {theme.startEmoji} to {theme.endEmoji}!
-            </div>
-            <div style={{ fontSize:12, color:'#888', marginTop:2 }}>
-              {cols}×{rows} maze · draw from {theme.startEmoji} to {theme.endEmoji}
-            </div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom: fullscreen ? 6 : 12, padding: fullscreen ? '10px 16px 0' : 0 }}>
+        <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.startEmoji}</span>
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontWeight:900, fontSize: fullscreen ? 20 : 17, color: fullscreen ? '#333' : 'var(--primary)' }}>
+            Guide {theme.startEmoji} to {theme.endEmoji}!
           </div>
-          <span style={{ fontSize:28 }}>{theme.endEmoji}</span>
+          <div style={{ fontSize:12, color: fullscreen ? '#888' : '#888', marginTop:2 }}>
+            {cols}×{rows} maze · draw from {theme.startEmoji} to {theme.endEmoji}
+          </div>
         </div>
-      )}
+        <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.endEmoji}</span>
+      </div>
 
       <div style={{ position:'relative', width:'100%' }}>
         <svg
@@ -419,7 +417,7 @@ export default function Maze({ child, quota, featureConfig }) {
           viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           style={{
             width: '100%',
-            height: fullscreen ? 'calc(100dvh - 116px)' : 'auto',
+            height: fullscreen ? 'calc(100dvh - 164px)' : 'auto',
             display: 'block', cursor: 'crosshair',
             background: theme.bg,
             borderRadius: fullscreen ? 0 : 16,

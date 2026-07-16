@@ -30,4 +30,14 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
                             @Param("cost") int cost,
                             @Param("month") String month,
                             @Param("limit") int limit);
+
+    /**
+     * Atomically reset the monthly counter when the stored month is stale.
+     * Returns 1 if reset happened, 0 if already current (race-safe — no double reset).
+     */
+    @Modifying
+    @Query("UPDATE AppUser u SET u.monthlyApiCalls = 0, u.apiCallMonth = :newMonth, " +
+           "u.quotaWarnMonth = null, u.quotaExhaustedMonth = null " +
+           "WHERE u.id = :id AND u.apiCallMonth <> :newMonth")
+    int atomicResetIfStale(@Param("id") Long id, @Param("newMonth") String newMonth);
 }

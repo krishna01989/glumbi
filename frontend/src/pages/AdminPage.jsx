@@ -125,7 +125,7 @@ function SetQuotaModal({ user, onClose, onSave }) {
         <h3 style={{ margin:'0 0 4px', fontSize:18 }}>🔢 Set Quota Limit</h3>
         <p style={{ margin:'0 0 6px', fontSize:13, color:'#888' }}>{user.email}</p>
         <p style={{ margin:'0 0 20px', fontSize:12, color:'#e67e22', fontWeight:700, background:'#fff8f0', borderRadius:8, padding:'8px 12px' }}>
-          ⚠️ Changing the limit resets usage to 0. The user starts fresh with the new limit.
+          Changing the limit does not reset current usage. Use "Reset AI Quota" to clear their counter separately.
         </p>
         <div style={{ marginBottom:8, fontSize:13, fontWeight:700, color:'#555' }}>
           Current: <span style={{ color:'#6366f1' }}>{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} used</span>
@@ -1150,6 +1150,7 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
           {!isPrivileged && <>&nbsp;·&nbsp;{user.childCount} {user.childCount === 1 ? 'child' : 'children'}</>}
         </div>
         {!isPrivileged && (() => {
+          const overLimit = (user.quotaUsed ?? 0) > (user.quotaLimit ?? 100)
           const pct = Math.min((user.quotaUsed ?? 0) / (user.quotaLimit ?? 100), 1)
           const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f59e0b' : pct >= 0.5 ? '#3b82f6' : '#6bcb77'
           const textColor = pct >= 1 ? '#cc0033' : pct >= 0.8 ? '#b45309' : pct >= 0.5 ? '#1d4ed8' : '#15803d'
@@ -1159,7 +1160,7 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
                 <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
               </div>
               <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
-                {user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
+                {overLimit ? '⛔' : ''}{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
               </span>
               <span style={{ fontSize: 10, color: '#aaa', whiteSpace: 'nowrap' }}>
                 ({user.quotaUsedActual ?? 0} used this month)

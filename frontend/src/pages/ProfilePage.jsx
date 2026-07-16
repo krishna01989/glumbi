@@ -244,11 +244,12 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
 
       {/* AI Credits */}
       {quota && (() => {
+        const overLimit = quota.used > quota.limit
         const pct = Math.min(quota.used / quota.limit, 1)
         const barColor    = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f5a623' : '#6bcb77'
         const statusColor = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f5a623' : '#27ae60'
         const statusBg    = pct >= 1 ? '#fff0f0' : pct >= 0.8 ? '#fffbf0' : '#f0fff4'
-        const statusLabel = pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : '✅ Good'
+        const statusLabel = overLimit ? '⛔ Over limit' : pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : '✅ Good'
         const childRows   = breakdown ? (breakdown.children || []).filter(d => d.totalCredits > 0) : []
         return (
           <div style={card}>

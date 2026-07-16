@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -37,15 +38,20 @@ public class UserController {
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
 
     @GetMapping("/me/quota")
+    @Transactional
     public ResponseEntity<?> getQuota(@AuthenticationPrincipal AuthUser authUser) {
         AppUser user = userRepository.findById(authUser.id())
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         int limit = user.getQuotaLimit() > 0 ? user.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
-        long used = user.getMonthlyApiCalls();
         java.time.YearMonth nowMonth = java.time.YearMonth.now();
+        String thisMonth = nowMonth.toString();
         java.time.LocalDateTime monthStart = nowMonth.atDay(1).atStartOfDay();
         java.time.LocalDateTime monthEnd   = nowMonth.atEndOfMonth().atTime(23, 59, 59);
+        // Atomically reset counter if month is stale — safe against concurrent consumeCredits calls
+        userRepository.atomicResetIfStale(authUser.id(), thisMonth);
+        long used = userRepository.findById(authUser.id())
+            .map(u -> (long) u.getMonthlyApiCalls()).orElse(0L);
         long usedActual = usageLogRepository.sumCreditsByUser(authUser.id(), monthStart, monthEnd);
         return ResponseEntity.ok(Map.of(
             "used",        used,

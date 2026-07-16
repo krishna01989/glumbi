@@ -147,6 +147,8 @@ public class ApiQuotaService {
             String thisMonth = YearMonth.now().toString();
             for (var user : userRepository.findAll()) {
                 if (user.isAdminOrAbove()) continue;
+                // Skip users already on this month — self-heal or prior run handled them
+                if (thisMonth.equals(user.getApiCallMonth())) continue;
                 user.setMonthlyApiCalls(0);
                 user.setApiCallMonth(thisMonth);
                 user.setQuotaWarnMonth(null);

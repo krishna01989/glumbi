@@ -371,10 +371,10 @@ public class AdminController {
         }
         return userRepo.findById(id).map(u -> {
             u.setQuotaLimit(newLimit);
-            u.setMonthlyApiCalls(0);
-            u.setApiCallMonth(YearMonth.now().toString());
             userRepo.save(u);
-            return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", newLimit));
+            String thisMonth = YearMonth.now().toString();
+            int used = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
+            return ResponseEntity.ok(Map.of("quotaUsed", used, "quotaLimit", newLimit));
         }).orElse(ResponseEntity.notFound().build());
     }
 

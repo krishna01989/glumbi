@@ -384,6 +384,7 @@ export default function Draw({ child, quota, featureConfig }) {
       height: isCompact ? 'auto' : '100%',
     }}>
       <FeatureBanner feature="draw" child={child} isMobile={isMobile} />
+      <QuotaBanner quota={quota} />
       {/* ── Guide prompt (top, full width) ── */}
       {!isCompact && guideEnabled && (
         <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexShrink: 0 }}>
@@ -752,7 +753,6 @@ export default function Draw({ child, quota, featureConfig }) {
       </div>{/* end fsRef / middle row */}
 
       {/* ── AI section — hidden in fullscreen ── */}
-      {!isFullscreen && <QuotaBanner quota={quota} />}
       <div style={{ display: isFullscreen ? 'none' : 'flex', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
         {!drawAiEnabled && (
           <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>

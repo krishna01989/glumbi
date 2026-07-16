@@ -5,9 +5,10 @@ import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
+import QuotaBanner from '../../components/QuotaBanner'
 import { MOODS, moodFor } from '../../constants/moods'
 
-export default function Journal({ child, featureConfig }) {
+export default function Journal({ child, featureConfig, quota }) {
   const { track } = useTracker()
   useFeatureDuration('journal', track)
   const offline = useOffline()
@@ -64,6 +65,7 @@ export default function Journal({ child, featureConfig }) {
   return (
     <>
     <FeatureBanner feature="journal" child={child} isMobile={window.innerWidth < 1024} />
+    <QuotaBanner quota={quota} />
     <div style={{ maxWidth: 920, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 16 }}>
       {aiLoading && <ThemeLoader theme={child.theme} />}
 

@@ -6,6 +6,7 @@ import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import FeatureBanner from '../../components/FeatureBanner'
+import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 import { runPageCurl } from '../../utils/pageCurl'
 
@@ -306,6 +307,7 @@ export default function MyWriting({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <FeatureBanner feature="mywriting" child={child} isMobile={isMobile} />
+    <QuotaBanner quota={quota} />
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : undefined, gap: isMobile ? 16 : 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: isMobile ? 6 : 16 }}>
 
       {/* Mobile top bar */}

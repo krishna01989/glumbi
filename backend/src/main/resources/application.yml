@@ -76,6 +76,7 @@ app:
     rate-limit-ttl-hours: 2
     tts-max-size: 200
     tts-ttl-hours: 6
+    wotd-ttl-hours: 25
   embedding:
     thread-pool-size: 4
 

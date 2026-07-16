@@ -444,29 +444,42 @@ export default function App() {
         <header className="mobile-header" style={{ alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <img src="/icon.svg" alt="Glumbi" style={{ width: 30, height: 30 }} />
-            <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'white' }}>Glumbi</span>
+            {!childLocked && <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'white' }}>Glumbi</span>}
+            {childLocked && (
+              <>
+                <span id="tour-child-name"
+                  onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }}
+                  style={{ fontSize: 22, cursor: 'pointer', position: 'relative' }}>
+                  {child.avatarEmoji}
+                  <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>
+                </span>
+                <div style={{ lineHeight: 1.2 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
+                    {child?.streakCount > 0 && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, padding: '2px 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
+                        🔥 {child.streakCount}d
+                      </span>
+                    )}
+                  </div>
+                  {sessionStart
+                    ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}</div>
+                    : childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>
+                  }
+                </div>
+              </>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span id="tour-child-name"
-              onClick={childLocked ? () => { setLockPin(''); setLockPinError(''); setLockModal('unlock') } : undefined}
-              style={{ fontSize: 24, cursor: childLocked ? 'pointer' : 'default', position: 'relative' }}>
-              {child.avatarEmoji}
-              {childLocked && <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>}
-            </span>
-            <div style={{ lineHeight: 1.2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
-                {child?.streakCount > 0 && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, padding: '2px 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
-                    🔥 {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
-                  </span>
-                )}
-              </div>
-              {sessionStart && childLocked
-                ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}</div>
-                : childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>
-              }
-            </div>
+            {!childLocked && (
+              <>
+                <span id="tour-child-name" style={{ fontSize: 24 }}>{child.avatarEmoji}</span>
+                <div style={{ lineHeight: 1.2 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
+                  {childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>}
+                </div>
+              </>
+            )}
             <span id="tour-mobile-theme"><ThemePicker child={child} onThemeChange={handleThemeChange} /></span>
             <button id="tour-mobile-menu" onClick={() => setMobileMenuOpen(true)}
               style={{ width: 36, height: 36, borderRadius: 10, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer' }}>☰</button>

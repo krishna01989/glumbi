@@ -1,6 +1,8 @@
 package com.glumbi.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.glumbi.agent.MemoryPlayAgent;
 import com.glumbi.entity.Child;
 import com.glumbi.entity.FlashcardSet;
@@ -9,13 +11,16 @@ import com.glumbi.entity.WordOfDay;
 import com.glumbi.repository.FlashcardSetRepository;
 import com.glumbi.repository.MemoryMatchRepository;
 import com.glumbi.repository.WordOfDayRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +32,20 @@ public class MemoryPlayService {
     private final MemoryPlayAgent agent;
     private final ChildService childService;
     private final ObjectMapper mapper = new ObjectMapper();
+
+    @Value("${app.cache.wotd-ttl-hours:25}")
+    private int wotdTtlHours;
+
+    // keyed by "childId:date" — expires after 25h so it always outlives the calendar day
+    private Cache<String, WordOfDayResult> wotdCache;
+
+    @PostConstruct
+    void initCache() {
+        wotdCache = Caffeine.newBuilder()
+                .expireAfterWrite(wotdTtlHours, TimeUnit.HOURS)
+                .maximumSize(500)
+                .build();
+    }
 
     // ── Flashcards ────────────────────────────────────────────────────────────
 
@@ -63,31 +82,39 @@ public class MemoryPlayService {
      */
     public WordOfDayResult getOrGenerateWordOfDay(Long childId) {
         LocalDate today = LocalDate.now();
+        String cacheKey = childId + ":" + today;
+
+        WordOfDayResult cached = wotdCache.getIfPresent(cacheKey);
+        if (cached != null) return cached;
+
         Optional<WordOfDay> existing = wordOfDayRepo.findByChildIdAndDate(childId, today);
         if (existing.isPresent()) {
-            return new WordOfDayResult(existing.get(), false);
+            WordOfDayResult result = new WordOfDayResult(existing.get(), false);
+            wotdCache.put(cacheKey, result);
+            return result;
         }
 
         Child child = childService.getByIdUnchecked(childId);
         int age = ChildService.ageFromBirthYear(child.getBirthYear());
 
-        // Pass recent words so the AI avoids repeating them
         List<String> recentWords = wordOfDayRepo.findByChildIdOrderByDateDesc(childId)
                 .stream().limit(10).map(w -> w.getWord()).toList();
 
-        MemoryPlayAgent.WordResult result = agent.generateWordOfDay(child.getName(), age, today, recentWords);
-        if (result == null) return null;
+        MemoryPlayAgent.WordResult agentResult = agent.generateWordOfDay(child.getName(), age, today, recentWords);
+        if (agentResult == null) return null;
 
         WordOfDay word = new WordOfDay();
         word.setChild(child);
-        word.setWord(result.word());
-        word.setMeaning(result.meaning());
-        word.setExampleSentence(result.exampleSentence());
-        word.setPronunciation(result.pronunciation());
-        word.setEmoji(result.emoji());
+        word.setWord(agentResult.word());
+        word.setMeaning(agentResult.meaning());
+        word.setExampleSentence(agentResult.exampleSentence());
+        word.setPronunciation(agentResult.pronunciation());
+        word.setEmoji(agentResult.emoji());
         word.setDate(today);
 
-        return new WordOfDayResult(wordOfDayRepo.save(word), true);
+        WordOfDayResult saved = new WordOfDayResult(wordOfDayRepo.save(word), true);
+        wotdCache.put(cacheKey, saved);
+        return saved;
     }
 
     public record WordOfDayResult(WordOfDay word, boolean fresh) {}

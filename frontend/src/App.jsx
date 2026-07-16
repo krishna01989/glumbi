@@ -301,7 +301,7 @@ export default function App() {
       onSetup={handleLockSetup}
       onVerify={handleLockVerify}
       onUnlock={handleUnlock}
-      onCancel={() => {
+onCancel={() => {
         setLockModal(null); setLockPin(''); setLockPinError(''); setShowPin(false)
         if (pendingLockedChild) { applyTheme('coral'); setPendingLockedChild(null) }
       }}

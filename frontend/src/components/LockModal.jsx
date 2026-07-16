@@ -54,12 +54,12 @@ export default function LockModal({
           return <>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
             <div style={{ fontSize: 20, fontWeight: 900, color: '#333', marginBottom: 4 }}>
-              {isSetup ? 'Set a Parent PIN' : `Lock for ${activeChild?.name}`}
+              {isSetup ? '🆕 Create a Lock PIN' : `🔐 Lock for ${activeChild?.name}`}
             </div>
             <div style={{ fontSize: 13, color: '#777', marginBottom: 20, lineHeight: 1.5 }}>
               {isSetup
-                ? `Choose a PIN and session settings for ${activeChild?.name}.`
-                : `Enter your PIN to hand the device to ${activeChild?.name}.`}
+                ? `First time locking for ${activeChild?.name}. Create a 4-digit PIN you'll use to unlock the device.`
+                : `Enter your saved PIN to confirm it's you, then hand the device to ${activeChild?.name}.`}
             </div>
 
             <div style={{ textAlign: 'left', marginBottom: 14 }}>

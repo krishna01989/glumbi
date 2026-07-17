@@ -785,7 +785,7 @@ export default function FlipbookStudio({ track = () => {} }) {
         boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
         marginTop: isFullscreen ? 0 : 16,
         borderTop: isFullscreen ? '1px solid #f0f0f0' : 'none',
-        overflow: 'hidden' }}>
+        overflow: isFullscreen ? 'visible' : 'hidden' }}>
 
         {/* ── Playback controls ── */}
         <div style={{

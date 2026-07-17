@@ -8,6 +8,7 @@ import Timeline from '../features/timeline/Timeline'
 const ACTIVITY_FEATURES = {
   stories:     { label: 'Stories',        emoji: '📖' },
   draw:        { label: 'Draw',           emoji: '🎨' },
+  flipbook:    { label: 'Flipbook Studio',emoji: '🎬' },
   journal:     { label: 'Journal',        emoji: '📓' },
   curiosity:   { label: 'Curiosity',      emoji: '🔍' },
   readquiz:    { label: 'Read & Quiz',    emoji: '📚' },
@@ -200,6 +201,12 @@ function ActivityTab({ childName, t }) {
                   const worst = data.wordAccuracy[0]
                   extraChips.push({ key: 'word', icon: '📝', text: `Hardest word: "${worst.word}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
                 }
+                if (feature === 'draw' && data?.drawAnimateCount > 0)
+                  extraChips.push({ key: 'animate', icon: '✨', text: `${data.drawAnimateCount} drawing${data.drawAnimateCount !== 1 ? 's' : ''} brought to life`, color: '#9c6ef8', bg: '#faf5ff' })
+                if (feature === 'flipbook' && data?.flipbookPlayCount > 0)
+                  extraChips.push({ key: 'fb-play', icon: '▶️', text: `played ${data.flipbookPlayCount} time${data.flipbookPlayCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
+                if (feature === 'flipbook' && data?.flipbookSaveCount > 0)
+                  extraChips.push({ key: 'fb-save', icon: '🎬', text: `saved ${data.flipbookSaveCount} movie${data.flipbookSaveCount !== 1 ? 's' : ''}`, color: '#00c853', bg: '#f0fdf4' })
                 return (
                   <div key={feature} style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>

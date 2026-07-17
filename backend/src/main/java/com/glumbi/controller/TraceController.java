@@ -37,10 +37,16 @@ public class TraceController {
         int childAge     = Integer.parseInt(body.get("childAge"));
         String difficulty = body.getOrDefault("difficulty", "easy");
 
+        Object result;
+        try {
+            result = agent.generate(childName, childAge, difficulty);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate maze"));
+        }
         if (!quotaService.tryConsume(user.id(), "maze", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-        return ResponseEntity.ok(agent.generate(childName, childAge, difficulty));
+        return ResponseEntity.ok(result);
     }
 }

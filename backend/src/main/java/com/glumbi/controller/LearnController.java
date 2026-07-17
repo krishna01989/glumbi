@@ -70,9 +70,6 @@ public class LearnController {
         if (!quotaService.isFeatureEnabled(authUser.id(), "learn-validate")) {
             return ResponseEntity.status(403).body(Map.of("error", "Learn to Write is currently unavailable."));
         }
-        if (!quotaService.tryConsume(authUser.id(), "learn-validate", childId)) {
-            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
-        }
 
         String scriptLabel = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
         String prompt = String.format(
@@ -134,9 +131,13 @@ public class LearnController {
                 });
             }
 
+            if (!quotaService.tryConsume(authUser.id(), "learn-validate", childId)) {
+                return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
+            }
             return ResponseEntity.ok(Map.of("correct", correct, "feedback", feedback));
 
         } catch (Exception e) {
+            // Anthropic failed — do not charge credit
             return ResponseEntity.ok(Map.of("correct", true, "feedback", "Great effort! Keep practising! 🌟"));
         }
     }
@@ -155,9 +156,6 @@ public class LearnController {
         if (imageData == null) return ResponseEntity.badRequest().body(Map.of("error", "imageData required"));
         if (!quotaService.isFeatureEnabled(authUser.id(), "learn-word")) {
             return ResponseEntity.status(403).body(Map.of("error", "Learn to Write is currently unavailable."));
-        }
-        if (!quotaService.tryConsume(authUser.id(), "learn-word", childId)) {
-            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         }
 
         String scriptLabel  = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
@@ -238,8 +236,12 @@ public class LearnController {
                 });
             }
 
+            if (!quotaService.tryConsume(authUser.id(), "learn-word", childId)) {
+                return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
+            }
             return ResponseEntity.ok(result);
         } catch (Exception e) {
+            // Anthropic failed — do not charge credit
             return ResponseEntity.ok(mapper.createObjectNode()
                 .put("correct", false)
                 .put("couldRead", false)

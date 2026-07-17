@@ -44,12 +44,18 @@ public class MemoryPlayController {
                     .body(Map.of("error", "Too many Memory Play requests this hour. Come back soon!"));
         }
         Long childId = Long.valueOf(body.get("childId").toString());
+        String topic = body.get("topic").toString();
+        Object result;
+        try {
+            result = service.generateFlashcards(childId, topic);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate flashcards"));
+        }
         if (!quotaService.tryConsume(user.id(), "memory-flashcards", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-        String topic = body.get("topic").toString();
-        return ResponseEntity.ok(service.generateFlashcards(childId, topic));
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/flashcards/child/{childId}")
@@ -108,12 +114,18 @@ public class MemoryPlayController {
                     .body(Map.of("error", "Too many Memory Play requests this hour. Come back soon!"));
         }
         Long childId = Long.valueOf(body.get("childId").toString());
+        String theme = body.get("theme").toString();
+        Object result;
+        try {
+            result = service.generateMemoryMatch(childId, theme);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate memory match"));
+        }
         if (!quotaService.tryConsume(user.id(), "memory-match", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-        String theme = body.get("theme").toString();
-        return ResponseEntity.ok(service.generateMemoryMatch(childId, theme));
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/word-of-day/child/{childId}/history")

@@ -78,11 +78,17 @@ public class StoryController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've generated too many stories this hour. Please try again later!"));
         }
+        StoryService.StoryGenerateResult result;
+        try {
+            result = service.generate(req);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate story"));
+        }
         if (!quotaService.tryConsume(user.id(), "story", req.getChildId())) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly story limit. It resets at the start of next month!"));
         }
-        return ResponseEntity.ok(service.generate(req));  // returns { story, similar }
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/child/{childId}")
@@ -113,10 +119,12 @@ public class StoryController {
             @RequestParam String language,
             @AuthenticationPrincipal AuthUser user) {
         Story story = service.getById(id);
+        TranslationAgent.TranslationResult translated =
+                translationAgent.translate(story.getTitle(), story.getContent(), language);
         if (user != null) {
             quotaService.tryConsume(user.id(), "translation", story.getChild().getId());
         }
-        return translationAgent.translate(story.getTitle(), story.getContent(), language);
+        return translated;
     }
 
     @GetMapping(value = "/{id}/listen", produces = "audio/mpeg")
@@ -158,23 +166,18 @@ public class StoryController {
                     return ResponseEntity.status(403).body(null);
                 }
                 Story story = service.getById(id);
-                // Charge 1 credit for first-time TTS synthesis (cache miss only)
-                if (authUser != null && !quotaService.tryConsume(authUser.id(), "story-listen",
-                        story.getChild() != null ? story.getChild().getId() : null)) {
-                    return ResponseEntity.status(429).body(null);
-                }
+                Long listenChildId = story.getChild() != null ? story.getChild().getId() : null;
                 String title, content;
                 if ("english".equalsIgnoreCase(language)) {
                     title   = story.getTitle();
                     content = story.getContent();
                 } else {
-                    // Charge 5 translation credits for non-English TTS (cache miss only)
-                    if (authUser != null) {
-                        quotaService.tryConsume(authUser.id(), "translation",
-                                story.getChild() != null ? story.getChild().getId() : null);
-                    }
+                    // Translation credit charged after the Anthropic call completes (cache miss only)
                     TranslationAgent.TranslationResult translated =
                             translationAgent.translate(story.getTitle(), story.getContent(), language);
+                    if (authUser != null) {
+                        quotaService.tryConsume(authUser.id(), "translation", listenChildId);
+                    }
                     title   = translated.title();
                     content = translated.content();
                 }
@@ -189,6 +192,11 @@ public class StoryController {
                     }
                 } else {
                     audio = ttsService.synthesize(title + ". " + content, language, voice);
+                }
+
+                // Charge story-listen credit only after TTS succeeds (cache miss only)
+                if (authUser != null && !quotaService.tryConsume(authUser.id(), "story-listen", listenChildId)) {
+                    return ResponseEntity.status(429).body(null);
                 }
 
                 // Upload to R2 — if successful, evict from memory and redirect going forward

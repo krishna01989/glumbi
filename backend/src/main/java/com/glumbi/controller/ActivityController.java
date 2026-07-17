@@ -38,11 +38,17 @@ public class ActivityController {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "Too many activity requests this hour. Try again later!"));
         }
+        Object result;
+        try {
+            result = service.generate(req);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate activity"));
+        }
         if (!quotaService.tryConsume(user.id(), "activity", req.getChildId())) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-        return ResponseEntity.ok(service.generate(req));
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}/similar")

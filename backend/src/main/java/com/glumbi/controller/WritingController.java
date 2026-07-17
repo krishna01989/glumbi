@@ -61,13 +61,19 @@ public class WritingController {
             return ResponseEntity.status(429).body(Map.of("error", "Too many feedback requests this hour. Try again later!"));
         Long writingChildId = writingRepository.findById(id)
             .map(e -> e.getChild() != null ? e.getChild().getId() : null).orElse(null);
+        Object feedback;
+        try {
+            feedback = service.getFeedback(id);
+        } catch (SafetyGuard.SafetyException e) {
+            // AI ran and blocked the content — still consume credit
+            quotaService.tryConsume(user.id(), "writing-coach", writingChildId);
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate feedback"));
+        }
         if (!quotaService.tryConsume(user.id(), "writing-coach", writingChildId))
             return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
-        try {
-            return ResponseEntity.ok(service.getFeedback(id));
-        } catch (SafetyGuard.SafetyException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(feedback);
     }
 
     @GetMapping("/child/{childId}")
@@ -88,13 +94,18 @@ public class WritingController {
                 .orElseThrow(() -> new RuntimeException("Writing entry not found"));
         Child child = entry.getChild();
         Long childId = child != null ? child.getId() : null;
-        if (!quotaService.tryConsume(user.id(), "story", childId))
-            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
         int age = ChildService.ageFromBirthYear(child != null ? child.getBirthYear() : null);
         String gender = child != null ? child.getGender() : null;
         String name = child != null ? child.getName() : "you";
-        StoryAgent.StoryResult result = storyAgent.continueStory(name, age, gender, entry.getTitle(), entry.getContent(), "adventure");
-        return ResponseEntity.ok(Map.of("title", result.title(), "content", result.content()));
+        StoryAgent.StoryResult storyResult;
+        try {
+            storyResult = storyAgent.continueStory(name, age, gender, entry.getTitle(), entry.getContent(), "adventure");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not continue story"));
+        }
+        if (!quotaService.tryConsume(user.id(), "story", childId))
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
+        return ResponseEntity.ok(Map.of("title", storyResult.title(), "content", storyResult.content()));
     }
 
     @DeleteMapping("/{id}")

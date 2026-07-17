@@ -130,6 +130,11 @@ export const drawApi = {
     api.post('/draw/identify', { imageData, childName, childAge: String(childAge), subject }).then(r => r.data),
   guide: (subject, childName, childAge) =>
     api.post('/draw/guide', { subject, childName, childAge: String(childAge) }).then(r => r.data),
+  animate: (imageData, childName, childAge, subject = '', childId = null) =>
+    api.post('/draw/animate', {
+      imageData, childName, childAge: String(childAge), subject,
+      ...(childId ? { childId: String(childId) } : {}),
+    }).then(r => r.data),
 }
 
 export const learnApi = {

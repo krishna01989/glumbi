@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { drawApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
@@ -8,6 +9,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import { safetyCheck } from './animationMatcher'
 import { bringToLife } from './animationEngine'
+import FlipbookStudio from './FlipbookStudio'
 
 function useBreakpoint() {
   const get = () => window.innerWidth < 640 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
@@ -38,7 +40,7 @@ const PRESET_COLORS = [
 ]
 
 
-function makeEmojiCursor(emoji, size = 36) {
+function makeEmojiCursor(emoji, size = 32, hotspotX, hotspotY) {
   try {
     const canvas = document.createElement('canvas')
     canvas.width = size; canvas.height = size
@@ -47,7 +49,9 @@ function makeEmojiCursor(emoji, size = 36) {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillText(emoji, size / 2, size / 2)
-    return `url(${canvas.toDataURL()}) ${size / 2} ${size / 2}, auto`
+    const hx = hotspotX ?? size / 2
+    const hy = hotspotY ?? size / 2
+    return `url(${canvas.toDataURL()}) ${hx} ${hy}, auto`
   } catch { return 'crosshair' }
 }
 
@@ -71,6 +75,11 @@ function SectionLabel({ children }) {
 function Divider() {
   return <div style={{ width: '80%', height: 1, background: '#f0f0f0' }} />
 }
+
+const DRAW_TABS = [
+  { key: 'draw',     label: '✏️ Draw' },
+  { key: 'flipbook', label: '🎬 Flipbook' },
+]
 
 export default function Draw({ child, quota, featureConfig }) {
   const { track } = useTracker()
@@ -104,6 +113,11 @@ export default function Draw({ child, quota, featureConfig }) {
 
   // ── Animation state ──
   const [animLoading, setAnimLoading] = useState(false)
+  const [drawnAfterAnim, setDrawnAfterAnim] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const drawTab = searchParams.get('tab') === 'flipbook' ? 'flipbook' : 'draw'
+  const [animCooldown, setAnimCooldown] = useState(0)
+  const cooldownRef = useRef(null)
   const [animResult, setAnimResult]   = useState(null)   // resolved animation config
   const [animPlan, setAnimPlan]       = useState(null)   // Claude-dictated animation plan
   const [animBlocked, setAnimBlocked] = useState(false)
@@ -116,6 +130,8 @@ export default function Draw({ child, quota, featureConfig }) {
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
+
+  useEffect(() => () => clearInterval(cooldownRef.current), [])
 
 
   useEffect(() => {
@@ -160,14 +176,18 @@ export default function Draw({ child, quota, featureConfig }) {
   const isMobile = bp === 'mobile'
   const isCompact = bp === 'mobile' || bp === 'tablet'
   const canvasCursor = useMemo(() => {
-    if (fillMode) return makeEmojiCursor('🪣', 40)
-    if (eraser) return makeEmojiCursor('🧽', 36)
-    return makeEmojiCursor('✏️', 32)
+    // ✏️ tip is bottom-left: hotspot near bottom-left corner
+    // 🪣 tip is bottom-left of the bucket: same treatment, smaller size
+    // 🧽 no sharp tip: center hotspot is fine
+    if (fillMode) return makeEmojiCursor('🪣', 24, 3, 21)
+    if (eraser)   return makeEmojiCursor('🧽', 28, 4, 24)
+    return 'crosshair'
   }, [eraser, fillMode])
 
   const getCtx = () => canvasRef.current.getContext('2d', { willReadFrequently: true })
 
   useEffect(() => {
+    if (!canvasRef.current) return
     const ctx = getCtx()
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height)
@@ -311,6 +331,7 @@ export default function Draw({ child, quota, featureConfig }) {
       setAnimResult(null)
       setAnimPlan(null)
       setAnimLabel('')
+      setDrawnAfterAnim(true)
       stopAnimation()
     }
     drawing.current = false
@@ -426,6 +447,16 @@ export default function Draw({ child, quota, featureConfig }) {
 
       setAnimResult(objects)
       setAnimPlan(parsed.animation_plan ?? null)
+      setDrawnAfterAnim(false)
+      // start cooldown
+      clearInterval(cooldownRef.current)
+      setAnimCooldown(45)
+      cooldownRef.current = setInterval(() => {
+        setAnimCooldown(prev => {
+          if (prev <= 1) { clearInterval(cooldownRef.current); return 0 }
+          return prev - 1
+        })
+      }, 1000)
       const label = objects[0]?.label || 'drawing'
       setAnimLabel(`✨ Your ${label} is coming to life!`)
       playAnimation(objects, parsed.animation_plan)
@@ -484,18 +515,40 @@ export default function Draw({ child, quota, featureConfig }) {
   }
 
   return (
-    <>
-    {(loading || guideLoading || animLoading) && (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 16,
+      height: isCompact ? 'auto' : '100%', fontFamily: 'Nunito, sans-serif',
+    }}>
+    {drawTab === 'draw' && (loading || guideLoading || animLoading) && (
       <ThemeLoader theme={child.theme} label={loading ? 'Guessing your drawing…' : guideLoading ? 'Building your drawing guide…' : 'Bringing your drawing to life… 🎬'} />
     )}
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 16,
-      height: isCompact ? 'auto' : '100%',
-    }}>
-      <FeatureBanner feature="draw" child={child} isMobile={isMobile} />
-      <QuotaBanner quota={quota} />
+    <FeatureBanner feature="draw" child={child} isMobile={isMobile} />
+    <QuotaBanner quota={quota} />
+
+    {/* ── Tabs: Draw / Flipbook ── */}
+    <div style={{ display: 'flex', gap: isMobile ? 6 : 10, background: '#f5f5f5',
+      padding: isMobile ? 6 : 8, borderRadius: 16, flexShrink: 0 }}>
+      {DRAW_TABS.map(t => (
+        <button key={t.key} onClick={() => { setSearchParams({ tab: t.key }, { replace: true }); if (t.key !== drawTab) track('draw', 'tab_switch', { metadata: { tab: t.key } }) }}
+          style={{ flex: 1, padding: isMobile ? '10px 6px' : '12px 16px', borderRadius: 12,
+            border: 'none', fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 12 : 14,
+            fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+            background: drawTab === t.key ? 'white' : 'transparent',
+            color: drawTab === t.key ? 'var(--primary)' : '#888',
+            boxShadow: drawTab === t.key ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+            transition: 'all 0.2s' }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+
+    {drawTab === 'flipbook' && (
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <FlipbookStudio track={track} />
+      </div>
+    )}
+    {drawTab === 'draw' && <>
+
       {/* ── Guide prompt (top, full width) ── */}
       {!isCompact && guideEnabled && (
         <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexShrink: 0 }}>
@@ -754,24 +807,27 @@ export default function Draw({ child, quota, featureConfig }) {
           </div>
         )}
 
+        {/* Outer wrapper: position:relative so overlay can escape the inner clip */}
         <div style={{
-          flex: 1, borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
+          flex: 1, borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)', position: 'relative',
           cursor: canvasCursor,
-          background: 'white',
         }}>
-          <canvas
-            ref={canvasRef}
-            width={1200}
-            height={800}
-            style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
-            onMouseDown={startDraw}
-            onMouseMove={draw}
-            onMouseUp={stopDraw}
-            onMouseLeave={stopDraw}
-            onTouchEnd={stopDraw}
-          />
-          {/* Animation overlay — transparent, pointer-events:none so drawing still works */}
+          {/* Inner clip: clips the drawing canvas to rounded corners without clipping the animation overlay */}
+          <div style={{ position: 'absolute', inset: 0, borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden', background: 'white' }}>
+            <canvas
+              ref={canvasRef}
+              width={1200}
+              height={800}
+              style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
+              onMouseDown={startDraw}
+              onMouseMove={draw}
+              onMouseUp={stopDraw}
+              onMouseLeave={stopDraw}
+              onTouchEnd={stopDraw}
+            />
+          </div>
+          {/* Animation overlay — outside the clip so animations can move freely near edges */}
           <canvas
             ref={overlayRef}
             width={1200}
@@ -850,13 +906,13 @@ export default function Draw({ child, quota, featureConfig }) {
             )}
             {animateEnabled && (
               <button onClick={handleAnimate}
-                disabled={animLoading || isEmpty || quota?.used >= quota?.limit || offline}
+                disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || quota?.used >= quota?.limit || offline}
                 style={{ padding:'10px 20px', borderRadius:50, border:'none', fontWeight:800,
-                  fontSize:14, cursor:(isEmpty||offline||animLoading)?'not-allowed':'pointer',
+                  fontSize:14, cursor:(isEmpty||offline||animLoading||!drawnAfterAnim||animCooldown>0)?'not-allowed':'pointer',
                   background:'linear-gradient(135deg,#9c6ef8,#ff69b4)',
-                  color:'white', opacity:(isEmpty||offline)?0.45:1, flexShrink:0,
+                  color:'white', opacity:(isEmpty||offline||!drawnAfterAnim||animCooldown>0)?0.45:1, flexShrink:0,
                   whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(156,110,248,0.35)' }}>
-                {animLoading ? '✨ Animating…' : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
+                {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
               </button>
             )}
             {animResult && !animPlaying && !animLoading && (
@@ -921,18 +977,18 @@ export default function Draw({ child, quota, featureConfig }) {
         {animateEnabled && (
           <button
             onClick={handleAnimate}
-            disabled={animLoading || isEmpty || quota?.used >= quota?.limit || offline}
+            disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || quota?.used >= quota?.limit || offline}
             style={{
               padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
               background: 'linear-gradient(135deg,#9c6ef8,#ff69b4)',
               color: 'white', border: 'none',
-              cursor: (isEmpty || offline || animLoading) ? 'not-allowed' : 'pointer',
-              opacity: (isEmpty || offline) ? 0.5 : 1,
+              cursor: (isEmpty || offline || animLoading || !drawnAfterAnim || animCooldown > 0) ? 'not-allowed' : 'pointer',
+              opacity: (isEmpty || offline || !drawnAfterAnim || animCooldown > 0) ? 0.5 : 1,
               boxShadow: '0 4px 16px rgba(156,110,248,0.35)',
               whiteSpace: 'nowrap', alignSelf: 'center',
               transition: 'transform 0.15s',
             }}>
-            {animLoading ? '✨ Animating…' : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
+            {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
           </button>
         )}
 
@@ -945,6 +1001,7 @@ export default function Draw({ child, quota, featureConfig }) {
             🔁 Replay
           </button>
         )}
+
 
         {aiReply && (
           <div style={{
@@ -1028,7 +1085,7 @@ export default function Draw({ child, quota, featureConfig }) {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       `}</style>
+    </>}
     </div>
-    </>
   )
 }

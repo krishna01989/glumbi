@@ -334,15 +334,22 @@ function unionBbox(objects) {
 function stripWhite(canvas) {
   const ctx=canvas.getContext('2d',{willReadFrequently:true})
   const img=ctx.getImageData(0,0,canvas.width,canvas.height), d=img.data
-  for(let i=0;i<d.length;i+=4) { if(d[i]>225&&d[i+1]>225&&d[i+2]>225) d[i+3]=0 }
+  // Only strip pixels that are truly white (all channels >248) AND fully opaque
+  // — threshold was 225 which wiped out light-coloured drawing details
+  for(let i=0;i<d.length;i+=4) {
+    if(d[i]>248&&d[i+1]>248&&d[i+2]>248&&d[i+3]>200) d[i+3]=0
+  }
   ctx.putImageData(img,0,0); return canvas
 }
 function extractCutout(drawCanvas, bbox, W, H) {
   let sx,sy,sw,sh
   if(bbox&&bbox.w>0.02&&bbox.h>0.02) {
-    const pad=0.07
-    sx=Math.max(0,(bbox.x-pad)*W); sy=Math.max(0,(bbox.y-pad)*H)
-    sw=Math.min(W,(bbox.x+bbox.w+pad)*W)-sx; sh=Math.min(H,(bbox.y+bbox.h+pad)*H)-sy
+    const pad=0.12  // increased from 0.07 — gives more breathing room around the object
+    const x1=Math.max(0,(bbox.x-pad)*W)
+    const y1=Math.max(0,(bbox.y-pad)*H)
+    const x2=Math.min(W,(bbox.x+bbox.w+pad)*W)
+    const y2=Math.min(H,(bbox.y+bbox.h+pad)*H)
+    sx=x1; sy=y1; sw=x2-x1; sh=y2-y1
   } else { sx=0;sy=0;sw=W;sh=H }
   sw=Math.max(sw,40); sh=Math.max(sh,40)
   const off=document.createElement('canvas'); off.width=sw; off.height=sh

@@ -13,6 +13,7 @@ const FEATURE_META = {
   timeline:   { emoji: '🗓️', title: 'Timeline',       subtitle: 'Your journey so far!',               floaters: ['⭐','🌈','✨','💫','🎉'] },
   maze:       { emoji: '🌀', title: 'Maze',            subtitle: 'Find the right path through the maze!', floaters: ['🦊','🚀','🐝','🐱','⭐','🌈'] },
   riddle:     { emoji: '🧩', title: 'Riddle',         subtitle: 'Can you crack the riddle?',           floaters: ['💡','🌟','❓','🧠','✨','🎯'] },
+  flipbook:   { emoji: '🎬', title: 'Flipbook Studio', subtitle: 'Make your drawings move!',           floaters: ['🎞️','✨','🖌️','⭐','🎭'] },
 }
 
 export default function FeatureBanner({ feature, child, isMobile }) {

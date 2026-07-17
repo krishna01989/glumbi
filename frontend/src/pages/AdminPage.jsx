@@ -172,6 +172,7 @@ const FEATURE_DISPLAY_MAP = {
   'writing-coach':  { label: 'Writing Coach',  icon: '✍️'  },
   'translation':    { label: 'Translation',    icon: '🌐' },
   'draw':           { label: 'Drawing',        icon: '🎨' },
+  'flipbook':       { label: 'Flipbook Studio', icon: '🎬' },
   'learn-validate': { label: 'Letter Validate',icon: '🔤' },
   'learn-word':     { label: 'Learn Word',     icon: '✏️'  },
   'story-listen':        { label: 'Story Audio',    icon: '🔊' },
@@ -549,6 +550,7 @@ const AUTO_REFRESH_OPTIONS = [
 const ACTIVITY_FEATURE_NAMES = {
   stories:     '📖 Stories',
   draw:        '🎨 Draw',
+  flipbook:    '🎬 Flipbook Studio',
   journal:     '📓 Journal',
   curiosity:   '🔍 Curiosity',
   readquiz:    '📚 Read & Quiz',
@@ -575,6 +577,7 @@ function fmtDurAdmin(sec) {
 function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
   const [featureMode, setFeatureMode] = useState('count') // 'count' | 'time'
   const [activeCell, setActiveCell]   = useState(null)   // { day, hour, value } for heatmap popup
+  const [activeBar, setActiveBar]     = useState(null)   // { i, date, count } for daily bar tooltip
 
   const fmtHour = h => h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`
 
@@ -591,7 +594,7 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
         feature: f,
         count: data.featureBreakdown?.[f] ?? 0,
         sec:   data.durationByFeature?.[f] ?? 0,
-      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count).slice(0, 8)
+      })).sort((a, b) => featureMode === 'time' ? b.sec - a.sec : b.count - a.count)
     : []
   const featureMax   = allFeatures.length > 0 ? (featureMode === 'time' ? allFeatures[0].sec : allFeatures[0].count) : 1
   const featureTotal = allFeatures.reduce((s, r) => s + (featureMode === 'time' ? r.sec : r.count), 0)
@@ -640,24 +643,67 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
 
             {/* Daily active children */}
             {data.dailyActiveChildren?.length > 0 && (
-              <div style={{ flex: '1 1 240px' }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 10 }}>Daily active children</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: (data?.dailyActiveChildren?.length > 30) ? 1 : 2, height: 64, background: '#fafafa', borderRadius: 10, padding: '6px 8px', boxSizing: 'border-box' }}>
-                  {data.dailyActiveChildren.map((d, i) => (
-                    <div key={i}
-                      style={{ flex: 1, background: d.count > 0 ? '#4facfe' : '#e8e8e8', borderRadius: 3, height: `${Math.max(d.count / dailyMax * 100, d.count > 0 ? 8 : 3)}%`, opacity: d.count > 0 ? 0.7 + (d.count / dailyMax) * 0.3 : 0.3 }} />
-                  ))}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#bbb', marginTop: 4 }}>
-                  <span>{data.dailyActiveChildren[0]?.date?.slice(5)}</span>
-                  <span>{data.dailyActiveChildren[data.dailyActiveChildren.length - 1]?.date?.slice(5)}</span>
+              <div style={{ flex: '1 1 280px' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#555', marginBottom: 8 }}>Daily active children</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {/* Y-axis labels */}
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                    alignItems: 'flex-end', paddingBottom: 18, flexShrink: 0 }}>
+                    {[dailyMax, Math.round(dailyMax / 2), 0].filter((v, i, a) => a.indexOf(v) === i).map(v => (
+                      <span key={v} style={{ fontSize: 9, color: '#bbb', fontWeight: 700, lineHeight: 1 }}>{v}</span>
+                    ))}
+                  </div>
+                  {/* Chart area */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end',
+                      gap: data.dailyActiveChildren.length > 30 ? 1 : 2,
+                      height: 80, background: '#fafafa', borderRadius: 10,
+                      padding: '6px 8px', boxSizing: 'border-box',
+                      borderLeft: '1.5px solid #e8e8e8', borderBottom: '1.5px solid #e8e8e8' }}>
+                      {data.dailyActiveChildren.map((d, i) => {
+                        const isActive = activeBar?.i === i
+                        return (
+                          <div key={i} style={{ flex: 1, height: '100%', position: 'relative',
+                            display: 'flex', alignItems: 'flex-end' }}>
+                            {isActive && (
+                              <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)',
+                                left: '50%', transform: 'translateX(-50%)',
+                                background: '#1a1a2e', color: 'white', borderRadius: 6,
+                                padding: '3px 7px', fontSize: 10, fontWeight: 700,
+                                whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
+                                {d.date?.slice(5)}: {d.count}
+                              </div>
+                            )}
+                            <div
+                              onMouseEnter={() => setActiveBar({ i, date: d.date?.slice(5), count: d.count })}
+                              onMouseLeave={() => setActiveBar(null)}
+                              onTouchStart={e => { e.preventDefault(); setActiveBar({ i, date: d.date?.slice(5), count: d.count }) }}
+                              onTouchEnd={() => setTimeout(() => setActiveBar(null), 1400)}
+                              style={{ width: '100%',
+                                height: `${Math.max(d.count / dailyMax * 100, d.count > 0 ? 6 : 2)}%`,
+                                background: isActive ? '#1a1a2e' : d.count > 0 ? '#4facfe' : '#e8e8e8',
+                                borderRadius: '2px 2px 0 0',
+                                opacity: d.count > 0 ? 0.6 + (d.count / dailyMax) * 0.4 : 0.25,
+                                cursor: 'pointer', transition: 'background 0.1s' }} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#bbb', marginTop: 4, paddingLeft: 2 }}>
+                      <span>{data.dailyActiveChildren[0]?.date?.slice(5)}</span>
+                      {data.dailyActiveChildren.length > 6 && (
+                        <span>{data.dailyActiveChildren[Math.floor(data.dailyActiveChildren.length / 2)]?.date?.slice(5)}</span>
+                      )}
+                      <span>{data.dailyActiveChildren[data.dailyActiveChildren.length - 1]?.date?.slice(5)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Feature breakdown with count/time toggle */}
             {allFeatures.length > 0 && (
-              <div style={{ flex: '1 1 260px' }}>
+              <div style={{ flex: '1 1 100%' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>
                     Feature {featureMode === 'time' ? 'engagement' : 'popularity'}
@@ -674,28 +720,32 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
                     ))}
                   </div>
                 </div>
-                {allFeatures.map(({ feature, count, sec }, i) => {
-                  const val   = featureMode === 'time' ? sec : count
-                  const label = featureMode === 'time' ? fmtDurAdmin(sec) : count.toLocaleString()
-                  const sub   = featureMode === 'time' ? `${count.toLocaleString()} sessions` : (sec > 0 ? fmtDurAdmin(sec) : null)
-                  const pct   = featureMax > 0 ? Math.round((val / featureMax) * 100) : 0
-                  const share = featureTotal > 0 ? Math.round((val / featureTotal) * 100) : 0
-                  return (
-                    <div key={feature} style={{ marginBottom: 10 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#555', marginBottom: 4 }}>
-                        <span>{ACTIVITY_FEATURE_NAMES[feature] || feature}</span>
-                        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{ color: '#333', fontWeight: 900 }}>{label}</span>
-                          <span style={{ color: '#bbb', fontSize: 10 }}>{share}%</span>
-                          {sub && <span style={{ color: '#ccc', fontSize: 10 }}>· {sub}</span>}
-                        </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px 20px' }}>
+                  {allFeatures.map(({ feature, count, sec }, i) => {
+                    const val   = featureMode === 'time' ? sec : count
+                    const label = featureMode === 'time' ? fmtDurAdmin(sec) : count.toLocaleString()
+                    const sub   = featureMode === 'time' ? `${count.toLocaleString()} sess` : (sec > 0 ? fmtDurAdmin(sec) : null)
+                    const pct   = featureMax > 0 ? Math.round((val / featureMax) * 100) : 0
+                    const share = featureTotal > 0 ? Math.round((val / featureTotal) * 100) : 0
+                    return (
+                      <div key={feature}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, fontWeight: 700, color: '#555', marginBottom: 3 }}>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '55%' }}>
+                            {ACTIVITY_FEATURE_NAMES[feature] || feature}
+                          </span>
+                          <span style={{ display: 'flex', gap: 5, alignItems: 'center', flexShrink: 0 }}>
+                            <span style={{ color: '#333', fontWeight: 900 }}>{label}</span>
+                            <span style={{ color: '#bbb', fontSize: 10 }}>{share}%</span>
+                            {sub && <span style={{ color: '#ccc', fontSize: 9 }}>· {sub}</span>}
+                          </span>
+                        </div>
+                        <div style={{ background: '#f0f0f0', borderRadius: 6, height: 7, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, background: ACTIVITY_COLORS[i % ACTIVITY_COLORS.length], height: '100%', borderRadius: 6, transition: 'width 0.4s ease' }} />
+                        </div>
                       </div>
-                      <div style={{ background: '#f0f0f0', borderRadius: 6, height: 8, overflow: 'hidden' }}>
-                        <div style={{ width: `${pct}%`, background: ACTIVITY_COLORS[i % ACTIVITY_COLORS.length], height: '100%', borderRadius: 6, transition: 'width 0.4s ease' }} />
-                      </div>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>

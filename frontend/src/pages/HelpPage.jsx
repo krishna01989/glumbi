@@ -160,11 +160,41 @@ const SECTIONS = [
     items: [
       {
         q: 'What can my child draw?',
-        a: 'Anything they like — the canvas is a free-draw space with colour and brush options. When they\'re done, tap "Identify" and Glumbi will describe what it sees and say something encouraging about the drawing.',
+        a: 'Anything they like — the canvas is a free-draw space with colour and brush options. Tools include pencil, paint bucket fill, and eraser in multiple sizes.',
+      },
+      {
+        q: 'What does "Bring to Life" do?',
+        a: 'After drawing, tap "Bring to Life" and Glumbi\'s AI identifies what was drawn and plays a matching animation on top — a bee will fly around, a flower will wiggle, a rocket will launch. Each object gets its own animation based on what it is.',
       },
       {
         q: 'Are drawings saved?',
         a: 'Yes — all drawings are saved in the Draw history so your child can look back at their artwork.',
+      },
+    ],
+  },
+  {
+    emoji: '🎬',
+    title: 'Flipbook Studio',
+    items: [
+      {
+        q: 'What is Flipbook Studio?',
+        a: 'Flipbook Studio lets kids create frame-by-frame animations — just like a real paper flipbook. Draw on each frame, press play, and watch your pictures come alive as a smooth animation.',
+      },
+      {
+        q: 'How many frames can my child add?',
+        a: 'Up to 24 frames per flipbook. Use the + button to add a new blank frame, or the copy button to duplicate the current frame and make small changes — a great technique for smooth animation.',
+      },
+      {
+        q: 'What is the eye icon (👁️) in the toolbar?',
+        a: 'That\'s the onion skin toggle. When turned on, you can faintly see the previous frame behind your current one — this helps your child draw objects in slightly different positions to create smooth movement.',
+      },
+      {
+        q: 'Can my child download their animation?',
+        a: 'Yes! Tap "Save My Movie!" and the animation downloads as a video file (.webm) that can be played on any device.',
+      },
+      {
+        q: 'Can frames be reordered?',
+        a: 'Yes — drag and drop any frame thumbnail to move it to a different position. On touch devices, press and slide the frame to drag it.',
       },
     ],
   },

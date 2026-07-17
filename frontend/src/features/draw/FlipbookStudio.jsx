@@ -62,6 +62,18 @@ function fillWhite(canvas) {
   canvas.getContext('2d').fillRect(0, 0, W, H)
 }
 
+function useBreakpoint() {
+  const get = () => window.innerWidth < 640 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
+  const [bp, setBp] = useState(get)
+  useEffect(() => {
+    const update = () => setTimeout(() => setBp(get()), 100)
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => { window.removeEventListener('resize', update); window.removeEventListener('orientationchange', update) }
+  }, [])
+  return bp
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function FlipbookStudio({ track = () => {} }) {
   const fbSessionTracked = useRef(false)
@@ -560,23 +572,35 @@ export default function FlipbookStudio({ track = () => {} }) {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const bp = useBreakpoint()
+  const isMobile  = bp === 'mobile'
+  const isCompact = bp === 'mobile' || bp === 'tablet'
+
   const total = frames.length
 
   const toolbarStyle = {
-    width: isFullscreen ? 80 : 96,
+    // compact: full-width top bar (row). desktop/fullscreen: left column
+    width:     isFullscreen ? 80 : isCompact ? '100%' : 96,
     flexShrink: 0, alignSelf: 'stretch',
-    display: 'flex', flexDirection: 'column', gap: isFullscreen ? 8 : 12,
+    display: 'flex',
+    flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column',
+    flexWrap:  isCompact && !isFullscreen ? 'wrap' : undefined,
+    gap: isFullscreen ? 8 : isCompact ? 8 : 12,
     background: 'white',
     borderRadius: isFullscreen ? 0 : 20,
-    padding: isFullscreen ? '14px 10px' : '16px 10px',
+    padding: isFullscreen ? '14px 10px' : isCompact ? '10px 14px' : '16px 10px',
     boxShadow: isFullscreen ? '2px 0 8px rgba(0,0,0,0.06)' : 'var(--shadow)',
-    alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto',
+    alignItems: 'center',
+    justifyContent: isCompact && !isFullscreen ? 'space-between' : 'flex-start',
+    overflowY: isCompact ? undefined : 'auto',
+    overflowX: isCompact && !isFullscreen ? 'auto' : undefined,
   }
 
   return (
     <div ref={fsRef} style={{
       display: 'flex', flexDirection: 'column',
-      height: isFullscreen ? '100dvh' : '100%',
+      height: isFullscreen ? '100dvh' : isCompact ? 'auto' : '100%',
+      minHeight: isFullscreen ? undefined : isMobile ? undefined : isCompact ? '80vh' : undefined,
       width: isFullscreen ? '100dvw' : undefined,
       background: isFullscreen ? '#f5f5f5' : undefined,
       boxSizing: 'border-box', overflow: isFullscreen ? 'hidden' : undefined,
@@ -594,15 +618,15 @@ export default function FlipbookStudio({ track = () => {} }) {
       )}
 
       {/* ── Main row: toolbar + canvas ── */}
-      <div style={{ flex: 1, display: 'flex', gap: isFullscreen ? 0 : 20, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && !isFullscreen ? 'column' : 'row', gap: isFullscreen ? 0 : isCompact ? 12 : 20, minHeight: 0 }}>
 
-        {/* ── Toolbar (identical layout to Draw.jsx) ── */}
+        {/* ── Toolbar ── */}
         <div style={toolbarStyle}>
 
-          <SectionLabel>Colour</SectionLabel>
+          {!isCompact && !isFullscreen && <SectionLabel>Colour</SectionLabel>}
 
           {/* Active swatch + palette trigger */}
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isCompact ? 6 : 16 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12,
               background: eraser ? '#f5f5f5' : color,
               boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
@@ -660,24 +684,26 @@ export default function FlipbookStudio({ track = () => {} }) {
           </div>
 
           {/* Quick colours */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: 76 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isCompact ? undefined : 76 }}>
             {QUICK_COLORS.map(c => (
               <button key={c} onClick={() => pickColor(c)}
-                style={{ width: 22, height: 22, borderRadius: 6, background: c, border: 'none',
+                style={{ width: isCompact ? 20 : 22, height: isCompact ? 20 : 22, borderRadius: 6, background: c, border: 'none',
                   cursor: 'pointer', padding: 0,
                   boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 4px ${c}` : c === '#ffffff' ? '0 0 0 1px #ddd' : 'none',
                   transform: color === c && !eraser ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.12s' }} />
             ))}
           </div>
 
-          <HDivider />
-          <SectionLabel>Size</SectionLabel>
+          {!isCompact && !isFullscreen && <HDivider />}
+          {!isCompact && !isFullscreen && <SectionLabel>Size</SectionLabel>}
 
           {/* Brush sizes */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
             {BRUSHES.map(b => (
               <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
-                style={{ width: 72, height: b.btnH, borderRadius: 8, border: 'none', cursor: 'pointer',
+                style={{ width: isFullscreen ? 44 : isCompact ? 34 : 72,
+                  height: isFullscreen ? b.btnH * 0.8 : isCompact ? b.btnH * 0.75 : b.btnH,
+                  borderRadius: 8, border: 'none', cursor: 'pointer',
                   background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
                   outline: brush === b.size ? '2px solid var(--primary)' : 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 6px' }}>
@@ -687,11 +713,11 @@ export default function FlipbookStudio({ track = () => {} }) {
             ))}
           </div>
 
-          <HDivider />
-          <SectionLabel>Tools</SectionLabel>
+          {!isCompact && !isFullscreen && <HDivider />}
+          {!isCompact && !isFullscreen && <SectionLabel>Tools</SectionLabel>}
 
           {/* Tool buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
             {[
               { key: 'pencil', emoji: '✏️', active: !eraser && !fillMode, title: 'Pencil', onClick: () => { setEraser(false); setFillMode(false) } },
               { key: 'fill',   emoji: '🪣', active: fillMode, title: 'Fill',   onClick: () => { setFillMode(f => !f); setEraser(false) } },
@@ -701,7 +727,9 @@ export default function FlipbookStudio({ track = () => {} }) {
               { key: 'onion',  emoji: '👁️', active: showOnionSkin, title: 'Onion skin', onClick: () => setShowOnionSkin(v => !v) },
             ].map(({ key, emoji, active, disabled, onClick, title }) => (
               <button key={key} onClick={onClick} disabled={disabled} title={title ?? key}
-                style={{ width: 72, height: 32, borderRadius: 8, border: 'none',
+                style={{ width: isFullscreen ? 44 : isCompact ? 40 : 72,
+                  height: isFullscreen ? 40 : isCompact ? 38 : 32,
+                  borderRadius: 8, border: 'none',
                   cursor: disabled ? 'not-allowed' : 'pointer',
                   background: active ? 'var(--primary-lt)' : '#f5f5f5',
                   outline: active ? '2px solid var(--primary)' : 'none',

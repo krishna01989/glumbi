@@ -517,7 +517,9 @@ export default function Draw({ child, quota, featureConfig }) {
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 16,
-      height: isCompact ? 'auto' : '100%', fontFamily: 'Nunito, sans-serif',
+      height: isCompact ? 'auto' : '100%',
+      minHeight: isMobile ? undefined : isCompact ? '80vh' : undefined,
+      fontFamily: 'Nunito, sans-serif',
     }}>
     {drawTab === 'draw' && (loading || guideLoading || animLoading) && (
       <ThemeLoader theme={child.theme} label={loading ? 'Guessing your drawing…' : guideLoading ? 'Building your drawing guide…' : 'Bringing your drawing to life… 🎬'} />
@@ -542,12 +544,13 @@ export default function Draw({ child, quota, featureConfig }) {
       ))}
     </div>
 
-    {drawTab === 'flipbook' && (
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <FlipbookStudio track={track} />
-      </div>
-    )}
-    {drawTab === 'draw' && <>
+    {/* Flipbook — always mounted, hidden when not active so frames are never lost */}
+    <div style={{ display: drawTab === 'flipbook' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
+      <FlipbookStudio track={track} />
+    </div>
+
+    {/* Draw — always mounted, hidden when not active so canvas content is never lost */}
+    <div style={{ display: drawTab === 'draw' ? 'contents' : 'none' }}><>
 
       {/* ── Guide prompt (top, full width) ── */}
       {!isCompact && guideEnabled && (
@@ -788,7 +791,7 @@ export default function Draw({ child, quota, featureConfig }) {
         )}
 
         <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && guide && !isFullscreen ? 'column' : 'row',
-          gap: 16, minHeight: isCompact && !isFullscreen ? 340 : 0 }}>
+          gap: 16, minHeight: isCompact && !isFullscreen ? (isMobile ? 340 : 480) : 0 }}>
 
         {/* Guide panel — side panel in normal mode, floating overlay in fullscreen */}
         {guide && !isFullscreen && (
@@ -1085,7 +1088,7 @@ export default function Draw({ child, quota, featureConfig }) {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       `}</style>
-    </>}
-    </div>
+    </></div>
+  </div>
   )
 }

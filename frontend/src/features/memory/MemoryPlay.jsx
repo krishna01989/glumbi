@@ -674,9 +674,16 @@ function MemoryMatchTab({ child, quota, isActive }) {
 
 export default function MemoryPlay({ child, quota }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const tab = searchParams.get('tab') && ['flashcards', 'wordofday', 'match'].includes(searchParams.get('tab'))
-    ? searchParams.get('tab')
-    : 'flashcards'
+  const VALID_TABS = ['flashcards', 'wordofday', 'match']
+  const DEFAULT_TAB = 'flashcards'
+  const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : DEFAULT_TAB
+
+  // Ensure URL always reflects the active tab (including on first load)
+  useEffect(() => {
+    if (!VALID_TABS.includes(searchParams.get('tab'))) {
+      setSearchParams({ tab: DEFAULT_TAB }, { replace: true })
+    }
+  }, [])
 
   const isMobile = window.innerWidth < 600
 

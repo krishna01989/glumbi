@@ -242,6 +242,8 @@ public class ChildActivityEventService {
         String topMemoryTheme = null;
         List<Object[]> themeRows = repo.getTopMemoryMatchThemeForChild(childId, from);
         if (!themeRows.isEmpty() && themeRows.get(0)[0] != null) topMemoryTheme = themeRows.get(0)[0].toString();
+        // Draw: animate count
+        long drawAnimateCount = repo.countByChildFeatureEventType(childId, "draw", "animate", from);
 
         result.put("accuracyByFeature",      accuracyByFeature);
         result.put("completionsByFeature",   completionsByFeature);
@@ -255,6 +257,7 @@ public class ChildActivityEventService {
         result.put("learnPracticeCount",     learnPractice);
         result.put("mywritingAvgWordCount",  mywritingAvgWords != null ? mywritingAvgWords.longValue() : null);
         result.put("topMemoryMatchTheme",    topMemoryTheme);
+        result.put("drawAnimateCount",       drawAnimateCount);
         result.put("totalEvents",            total);
         result.put("totalSessions",          totalSessions);
         result.put("onlineCount",            online);

@@ -16,6 +16,8 @@ const FEATURE_META = {
   'learn-validate': { label: 'Learn to Write', emoji: '✏️' },
   'curiosity':      { label: 'Curiosity',      emoji: '🔍' },
   'draw':           { label: 'Draw',           emoji: '🎨' },
+  'draw-animate':   { label: 'Bring to Life',  emoji: '🎬' },
+  'draw-guide':     { label: 'Drawing Guide',  emoji: '🖌️' },
   'read-quiz':      { label: 'Read & Quiz',    emoji: '📚' },
   'writing-coach':  { label: 'My Writing',     emoji: '✍️' },
   'memory':         { label: 'Memory Play',    emoji: '🧠' },

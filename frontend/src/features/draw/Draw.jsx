@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { drawApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
@@ -6,6 +6,8 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
+import { safetyCheck } from './animationMatcher'
+import { bringToLife } from './animationEngine'
 
 function useBreakpoint() {
   const get = () => window.innerWidth < 640 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop'
@@ -74,6 +76,8 @@ export default function Draw({ child, quota, featureConfig }) {
   const { track } = useTracker()
   const offline = useOffline()
   const canvasRef  = useRef(null)
+  const overlayRef = useRef(null)   // transparent canvas for animation
+  const animRafRef = useRef(null)   // requestAnimationFrame id
   const colorInput = useRef(null)
   const drawing    = useRef(false)
   const lastPos    = useRef(null)
@@ -97,6 +101,15 @@ export default function Draw({ child, quota, featureConfig }) {
   const [showDemo, setShowDemo]   = useState(() => !localStorage.getItem('glm_draw_seen'))
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [viewport, setViewport]   = useState({ vw: window.innerWidth, vh: window.innerHeight })
+
+  // ── Animation state ──
+  const [animLoading, setAnimLoading] = useState(false)
+  const [animResult, setAnimResult]   = useState(null)   // resolved animation config
+  const [animPlan, setAnimPlan]       = useState(null)   // Claude-dictated animation plan
+  const [animBlocked, setAnimBlocked] = useState(false)
+  const [animBlockMsg, setAnimBlockMsg] = useState('')
+  const [animPlaying, setAnimPlaying] = useState(false)
+  const [animLabel, setAnimLabel]     = useState('')
 
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
@@ -131,6 +144,12 @@ export default function Draw({ child, quota, featureConfig }) {
     if (!drawAiEnabled) return false
     if (!featureConfig) return true
     const fc = featureConfig.find(f => f.featureName === 'draw-guide')
+    return !fc || fc.enabled !== false
+  })()
+  const animateEnabled = (() => {
+    if (!drawAiEnabled) return false
+    if (!featureConfig) return true
+    const fc = featureConfig.find(f => f.featureName === 'draw-animate')
     return !fc || fc.enabled !== false
   })()
   const [showPalette, setShowPalette] = useState(false)
@@ -288,6 +307,12 @@ export default function Draw({ child, quota, featureConfig }) {
   }
 
   function stopDraw() {
+    if (drawing.current) {
+      setAnimResult(null)
+      setAnimPlan(null)
+      setAnimLabel('')
+      stopAnimation()
+    }
     drawing.current = false
     lastPos.current = null
   }
@@ -299,6 +324,10 @@ export default function Draw({ child, quota, featureConfig }) {
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     setAiReply('')
     setIsEmpty(true)
+    setAnimResult(null)
+    setAnimPlan(null)
+    setAnimLabel('')
+    stopAnimation()
   }
 
   async function handleIdentify() {
@@ -331,6 +360,88 @@ export default function Draw({ child, quota, featureConfig }) {
       window.__glumbiRefreshQuota?.()
     } catch { setGuide('') }
     finally { setGuideLoading(false) }
+  }
+
+  function stopAnimation() {
+    animRafRef.current?.()
+    animRafRef.current = null
+    setAnimPlaying(false)
+  }
+
+  function playAnimation(detectedObjects, animationPlan) {
+    const overlay = overlayRef.current
+    if (!overlay) return
+    setAnimPlaying(true)
+    animRafRef.current = bringToLife(
+      overlay,
+      canvasRef.current,
+      detectedObjects,
+      child?.birthYear ? new Date().getFullYear() - child.birthYear : 5,
+      () => setAnimPlaying(false),
+      animationPlan
+    )
+  }
+
+  async function handleAnimate() {
+    if (isEmpty || offline || !animateEnabled) return
+    stopAnimation()
+    setAnimLoading(true)
+    setAnimBlocked(false)
+    setAnimResult(null)
+    setAnimLabel('')
+
+    try {
+      const imageData = canvasRef.current.toDataURL('image/png').split(',')[1]
+      const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
+      const { objects: rawJson } = await drawApi.animate(
+        imageData, child?.name || 'you', age, guideSubject, child?.id
+      )
+      track('draw', 'animate')
+      window.__glumbiRefreshQuota?.()
+
+      let parsed
+      try { parsed = JSON.parse(rawJson) } catch { parsed = null }
+
+      if (!parsed || parsed.blocked) {
+        setAnimBlocked(true)
+        setAnimBlockMsg("Let's draw something else — try animals, space, food, or sports! 🌟")
+        return
+      }
+
+      const objects = parsed.objects ?? []
+      if (!objects.length) {
+        setAnimBlocked(true)
+        setAnimBlockMsg("I couldn't find anything to animate. Try drawing something!")
+        return
+      }
+
+      // safety check on the primary detected object
+      const primary = objects[0]
+      const safety = safetyCheck(primary.label, primary.tags ?? [])
+      if (safety.hardBlock) {
+        setAnimBlocked(true)
+        setAnimBlockMsg("Let's draw something else — animals, space, food, or sports are great! 🌟")
+        return
+      }
+
+      setAnimResult(objects)
+      setAnimPlan(parsed.animation_plan ?? null)
+      const label = objects[0]?.label || 'drawing'
+      setAnimLabel(`✨ Your ${label} is coming to life!`)
+      playAnimation(objects, parsed.animation_plan)
+    } catch {
+      setAnimBlocked(true)
+      setAnimBlockMsg('Could not animate. Try again! 🎨')
+    } finally {
+      setAnimLoading(false)
+    }
+  }
+
+  function handleReplay() {
+    if (!animResult) return
+    stopAnimation()
+    playAnimation(animResult, animPlan)
+    track('draw', 'animate_replay')
   }
 
   function downloadDrawing() {
@@ -374,8 +485,8 @@ export default function Draw({ child, quota, featureConfig }) {
 
   return (
     <>
-    {(loading || guideLoading) && (
-      <ThemeLoader theme={child.theme} label={loading ? 'Guessing your drawing…' : 'Building your drawing guide…'} />
+    {(loading || guideLoading || animLoading) && (
+      <ThemeLoader theme={child.theme} label={loading ? 'Guessing your drawing…' : guideLoading ? 'Building your drawing guide…' : 'Bringing your drawing to life… 🎬'} />
     )}
     <div style={{
       display: 'flex',
@@ -660,6 +771,14 @@ export default function Draw({ child, quota, featureConfig }) {
             onMouseLeave={stopDraw}
             onTouchEnd={stopDraw}
           />
+          {/* Animation overlay — transparent, pointer-events:none so drawing still works */}
+          <canvas
+            ref={overlayRef}
+            width={1200}
+            height={800}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+              pointerEvents: 'none', display: 'block' }}
+          />
           {isEmpty && (
             <div style={{
               position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
@@ -715,7 +834,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
         {/* ── Fullscreen bottom action bar ── */}
         {isFullscreen && (
-          <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:10,
+          <div style={{ flexShrink:0, display:'flex', flexWrap:'wrap', alignItems:'center', gap:10,
             padding:'10px 16px', background:'white', borderTop:'1px solid #f0f0f0',
             boxSizing:'border-box', minHeight:60 }}>
             {drawAiEnabled && (
@@ -729,20 +848,46 @@ export default function Draw({ child, quota, featureConfig }) {
                 {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
               </button>
             )}
+            {animateEnabled && (
+              <button onClick={handleAnimate}
+                disabled={animLoading || isEmpty || quota?.used >= quota?.limit || offline}
+                style={{ padding:'10px 20px', borderRadius:50, border:'none', fontWeight:800,
+                  fontSize:14, cursor:(isEmpty||offline||animLoading)?'not-allowed':'pointer',
+                  background:'linear-gradient(135deg,#9c6ef8,#ff69b4)',
+                  color:'white', opacity:(isEmpty||offline)?0.45:1, flexShrink:0,
+                  whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(156,110,248,0.35)' }}>
+                {animLoading ? '✨ Animating…' : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
+              </button>
+            )}
+            {animResult && !animPlaying && !animLoading && (
+              <button onClick={handleReplay}
+                style={{ padding:'10px 16px', borderRadius:50, border:'none', fontWeight:800,
+                  fontSize:14, cursor:'pointer', background:'#f0f0f0', color:'#666',
+                  flexShrink:0, whiteSpace:'nowrap' }}>
+                🔁 Replay
+              </button>
+            )}
+            {(animLabel || animBlocked) && (
+              <div style={{ flex:1, minWidth:120, fontSize:13, fontWeight:600,
+                color: animBlocked ? '#856404' : '#555',
+                background: animBlocked ? '#fff3cd' : 'linear-gradient(135deg,rgba(156,110,248,0.12),rgba(255,105,180,0.12))',
+                borderRadius:12, padding:'8px 14px', display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ flex:1 }}>{animBlocked ? animBlockMsg : animLabel}</span>
+                <button onClick={() => { setAnimLabel(''); setAnimBlocked(false); stopAnimation() }}
+                  style={{ width:28, height:28, minWidth:28, minHeight:28, borderRadius:'50%', border:'none',
+                    background:'#f0f0f0', color:'#888', cursor:'pointer', fontSize:13, fontWeight:700,
+                    display:'flex', alignItems:'center', justifyContent:'center', padding:0, flexShrink:0 }}>✕</button>
+              </div>
+            )}
             {aiReply && (
-              <div style={{ flex:1, fontSize:13, fontWeight:600, color:'#444',
+              <div style={{ flex:1, minWidth:120, fontSize:13, fontWeight:600, color:'#444',
                 background:'var(--primary-lt)', borderRadius:12,
                 padding:'8px 14px', lineHeight:1.5, display:'flex', alignItems:'flex-start', gap:8 }}>
                 <span style={{ flex:1 }}>{aiReply}</span>
                 <button onClick={() => setAiReply('')}
-                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
-                    background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
-              </div>
-            )}
-            {!aiReply && !loading && (
-              <div style={{ flex:1, fontSize:12, color:'#ccc', fontWeight:600 }}>
-                {guideSubject ? `Drawing: ${guideSubject}` : 'Draw something, then ask AI to guess it!'}
+                  style={{ width:28, height:28, minWidth:28, minHeight:28, borderRadius:'50%', border:'none',
+                    background:'#f0f0f0', color:'#888', cursor:'pointer', fontSize:13, fontWeight:700,
+                    display:'flex', alignItems:'center', justifyContent:'center', padding:0, flexShrink:0 }}>✕</button>
               </div>
             )}
           </div>
@@ -753,7 +898,7 @@ export default function Draw({ child, quota, featureConfig }) {
       </div>{/* end fsRef / middle row */}
 
       {/* ── AI section — hidden in fullscreen ── */}
-      <div style={{ display: isFullscreen ? 'none' : 'flex', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
+      <div style={{ display: isFullscreen ? 'none' : 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
         {!drawAiEnabled && (
           <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
             ✈️ AI drawing features are currently off
@@ -771,6 +916,36 @@ export default function Draw({ child, quota, featureConfig }) {
           }}>
           {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
         </button>
+
+        {/* ── Bring to Life button ── */}
+        {animateEnabled && (
+          <button
+            onClick={handleAnimate}
+            disabled={animLoading || isEmpty || quota?.used >= quota?.limit || offline}
+            style={{
+              padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
+              background: 'linear-gradient(135deg,#9c6ef8,#ff69b4)',
+              color: 'white', border: 'none',
+              cursor: (isEmpty || offline || animLoading) ? 'not-allowed' : 'pointer',
+              opacity: (isEmpty || offline) ? 0.5 : 1,
+              boxShadow: '0 4px 16px rgba(156,110,248,0.35)',
+              whiteSpace: 'nowrap', alignSelf: 'center',
+              transition: 'transform 0.15s',
+            }}>
+            {animLoading ? '✨ Animating…' : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
+          </button>
+        )}
+
+        {/* Replay button */}
+        {animResult && !animPlaying && !animLoading && (
+          <button onClick={handleReplay}
+            style={{ padding: '14px 20px', borderRadius: 50, fontSize: 15, fontWeight: 800,
+              background: '#f0f0f0', color: '#666', border: 'none', cursor: 'pointer',
+              whiteSpace: 'nowrap', alignSelf: 'center' }}>
+            🔁 Replay
+          </button>
+        )}
+
         {aiReply && (
           <div style={{
             flex: 1, background: 'var(--primary-lt)',
@@ -780,6 +955,22 @@ export default function Draw({ child, quota, featureConfig }) {
           }}>
             <span style={{ flex: 1 }}>{aiReply}</span>
             <button onClick={() => setAiReply('')}
+              style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
+                background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
+          </div>
+        )}
+
+        {/* Animation label / blocked message */}
+        {(animLabel || animBlocked) && (
+          <div style={{
+            flex: 1, background: animBlocked ? '#fff3cd' : 'linear-gradient(135deg,rgba(156,110,248,0.12),rgba(255,105,180,0.12))',
+            borderRadius: 16, padding: '14px 20px',
+            fontSize: 15, fontWeight: 600, color: animBlocked ? '#856404' : '#555',
+            animation: 'fadeIn 0.4s ease', display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ flex: 1 }}>{animBlocked ? animBlockMsg : animLabel}</span>
+            <button onClick={() => { setAnimLabel(''); setAnimBlocked(false); stopAnimation() }}
               style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
                 background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>

@@ -35,13 +35,19 @@ public class ReadQuizController {
             return ResponseEntity.status(403).body(Map.of("error", "Read & Quiz is currently unavailable."));
         if (!rateLimiter.tryConsume(user.id(), Endpoint.READ_QUIZ))
             return ResponseEntity.status(429).body(Map.of("error", "Too many requests this hour. Try again later!"));
+        Object result;
+        try {
+            result = service.generate(req);
+        } catch (SafetyGuard.SafetyException | RelevanceGuard.RelevanceException e) {
+            // AI ran and blocked the content — still consume credit
+            quotaService.tryConsume(user.id(), "read-quiz", req.getChildId());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate quiz"));
+        }
         if (!quotaService.tryConsume(user.id(), "read-quiz", req.getChildId()))
             return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
-        try {
-            return ResponseEntity.ok(service.generate(req));
-        } catch (SafetyGuard.SafetyException | RelevanceGuard.RelevanceException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/{id}/submit")

@@ -36,10 +36,16 @@ public class RiddleController {
         String childName = body.get("childName");
         int childAge     = Integer.parseInt(body.get("childAge"));
 
+        Object result;
+        try {
+            result = agent.generate(childName, childAge);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate riddle"));
+        }
         if (!quotaService.tryConsume(user.id(), "riddle", childId)) {
             return ResponseEntity.status(429)
                     .body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         }
-        return ResponseEntity.ok(agent.generate(childName, childAge));
+        return ResponseEntity.ok(result);
     }
 }

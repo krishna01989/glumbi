@@ -3,9 +3,17 @@ package com.glumbi.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Shared HTTP client for the Anthropic Messages API.
@@ -28,8 +36,26 @@ public class AnthropicClient {
             @Value("${anthropic.messages-path}") String messagesPath) {
 
         this.messagesPath = messagesPath;
+
+        // Connection pool that validates connections before use — prevents "Operation timed out"
+        // errors on the first request after a long idle period (stale pooled connections).
+        ConnectionProvider provider = ConnectionProvider.builder("anthropic")
+                .maxConnections(20)
+                .maxIdleTime(Duration.ofSeconds(30))   // evict idle connections after 30s
+                .maxLifeTime(Duration.ofMinutes(5))    // recycle connections every 5 min
+                .pendingAcquireTimeout(Duration.ofSeconds(10))
+                .evictInBackground(Duration.ofSeconds(30))
+                .build();
+
+        HttpClient httpClient = HttpClient.create(provider)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10_000)
+                .responseTimeout(Duration.ofSeconds(90))
+                .doOnConnected(conn ->
+                        conn.addHandlerLast(new ReadTimeoutHandler(90, TimeUnit.SECONDS)));
+
         this.webClient = builder
                 .baseUrl(baseUrl)
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .defaultHeader("x-api-key", apiKey)
                 .defaultHeader("anthropic-version", version)
                 .defaultHeader("anthropic-beta", BETA_CACHE_HEADER)

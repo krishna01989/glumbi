@@ -181,6 +181,7 @@ const FEATURE_DISPLAY_MAP = {
   'memory-match':        { label: 'Memory Match',    icon: '🃏' },
   'journal-ai':          { label: 'Journal AI',      icon: '📝' },
   'draw-guide':          { label: 'Drawing Guide',   icon: '🎨' },
+  'draw-animate':        { label: 'Bring to Life',   icon: '🎬' },
   'maze':                { label: 'Maze',            icon: '🌀' },
   'riddle':              { label: 'Riddle',          icon: '🧩' },
 }
@@ -1555,6 +1556,7 @@ const FEATURE_META = {
   'memory-match':        { label: 'Memory Match',    icon: '🃏', desc: 'Generate a memory match game',           maxTokens: 300, suggestedCost: 1 },
   'journal-ai':          { label: 'Journal AI',      icon: '📝', desc: "AI-generated journal entry from child's daily activity", maxTokens: 400, suggestedCost: 2 },
   'draw-guide':          { label: 'Drawing Guide',   icon: '🎨', desc: 'Step-by-step AI drawing guide for a chosen subject',     maxTokens: 300, suggestedCost: 1 },
+  'draw-animate':        { label: 'Bring to Life',   icon: '🎬', desc: "Analyzes a child's drawing and returns animation objects (1 credit per tap; replays are free)", maxTokens: 600, suggestedCost: 1 },
   'maze':                { label: 'Maze',            icon: '🌀', desc: 'Generate a themed maze level with age-based complexity',  maxTokens: 300, suggestedCost: 1 },
   'riddle':              { label: 'Riddle',          icon: '🧩', desc: 'Generate a set of 5 age-appropriate riddles',             maxTokens: 400, suggestedCost: 1 },
 }
@@ -1570,7 +1572,7 @@ function complexityLabel(maxTokens) {
 // Budget simulator default usage mix (uses per month per feature)
 const DEFAULT_MIX = {
   'story': 3, 'activity': 3, 'curiosity': 5, 'read-quiz': 2,
-  'writing-coach': 3, 'translation': 1, 'draw': 3, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
+  'writing-coach': 3, 'translation': 1, 'draw': 3, 'draw-animate': 2, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
   'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2, 'journal-ai': 3, 'draw-guide': 4,
   'maze': 3, 'riddle': 3,
 }

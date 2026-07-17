@@ -200,6 +200,8 @@ function ActivityTab({ childName, t }) {
                   const worst = data.wordAccuracy[0]
                   extraChips.push({ key: 'word', icon: '📝', text: `Hardest word: "${worst.word}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
                 }
+                if (feature === 'draw' && data?.drawAnimateCount > 0)
+                  extraChips.push({ key: 'animate', icon: '🎬', text: `${data.drawAnimateCount} drawing${data.drawAnimateCount !== 1 ? 's' : ''} brought to life`, color: '#9c6ef8', bg: '#faf5ff' })
                 return (
                   <div key={feature} style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>

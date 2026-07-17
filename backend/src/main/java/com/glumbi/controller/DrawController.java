@@ -31,13 +31,35 @@ public class DrawController {
         if (!quotaService.isFeatureEnabled(authUser.id(), "draw"))
             return ResponseEntity.status(403).body(Map.of("error", "Drawing is currently unavailable"));
         Long drawChildId = body.containsKey("childId") ? Long.parseLong(body.get("childId")) : null;
-        if (!quotaService.tryConsume(authUser.id(), "draw", drawChildId))
-            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
 
         String response = drawAgent.identifyDrawing(imageData, childName, childAge, subject);
         if (response == null)
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not identify drawing"));
+        if (!quotaService.tryConsume(authUser.id(), "draw", drawChildId))
+            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         return ResponseEntity.ok(Map.of("response", response));
+    }
+
+    @PostMapping("/animate")
+    public ResponseEntity<?> animate(@RequestBody Map<String, String> body,
+                                     @AuthenticationPrincipal AuthUser authUser) {
+        String imageData = body.get("imageData");
+        String childName = body.getOrDefault("childName", "you");
+        int childAge     = Integer.parseInt(body.getOrDefault("childAge", "5"));
+        String subject   = body.getOrDefault("subject", "").trim();
+
+        if (imageData == null || imageData.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "No image provided"));
+        if (!quotaService.isFeatureEnabled(authUser.id(), "draw-animate"))
+            return ResponseEntity.status(403).body(Map.of("error", "Animation is currently unavailable"));
+        Long childId = body.containsKey("childId") ? Long.parseLong(body.get("childId")) : null;
+
+        String response = drawAgent.animateDrawing(imageData, childName, childAge, subject);
+        if (response == null)
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not analyze drawing"));
+        if (!quotaService.tryConsume(authUser.id(), "draw-animate", childId))
+            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
+        return ResponseEntity.ok(Map.of("objects", response));
     }
 
     @PostMapping("/guide")
@@ -54,12 +76,12 @@ public class DrawController {
         if (!quotaService.isFeatureEnabled(authUser.id(), "draw-guide"))
             return ResponseEntity.status(403).body(Map.of("error", "Drawing guide is not enabled"));
         Long guideChildId = body.containsKey("childId") ? Long.parseLong(body.get("childId")) : null;
-        if (!quotaService.tryConsume(authUser.id(), "draw-guide", guideChildId))
-            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
 
         String guide = drawAgent.generateGuide(subject, childName, childAge);
         if (guide == null)
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate guide"));
+        if (!quotaService.tryConsume(authUser.id(), "draw-guide", guideChildId))
+            return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
         return ResponseEntity.ok(Map.of("guide", guide));
     }
 }

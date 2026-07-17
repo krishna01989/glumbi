@@ -448,7 +448,7 @@ Schema is managed by JPA `ddl-auto: update` — tables are created/altered autom
 
 > **New user quota:** `quotaLimit` is set to the current global default at registration time (not 0). Users without a personal override inherit the default stored at signup; changing the global default only affects future signups. To migrate existing users: `UPDATE app_user SET quota_limit = <new> WHERE quota_limit = <old>`.
 
-> **Feature config seeding:** `FeatureConfigSeeder` inserts a default `FeatureConfig` row for each feature key on startup if none exists. Current keys: `story`, `activity`, `curiosity`, `read-quiz`, `writing-coach`, `learn-validate`, `learn-word`, `translation`, `draw`, `memory-flashcards`, `word-of-day`, `memory-match`, `journal-ai`, `draw-guide`, `maze`, `riddle`.
+> **Feature config seeding:** `FeatureConfigSeeder` inserts a default `FeatureConfig` row for each feature key on startup if none exists. Current keys: `story`, `activity`, `curiosity`, `read-quiz`, `writing-coach`, `learn-validate`, `learn-word`, `translation`, `draw`, `memory-flashcards`, `word-of-day`, `memory-match`, `journal-ai`, `draw-guide`, `draw-animate`, `maze`, `riddle`. The `flipbook` feature is credit-free (pure canvas, no AI calls) and tracked via the analytics event system only.
 
 > **Note:** the `notifications.type` column has a CHECK constraint. When adding new `NotificationType` enum values, run:
 > ```sql

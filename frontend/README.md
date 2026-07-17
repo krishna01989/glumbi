@@ -66,7 +66,10 @@ src/
 │   └── legal/                  # Privacy, Terms, Contact pages
 ├── features/
 │   ├── stories/Stories.jsx     # AI story generation + TTS + voice/accent picker
-│   ├── draw/Draw.jsx           # Free-draw canvas + AI drawing guide + fullscreen
+│   ├── draw/Draw.jsx           # Free-draw canvas + AI drawing guide + "Bring to Life" animation + fullscreen
+│   ├── draw/FlipbookStudio.jsx # Frame-by-frame animation studio (tab inside Draw)
+│   ├── draw/animationEngine.js # Canvas animation engine: cutout extraction, 100+ object animators, particle system
+│   ├── draw/animationLibrary.js # Object → animation mapping (1000+ label definitions)
 │   ├── journal/Journal.jsx     # Private kid journal
 │   ├── curiosity/Curiosity.jsx # Daily curiosity questions + semantic similar
 │   ├── learn/LearnPage.jsx     # Letter/word tracing with AI validation + fullscreen
@@ -151,6 +154,23 @@ All API calls go through the Axios instance in `client.js`. It:
 - `index.html` includes an inline fallback rendered inside `#root` that stays visible if the JS bundle errors before React mounts; disappears automatically once React takes over
 - `vercel.json` wires `404.html` and `500.html` as Vercel error pages
 - **Admin 502 redirect loop:** The admin `Routes` block in `App.jsx` must include `<Route path="/error/:code" element={<ErrorPage .../>} />` before its wildcard `path="*"` catch-all. Without it, `/error/502` matches the wildcard and redirects back to `/admin/dashboard`, triggering another 502 — an infinite loop. Child routes avoid this via an early `if (/^\/error\//.test(location.pathname))` guard that runs before the Routes tree.
+
+### Draw + Bring to Life (`features/draw/Draw.jsx` + `animationEngine.js`)
+
+- Free-draw canvas with pencil, paint bucket (flood fill, tolerance 32), and eraser tools. Five brush sizes. Fullscreen mode.
+- **"Bring to Life"** sends the canvas as a base64 PNG to the backend (`/api/draw/animate`), which uses Claude vision to identify objects and return a structured animation plan (object label, bounding box, animation type). The frontend `bringToLife()` function in `animationEngine.js` crops each object's region from the canvas (`extractCutout`), strips the white background (`stripWhite`, threshold 248), and runs object-specific animators.
+- **Animation engine** (`animationEngine.js`): 100+ named animators (bee flies arc, flower wiggles, rocket launches, etc.), a particle system, ambient background particles, multi-object interaction scenes (pollination, dog fetch, basketball shot, rocket-moon, etc.), and a `buildAdaptiveSceneAnim` fallback that assigns roles (background/midground/foreground) to any combination of detected objects.
+- **Tab strip**: Draw and Flipbook share the same route (`/child/:id/draw`) with `?tab=draw` / `?tab=flipbook` query params managed via `useSearchParams`.
+
+### Flipbook Studio (`features/draw/FlipbookStudio.jsx`)
+
+- Frame-by-frame animation studio accessible via the Flipbook tab inside Draw.
+- Up to **24 frames**. Tools: pencil (crosshair cursor), paint bucket fill, eraser, undo, clear frame, onion skin toggle (👁️ — shows previous frame at 30% opacity).
+- **Playback**: `setInterval` at selected fps (2 / 4 / 8 / 12). During playback, `setCurrentIdx` updates every tick so the frame strip highlight and counter track the playing frame. `stopPlay` syncs `currentIdxRef` to where playback stopped.
+- **Frame strip**: horizontally scrollable thumbnail strip with drag-and-drop reorder. Mouse: HTML5 drag events. Touch: `onTouchMove` with 8px movement threshold spawns a fixed-position ghost thumbnail; `document.elementFromPoint` finds the drop target; `onTouchEnd` prevents the synthetic click (taps still select frames). Auto-scrolls the active frame into view via `scrollIntoView` in a `useEffect` watching `currentIdx`.
+- **Download**: `MediaRecorder` + `canvas.captureStream(fps)` renders each frame to an offscreen canvas and records as `.webm` video — no external library.
+- **Blend Frames**: pixel-by-pixel linear interpolation (`lerp`) between the current and next frame — inserts 2 intermediate blended frames. Honest label ("mixes this + next frame") since it creates colour blends, not motion paths.
+- **Analytics**: `useFeatureDuration('flipbook', track)` session event on unmount; `track('flipbook', 'play')`, `track('flipbook', 'save')`, `track('flipbook', 'smooth')` for specific actions.
 
 ### Maze (`features/trace/Maze.jsx`)
 
@@ -401,7 +421,7 @@ Routes are split across three files. `App.jsx` selects which set to render based
 | `/child/:id/curiosity` | Curiosity |
 | `/child/:id/readquiz` | Read & Quiz |
 | `/child/:id/mywriting` | My Writing |
-| `/child/:id/draw` | Draw |
+| `/child/:id/draw` | Draw (✏️ Draw tab + 🎬 Flipbook tab via `?tab=flipbook`) |
 | `/child/:id/journal` | Journal |
 | `/child/:id/timeline` | Timeline |
 | `/child/:id/learn` | Learn to Write |

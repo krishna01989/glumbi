@@ -49,7 +49,20 @@ export default function ReadQuiz({ child, quota }) {
   const [answers,     setAnswers]     = useState([null, null, null])
   const [submitted,   setSubmitted]   = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const fsRef = useRef(null)
   const isMobile = useIsMobile()
+
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) fsRef.current?.requestFullscreen?.()
+    else document.exitFullscreen?.()
+  }
 
   useEffect(() => {
     readQuizApi.getByChild(child.id).then(setEntries).catch(() => {})
@@ -67,7 +80,7 @@ export default function ReadQuiz({ child, quota }) {
       setEntries(prev => [{ ...entry, questions }, ...prev])
       openEntry({ ...entry, questions })
       setTopic('')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('read-quiz')
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -176,7 +189,7 @@ export default function ReadQuiz({ child, quota }) {
               }}>
               {loading
                 ? <><span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Creating magic…</>
-                : offline ? '✈️ AI is off' : '✨ Generate Story'}
+                : offline ? '✈️ ✨ Generate Story' : '✨ Generate Story'}
             </button>
           </form>
         </div>
@@ -223,7 +236,41 @@ export default function ReadQuiz({ child, quota }) {
       </HistoryDrawer>
 
       {/* ── Right panel ── */}
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div ref={fsRef} style={isFullscreen ? {
+        height: '100dvh', width: '100dvw', display: 'flex', flexDirection: 'column',
+        overflow: 'hidden', background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+      } : { flex: 1, overflowY: 'auto', minHeight: 0 }}>
+
+        {/* Fullscreen header */}
+        {isFullscreen && selected && (
+          <div style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 14,
+            padding: isMobile ? '12px 14px' : '14px 24px',
+            borderBottom: '1px solid rgba(255,255,255,0.2)',
+          }}>
+            <span style={{ fontSize: isMobile ? 28 : 36 }}>
+              {TOPICS.find(t => t.label === selected.topic)?.emoji || '📚'}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 15 : 20, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                {selected.title}
+              </h2>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 2 }}>
+                🌟 {selected.lesson} · ⏱ {selected.readingTime}
+              </div>
+            </div>
+            <button onClick={toggleFullscreen} title="Exit fullscreen"
+              style={{ width: 34, height: 34, minWidth: 34, minHeight: 34, borderRadius: '50%', border: 'none', flexShrink: 0,
+                background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(6px)',
+                color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <div style={isFullscreen ? { flex: 1, overflowY: 'auto', padding: isMobile ? '16px 14px' : '24px max(24px, calc(50% - 440px))' } : {}}>
         {loading ? (
           <ThemeLoader theme={child.theme} label="Crafting your story & questions…" />
         ) : !selected ? (
@@ -237,9 +284,9 @@ export default function ReadQuiz({ child, quota }) {
 
             {/* Story header */}
             <div style={{
-              background: `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
+              background: isFullscreen ? 'rgba(255,255,255,0.95)' : `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
               borderRadius: 20, padding: 'clamp(20px,3vw,32px)',
-              border: `2px solid ${lessonColor}33`, marginBottom: 24,
+              border: isFullscreen ? 'none' : `2px solid ${lessonColor}33`, marginBottom: 24,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                 <div>
@@ -264,10 +311,20 @@ export default function ReadQuiz({ child, quota }) {
                     )}
                   </div>
                 </div>
-                <button onClick={() => handleDelete(selected.id)}
-                  style={{ background: '#fff0f0', border: 'none', color: '#e74c3c', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                  🗑 Delete
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  {!isFullscreen && (
+                    <button onClick={toggleFullscreen} title="Fullscreen reading mode"
+                      style={{ background: '#f5f5f5', border: 'none', color: '#888', padding: '6px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+                      </svg>
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(selected.id)}
+                    style={{ background: '#fff0f0', border: 'none', color: '#e74c3c', padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    🗑 Delete
+                  </button>
+                </div>
               </div>
 
               {/* Story text */}
@@ -289,9 +346,9 @@ export default function ReadQuiz({ child, quota }) {
 
             {/* Quiz */}
             <div style={{
-              background: `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
+              background: isFullscreen ? 'rgba(255,255,255,0.95)' : `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
               borderRadius: 20, padding: 'clamp(20px,3vw,32px)',
-              border: `2px solid ${lessonColor}33`, marginBottom: 24,
+              border: isFullscreen ? 'none' : `2px solid ${lessonColor}33`, marginBottom: 24,
             }}>
               <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>
                 🧠 Comprehension Quiz
@@ -381,6 +438,7 @@ export default function ReadQuiz({ child, quota }) {
             </div>
           </div>
         )}
+        </div>{/* end inner scroll wrapper */}
       </div>
 
       <style>{`

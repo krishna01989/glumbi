@@ -444,7 +444,7 @@ export default function Draw({ child, quota, featureConfig }) {
       setGuide(text)
       setGuideSubject(guideInput.trim())
       setGuideInput('')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('draw-guide')
     } catch { setGuide('') }
     finally { setGuideLoading(false) }
   }
@@ -484,7 +484,7 @@ export default function Draw({ child, quota, featureConfig }) {
         imageData, child?.name || 'you', age, guideSubject, child?.id
       )
       track('draw', 'animate')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('draw')
 
       let parsed
       try { parsed = JSON.parse(rawJson) } catch { parsed = null }
@@ -769,7 +769,7 @@ export default function Draw({ child, quota, featureConfig }) {
               fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
               background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
               color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
-            {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ AI is off' : '✨ Show me how!'}
+            {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ ✨ Show me how!' : '✨ Show me how!'}
           </button>
         </form>
       )}
@@ -996,7 +996,7 @@ export default function Draw({ child, quota, featureConfig }) {
                 fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
                 background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
                 color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
-              {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ AI is off' : '✨ Show me how!'}
+              {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ ✨ Show me how!' : '✨ Show me how!'}
             </button>
           </form>
         )}
@@ -1150,7 +1150,7 @@ export default function Draw({ child, quota, featureConfig }) {
                   background:'linear-gradient(135deg,var(--primary),var(--accent))',
                   color:'white', opacity:(isEmpty||offline)?0.45:1, flexShrink:0,
                   whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(0,0,0,0.15)' }}>
-                {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
+                {loading ? '🤔 Thinking…' : offline ? (guideSubject ? '✈️ 🎉 How did I do?' : '✈️ ✨ What did I draw?') : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
               </button>
             )}
             {animateEnabled && (
@@ -1161,7 +1161,7 @@ export default function Draw({ child, quota, featureConfig }) {
                   background:'linear-gradient(135deg,#9c6ef8,#ff69b4)',
                   color:'white', opacity:(isEmpty||offline||!drawnAfterAnim||animCooldown>0)?0.45:1, flexShrink:0,
                   whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(156,110,248,0.35)' }}>
-                {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
+                {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ 🎬 Bring to Life!' : '🎬 Bring to Life!'}
               </button>
             )}
             {animResult && !animPlaying && !animLoading && (
@@ -1219,7 +1219,7 @@ export default function Draw({ child, quota, featureConfig }) {
             boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
             whiteSpace: 'nowrap', alignSelf: 'center',
           }}>
-          {loading ? '🤔 Thinking…' : offline ? '✈️ AI is off' : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
+          {loading ? '🤔 Thinking…' : offline ? (guideSubject ? '✈️ 🎉 How did I do?' : '✈️ ✨ What did I draw?') : guideSubject ? '🎉 How did I do?' : '✨ What did I draw?'}
         </button>
 
         {/* ── Bring to Life button ── */}
@@ -1237,7 +1237,7 @@ export default function Draw({ child, quota, featureConfig }) {
               whiteSpace: 'nowrap', alignSelf: 'center',
               transition: 'transform 0.15s',
             }}>
-            {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ AI is off' : '🎬 Bring to Life!'}
+            {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ 🎬 Bring to Life!' : '🎬 Bring to Life!'}
           </button>
         )}
 

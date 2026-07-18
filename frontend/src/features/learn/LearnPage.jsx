@@ -770,7 +770,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
       const result = await learnApi.validate(imageData, selected.char, script, child?.name || 'you', age, child?.id)
       track('learn', 'ai_validate', { metadata: { script, letter: selected?.char, correct: result.correct } })
       setFeedback({ type: 'ai', correct: result.correct, text: result.feedback, emoji: result.correct ? '🎉' : '💪' })
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('learn-validate')
     } catch { setFeedback({ type: 'ai', correct: true, text: 'Great effort! Keep practising! 🌟', emoji: '🌟' }) }
     finally { setLoading(false) }
   }
@@ -990,7 +990,7 @@ function WordMode({ script, child, quota }) {
       const data = await learnApi.identifyWord(imageData, script, childName, childAge, child?.id, targetWord)
       track('learn', 'ai_word', { metadata: { script, word: targetWord, correct: data.correct } })
       setResult(data)
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('learn-word')
       if (data.correct && data.translations?.[crossKey]) play(data.translations[crossKey], crossTts)
     } catch {
       setResult({ correct:false, couldRead:false, feedback:"Couldn't read that — try writing a bit bigger! 😊", emoji:'✍️' })

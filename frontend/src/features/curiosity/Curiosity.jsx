@@ -203,7 +203,7 @@ export default function Curiosity({ child, quota }) {
       track('curiosity', 'ask')
       setEntries(prev => [entry, ...prev])
       setQuestion('')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('curiosity')
     } catch (e) {
       setError(e.message)
     } finally { setLoading(false) }
@@ -248,7 +248,7 @@ export default function Curiosity({ child, quota }) {
         <ErrorBox msg={error} />
         <button type="submit" disabled={loading || !question.trim() || quota?.used >= quota?.limit || offline}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
-          {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : offline ? '✈️ AI is off' : '✨ Explain to ' + child.name}
+          {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : offline ? `✈️ ✨ Explain to ${child.name}` : '✨ Explain to ' + child.name}
         </button>
       </form>
 

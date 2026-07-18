@@ -105,7 +105,7 @@ function FlashcardsTab({ child, quota }) {
       setSets(prev => [set, ...prev])
       setActiveSet(set)
       setTopic('')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('memory-flashcards')
     } catch (err) {
       setError(err.message)
     } finally { setLoading(false) }
@@ -141,7 +141,7 @@ function FlashcardsTab({ child, quota }) {
         <ErrorBox msg={error} />
         <button type="submit" disabled={loading || !topic.trim() || offline || quota?.used >= quota?.limit}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: (loading || offline) ? 'not-allowed' : 'pointer', opacity: (loading || offline) ? 0.6 : 1 }}>
-          {loading ? <><span className="spinner" /> &nbsp;Generating…</> : offline ? '✈️ AI is off' : '✨ Generate Cards'}
+          {loading ? <><span className="spinner" /> &nbsp;Generating…</> : offline ? '✈️ ✨ Generate Cards' : '✨ Generate Cards'}
         </button>
       </form>
 
@@ -563,7 +563,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
       setMatches(prev => [match, ...prev])
       startMatch(match)
       setTheme('')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('memory-match')
     } catch (err) {
       setError(err.message)
     } finally { setLoading(false) }
@@ -608,7 +608,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
         <ErrorBox msg={error} />
         <button type="submit" disabled={loading || !theme.trim() || offline || quota?.used >= quota?.limit}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: (loading || offline) ? 'not-allowed' : 'pointer', opacity: (loading || offline) ? 0.6 : 1 }}>
-          {loading ? <><span className="spinner" /> &nbsp;Generating…</> : offline ? '✈️ AI is off' : '✨ Generate Game'}
+          {loading ? <><span className="spinner" /> &nbsp;Generating…</> : offline ? '✈️ ✨ Generate Game' : '✨ Generate Game'}
         </button>
       </form>
 

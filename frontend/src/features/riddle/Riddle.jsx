@@ -82,6 +82,7 @@ export default function Riddle({ child, quota, featureConfig }) {
     try {
       const result = await riddleApi.generate(child.id, child.name, childAge)
       track('riddle', 'generate')
+      window.__glumbiRefreshQuota?.('riddle')
       riddleStartTime.current = Date.now()
       setRiddles(result.slice(0, 5))
       setCurrentIdx(0)
@@ -124,7 +125,7 @@ export default function Riddle({ child, quota, featureConfig }) {
         setWrongCount(0)
         setFeedback(null)
       }
-    }, 1200)
+    }, 2500)
   }
 
   function handleSubmit() {
@@ -143,7 +144,7 @@ export default function Riddle({ child, quota, featureConfig }) {
       } else {
         setFeedback('wrong')
         track('riddle', 'wrong', { metadata: { riddle: current.question, attempt: newWrong } })
-        setTimeout(() => { setFeedback(null); setInput('') }, 1000)
+        setTimeout(() => { setFeedback(null); setInput('') }, 2000)
       }
     }
   }
@@ -307,7 +308,7 @@ export default function Riddle({ child, quota, featureConfig }) {
             color: 'var(--primary)', fontWeight: 700, fontSize: 13, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Nunito, sans-serif',
             opacity: loading ? 0.6 : 1,
           }}>
-            ✨ Get New AI Riddles (1 credit)
+            ✨ Get New AI Riddles
           </button>
         </div>
       )}

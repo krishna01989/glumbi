@@ -143,7 +143,7 @@ export default function MyWriting({ child, quota }) {
       const result = await writingApi.continue(entry.id)
       track('mywriting', 'ai_continue')
       setContinuation(result)
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('writing-coach')
     } catch (e) { setError(e.message) }
     finally { setContLoading(false) }
   }
@@ -221,7 +221,7 @@ export default function MyWriting({ child, quota }) {
         badge: result.badge,
       })
       setEntries(prev => prev.map(e => e.id === result.id ? result : e))
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('writing-coach')
     } catch (e) { setError(e.message) }
     finally { setFbLoading(false) }
   }
@@ -426,7 +426,7 @@ export default function MyWriting({ child, quota }) {
                     }}>
                     {fbLoading
                       ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Reading…</>
-                      : offline ? '✈️ AI is off' : '✨ Get Feedback'}
+                      : offline ? '✈️ ✨ Get Feedback' : '✨ Get Feedback'}
                   </button>
                 </div>
               </div>
@@ -550,7 +550,7 @@ export default function MyWriting({ child, quota }) {
               {!selected.feedbackReceived && (
                 <button onClick={() => !offline && editEntry(selected)} disabled={offline}
                   style={{ marginTop: 16, padding: '12px 24px', borderRadius: 50, background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none', fontWeight: 800, fontSize: 13, cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
-                  {offline ? '✈️ AI is off' : '✨ Edit & Get Feedback'}
+                  {offline ? '✈️ ✨ Edit & Get Feedback' : '✨ Edit & Get Feedback'}
                 </button>
               )}
             </div>
@@ -609,7 +609,7 @@ export default function MyWriting({ child, quota }) {
                   }}>
                   {contLoading
                     ? <><span style={{ width: 14, height: 14, border: '2px solid rgba(0,0,0,0.15)', borderTopColor: '#aaa', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Imagining what happens next…</>
-                    : offline ? '✈️ AI is off' : '✨ What happens next?'}
+                    : offline ? '✈️ ✨ What happens next?' : '✨ What happens next?'}
                 </button>
               )}
               {continuation && (

@@ -361,6 +361,7 @@ export default function Maze({ child, quota, featureConfig }) {
       const difficulty = childAge <= 4 ? 'easy' : childAge <= 7 ? 'medium' : 'hard'
       const result = await traceApi.generate(child.id, child.name, childAge, difficulty)
       track('maze', 'ai_theme', { metadata: { difficulty } })
+      window.__glumbiRefreshQuota?.('maze')
       setSeed((Math.random() * 1e8) | 0)
       setThemeIdx(i => (i + 1) % BASE_THEMES.length)
       setAiSkin(result)

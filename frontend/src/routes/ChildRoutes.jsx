@@ -18,6 +18,7 @@ import LearnPage       from '../features/learn/LearnPage'
 import ChildForm       from '../pages/ChildForm'
 import ProfilePage     from '../pages/ProfilePage'
 import ErrorPage       from '../pages/ErrorPage'
+import CreditPop      from '../components/CreditPop'
 import PrivacyPage     from '../pages/legal/PrivacyPage'
 import TermsPage       from '../pages/legal/TermsPage'
 import ContactPage     from '../pages/legal/ContactPage'
@@ -53,6 +54,7 @@ export default function ChildRoutes({
   return (
     <OfflineContext.Provider value={offlineMode}>
       <TrackerProvider child={child} childLocked={childLocked}>
+      <CreditPop />
       <div className="page-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Routes>
           <Route path="/child/:childId/stories"    element={guard('story',              <Stories    child={child} quota={quota} />)} />

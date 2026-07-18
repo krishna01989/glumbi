@@ -52,7 +52,7 @@ export default function Journal({ child, featureConfig, quota }) {
       setContent(result.content || '')
       if (result.mood)      setMood(result.mood)
       if (result.milestone) setMilestone(result.milestone)
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('journal-ai')
     } catch {
       setAiError('Could not generate entry. Try again.')
     } finally { setAiLoading(false) }
@@ -142,7 +142,7 @@ export default function Journal({ child, featureConfig, quota }) {
                 style={{ flex: 1, padding: '11px', fontSize: 14, fontWeight: 700, borderRadius: 50, border: '2px solid var(--primary)',
                   background: 'white', color: offline ? '#aaa' : 'var(--primary)',
                   cursor: offline ? 'not-allowed' : 'pointer', borderColor: offline ? '#ddd' : 'var(--primary)' }}>
-                {aiLoading ? <><span className="spinner" /> Generating…</> : offline ? '✈️ AI is off' : '✨ Write with AI'}
+                {aiLoading ? <><span className="spinner" /> Generating…</> : offline ? '✈️ ✨ Write with AI' : '✨ Write with AI'}
               </button>
             )}
             <button type="submit" disabled={saving || !content.trim()}

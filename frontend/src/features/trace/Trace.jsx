@@ -321,6 +321,7 @@ export default function Trace({ child, quota, featureConfig }) {
     setLoading(true); setError('')
     try {
       const result = await traceApi.generate(child.id, child.name, childAge, difficulty)
+      window.__glumbiRefreshQuota?.('trace')
       setAiTheme(result)
       resetMaze(mazeIdx+1)
     } catch(err) { setError(err.message||'Could not generate. Try again!') }

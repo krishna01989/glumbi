@@ -46,8 +46,16 @@ export function useAuth({ addToast }) {
 
   // Expose quota refresh globally so AI feature pages can trigger it after usage
   useEffect(() => {
-    window.__glumbiRefreshQuota = () => userApi.quota().then(setQuota).catch(() => {})
-  }, [])
+    window.__glumbiRefreshQuota = (featureName) => {
+      if (featureName) {
+        const fc = featureConfig.find(f => f.featureName === featureName)
+        if (fc?.creditCost > 0) {
+          window.dispatchEvent(new CustomEvent('glumbi:credit-used', { detail: { cost: fc.creditCost } }))
+        }
+      }
+      userApi.quota().then(setQuota).catch(() => {})
+    }
+  }, [featureConfig])
 
   function handleAuth(userRole) {
     setRole(userRole)

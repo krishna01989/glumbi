@@ -69,7 +69,7 @@ export default function Activities({ child, quota }) {
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
       track('activities', 'generate')
       setActivities(prev => [...newOnes, ...prev])
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('activity')
     } catch (e) {
       setError(e.message)
     } finally { setLoading(false) }
@@ -84,7 +84,7 @@ export default function Activities({ child, quota }) {
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
       track('activities', 'generate')
       setActivities(prev => [...newOnes, ...prev])
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('activity')
     } catch (e) {
       setError(e.message)
     } finally { setLoading(false) }
@@ -134,7 +134,7 @@ export default function Activities({ child, quota }) {
       try {
         const [replacement] = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 1 })
         setActivities(prev => [replacement, ...prev])
-        window.__glumbiRefreshQuota?.()
+        window.__glumbiRefreshQuota?.('activity')
       } catch { /* silent — no substitute if quota/rate hit */ }
       finally { setSubstituting(null) }
     }
@@ -187,17 +187,18 @@ export default function Activities({ child, quota }) {
         {error && <div style={{ marginTop: 12 }}><ErrorBox msg={error} /></div>}
         <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
           <button className="btn-primary" onClick={handleGenerate} disabled={loading || !!substituting || quota?.used >= quota?.limit || offline} style={{ flex: 1, fontSize: 16 }}>
-            {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : offline ? '✈️ AI is off' : '🎲 Suggest 3 Activities'}
+            {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : offline ? '✈️ 🎲 Suggest 3 Activities' : '🎲 Suggest 3 Activities'}
           </button>
           {pending.length > 0 && (
-            <button onClick={handleRefresh} disabled={loading || !!substituting}
+            <button onClick={handleRefresh} disabled={loading || !!substituting || offline || quota?.used >= quota?.limit}
               title="Replace all pending activities with a fresh set"
               style={{
                 padding: '12px 16px', borderRadius: 50, fontSize: 14, fontWeight: 800,
                 background: 'var(--primary-lt)', color: 'var(--primary)', border: '2px solid rgba(255,107,107,0.3)',
-                cursor: loading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                cursor: (loading || offline || quota?.used >= quota?.limit) ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                opacity: (offline || quota?.used >= quota?.limit) ? 0.4 : 1,
               }}>
-              🔄 Refresh
+              {offline ? '✈️ ' : ''}🔄 Refresh
             </button>
           )}
         </div>
@@ -237,11 +238,11 @@ export default function Activities({ child, quota }) {
                     <button className="btn-primary" style={{ flex: 1, padding: '8px 4px', fontSize: 12, textAlign: 'center' }}
                       onClick={() => handleComplete(a.id)}>✓ Done!</button>
                     {/* Swap — outlined, secondary */}
-                    <button disabled={!!substituting}
+                    <button disabled={!!substituting || offline || quota?.used >= quota?.limit}
                       onClick={() => handleDelete(a.id)}
                       title="Remove and get a replacement"
-                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '2px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: substituting ? 'not-allowed' : 'pointer', opacity: substituting && substituting !== a.id ? 0.5 : 1, textAlign: 'center' }}>
-                      {substituting === a.id ? '…' : '↻ Swap'}
+                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '2px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: (substituting || offline || quota?.used >= quota?.limit) ? 'not-allowed' : 'pointer', opacity: (substituting && substituting !== a.id) || offline || quota?.used >= quota?.limit ? 0.4 : 1, textAlign: 'center' }}>
+                      {substituting === a.id ? '…' : offline ? '✈️ ↻ Swap' : '↻ Swap'}
                     </button>
                     {/* Similar — accent-tinted, tertiary */}
                     <button onClick={() => handleSimilar(a.id)}

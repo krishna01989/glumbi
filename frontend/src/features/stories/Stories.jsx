@@ -32,34 +32,14 @@ const STORY_CATEGORIES = [
   { id: 'space',      emoji: '🚀', label: 'Space' },
 ]
 
-// Free keyword → illustration mapping (no API cost)
-const SCENE_MAP = {
-  dragon:   { bg: 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)', emoji: '🐉', stars: true },
-  princess: { bg: 'linear-gradient(135deg,#f8c8d4,#f4a0b8,#e67ea3)', emoji: '👸', stars: false },
-  forest:   { bg: 'linear-gradient(135deg,#134e2a,#1e7b45,#27ae60)',  emoji: '🌲', stars: false },
-  ocean:    { bg: 'linear-gradient(135deg,#0077b6,#00b4d8,#90e0ef)',  emoji: '🌊', stars: false },
-  space:    { bg: 'linear-gradient(135deg,#03001c,#301b3f,#3c415c)',  emoji: '🚀', stars: true },
-  puppy:    { bg: 'linear-gradient(135deg,#f9d29d,#f4a261,#e76f51)',  emoji: '🐶', stars: false },
-  magic:    { bg: 'linear-gradient(135deg,#4a0e8f,#7b2d8b,#c77dff)',  emoji: '🪄', stars: true },
-  rainbow:  { bg: 'linear-gradient(135deg,#ff9a9e,#fad0c4,#ffecd2)',  emoji: '🌈', stars: false },
-  castle:   { bg: 'linear-gradient(135deg,#636e72,#b2bec3,#dfe6e9)',  emoji: '🏰', stars: true },
-  dinosaur: { bg: 'linear-gradient(135deg,#2d6a4f,#40916c,#74c69d)',  emoji: '🦕', stars: false },
-  default:  { bg: 'linear-gradient(135deg,#667eea,#764ba2)',           emoji: '📖', stars: true },
-}
-
-function getScene(keywords = '') {
-  const kw = keywords.toLowerCase()
-  for (const [key, scene] of Object.entries(SCENE_MAP)) {
-    if (kw.includes(key)) return scene
-  }
-  return SCENE_MAP.default
+function categoryEmoji(category) {
+  return STORY_CATEGORIES.find(c => c.id === category)?.emoji || '📖'
 }
 
 function StoryIllustration({ story }) {
-  const scene = getScene(story.keywords)
   return (
     <div style={{
-      background: scene.bg,
+      background: 'linear-gradient(135deg, var(--primary), var(--accent))',
       borderRadius: '14px 14px 0 0',
       height: 180,
       display: 'flex',
@@ -69,14 +49,8 @@ function StoryIllustration({ story }) {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Floating stars */}
-      {scene.stars && (
-        <div style={{ position: 'absolute', inset: 0, opacity: 0.5, fontSize: 12, lineHeight: '28px', letterSpacing: '18px', padding: 8 }}>
-          ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦
-        </div>
-      )}
       <div style={{ fontSize: 72, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))', position: 'relative', zIndex: 1 }}>
-        {scene.emoji}
+        {categoryEmoji(story.category)}
       </div>
       <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', position: 'relative', zIndex: 1 }}>
         {(story.keywords && story.keywords.toLowerCase() !== 'continue' ? story.keywords.split(',')[0].trim() : null) || 'A magical story'}
@@ -108,7 +82,6 @@ const LANG_SCRIPT = {
 
 function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
   const isSelected = selected?.id === s.id
-  const scene = getScene(s.keywords)
   const chapterLabel = s.title.includes(' · ') ? s.title.substring(s.title.indexOf(' · ') + 3) : null
   return (
     <div onClick={() => onSelect(s)}
@@ -118,7 +91,7 @@ function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
         transition: 'box-shadow 0.2s',
       }}>
       <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
-        <span style={{ fontSize: 22 }}>{scene.emoji}</span>
+        <span style={{ fontSize: 22 }}>{categoryEmoji(s.category)}</span>
         <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
           {chapterNum ? `Ch.${chapterNum}: ` : ''}{chapterLabel || s.title}
         </span>
@@ -262,7 +235,7 @@ export default function Stories({ child, quota }) {
       if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'generate' } })
       setSimilarStories(similar)
       setKeywords('')
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('story')
 
     } catch (e) {
       setError(e.message)
@@ -285,7 +258,7 @@ export default function Stories({ child, quota }) {
       setSelected(continued)
       if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'continue' } })
       setSimilarStories(similar)
-      window.__glumbiRefreshQuota?.()
+      window.__glumbiRefreshQuota?.('story')
     } catch (e) {
       setError(e.message)
     } finally { setLoading(false) }
@@ -450,7 +423,6 @@ export default function Stories({ child, quota }) {
     }
   }
 
-  const scene = selected ? getScene(selected.keywords) : null
 
   return (
     <>
@@ -516,7 +488,7 @@ export default function Stories({ child, quota }) {
             rows={3} style={{ resize: 'none', background: 'white' }} />
           <button type="submit" className="btn-primary" disabled={loading || !keywords.trim() || quota?.used >= quota?.limit || offline}
             style={{ fontSize: 16 }}>
-            {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : offline ? '✈️ AI is off' : '✨ Generate Story'}
+            {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : offline ? '✈️ ✨ Generate Story' : '✨ Generate Story'}
           </button>
           <ErrorBox msg={error} />
         </form>
@@ -539,7 +511,7 @@ export default function Stories({ child, quota }) {
           height: '100dvh', width: '100dvw',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
-          background: scene?.bg || 'linear-gradient(135deg,#667eea,#764ba2)',
+          background: 'linear-gradient(135deg, var(--primary), var(--accent))',
         } : {
           borderRadius: 20, overflow: 'hidden', boxShadow: 'var(--shadow)',
           display: 'flex', flexDirection: 'column', height: '100%',
@@ -584,20 +556,15 @@ export default function Stories({ child, quota }) {
           {isFullscreen ? (
             <div style={{
               flexShrink: 0, position: 'relative',
-              background: scene?.bg || 'linear-gradient(135deg,#667eea,#764ba2)',
+              background: 'linear-gradient(135deg, var(--primary), var(--accent))',
               padding: isMobile ? '12px 14px 10px' : '16px 20px',
               display: 'flex', flexDirection: 'column', gap: isMobile ? 10 : 0,
               borderBottom: '1px solid rgba(255,255,255,0.15)',
             }}>
-              {scene?.stars && (
-                <div style={{ position:'absolute', inset:0, opacity:0.3, fontSize:10, lineHeight:'22px', letterSpacing:'14px', padding:6, pointerEvents:'none' }}>
-                  ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦
-                </div>
-              )}
               {/* Row 1: emoji + title + exit button */}
               <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 10 : 16, position:'relative', zIndex:1 }}>
                 <div style={{ fontSize: isMobile ? 36 : 52, filter:'drop-shadow(0 2px 8px rgba(0,0,0,0.3))', flexShrink:0 }}>
-                  {scene?.emoji}
+                  {categoryEmoji(selected.category)}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <h2 style={{ fontSize: isMobile ? 16 : 22, color:'white', margin:0, lineHeight:1.2,
@@ -710,7 +677,7 @@ export default function Stories({ child, quota }) {
                     opacity: loading || offline ? 0.5 : 1, whiteSpace:'nowrap',
                     boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
                     backdropFilter: isFullscreen ? 'blur(6px)' : 'none' }}>
-                  {offline ? '✈️ AI is off' : '▶ Continue'}
+                  {offline ? '✈️ ▶ Continue' : '▶ Continue'}
                 </button>
                 )}
                 <button onClick={() => handleDelete(selected.id)}
@@ -807,7 +774,7 @@ export default function Stories({ child, quota }) {
                   {chapterIndex === seriesChapters.length - 1 && (
                   <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
                     style={{ padding:'8px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none', cursor:loading||offline||quota?.used>=quota?.limit?'not-allowed':'pointer', background:'var(--primary-lt)', color:'var(--primary)', opacity:loading||offline?0.5:1, whiteSpace:'nowrap' }}>
-                    {offline ? '✈️ AI is off' : '▶ Continue'}
+                    {offline ? '✈️ ▶ Continue' : '▶ Continue'}
                   </button>
                   )}
                   <button onClick={() => handleDelete(selected.id)} className="btn-danger" style={{ padding:'8px 14px', fontSize:13 }}>🗑</button>
@@ -962,7 +929,7 @@ export default function Stories({ child, quota }) {
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-lt)'}
                     >
-                      <span>{getScene(s.keywords).emoji}</span>
+                      <span>{categoryEmoji(s.category)}</span>
                       <span style={{ maxWidth: 160, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         {s.title}
                       </span>

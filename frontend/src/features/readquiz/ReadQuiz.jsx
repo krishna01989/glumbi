@@ -5,7 +5,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -184,8 +184,8 @@ export default function ReadQuiz({ child, quota }) {
       </div>
 
       <HistoryDrawer title="My Reads" count={entries.length}>
-        {entries.map(e => (
-          <div key={e.id} onClick={() => openEntry(e)}
+        {close => entries.map(e => (
+          <div key={e.id} onClick={() => { openEntry(e); close() }}
             style={{
               borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
               boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
@@ -203,7 +203,10 @@ export default function ReadQuiz({ child, quota }) {
               )}
             </div>
             <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
+                <span style={{ fontSize: 11, color: '#bbb', fontWeight: 600 }}>{fmtDate(e.createdAt)}</span>
+              </div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 {e.lesson && (
                   <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>

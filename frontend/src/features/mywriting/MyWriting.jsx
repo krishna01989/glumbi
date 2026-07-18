@@ -8,7 +8,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { runPageCurl } from '../../utils/pageCurl'
 
 function useIsMobile() {
@@ -53,7 +53,10 @@ function StoryCard({ e, chapterNum, selected, onOpen }) {
         {e.badge && <span style={{ fontSize: 18 }}>{e.badge}</span>}
       </div>
       <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
+          <span style={{ fontSize: 11, color: '#bbb', fontWeight: 600 }}>{fmtDate(e.createdAt)}</span>
+        </div>
         {e.feedbackReceived
           ? <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
           : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Saved</span>
@@ -679,11 +682,12 @@ export default function MyWriting({ child, quota }) {
       }, {})
       return (
         <HistoryDrawer title="My Stories" count={entries.length}>
-          {roots.map(root => {
+          {close => roots.map(root => {
             const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+            const open = e => { openEntry(e); close() }
             return chapters.length > 0
-              ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={openEntry} />
-              : <StoryCard key={root.id} e={root} selected={selected} onOpen={openEntry} />
+              ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={open} />
+              : <StoryCard key={root.id} e={root} selected={selected} onOpen={open} />
           })}
         </HistoryDrawer>
       )

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { flipbookSaveApi } from '../../api/client'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 
 function makeEmojiCursor(emoji, size = 32, hotspotX, hotspotY) {
   try {
@@ -181,7 +181,6 @@ export default function FlipbookStudio({ track = () => {}, child }) {
         setFlipbookSaves(prev => [saved, ...prev])
         setCurrentSaveId(saved.id)
       }
-      track('flipbook', 'db_save', { metadata: { frames: count } })
     } finally { setIsSaving(false) }
   }
 
@@ -561,7 +560,6 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     const chunks = []
     recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
 
-    track('flipbook', 'save', { metadata: { frames: allFrames.length, fps: fpsRef.current } })
     recorder.onstop = () => {
       const blob = new Blob(chunks, { type: 'video/webm' })
       const url  = URL.createObjectURL(blob)
@@ -1453,7 +1451,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     </div>
 
     <HistoryDrawer title="My Flipbooks" count={flipbookSaves.length}>
-      {flipbookSaves.map(save => (
+      {close => flipbookSaves.map(save => (
         <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
           {save.thumbnail && (
@@ -1467,10 +1465,10 @@ export default function FlipbookStudio({ track = () => {}, child }) {
               {save.title || `Flipbook (${save.frameCount} frames)`}
             </div>
             <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
-              {new Date(save.updatedAt).toLocaleDateString()}
+              {fmtDate(save.updatedAt)}
             </div>
           </div>
-          <button onClick={() => loadFlipbookSave(save)}
+          <button onClick={() => { loadFlipbookSave(save); close() }}
             style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
               background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
               fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>

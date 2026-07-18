@@ -6,7 +6,7 @@ import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 
@@ -161,13 +161,13 @@ function FlashcardsTab({ child, quota }) {
       )}
 
       <HistoryDrawer title="Past Sets" count={sets.length}>
-        {sets.map(s => (
+        {close => sets.map(s => (
           <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
-            <button onClick={() => loadSet(s)}
+            <button onClick={() => { loadSet(s); close() }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
               📇 {s.topic}
             </button>
-            <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
+            <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(s.createdAt)}</span>
             <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(s.id)}>✕</button>
           </div>
         ))}
@@ -259,7 +259,7 @@ function WordOfDayTab({ child }) {
           <em>"{word.exampleSentence}"</em>
         </div>
         <div style={{ fontSize: 12, color: '#bbb', marginTop: 2 }}>
-          {new Date(word.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          {fmtDate(word.date)}
         </div>
       </div>
 
@@ -272,7 +272,7 @@ function WordOfDayTab({ child }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--primary)' }}>{h.word}</span>
                 <span style={{ fontSize: 11, color: '#bbb' }}>
-                  {new Date(h.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  {fmtDate(h.date)}
                 </span>
               </div>
               <div style={{ fontSize: 13, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{h.meaning}</div>
@@ -637,13 +637,13 @@ function MemoryMatchTab({ child, quota, isActive }) {
       )}
 
       <HistoryDrawer title="Past Games" count={matches.length}>
-        {matches.map(m => (
+        {close => matches.map(m => (
           <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
-            <button onClick={() => startMatch(m)}
+            <button onClick={() => { startMatch(m); close() }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
               🔁 Replay: {m.theme}
             </button>
-            <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(m.createdAt).toLocaleDateString()}</span>
+            <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(m.createdAt)}</span>
             <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(m.id)}>✕</button>
           </div>
         ))}

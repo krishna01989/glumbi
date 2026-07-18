@@ -4,7 +4,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import ErrorBox from '../../components/ErrorBox'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -291,7 +291,7 @@ export default function Activities({ child, quota }) {
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
-                {new Date(a.createdAt).toLocaleDateString()}
+                {fmtDate(a.createdAt)}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 11, color: 'var(--muted)' }}>{a.rating ? 'Rated:' : 'Rate it:'}</span>

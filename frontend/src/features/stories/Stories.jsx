@@ -6,7 +6,7 @@ import AudioPlayer from '../../components/AudioPlayer'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ErrorBox from '../../components/ErrorBox'
 import QuotaBanner from '../../components/QuotaBanner'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -128,7 +128,7 @@ function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
       </div>
       <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
-          {new Date(s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          {fmtDate(s.createdAt)}
         </span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {s.keywords && !s.title.includes(' · ') && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
@@ -1003,11 +1003,12 @@ export default function Stories({ child, quota }) {
       }
       return (
         <HistoryDrawer title="My Adventures" count={stories.length}>
-          {roots.map(root => {
+          {close => roots.map(root => {
             const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+            const sel = s => { handleSelect(s); close() }
             return chapters.length > 0
-              ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
-              : <StoryListCard key={root.id} s={root} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
+              ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={sel} onToggleFav={toggleFav} />
+              : <StoryListCard key={root.id} s={root} selected={selected} onSelect={sel} onToggleFav={toggleFav} />
           })}
         </HistoryDrawer>
       )

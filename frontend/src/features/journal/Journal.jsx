@@ -6,7 +6,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { MOODS, moodFor } from '../../constants/moods'
 
 export default function Journal({ child, featureConfig, quota }) {
@@ -162,7 +162,7 @@ export default function Journal({ child, featureConfig, quota }) {
       )}
 
       <HistoryDrawer title="Past Entries" count={entries.length}>
-        {entries.map(entry => {
+        {() => entries.map(entry => {
           const m = moodFor(entry.mood) || MOODS[0]
           return (
             <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
@@ -183,10 +183,10 @@ export default function Journal({ child, featureConfig, quota }) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                     <span style={{ fontSize: 11, color: '#bbb', whiteSpace: 'nowrap' }}>
-                      {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {fmtDate(entry.createdAt)}
                     </span>
                     <button onClick={() => handleDelete(entry.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ddd', fontSize: 16, lineHeight: 1, padding: 0 }}>✕</button>
+                      className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
                   </div>
                 </div>
                 <p style={{ lineHeight: 1.7, color: '#444', fontSize: 14, margin: 0 }}>{entry.content}</p>

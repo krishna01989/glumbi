@@ -4,7 +4,7 @@ import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import QuotaBanner from '../../components/QuotaBanner'
 import FeatureBanner from '../../components/FeatureBanner'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -97,7 +97,7 @@ function CuriosityCard({ entry, onDelete }) {
               {entry.question}
             </div>
             <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-              {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {fmtDate(entry.createdAt)}
             </div>
           </div>
         </div>

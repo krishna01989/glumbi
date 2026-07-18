@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { drawApi, drawSaveApi } from '../../api/client'
-import HistoryDrawer from '../../components/HistoryDrawer'
+import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -1337,12 +1337,12 @@ export default function Draw({ child, quota, featureConfig }) {
     </></div>
 
     {drawTab === 'draw' && <HistoryDrawer title="My Drawings" count={drawSaves.length}>
-      {drawSaves.map(s => (
+      {close => drawSaves.map(s => (
         <div key={s.id} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow)',
           outline: currentSaveId === s.id ? '3px solid var(--primary)' : 'none' }}>
           <img src={s.imageData} alt={s.title || 'Drawing'}
             style={{ width: '100%', display: 'block', cursor: 'pointer', background: '#fafafa' }}
-            onClick={() => loadDrawSave(s)} />
+            onClick={() => { loadDrawSave(s); close() }} />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '8px 12px', background: 'white', gap: 8 }}>
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -1354,11 +1354,11 @@ export default function Draw({ child, quota, featureConfig }) {
                 </div>
               )}
               <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
-                {new Date(s.updatedAt || s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                {fmtDate(s.updatedAt || s.createdAt)}
               </span>
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => loadDrawSave(s)}
+              <button onClick={() => { loadDrawSave(s); close() }}
                 style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'var(--primary-lt)',
                   border: 'none', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}>
                 Resume

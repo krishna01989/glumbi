@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 
+export function fmtDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
 export default function HistoryDrawer({ title, count, children }) {
   const [open, setOpen] = useState(false)
   const mobile = typeof window !== 'undefined' && window.innerWidth < 640
@@ -95,9 +99,10 @@ export default function HistoryDrawer({ title, count, children }) {
         <span style={{ fontSize: 16 }}>📚</span>
         <span style={{
           fontSize: 11, fontWeight: 800, fontFamily: 'Nunito, sans-serif',
-          background: 'rgba(255,255,255,0.25)', borderRadius: 20,
-          minWidth: 18, textAlign: 'center', padding: '1px 4px',
-          lineHeight: 1.4,
+          background: 'rgba(255,255,255,0.25)', borderRadius: '50%',
+          width: 20, height: 20, minWidth: 20, minHeight: 20,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          lineHeight: 1,
         }}>{count}</span>
       </div>
 
@@ -134,19 +139,23 @@ export default function HistoryDrawer({ title, count, children }) {
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--primary)', fontFamily: 'Nunito, sans-serif' }}>
               {title}
             </span>
-            <span style={{ background: 'var(--primary)', color: 'white', fontSize: 11, fontWeight: 800, borderRadius: 50, padding: '2px 9px' }}>
+            <span style={{ background: 'var(--primary)', color: 'white', fontSize: 11, fontWeight: 800,
+              borderRadius: '50%', width: 22, height: 22, minWidth: 22, minHeight: 22,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
               {count}
             </span>
           </div>
           <button onClick={() => setOpen(false)}
-            style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--primary)', lineHeight: 1, padding: 4, borderRadius: 6 }}>
+            style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: '50%', border: 'none',
+              background: 'var(--primary)', color: 'white', fontSize: 14, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>
             ✕
           </button>
         </div>
 
         {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {children}
+          {typeof children === 'function' ? children(() => setOpen(false)) : children}
         </div>
       </div>
     </>

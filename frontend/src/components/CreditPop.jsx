@@ -7,7 +7,7 @@ export default function CreditPop() {
     function handler(e) {
       const id = Date.now() + Math.random()
       setPops(prev => [...prev, { id, cost: e.detail.cost }])
-      setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 2000)
+      setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 1600)
     }
     window.addEventListener('glumbi:credit-used', handler)
     return () => window.removeEventListener('glumbi:credit-used', handler)
@@ -19,15 +19,10 @@ export default function CreditPop() {
     <>
       <style>{`
         @keyframes creditRise {
-          0%   { opacity: 0; transform: translateX(-50%) translateY(0px) scale(0.5); }
-          18%  { opacity: 1; transform: translateX(-50%) translateY(-28px) scale(1.18); }
-          35%  { transform: translateX(-50%) translateY(-60px) scale(1); }
-          80%  { opacity: 1; transform: translateX(-50%) translateY(-72vh) scale(1); }
-          100% { opacity: 0; transform: translateX(-50%) translateY(-80vh) scale(0.95); }
-        }
-        @keyframes coinBounce {
-          0%, 100% { transform: scale(1); }
-          40%       { transform: scale(1.3); }
+          0%   { opacity: 0; transform: translateX(-50%) translateY(0px); }
+          15%  { opacity: 1; transform: translateX(-50%) translateY(-30px); }
+          85%  { opacity: 1; transform: translateX(-50%) translateY(-72vh); }
+          100% { opacity: 0; transform: translateX(-50%) translateY(-78vh); }
         }
       `}</style>
 
@@ -38,7 +33,7 @@ export default function CreditPop() {
           left: '50%',
           zIndex: 9999,
           pointerEvents: 'none',
-          animation: 'creditRise 2s ease-out forwards',
+          animation: 'creditRise 2.8s cubic-bezier(0.16,1,0.3,1) forwards',
           userSelect: 'none',
           display: 'flex',
           alignItems: 'center',
@@ -59,7 +54,6 @@ export default function CreditPop() {
             background: 'radial-gradient(circle at 35% 35%, #ffe97a, #f0a800 60%, #b87200)',
             boxShadow: '0 2px 6px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.5)',
             flexShrink: 0,
-            animation: 'coinBounce 0.5s ease-out',
           }} />
           -{p.cost} credit{p.cost !== 1 ? 's' : ''}
         </div>

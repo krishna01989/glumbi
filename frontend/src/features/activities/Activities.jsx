@@ -4,6 +4,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import ErrorBox from '../../components/ErrorBox'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -283,33 +284,25 @@ export default function Activities({ child, quota }) {
         </div>
       )}
 
-      {/* Completed */}
-      {completed.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: 18, color: 'var(--muted)', marginBottom: 12 }}>
-            ✅ Completed Activities
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {completed.map(a => (
-              <div key={a.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.85 }}>
-                <span style={{ fontSize: 28 }}>{a.emoji}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
-                    {new Date(a.createdAt).toLocaleDateString()}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{a.rating ? 'Rated:' : 'Rate it:'}</span>
-                    <StarRating value={a.rating || 0} onChange={v => handleRate(a.id, v)} />
-                  </div>
-                </div>
-                <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onClick={() => handleDelete(a.id)}>✕</button>
+      <HistoryDrawer title="Completed Activities" count={completed.length}>
+        {completed.map(a => (
+          <div key={a.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.85 }}>
+            <span style={{ fontSize: 28 }}>{a.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                {new Date(a.createdAt).toLocaleDateString()}
               </div>
-            ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--muted)' }}>{a.rating ? 'Rated:' : 'Rate it:'}</span>
+                <StarRating value={a.rating || 0} onChange={v => handleRate(a.id, v)} />
+              </div>
+            </div>
+            <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => handleDelete(a.id)}>✕</button>
           </div>
-        </div>
-      )}
+        ))}
+      </HistoryDrawer>
 
       {activities.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>

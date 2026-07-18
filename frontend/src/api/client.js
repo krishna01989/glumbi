@@ -137,6 +137,22 @@ export const drawApi = {
     }).then(r => r.data),
 }
 
+export const drawSaveApi = {
+  save:       (childId, imageData, title)        => api.post('/draw-saves', { childId, imageData, title }).then(r => r.data),
+  update:     (id, imageData, title)             => api.put(`/draw-saves/${id}`, { imageData, title }).then(r => r.data),
+  getByChild: (childId)                          => api.get(`/draw-saves/child/${childId}`).then(r => r.data),
+  delete:     (id)                               => api.delete(`/draw-saves/${id}`),
+}
+
+export const flipbookSaveApi = {
+  save:       (childId, framesJson, thumbnail, fps, frameCount, title) =>
+    api.post('/draw-saves/flipbook', { childId, framesJson, thumbnail, fps, frameCount, title }).then(r => r.data),
+  update:     (id, framesJson, thumbnail, fps, frameCount, title) =>
+    api.put(`/draw-saves/flipbook/${id}`, { framesJson, thumbnail, fps, frameCount, title }).then(r => r.data),
+  getByChild: (childId)  => api.get(`/draw-saves/flipbook/child/${childId}`).then(r => r.data),
+  delete:     (id)       => api.delete(`/draw-saves/flipbook/${id}`),
+}
+
 export const learnApi = {
   validate:     (imageData, letter, script, childName, childAge, childId) =>
     api.post('/learn/validate', { imageData, letter, script, childName, childAge: String(childAge), ...(childId ? { childId: String(childId) } : {}) }).then(r => r.data),

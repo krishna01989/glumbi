@@ -5,6 +5,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -180,58 +181,43 @@ export default function ReadQuiz({ child, quota }) {
           </form>
         </div>
 
-        {/* History */}
-        {entries.length > 0 && (
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Reads</div>
-            {entries.map(e => {
-              const scoreColor = e.score === 3 ? '#27ae60' : e.score >= 2 ? '#f39c12' : '#e74c3c'
-              return (
-                <div key={e.id} onClick={() => openEntry(e)}
-                  style={{
-                    borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
-                    boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
-                    transition: 'box-shadow 0.2s',
-                  }}>
-                  {/* Coloured header */}
-                  <div style={{
-                    background: 'var(--primary)',
-                    height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10,
-                  }}>
-                    <span style={{ fontSize: 22 }}>
-                      {TOPICS.find(t => t.label === e.topic)?.emoji || '📖'}
-                    </span>
-                    <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                      {e.title}
-                    </span>
-                    {e.completed && (
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'white', background: 'rgba(0,0,0,0.2)', borderRadius: 50, padding: '2px 8px' }}>
-                        {e.score}/3
-                      </span>
-                    )}
-                  </div>
-                  {/* Footer */}
-                  <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      {e.lesson && (
-                        <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
-                          {e.lesson}
-                        </span>
-                      )}
-                      {e.completed && (
-                        <span style={{ fontSize: 13 }}>
-                          {e.score === 3 ? '🏆' : e.score >= 2 ? '⭐' : '💪'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
       </div>
+
+      <HistoryDrawer title="My Reads" count={entries.length}>
+        {entries.map(e => (
+          <div key={e.id} onClick={() => openEntry(e)}
+            style={{
+              borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+              boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
+              transition: 'box-shadow 0.2s',
+            }}>
+            <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
+              <span style={{ fontSize: 22 }}>{TOPICS.find(t => t.label === e.topic)?.emoji || '📖'}</span>
+              <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                {e.title}
+              </span>
+              {e.completed && (
+                <span style={{ fontSize: 12, fontWeight: 800, color: 'white', background: 'rgba(0,0,0,0.2)', borderRadius: 50, padding: '2px 8px' }}>
+                  {e.score}/3
+                </span>
+              )}
+            </div>
+            <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                {e.lesson && (
+                  <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
+                    {e.lesson}
+                  </span>
+                )}
+                {e.completed && (
+                  <span style={{ fontSize: 13 }}>{e.score === 3 ? '🏆' : e.score >= 2 ? '⭐' : '💪'}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </HistoryDrawer>
 
       {/* ── Right panel ── */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>

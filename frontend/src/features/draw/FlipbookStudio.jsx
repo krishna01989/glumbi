@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
+import { flipbookSaveApi } from '../../api/client'
+import HistoryDrawer from '../../components/HistoryDrawer'
 
 function makeEmojiCursor(emoji, size = 32, hotspotX, hotspotY) {
   try {
@@ -75,7 +77,7 @@ function useBreakpoint() {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function FlipbookStudio({ track = () => {} }) {
+export default function FlipbookStudio({ track = () => {}, child }) {
   const fbSessionTracked = useRef(false)
   useFeatureDuration('flipbook', track, { condition: fbSessionTracked })
   // Frame storage — ref is source of truth, state drives rendering
@@ -149,6 +151,69 @@ export default function FlipbookStudio({ track = () => {} }) {
   useEffect(() => { fpsRef.current  = fps  }, [fps])
   useEffect(() => { loopRef.current = loop }, [loop])
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
+
+  // Flipbook saves
+  const [flipbookSaves, setFlipbookSaves] = useState([])
+  const [currentSaveId, setCurrentSaveId] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [flipbookTitle, setFlipbookTitle] = useState('')
+
+  useEffect(() => {
+    if (child?.id) flipbookSaveApi.getByChild(child.id).then(setFlipbookSaves).catch(() => {})
+  }, [child?.id])
+
+  async function saveFlipbook() {
+    if (!child?.id) return
+    saveCurrentFrame()
+    const allFrames = framesRef.current
+    if (allFrames.length < 1) return
+    setIsSaving(true)
+    try {
+      const framesJson = JSON.stringify(allFrames)
+      const thumbnail = allFrames.find(f => f) || null
+      const count = allFrames.length
+      const title = flipbookTitle.trim() || null
+      if (currentSaveId) {
+        const updated = await flipbookSaveApi.update(currentSaveId, framesJson, thumbnail, fpsRef.current, count, title)
+        setFlipbookSaves(prev => prev.map(s => s.id === currentSaveId ? updated : s))
+      } else {
+        const saved = await flipbookSaveApi.save(child.id, framesJson, thumbnail, fpsRef.current, count, title)
+        setFlipbookSaves(prev => [saved, ...prev])
+        setCurrentSaveId(saved.id)
+      }
+      track('flipbook', 'db_save', { metadata: { frames: count } })
+    } finally { setIsSaving(false) }
+  }
+
+  function loadFlipbookSave(save) {
+    try {
+      const loaded = JSON.parse(save.framesJson)
+      framesRef.current = loaded
+      setFrames([...loaded])
+      setCurrentIdx(0)
+      currentIdxRef.current = 0
+      setCurrentSaveId(save.id)
+      setFlipbookTitle(save.title || '')
+      // Render first frame onto canvas
+      const first = loaded[0]
+      if (first && canvasRef.current) {
+        const img = new Image()
+        img.onload = () => {
+          const ctx = canvasRef.current.getContext('2d')
+          ctx.clearRect(0, 0, W, H)
+          ctx.drawImage(img, 0, 0)
+          saveSnapshot()
+        }
+        img.src = first
+      }
+    } catch { /* corrupted save — ignore */ }
+  }
+
+  async function deleteFlipbookSave(id) {
+    await flipbookSaveApi.delete(id)
+    setFlipbookSaves(prev => prev.filter(s => s.id !== id))
+    if (currentSaveId === id) setCurrentSaveId(null)
+  }
 
   // Init canvas white on mount
   useEffect(() => { fillWhite(canvasRef.current) }, [])
@@ -501,7 +566,7 @@ export default function FlipbookStudio({ track = () => {} }) {
       const blob = new Blob(chunks, { type: 'video/webm' })
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
-      a.href = url; a.download = 'my-flipbook.webm'; a.click()
+      a.href = url; a.download = `${flipbookTitle.trim() || 'my-flipbook'}.webm`; a.click()
       URL.revokeObjectURL(url)
       setIsDownloading(false)
     }
@@ -805,6 +870,7 @@ export default function FlipbookStudio({ track = () => {} }) {
   }
 
   return (
+    <>
     <div ref={fsRef} style={{
       display: 'flex', flexDirection: 'column',
       height: isFullscreen ? '100dvh' : isCompact ? 'auto' : '100%',
@@ -952,6 +1018,21 @@ export default function FlipbookStudio({ track = () => {} }) {
             ))}
           </div>
         </div>
+
+        {/* ── Canvas column: title + canvas ── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}>
+
+        {!isFullscreen && (
+          <input
+            value={flipbookTitle}
+            onChange={e => setFlipbookTitle(e.target.value)}
+            placeholder="Give your flipbook a name…"
+            maxLength={60}
+            style={{ padding: '6px 16px', borderRadius: 20, border: '2px solid var(--primary-lt)',
+              outline: 'none', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+              color: '#444', background: 'white', width: 240, maxWidth: '100%', flexShrink: 0 }}
+          />
+        )}
 
         {/* ── Canvas area ── */}
         <div style={{ flex: 1, borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
@@ -1139,6 +1220,7 @@ export default function FlipbookStudio({ track = () => {} }) {
             </div>
           )}
         </div>
+        </div>{/* end canvas column */}
       </div>
 
       {/* ── Bottom: playback + frames strip ── */}
@@ -1273,19 +1355,34 @@ export default function FlipbookStudio({ track = () => {} }) {
             <span style={{ fontSize: 16 }}>⧉</span> Copy Frame
           </button>
 
-          {/* Save / Download */}
+          {/* Save to DB */}
+          <button onClick={saveFlipbook} disabled={isSaving || isPlaying || total < 1 || !child?.id}
+            title="Save flipbook to resume later"
+            style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
+              fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
+              cursor: (isSaving || isPlaying || total < 1) ? 'not-allowed' : 'pointer',
+              background: (isSaving || isPlaying || total < 1) ? '#e0e0e0' : 'var(--primary)',
+              color: (isSaving || isPlaying || total < 1) ? '#aaa' : 'white',
+              boxShadow: (isSaving || isPlaying || total < 1) ? 'none' : '0 3px 12px rgba(0,0,0,0.2)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 16 }}>{isSaving ? '⏳' : '💾'}</span>
+            {isSaving ? 'Saving…' : 'Save'}
+          </button>
+
+          {/* Export video */}
           <button onClick={downloadAnimation} disabled={isDownloading || isPlaying || total < 2}
-            title="Download your animation!"
-            style={{ padding: '8px 16px', borderRadius: 20, border: 'none',
+            title="Export as video file"
+            style={{ padding: '8px 14px', borderRadius: 20, border: '2px solid var(--primary)',
               fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
               cursor: (isDownloading || isPlaying || total < 2) ? 'not-allowed' : 'pointer',
-              background: (isDownloading || isPlaying || total < 2) ? '#e0e0e0' : 'var(--primary)',
-              color: (isDownloading || isPlaying || total < 2) ? '#aaa' : 'white',
-              boxShadow: (isDownloading || isPlaying || total < 2) ? 'none' : '0 3px 12px rgba(0,0,0,0.2)',
+              background: 'white',
+              color: (isDownloading || isPlaying || total < 2) ? '#aaa' : 'var(--primary)',
+              borderColor: (isDownloading || isPlaying || total < 2) ? '#e0e0e0' : 'var(--primary)',
               whiteSpace: 'nowrap', flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 16 }}>{isDownloading ? '⏳' : '🎬'}</span>
-            {isDownloading ? 'Saving…' : 'Save My Movie!'}
+            {isDownloading ? 'Exporting…' : 'Export'}
           </button>
         </div>
 
@@ -1354,6 +1451,39 @@ export default function FlipbookStudio({ track = () => {} }) {
         </div>
       </div>
     </div>
+
+    <HistoryDrawer title="My Flipbooks" count={flipbookSaves.length}>
+      {flipbookSaves.map(save => (
+        <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+          {save.thumbnail && (
+            <img src={save.thumbnail} alt="thumbnail"
+              style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
+                border: '2px solid var(--primary-lt)', flexShrink: 0 }} />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
+              color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {save.title || `Flipbook (${save.frameCount} frames)`}
+            </div>
+            <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
+              {new Date(save.updatedAt).toLocaleDateString()}
+            </div>
+          </div>
+          <button onClick={() => loadFlipbookSave(save)}
+            style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
+              background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
+              fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
+            Resume
+          </button>
+          <button onClick={() => deleteFlipbookSave(save.id)}
+            className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            ✕
+          </button>
+        </div>
+      ))}
+    </HistoryDrawer>
+    </>
   )
 }
 

@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { drawApi } from '../../api/client'
+import { drawApi, drawSaveApi } from '../../api/client'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -124,6 +125,53 @@ export default function Draw({ child, quota, featureConfig }) {
   const [animBlockMsg, setAnimBlockMsg] = useState('')
   const [animPlaying, setAnimPlaying] = useState(false)
   const [animLabel, setAnimLabel]     = useState('')
+
+  // Draw saves
+  const [drawSaves, setDrawSaves] = useState([])
+  const [currentSaveId, setCurrentSaveId] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [drawingTitle, setDrawingTitle] = useState('')
+
+  useEffect(() => {
+    if (child?.id) drawSaveApi.getByChild(child.id).then(setDrawSaves).catch(() => {})
+  }, [child?.id])
+
+  async function saveDrawing() {
+    if (!canvasRef.current || isEmpty) return
+    setIsSaving(true)
+    try {
+      const imageData = canvasRef.current.toDataURL()
+      const title = drawingTitle.trim() || null
+      if (currentSaveId) {
+        const updated = await drawSaveApi.update(currentSaveId, imageData, title)
+        setDrawSaves(prev => prev.map(s => s.id === currentSaveId ? updated : s))
+      } else {
+        const saved = await drawSaveApi.save(child.id, imageData, title)
+        setDrawSaves(prev => [saved, ...prev])
+        setCurrentSaveId(saved.id)
+      }
+    } finally { setIsSaving(false) }
+  }
+
+  function loadDrawSave(save) {
+    const img = new Image()
+    img.onload = () => {
+      const ctx = getCtx()
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+      ctx.drawImage(img, 0, 0)
+      saveSnapshot()
+      setIsEmpty(false)
+      setCurrentSaveId(save.id)
+      setDrawingTitle(save.title || '')
+    }
+    img.src = save.imageData
+  }
+
+  async function deleteDrawSave(id) {
+    await drawSaveApi.delete(id)
+    setDrawSaves(prev => prev.filter(s => s.id !== id))
+    if (currentSaveId === id) setCurrentSaveId(null)
+  }
 
   // Selection tool
   const [selectTool, setSelectTool]       = useState(false)
@@ -365,6 +413,8 @@ export default function Draw({ child, quota, featureConfig }) {
     setAnimPlan(null)
     setAnimLabel('')
     stopAnimation()
+    setCurrentSaveId(null)
+    setDrawingTitle('')
   }
 
   async function handleIdentify() {
@@ -493,7 +543,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function downloadDrawing() {
     const link = document.createElement('a')
-    link.download = `${child?.name || 'glumbi'}-drawing.png`
+    link.download = `${drawingTitle.trim() || child?.name || 'glumbi'}-drawing.png`
     link.href = canvasRef.current.toDataURL()
     link.click()
   }
@@ -692,7 +742,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
     {/* Flipbook — always mounted, hidden when not active so frames are never lost */}
     <div style={{ display: drawTab === 'flipbook' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
-      <FlipbookStudio track={track} />
+      <FlipbookStudio track={track} child={child} />
     </div>
 
     {/* Draw — always mounted, hidden when not active so canvas content is never lost */}
@@ -887,7 +937,8 @@ export default function Draw({ child, quota, featureConfig }) {
             { key: 'select', title: 'Select & Move', emoji: '⬚',   active: selectTool, onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setSelectTool(true) } } },
             { key: 'undo',   title: 'Undo',          emoji: '↩️',  active: false, disabled: !canUndo, onClick: handleUndo },
             { key: 'clear',  title: 'Clear',         emoji: '🗑️', active: false, onClick: clearCanvas },
-            { key: 'save',   title: 'Save',          emoji: '💾',  active: false, onClick: downloadDrawing },
+            { key: 'save',     title: isSaving ? 'Saving…' : 'Save',  emoji: isSaving ? '⏳' : '💾', active: false, disabled: isEmpty || isSaving, onClick: saveDrawing },
+            { key: 'download', title: 'Download PNG', emoji: '⬇️',  active: false, disabled: isEmpty, onClick: downloadDrawing },
           ].map(({ key, title, emoji, active, disabled, onClick }) => (
             <button key={key} onClick={onClick} title={title} disabled={disabled}
               style={{
@@ -910,6 +961,19 @@ export default function Draw({ child, quota, featureConfig }) {
 
       {/* ── Canvas area ── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isFullscreen ? 0 : 16, minHeight: 0 }}>
+
+        {/* Title input */}
+        {!isFullscreen && (
+          <input
+            value={drawingTitle}
+            onChange={e => setDrawingTitle(e.target.value)}
+            placeholder="Give your drawing a name…"
+            maxLength={60}
+            style={{ padding: '6px 16px', borderRadius: 20, border: '2px solid var(--primary-lt)',
+              outline: 'none', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+              color: '#444', background: 'white', width: 240, maxWidth: '100%', flexShrink: 0 }}
+          />
+        )}
 
         {/* Guide prompt — mobile only, hidden in fullscreen */}
         {isCompact && !isFullscreen && guideEnabled && (
@@ -1271,6 +1335,43 @@ export default function Draw({ child, quota, featureConfig }) {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       `}</style>
     </></div>
+
+    {drawTab === 'draw' && <HistoryDrawer title="My Drawings" count={drawSaves.length}>
+      {drawSaves.map(s => (
+        <div key={s.id} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow)',
+          outline: currentSaveId === s.id ? '3px solid var(--primary)' : 'none' }}>
+          <img src={s.imageData} alt={s.title || 'Drawing'}
+            style={{ width: '100%', display: 'block', cursor: 'pointer', background: '#fafafa' }}
+            onClick={() => loadDrawSave(s)} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px', background: 'white', gap: 8 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              {s.title && (
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#333',
+                  fontFamily: 'Nunito, sans-serif', whiteSpace: 'nowrap',
+                  overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {s.title}
+                </div>
+              )}
+              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
+                {new Date(s.updatedAt || s.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => loadDrawSave(s)}
+                style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'var(--primary-lt)',
+                  border: 'none', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}>
+                Resume
+              </button>
+              <button onClick={() => deleteDrawSave(s.id)}
+                className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </HistoryDrawer>}
   </div>
   )
 }

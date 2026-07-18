@@ -4,6 +4,7 @@ import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import QuotaBanner from '../../components/QuotaBanner'
 import FeatureBanner from '../../components/FeatureBanner'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -253,11 +254,6 @@ export default function Curiosity({ child, quota }) {
 
       {loading && <ThemeLoader theme={child.theme} />}
 
-      {/* Entries */}
-      {!loading && entries.map(entry => (
-        <CuriosityCard key={entry.id} entry={entry} onDelete={handleDelete} />
-      ))}
-
       {entries.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🔭</div>
@@ -265,6 +261,12 @@ export default function Curiosity({ child, quota }) {
           <div style={{ fontSize: 14, marginTop: 8 }}>Kids ask the best questions — let's answer them! 🌍</div>
         </div>
       )}
+
+      <HistoryDrawer title="Past Questions" count={entries.length}>
+        {entries.map(entry => (
+          <CuriosityCard key={entry.id} entry={entry} onDelete={handleDelete} />
+        ))}
+      </HistoryDrawer>
     </div>
   )
 }

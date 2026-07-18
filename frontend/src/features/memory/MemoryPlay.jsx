@@ -6,6 +6,7 @@ import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 
@@ -159,21 +160,18 @@ function FlashcardsTab({ child, quota }) {
         </div>
       )}
 
-      {sets.length > 0 && (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>Past Sets</div>
-          {sets.map(s => (
-            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
-              <button onClick={() => loadSet(s)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
-                📇 {s.topic}
-              </button>
-              <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
-              <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(s.id)}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
+      <HistoryDrawer title="Past Sets" count={sets.length}>
+        {sets.map(s => (
+          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
+            <button onClick={() => loadSet(s)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
+              📇 {s.topic}
+            </button>
+            <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(s.createdAt).toLocaleDateString()}</span>
+            <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(s.id)}>✕</button>
+          </div>
+        ))}
+      </HistoryDrawer>
 
       {sets.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
@@ -265,32 +263,27 @@ function WordOfDayTab({ child }) {
         </div>
       </div>
 
-      {/* History */}
-      {history.length > 0 && (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
-            Past {history.length} Word{history.length > 1 ? 's' : ''}
-          </div>
-          {history.map((h, i) => (
-            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
-              <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--primary)' }}>{h.word}</span>
-                  <span style={{ fontSize: 11, color: '#bbb' }}>
-                    {new Date(h.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-                <div style={{ fontSize: 13, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{h.meaning}</div>
+      {/* History button */}
+      <HistoryDrawer title={`Past ${history.length} Word${history.length !== 1 ? 's' : ''}`} count={history.length}>
+        {history.map((h, i) => (
+          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
+            <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--primary)' }}>{h.word}</span>
+                <span style={{ fontSize: 11, color: '#bbb' }}>
+                  {new Date(h.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </span>
               </div>
-              <button onClick={() => playAudio(h.word, h.id)} disabled={offline}
-                style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', border: 'none', background: speakingId === h.id ? 'var(--primary)' : 'var(--primary-lt)', color: speakingId === h.id ? 'white' : 'var(--primary)', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0, flexShrink: 0 }}>
-                {speakingId === h.id ? <span className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : '🔊'}
-              </button>
+              <div style={{ fontSize: 13, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{h.meaning}</div>
             </div>
-          ))}
-        </div>
-      )}
+            <button onClick={() => playAudio(h.word, h.id)} disabled={offline}
+              style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', border: 'none', background: speakingId === h.id ? 'var(--primary)' : 'var(--primary-lt)', color: speakingId === h.id ? 'white' : 'var(--primary)', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0, flexShrink: 0 }}>
+              {speakingId === h.id ? <span className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : '🔊'}
+            </button>
+          </div>
+        ))}
+      </HistoryDrawer>
     </div>
   )
 }
@@ -643,21 +636,18 @@ function MemoryMatchTab({ child, quota, isActive }) {
         </div>
       )}
 
-      {matches.length > 0 && (
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 0.5 }}>Past Games</div>
-          {matches.map(m => (
-            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
-              <button onClick={() => startMatch(m)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
-                🔁 Replay: {m.theme}
-              </button>
-              <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(m.createdAt).toLocaleDateString()}</span>
-              <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(m.id)}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
+      <HistoryDrawer title="Past Games" count={matches.length}>
+        {matches.map(m => (
+          <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
+            <button onClick={() => startMatch(m)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
+              🔁 Replay: {m.theme}
+            </button>
+            <span style={{ fontSize: 11, color: '#bbb' }}>{new Date(m.createdAt).toLocaleDateString()}</span>
+            <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(m.id)}>✕</button>
+          </div>
+        ))}
+      </HistoryDrawer>
 
       {matches.length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>

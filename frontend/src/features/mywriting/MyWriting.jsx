@@ -8,6 +8,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { runPageCurl } from '../../utils/pageCurl'
 
 function useIsMobile() {
@@ -345,26 +346,6 @@ export default function MyWriting({ child, quota }) {
           </div>
         )}
 
-        {entries.length > 0 && (() => {
-          // Group entries: standalone (no seriesId) shown as-is; series grouped under root
-          const roots = entries.filter(e => !e.seriesId)
-          const chaptersBySeriesId = entries.reduce((acc, e) => {
-            if (e.seriesId) { (acc[e.seriesId] = acc[e.seriesId] || []).push(e) }
-            return acc
-          }, {})
-
-          return (
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Stories</div>
-              {roots.map(root => {
-                const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                return chapters.length > 0
-                  ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={openEntry} />
-                  : <StoryCard key={root.id} e={root} selected={selected} onOpen={openEntry} />
-              })}
-            </div>
-          )
-        })()}
       </div>
 
       {/* ── Right panel ── */}
@@ -688,6 +669,25 @@ export default function MyWriting({ child, quota }) {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
       `}</style>
     </div>
+
+    {/* Writing history drawer */}
+    {(() => {
+      const roots = entries.filter(e => !e.seriesId)
+      const chaptersBySeriesId = entries.reduce((acc, e) => {
+        if (e.seriesId) { (acc[e.seriesId] = acc[e.seriesId] || []).push(e) }
+        return acc
+      }, {})
+      return (
+        <HistoryDrawer title="My Stories" count={entries.length}>
+          {roots.map(root => {
+            const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+            return chapters.length > 0
+              ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={openEntry} />
+              : <StoryCard key={root.id} e={root} selected={selected} onOpen={openEntry} />
+          })}
+        </HistoryDrawer>
+      )
+    })()}
     </>
   )
 }

@@ -6,6 +6,7 @@ import AudioPlayer from '../../components/AudioPlayer'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import ErrorBox from '../../components/ErrorBox'
 import QuotaBanner from '../../components/QuotaBanner'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -522,33 +523,6 @@ export default function Stories({ child, quota }) {
 
         {loading && <ThemeLoader theme={child.theme} />}
 
-        {/* History */}
-        {stories.length > 0 && (() => {
-          const roots = stories.filter(s => !s.seriesId)
-          const chaptersBySeriesId = stories.reduce((acc, s) => {
-            if (s.seriesId) (acc[s.seriesId] = acc[s.seriesId] || []).push(s)
-            return acc
-          }, {})
-          function handleSelect(s) {
-            if (selected?.id === s.id) return
-            setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
-            storyApi.getSimilar(s.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
-            if (isMobile) setShowList(false)
-            track('stories', 'read', { metadata: { category: s.category } })
-          }
-          return (
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, paddingLeft: 2 }}>My Adventures</div>
-              {roots.map(root => {
-                const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-                return chapters.length > 0
-                  ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
-                  : <StoryListCard key={root.id} s={root} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
-              })}
-            </div>
-          )
-        })()}
-
         {stories.length === 0 && !loading && (
           <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>🌟</div>
@@ -1012,6 +986,32 @@ export default function Stories({ child, quota }) {
         </div>
       )}
     </div>
+
+    {/* Stories history drawer */}
+    {(() => {
+      const roots = stories.filter(s => !s.seriesId)
+      const chaptersBySeriesId = stories.reduce((acc, s) => {
+        if (s.seriesId) (acc[s.seriesId] = acc[s.seriesId] || []).push(s)
+        return acc
+      }, {})
+      function handleSelect(s) {
+        if (selected?.id === s.id) return
+        setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
+        storyApi.getSimilar(s.id).then(r => { setSimilarStories(r); if (r.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
+        if (isMobile) setShowList(false)
+        track('stories', 'read', { metadata: { category: s.category } })
+      }
+      return (
+        <HistoryDrawer title="My Adventures" count={stories.length}>
+          {roots.map(root => {
+            const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+            return chapters.length > 0
+              ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
+              : <StoryListCard key={root.id} s={root} selected={selected} onSelect={handleSelect} onToggleFav={toggleFav} />
+          })}
+        </HistoryDrawer>
+      )
+    })()}
     </>
   )
 }

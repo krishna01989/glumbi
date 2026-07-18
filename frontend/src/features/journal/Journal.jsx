@@ -6,6 +6,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
+import HistoryDrawer from '../../components/HistoryDrawer'
 import { MOODS, moodFor } from '../../constants/moods'
 
 export default function Journal({ child, featureConfig, quota }) {
@@ -154,53 +155,46 @@ export default function Journal({ child, featureConfig, quota }) {
         </form>
       </div>
 
-      {/* Timeline */}
-      {entries.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', letterSpacing: 0.5 }}>PAST ENTRIES</div>
-          {entries.map(entry => {
-            const m = moodFor(entry.mood) || MOODS[0]
-            return (
-              <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-                {/* Mood colour bar */}
-                <div style={{ width: 6, flexShrink: 0, background: entry.mood ? m.color : 'var(--primary-lt)' }} />
-                <div style={{ flex: 1, padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {entry.mood && (
-                        <span style={{ fontSize: 13, fontWeight: 700, color: m.color, background: m.bg,
-                          padding: '2px 10px', borderRadius: 50 }}>
-                          {m.emoji} {m.label}
-                        </span>
-                      )}
-                      {entry.milestone && (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: '#fffbeb',
-                          padding: '2px 10px', borderRadius: 50 }}>
-                          🏆 {entry.milestone}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, color: '#bbb', whiteSpace: 'nowrap' }}>
-                        {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                      <button onClick={() => handleDelete(entry.id)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ddd', fontSize: 16, lineHeight: 1, padding: 0 }}>✕</button>
-                    </div>
-                  </div>
-                  <p style={{ lineHeight: 1.7, color: '#444', fontSize: 14, margin: 0 }}>{entry.content}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {entries.length === 0 && (
         <div style={{ textAlign: 'center', color: '#bbb', padding: 40, fontSize: 14 }}>
           No entries yet — start capturing memories! 🌸
         </div>
       )}
+
+      <HistoryDrawer title="Past Entries" count={entries.length}>
+        {entries.map(entry => {
+          const m = moodFor(entry.mood) || MOODS[0]
+          return (
+            <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+              <div style={{ width: 6, flexShrink: 0, background: entry.mood ? m.color : 'var(--primary-lt)' }} />
+              <div style={{ flex: 1, padding: '14px 16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    {entry.mood && (
+                      <span style={{ fontSize: 13, fontWeight: 700, color: m.color, background: m.bg, padding: '2px 10px', borderRadius: 50 }}>
+                        {m.emoji} {m.label}
+                      </span>
+                    )}
+                    {entry.milestone && (
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: '#fffbeb', padding: '2px 10px', borderRadius: 50 }}>
+                        🏆 {entry.milestone}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: '#bbb', whiteSpace: 'nowrap' }}>
+                      {new Date(entry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                    <button onClick={() => handleDelete(entry.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ddd', fontSize: 16, lineHeight: 1, padding: 0 }}>✕</button>
+                  </div>
+                </div>
+                <p style={{ lineHeight: 1.7, color: '#444', fontSize: 14, margin: 0 }}>{entry.content}</p>
+              </div>
+            </div>
+          )
+        })}
+      </HistoryDrawer>
     </div>
     </>
   )

@@ -15,24 +15,7 @@ export default function HistoryDrawer({ title, count, children }) {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  // ── Touch drag ──────────────────────────────────────────────────────────────
-  function onTouchStart(e) {
-    dragStart.current = e.touches[0].clientX
-    dragged.current = false
-  }
-
-  function onTouchMove(e) {
-    if (dragStart.current === null) return
-    const delta = e.touches[0].clientX - dragStart.current
-    if (mobile && delta > 20) { setOpen(true); dragged.current = true }
-    if (!mobile && delta < -20) { setOpen(true); dragged.current = true }
-  }
-
-  function onTouchEnd() {
-    dragStart.current = null
-  }
-
-  // ── Mouse drag ──────────────────────────────────────────────────────────────
+  // ── Mouse drag (desktop only) ───────────────────────────────────────────────
   function onMouseDown(e) {
     dragStart.current = e.clientX
     dragged.current = false
@@ -71,9 +54,6 @@ export default function HistoryDrawer({ title, count, children }) {
       <div
         onClick={onClick}
         onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
         style={{
           position: 'fixed',
           top: '50%',

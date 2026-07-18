@@ -598,15 +598,16 @@ export default function FlipbookStudio({ track = () => {} }) {
   function drawSelOverlay() {
     const ov = selOverlayRef.current
     if (!ov) return
+    const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#9c6ef8'
     const ctx = ov.getContext('2d')
     ctx.clearRect(0, 0, W, H)
     const sd = selStateRef.current
     if (!sd.phase) return
     if (sd.phase === 'drawing') {
       ctx.save()
-      ctx.strokeStyle = '#1e90ff'; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
+      ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
       ctx.strokeRect(sd.x, sd.y, sd.w, sd.h)
-      ctx.fillStyle = 'rgba(30,144,255,0.07)'; ctx.fillRect(sd.x, sd.y, sd.w, sd.h)
+      ctx.fillStyle = primary + '18'; ctx.fillRect(sd.x, sd.y, sd.w, sd.h)
       ctx.restore()
     } else if (sd.phase === 'floating') {
       const px = Math.round(sd.posX), py = Math.round(sd.posY)
@@ -615,12 +616,12 @@ export default function FlipbookStudio({ track = () => {} }) {
         ctx.drawImage(selTmpRef.current, px, py); ctx.restore()
       }
       ctx.save()
-      ctx.strokeStyle = '#1e90ff'; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
+      ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
       ctx.strokeRect(px, py, sd.w, sd.h)
       ctx.setLineDash([])
       ;[[px, py], [px + sd.w, py], [px, py + sd.h], [px + sd.w, py + sd.h]].forEach(([cx, cy]) => {
         ctx.fillStyle = 'white'; ctx.fillRect(cx - 4, cy - 4, 8, 8)
-        ctx.strokeStyle = '#1e90ff'; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 4, cy - 4, 8, 8)
+        ctx.strokeStyle = primary; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 4, cy - 4, 8, 8)
       })
       ctx.restore()
     }
@@ -989,7 +990,7 @@ export default function FlipbookStudio({ track = () => {} }) {
 
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 800, color: '#555', fontSize: 14 }}>✂️ Selection</span>
+                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 14 }}>✂️ Selection</span>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <button onClick={commitSelection}
                     style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
@@ -999,7 +1000,7 @@ export default function FlipbookStudio({ track = () => {} }) {
                   </button>
                   <button onClick={cancelSelection}
                     style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
-                      background: '#f5f5f5', color: '#888',
+                      background: 'var(--primary-lt)', color: 'var(--primary)',
                       fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
                     ✕
                   </button>
@@ -1012,19 +1013,20 @@ export default function FlipbookStudio({ track = () => {} }) {
                   📌 Copy to next frames at same spot
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: '#666' }}>Next</span>
+                  <span style={{ fontSize: 11, color: 'var(--primary)' }}>Next</span>
                   {[1, 2, 3, 5].map(n => (
                     <button key={n} onClick={() => setStampCount(n)}
                       style={{ width: 26, height: 26, borderRadius: 6, border: 'none',
-                        background: stampCount === n ? 'var(--primary)' : 'rgba(255,255,255,0.7)',
+                        background: stampCount === n ? 'var(--primary)' : 'white',
                         color: stampCount === n ? 'white' : 'var(--primary)',
-                        fontWeight: 800, fontSize: 12, cursor: 'pointer', padding: 0 }}>{n}</button>
+                        fontWeight: 800, fontSize: 12, cursor: 'pointer', padding: 0,
+                        outline: stampCount === n ? 'none' : '1.5px solid var(--primary)' }}>{n}</button>
                   ))}
-                  <span style={{ fontSize: 11, color: '#666' }}>frames</span>
+                  <span style={{ fontSize: 11, color: 'var(--primary)' }}>frames</span>
                   <button onClick={() => stampSelectionToFrames(stampCount)} disabled={isStamping}
                     style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, border: 'none',
-                      background: isStamping ? '#e0e0e0' : 'var(--primary)',
-                      color: isStamping ? '#aaa' : 'white',
+                      background: isStamping ? 'var(--primary-lt)' : 'var(--primary)',
+                      color: isStamping ? 'var(--primary)' : 'white',
                       fontFamily: 'Nunito, sans-serif', fontWeight: 700,
                       cursor: isStamping ? 'not-allowed' : 'pointer', fontSize: 12 }}>
                     {isStamping ? '⏳' : 'Stamp!'}
@@ -1040,7 +1042,7 @@ export default function FlipbookStudio({ track = () => {} }) {
                   </div>
                   {/* End frame picker */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, color: '#666' }}>Until frame</span>
+                    <span style={{ fontSize: 11, color: 'var(--primary)' }}>Until frame</span>
                     <input type="range"
                       min={currentIdxRef.current + 1} max={total - 1}
                       value={slideEndFrame ?? currentIdxRef.current + 1}
@@ -1051,22 +1053,23 @@ export default function FlipbookStudio({ track = () => {} }) {
                     </span>
                   </div>
                   {/* Direction presets */}
-                  <div style={{ fontSize: 11, color: '#666', marginBottom: 5 }}>Which way does it move?</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', marginBottom: 5 }}>Which way does it move?</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {[
-                      { label: '→',  emoji: '➡️',  sx:  40, sy:   0 },
-                      { label: '←',  emoji: '⬅️',  sx: -40, sy:   0 },
-                      { label: '↓',  emoji: '⬇️',  sx:   0, sy:  40 },
-                      { label: '↑',  emoji: '⬆️',  sx:   0, sy: -40 },
-                      { label: '↗',  emoji: '↗️',  sx:  40, sy: -40 },
-                      { label: '↘',  emoji: '↘️',  sx:  40, sy:  40 },
-                    ].map(({ label, emoji, sx, sy }) => {
+                      { label: '→',  sx:  40, sy:   0 },
+                      { label: '←',  sx: -40, sy:   0 },
+                      { label: '↓',  sx:   0, sy:  40 },
+                      { label: '↑',  sx:   0, sy: -40 },
+                      { label: '↗',  sx:  40, sy: -40 },
+                      { label: '↘',  sx:  40, sy:  40 },
+                    ].map(({ label, sx, sy }) => {
                       const active = slideStepX === sx && slideStepY === sy
                       return (
                         <button key={label} onClick={() => { setSlideStepX(sx); setSlideStepY(sy) }}
                           style={{ width: 38, height: 38, borderRadius: 10, border: 'none',
-                            background: active ? 'var(--primary)' : 'rgba(255,255,255,0.8)',
-                            color: active ? 'white' : '#555',
+                            background: active ? 'var(--primary)' : 'white',
+                            color: active ? 'white' : 'var(--primary)',
+                            outline: active ? 'none' : '1.5px solid var(--primary)',
                             fontSize: 18, cursor: 'pointer', padding: 0,
                             boxShadow: active ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
                             transform: active ? 'scale(1.12)' : 'scale(1)',
@@ -1079,8 +1082,8 @@ export default function FlipbookStudio({ track = () => {} }) {
                   <button onClick={slideSelectionAcrossFrames}
                     disabled={isStamping || (slideStepX === 0 && slideStepY === 0)}
                     style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: 'none',
-                      background: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? '#e0e0e0' : 'var(--primary)',
-                      color: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? '#aaa' : 'white',
+                      background: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'var(--primary-lt)' : 'var(--primary)',
+                      color: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'var(--primary)' : 'white',
                       fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
                       cursor: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'not-allowed' : 'pointer' }}>
                     {isStamping ? '⏳ Sliding…' : '🎬 Slide!'}

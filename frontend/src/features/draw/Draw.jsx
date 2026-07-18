@@ -125,6 +125,16 @@ export default function Draw({ child, quota, featureConfig }) {
   const [animPlaying, setAnimPlaying] = useState(false)
   const [animLabel, setAnimLabel]     = useState('')
 
+  // Selection tool
+  const [selectTool, setSelectTool]       = useState(false)
+  const selOverlayRef  = useRef(null)
+  const selTmpRef      = useRef(null)
+  const selStateRef    = useRef({ phase: null, startX: 0, startY: 0,
+    x: 0, y: 0, w: 0, h: 0, pixels: null, posX: 0, posY: 0,
+    dragging: false, dragStartX: 0, dragStartY: 0, dragOrigX: 0, dragOrigY: 0 })
+  const [selTick, setSelTick]             = useState(0)
+  const [selPanelOpen, setSelPanelOpen]   = useState(false)
+
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onFsChange)
@@ -292,6 +302,7 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function startDraw(e) {
     e.preventDefault()
+    if (selectTool) return
     if (!sessionTracked.current) {
       sessionTracked.current = true
     }
@@ -339,6 +350,11 @@ export default function Draw({ child, quota, featureConfig }) {
   }
 
   function clearCanvas() {
+    if (selStateRef.current.phase === 'floating') {
+      selStateRef.current.phase = null; selTmpRef.current = null
+      setSelPanelOpen(false); setSelTick(t => t + 1)
+      selOverlayRef.current?.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+    }
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     ctx.fillStyle = '#ffffff'
@@ -481,6 +497,136 @@ export default function Draw({ child, quota, featureConfig }) {
     link.href = canvasRef.current.toDataURL()
     link.click()
   }
+
+  // ── Selection tool ─────────────────────────────────────────────────────────
+  function drawSelOverlay() {
+    const ov = selOverlayRef.current
+    if (!ov) return
+    const primary = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#9c6ef8'
+    const W = canvasRef.current.width, H = canvasRef.current.height
+    const ctx = ov.getContext('2d')
+    ctx.clearRect(0, 0, W, H)
+    const sd = selStateRef.current
+    if (!sd.phase) return
+    if (sd.phase === 'drawing') {
+      ctx.save()
+      ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
+      ctx.strokeRect(sd.x, sd.y, sd.w, sd.h)
+      ctx.fillStyle = primary + '18'; ctx.fillRect(sd.x, sd.y, sd.w, sd.h)
+      ctx.restore()
+    } else if (sd.phase === 'floating') {
+      const px = Math.round(sd.posX), py = Math.round(sd.posY)
+      if (selTmpRef.current) {
+        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 8
+        ctx.drawImage(selTmpRef.current, px, py); ctx.restore()
+      }
+      ctx.save()
+      ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
+      ctx.strokeRect(px, py, sd.w, sd.h)
+      ctx.setLineDash([])
+      ;[[px, py], [px + sd.w, py], [px, py + sd.h], [px + sd.w, py + sd.h]].forEach(([cx, cy]) => {
+        ctx.fillStyle = 'white'; ctx.fillRect(cx - 4, cy - 4, 8, 8)
+        ctx.strokeStyle = primary; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 4, cy - 4, 8, 8)
+      })
+      ctx.restore()
+    }
+  }
+
+  function commitSelection() {
+    const sd = selStateRef.current
+    if (sd.phase === 'floating' && selTmpRef.current) {
+      canvasRef.current.getContext('2d').drawImage(selTmpRef.current, Math.round(sd.posX), Math.round(sd.posY))
+      setIsEmpty(false)
+    }
+    sd.phase = null; sd.pixels = null; selTmpRef.current = null
+    setSelPanelOpen(false); setSelTick(t => t + 1)
+    selOverlayRef.current?.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+  }
+
+  function cancelSelection() {
+    const sd = selStateRef.current
+    if (sd.phase === 'floating' && selTmpRef.current) {
+      canvasRef.current.getContext('2d').drawImage(selTmpRef.current, Math.round(sd.x), Math.round(sd.y))
+    }
+    sd.phase = null; sd.pixels = null; selTmpRef.current = null
+    setSelPanelOpen(false); setSelTick(t => t + 1)
+    selOverlayRef.current?.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+  }
+
+  function onSelDown(e) {
+    const sd = selStateRef.current
+    const pos = getPos(e, canvasRef.current)
+    if (sd.phase === 'floating') {
+      const inside = pos.x >= sd.posX && pos.x <= sd.posX + sd.w
+                  && pos.y >= sd.posY && pos.y <= sd.posY + sd.h
+      if (inside) {
+        sd.dragging = true
+        sd.dragStartX = pos.x; sd.dragStartY = pos.y
+        sd.dragOrigX = sd.posX; sd.dragOrigY = sd.posY
+        return
+      }
+      commitSelection()
+    }
+    saveSnapshot()
+    sd.phase = 'drawing'; sd.startX = pos.x; sd.startY = pos.y
+    sd.x = pos.x; sd.y = pos.y; sd.w = 0; sd.h = 0
+    drawSelOverlay()
+  }
+
+  function onSelMove(e) {
+    const sd = selStateRef.current
+    const pos = getPos(e, canvasRef.current)
+    if (sd.phase === 'drawing') {
+      sd.x = Math.min(pos.x, sd.startX); sd.y = Math.min(pos.y, sd.startY)
+      sd.w = Math.abs(pos.x - sd.startX); sd.h = Math.abs(pos.y - sd.startY)
+      drawSelOverlay()
+    } else if (sd.phase === 'floating' && sd.dragging) {
+      sd.posX = sd.dragOrigX + (pos.x - sd.dragStartX)
+      sd.posY = sd.dragOrigY + (pos.y - sd.dragStartY)
+      drawSelOverlay()
+    }
+  }
+
+  function onSelUp() {
+    const sd = selStateRef.current
+    if (sd.phase === 'drawing') {
+      if (sd.w < 5 || sd.h < 5) { sd.phase = null; drawSelOverlay(); return }
+      const canvas = canvasRef.current
+      const xi = Math.max(0, Math.floor(sd.x)), yi = Math.max(0, Math.floor(sd.y))
+      const wi = Math.min(canvas.width - xi, Math.ceil(sd.w))
+      const hi = Math.min(canvas.height - yi, Math.ceil(sd.h))
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
+      sd.pixels = ctx.getImageData(xi, yi, wi, hi)
+      sd.w = wi; sd.h = hi; sd.x = xi; sd.y = yi
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(xi, yi, wi, hi)
+      selTmpRef.current = document.createElement('canvas')
+      selTmpRef.current.width = wi; selTmpRef.current.height = hi
+      selTmpRef.current.getContext('2d').putImageData(sd.pixels, 0, 0)
+      sd.posX = xi; sd.posY = yi; sd.phase = 'floating'; sd.dragging = false
+      setSelPanelOpen(true); setSelTick(t => t + 1)
+      drawSelOverlay()
+    } else if (sd.phase === 'floating') {
+      sd.dragging = false
+    }
+  }
+
+  // Overlay touch — no deps so handlers are always fresh
+  useEffect(() => {
+    if (!selectTool) return
+    const ov = selOverlayRef.current
+    if (!ov) return
+    const onTS = e => { e.preventDefault(); onSelDown(e) }
+    const onTM = e => { e.preventDefault(); onSelMove(e) }
+    const onTE = e => { e.preventDefault(); onSelUp() }
+    ov.addEventListener('touchstart', onTS, { passive: false })
+    ov.addEventListener('touchmove',  onTM, { passive: false })
+    ov.addEventListener('touchend',   onTE, { passive: false })
+    return () => {
+      ov.removeEventListener('touchstart', onTS)
+      ov.removeEventListener('touchmove',  onTM)
+      ov.removeEventListener('touchend',   onTE)
+    }
+  })
 
   const toolbarStyle = isFullscreen ? {
     // Fullscreen: narrow vertical strip on the left, full height
@@ -735,12 +881,13 @@ export default function Draw({ child, quota, featureConfig }) {
 
         <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
           {[
-            { key: 'pencil', title: 'Pencil',  emoji: '✏️',  active: !eraser && !fillMode, onClick: () => { setEraser(false); setFillMode(false) } },
-            { key: 'fill',   title: 'Fill',    emoji: '🪣',  active: fillMode,              onClick: () => { setFillMode(f => !f); setEraser(false) } },
-            { key: 'eraser', title: 'Eraser',  emoji: '🧽',  active: eraser,                onClick: () => { setEraser(e => !e); setFillMode(false) } },
-            { key: 'undo',   title: 'Undo',    emoji: '↩️',  active: false, disabled: !canUndo, onClick: handleUndo },
-            { key: 'clear',  title: 'Clear',   emoji: '🗑️', active: false,                 onClick: clearCanvas },
-            { key: 'save',   title: 'Save',    emoji: '💾',  active: false,                 onClick: downloadDrawing },
+            { key: 'pencil', title: 'Pencil',        emoji: '✏️',  active: !eraser && !fillMode && !selectTool, onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false) } },
+            { key: 'fill',   title: 'Fill',          emoji: '🪣',  active: fillMode,   onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false) } },
+            { key: 'eraser', title: 'Eraser',        emoji: '🧽',  active: eraser,     onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false) } },
+            { key: 'select', title: 'Select & Move', emoji: '⬚',   active: selectTool, onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setSelectTool(true) } } },
+            { key: 'undo',   title: 'Undo',          emoji: '↩️',  active: false, disabled: !canUndo, onClick: handleUndo },
+            { key: 'clear',  title: 'Clear',         emoji: '🗑️', active: false, onClick: clearCanvas },
+            { key: 'save',   title: 'Save',          emoji: '💾',  active: false, onClick: downloadDrawing },
           ].map(({ key, title, emoji, active, disabled, onClick }) => (
             <button key={key} onClick={onClick} title={title} disabled={disabled}
               style={{
@@ -829,6 +976,19 @@ export default function Draw({ child, quota, featureConfig }) {
               onMouseLeave={stopDraw}
               onTouchEnd={stopDraw}
             />
+            {/* Selection overlay — captures pointer events when select tool is active */}
+            <canvas
+              ref={selOverlayRef}
+              width={1200}
+              height={800}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+                pointerEvents: selectTool ? 'auto' : 'none',
+                display: 'block', cursor: 'crosshair' }}
+              onMouseDown={onSelDown}
+              onMouseMove={onSelMove}
+              onMouseUp={onSelUp}
+              onMouseLeave={onSelUp}
+            />
           </div>
           {/* Animation overlay — outside the clip so animations can move freely near edges */}
           <canvas
@@ -838,6 +998,28 @@ export default function Draw({ child, quota, featureConfig }) {
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
               pointerEvents: 'none', display: 'block' }}
           />
+          {/* Selection panel */}
+          {selPanelOpen && selStateRef.current.phase === 'floating' && (
+            <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 20,
+              background: 'white', borderRadius: 16, padding: '10px 14px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1.5px solid var(--primary-lt)',
+              fontFamily: 'Nunito, sans-serif', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 14 }}>✂️ Selection</span>
+              <button onClick={commitSelection}
+                style={{ padding: '5px 14px', borderRadius: 8, border: 'none',
+                  background: 'var(--primary)', color: 'white',
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                ✓ Place
+              </button>
+              <button onClick={cancelSelection}
+                style={{ padding: '5px 10px', borderRadius: 8, border: 'none',
+                  background: 'var(--primary-lt)', color: 'var(--primary)',
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}>
+                ✕
+              </button>
+            </div>
+          )}
           {isEmpty && (
             <div style={{
               position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',

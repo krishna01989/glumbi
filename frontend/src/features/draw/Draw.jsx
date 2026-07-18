@@ -1021,9 +1021,12 @@ export default function Draw({ child, quota, featureConfig }) {
           </div>
         )}
 
-        {/* Outer wrapper: position:relative so overlay can escape the inner clip */}
+        {/* Centering wrapper — fills remaining space, never stretches the canvas */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, overflow: 'hidden' }}>
+        {/* Outer wrapper: fixed 1200×800 aspect ratio; position:relative so overlay can escape inner clip */}
         <div style={{
-          flex: 1, borderRadius: isFullscreen ? 0 : 20,
+          aspectRatio: '1200 / 800', width: '100%', maxHeight: '100%',
+          borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)', position: 'relative',
           cursor: canvasCursor,
         }}>
@@ -1135,7 +1138,8 @@ export default function Draw({ child, quota, featureConfig }) {
             </button>
           )}
         </div>
-        </div>{/* end canvas+guide row */}
+        </div>{/* end outer wrapper */}
+        </div>{/* end centering wrapper */}
 
         {/* ── Fullscreen bottom action bar ── */}
         {isFullscreen && (
@@ -1338,37 +1342,34 @@ export default function Draw({ child, quota, featureConfig }) {
 
     {drawTab === 'draw' && <HistoryDrawer title="My Drawings" count={drawSaves.length}>
       {close => drawSaves.map(s => (
-        <div key={s.id} style={{ borderRadius: 14, overflow: 'hidden', boxShadow: 'var(--shadow)',
-          outline: currentSaveId === s.id ? '3px solid var(--primary)' : 'none' }}>
+        <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
           <img src={s.imageData} alt={s.title || 'Drawing'}
-            style={{ width: '100%', display: 'block', cursor: 'pointer', background: '#fafafa' }}
-            onClick={() => { loadDrawSave(s); close() }} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '8px 12px', background: 'white', gap: 8 }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              {s.title && (
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#333',
-                  fontFamily: 'Nunito, sans-serif', whiteSpace: 'nowrap',
-                  overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {s.title}
-                </div>
-              )}
-              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
-                {fmtDate(s.updatedAt || s.createdAt)}
-              </span>
+            onClick={() => { loadDrawSave(s); close() }}
+            style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6, flexShrink: 0,
+              border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
+              cursor: 'pointer', background: '#fafafa' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
+              color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {s.title || 'Untitled drawing'}
             </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => { loadDrawSave(s); close() }}
-                style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'var(--primary-lt)',
-                  border: 'none', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}>
-                Resume
-              </button>
-              <button onClick={() => deleteDrawSave(s.id)}
-                className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                ✕
-              </button>
+            <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
+              {fmtDate(s.updatedAt || s.createdAt)}
             </div>
           </div>
+          <button onClick={() => { loadDrawSave(s); close() }}
+            style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
+              background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
+              fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
+            Resume
+          </button>
+          <button onClick={() => deleteDrawSave(s.id)}
+            className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28,
+              borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            ✕
+          </button>
         </div>
       ))}
     </HistoryDrawer>}

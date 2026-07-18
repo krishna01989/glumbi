@@ -45,6 +45,23 @@ const SPEEDS = [
   { fps: 12, emoji: '🚀', label: 'Zoom' },
 ]
 
+const PLAY_EFFECTS = [
+  { key: null,     emoji: '▭',  label: 'None' },
+  { key: 'shake',  emoji: '💥', label: 'Shake' },
+  { key: 'zoom',   emoji: '🔍', label: 'Zoom' },
+  { key: 'bounce', emoji: '⬆️', label: 'Bounce' },
+  { key: 'wave',   emoji: '〰️', label: 'Wave' },
+  { key: 'spin',   emoji: '🌀', label: 'Spin' },
+]
+
+const EFFECT_ANIM = {
+  shake:  'fbShake  0.45s ease-in-out infinite',
+  zoom:   'fbZoom   1.2s  ease-in-out infinite',
+  bounce: 'fbBounce 0.7s  ease-in-out infinite',
+  wave:   'fbWave   0.9s  ease-in-out infinite',
+  spin:   'fbSpin   2.5s  linear      infinite',
+}
+
 function SectionLabel({ children }) {
   return <div style={{ fontSize: 9, fontWeight: 800, color: '#bbb', textTransform: 'uppercase',
     letterSpacing: 1, textAlign: 'center', width: '100%' }}>{children}</div>
@@ -105,6 +122,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   const [showPlayback, setShowPlayback] = useState(false)
   const [fps, setFps]   = useState(4)
   const [loop, setLoop] = useState(true)
+  const [playEffect, setPlayEffect] = useState(null)
   const fpsRef  = useRef(4)
   const loopRef = useRef(true)
   const playTimerRef = useRef(null)
@@ -1033,9 +1051,13 @@ export default function FlipbookStudio({ track = () => {}, child }) {
         )}
 
         {/* ── Canvas area ── */}
-        <div style={{ flex: 1, borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
+        {/* Centering wrapper — fills remaining space, centers canvas without stretching it */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
+        {/* Canvas container — fixed 1200×800 logical resolution, scales via CSS only */}
+        <div style={{ aspectRatio: `${W} / ${H}`, width: '100%', maxHeight: '100%',
+          borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
-          position: 'relative', background: 'white', minHeight: 0 }}>
+          position: 'relative', background: 'white' }}>
 
           {/* Draw canvas */}
           <canvas ref={canvasRef} width={W} height={H}
@@ -1174,7 +1196,10 @@ export default function FlipbookStudio({ track = () => {}, child }) {
 
           {/* Playback overlay */}
           {showPlayback && (
-            <div style={{ position: 'absolute', inset: 0, background: 'white', display: 'block' }}>
+            <div style={{
+              position: 'absolute', inset: 0, background: 'white', display: 'block',
+              animation: (isPlaying && playEffect) ? EFFECT_ANIM[playEffect] : undefined,
+            }}>
               {playbackSrc
                 ? <img src={playbackSrc} alt="" draggable={false}
                     style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
@@ -1217,7 +1242,8 @@ export default function FlipbookStudio({ track = () => {}, child }) {
               Frame {currentIdx + 1} / {total}
             </div>
           )}
-        </div>
+        </div>{/* end canvas container */}
+        </div>{/* end centering wrapper */}
         </div>{/* end canvas column */}
       </div>
 
@@ -1307,6 +1333,30 @@ export default function FlipbookStudio({ track = () => {}, child }) {
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
                   <span style={{ fontSize: 18, lineHeight: 1.2 }}>{s.emoji}</span>
                   <span style={{ fontSize: 10 }}>{s.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Playback effect presets */}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#b0a0d0', letterSpacing: 0.5,
+              textTransform: 'uppercase', marginRight: 2 }}>FX</span>
+            {PLAY_EFFECTS.map(fx => {
+              const active = playEffect === fx.key
+              return (
+                <button key={String(fx.key)} onClick={() => setPlayEffect(fx.key)}
+                  title={fx.label}
+                  style={{ padding: '4px 10px', borderRadius: 20, border: 'none',
+                    cursor: 'pointer', flexShrink: 0,
+                    background: active ? 'linear-gradient(135deg,#ff6b81,#ff9f43)' : 'white',
+                    boxShadow: active ? '0 3px 10px rgba(255,107,129,0.4)' : '0 2px 6px rgba(0,0,0,0.08)',
+                    fontFamily: 'Nunito, sans-serif', fontWeight: 800,
+                    color: active ? 'white' : '#888',
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                  <span style={{ fontSize: 18, lineHeight: 1.2 }}>{fx.emoji}</span>
+                  <span style={{ fontSize: 10 }}>{fx.label}</span>
                 </button>
               )
             })}
@@ -1456,8 +1506,10 @@ export default function FlipbookStudio({ track = () => {}, child }) {
           padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
           {save.thumbnail && (
             <img src={save.thumbnail} alt="thumbnail"
+              onClick={() => { loadFlipbookSave(save); close() }}
               style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
-                border: '2px solid var(--primary-lt)', flexShrink: 0 }} />
+                border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
+                flexShrink: 0, cursor: 'pointer' }} />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
@@ -1481,6 +1533,36 @@ export default function FlipbookStudio({ track = () => {}, child }) {
         </div>
       ))}
     </HistoryDrawer>
+
+    <style>{`
+      @keyframes fbShake {
+        0%,100% { transform: translate(0,0); }
+        15%      { transform: translate(-9px, 2px); }
+        30%      { transform: translate(9px, -2px); }
+        45%      { transform: translate(-7px, 3px); }
+        60%      { transform: translate(7px, -1px); }
+        75%      { transform: translate(-4px, 2px); }
+        90%      { transform: translate(4px, -1px); }
+      }
+      @keyframes fbZoom {
+        0%,100% { transform: scale(1); }
+        50%     { transform: scale(1.12); }
+      }
+      @keyframes fbBounce {
+        0%,100% { transform: translateY(0) scale(1); }
+        40%     { transform: translateY(-16px) scale(1.03); }
+        65%     { transform: translateY(-10px) scale(1.01); }
+      }
+      @keyframes fbWave {
+        0%,100% { transform: translateX(0); }
+        25%     { transform: translateX(12px); }
+        75%     { transform: translateX(-12px); }
+      }
+      @keyframes fbSpin {
+        from { transform: rotate(0deg) scale(0.94); }
+        to   { transform: rotate(360deg) scale(0.94); }
+      }
+    `}</style>
     </>
   )
 }

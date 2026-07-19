@@ -145,10 +145,11 @@ export function useLockSession({ child, setChild, prevChildId }) {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [child?.id])
 
-  // Exit fullscreen when screen-time alert fires
+  // Exit fullscreen + trigger emergency saves when screen-time alert fires
   useEffect(() => {
     if (!screenTimeAlert) return
     if (document.fullscreenElement) document.exitFullscreen?.()
+    window.__glumbiEmergencySaves?.forEach(fn => { try { fn() } catch {} })
   }, [screenTimeAlert])
 
   // Pause feature duration timers when any blocking overlay is visible

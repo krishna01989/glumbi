@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { flipbookSaveApi } from '../../api/client'
 import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
+import { SHAPES, drawShape, ShapeIcon } from './shapeUtils'
 
 function makeEmojiCursor(emoji, size = 32, hotspotX, hotspotY) {
   try {
@@ -38,6 +39,7 @@ const BRUSHES = [
 ]
 const W = 1200, H = 800
 const MAX_FRAMES = 24
+const untitledTitle = () => `Untitled – ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 const SPEEDS = [
   { fps: 2,  emoji: '🐌', label: 'Slow' },
   { fps: 4,  emoji: '🚶', label: 'Normal' },
@@ -152,6 +154,20 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   // Selection tool
   const [selectTool, setSelectTool]       = useState(false)
   const selOverlayRef  = useRef(null)
+
+  // Shape tool
+  const [shapeTool, setShapeTool]         = useState(null)
+  const [shapeFill, setShapeFill]         = useState(false)
+  const [showShapePicker, setShowShapePicker] = useState(false)
+  const [shapePickerPos, setShapePickerPos]   = useState({ x: 0, y: 0, w: 226 })
+  const [hasPendingShape, setHasPendingShape] = useState(false)
+  const shapeOverlayRef  = useRef(null)
+  const shapeStartRef    = useRef(null)
+  const hasMovedRef      = useRef(false)
+  const touchIndicatorRef = useRef(null)
+  const shapesBtnRef     = useRef(null)
+  const pendingShapeRef  = useRef(null)
+  const pendingDragRef   = useRef(null)
   const selTmpRef      = useRef(null)   // cached canvas for the lifted pixels
   const selStateRef    = useRef({ phase: null, startX: 0, startY: 0,
     x: 0, y: 0, w: 0, h: 0, pixels: null, posX: 0, posY: 0,
@@ -180,6 +196,24 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     if (child?.id) flipbookSaveApi.getByChild(child.id).then(setFlipbookSaves).catch(() => {})
   }, [child?.id])
 
+  // Autosave every 60s if there are frames to save
+  const fbAutoSaveRef = useRef(null)
+  fbAutoSaveRef.current = () => { if (total >= 1 && !isSaving && !isPlaying && child?.id) saveFlipbook() }
+  useEffect(() => {
+    const t = setInterval(() => fbAutoSaveRef.current?.(), 60_000)
+    return () => clearInterval(t)
+  }, [])
+
+  // Emergency save — called by useLockSession when screen-time alert fires
+  const fbEmergencyRef = useRef(null)
+  fbEmergencyRef.current = () => { if (total > 1 && child?.id) saveFlipbook() }
+  useEffect(() => {
+    window.__glumbiEmergencySaves ??= new Set()
+    const fn = () => fbEmergencyRef.current?.()
+    window.__glumbiEmergencySaves.add(fn)
+    return () => window.__glumbiEmergencySaves?.delete(fn)
+  }, [])
+
   async function saveFlipbook() {
     if (!child?.id) return
     saveCurrentFrame()
@@ -190,7 +224,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       const framesJson = JSON.stringify(allFrames)
       const thumbnail = allFrames.find(f => f) || null
       const count = allFrames.length
-      const title = flipbookTitle.trim() || null
+      const title = flipbookTitle.trim() || untitledTitle()
       if (currentSaveId) {
         const updated = await flipbookSaveApi.update(currentSaveId, framesJson, thumbnail, fpsRef.current, count, title)
         setFlipbookSaves(prev => prev.map(s => s.id === currentSaveId ? updated : s))
@@ -248,6 +282,101 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     }
   })
 
+  // Close shape picker on outside click
+  useEffect(() => {
+    if (!showShapePicker) return
+    const handler = e => {
+      if (!e.target.closest?.('.fb-shape-picker-popup') && !e.target.closest?.('.fb-shape-picker-trigger'))
+        setShowShapePicker(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showShapePicker])
+
+  const bp = useBreakpoint()
+  const isCompact = bp === 'mobile' || bp === 'tablet'
+
+  function updateTouchIndicator(e) {
+    if (!e?.touches || !touchIndicatorRef.current || !canvasRef.current) return
+    const rect = canvasRef.current.getBoundingClientRect()
+    const ind  = touchIndicatorRef.current
+    ind.style.left        = (e.touches[0].clientX - rect.left) + 'px'
+    ind.style.top         = (e.touches[0].clientY - rect.top) + 'px'
+    ind.style.opacity     = '1'
+    ind.style.borderColor = eraser ? '#aaa' : color
+  }
+
+  function openShapePicker() {
+    if (!shapesBtnRef.current) return
+    const rect = shapesBtnRef.current.getBoundingClientRect()
+    const popW = Math.min(226, window.innerWidth - 16)
+    const popH = 290
+    let x = isCompact || isFullscreen ? rect.left : rect.right + 8
+    let y = isCompact || isFullscreen ? rect.bottom + 6 : rect.top
+    if (x + popW > window.innerWidth - 8)  x = window.innerWidth - popW - 8
+    if (x < 8) x = 8
+    if (y + popH > window.innerHeight - 8) y = window.innerHeight - popH - 8
+    if (y < 8) y = 8
+    setShapePickerPos({ x, y, w: popW })
+    setShowShapePicker(v => !v)
+  }
+
+  function getCornerHandles({ x1, y1, x2, y2 }) {
+    const pad = 12
+    const mnX = Math.min(x1, x2) - pad, mnY = Math.min(y1, y2) - pad
+    const mxX = Math.max(x1, x2) + pad, mxY = Math.max(y1, y2) + pad
+    return [
+      { id: 'nw', x: mnX, y: mnY }, { id: 'ne', x: mxX, y: mnY },
+      { id: 'se', x: mxX, y: mxY }, { id: 'sw', x: mnX, y: mxY },
+    ]
+  }
+  function hitCornerHandle(ps, pos) {
+    const HIT = 22
+    return getCornerHandles(ps).find(h => Math.abs(pos.x - h.x) <= HIT && Math.abs(pos.y - h.y) <= HIT) || null
+  }
+  function hitInsideShape({ x1, y1, x2, y2 }, pos) {
+    const pad = 12
+    return pos.x >= Math.min(x1, x2) - pad && pos.x <= Math.max(x1, x2) + pad
+        && pos.y >= Math.min(y1, y2) - pad && pos.y <= Math.max(y1, y2) + pad
+  }
+  function drawPendingShapeOverlay() {
+    const ov = shapeOverlayRef.current
+    if (!ov) return
+    const ovCtx = ov.getContext('2d')
+    ovCtx.clearRect(0, 0, W, H)
+    const ps = pendingShapeRef.current
+    if (!ps) return
+    drawShape(ovCtx, ps.type, ps.x1, ps.y1, ps.x2, ps.y2, ps.color, ps.lineWidth, ps.fill)
+    const pad = 12, hs = 16
+    const mnX = Math.min(ps.x1, ps.x2) - pad, mnY = Math.min(ps.y1, ps.y2) - pad
+    const mxX = Math.max(ps.x1, ps.x2) + pad, mxY = Math.max(ps.y1, ps.y2) + pad
+    ovCtx.save()
+    ovCtx.strokeStyle = '#1e90ff'; ovCtx.lineWidth = 2; ovCtx.setLineDash([8, 4])
+    ovCtx.strokeRect(mnX, mnY, mxX - mnX, mxY - mnY)
+    ovCtx.setLineDash([])
+    getCornerHandles(ps).forEach(h => {
+      ovCtx.fillStyle = 'white'; ovCtx.strokeStyle = '#1e90ff'; ovCtx.lineWidth = 2
+      ovCtx.fillRect(h.x - hs / 2, h.y - hs / 2, hs, hs)
+      ovCtx.strokeRect(h.x - hs / 2, h.y - hs / 2, hs, hs)
+    })
+    ovCtx.restore()
+  }
+  function commitPendingShape() {
+    const ps = pendingShapeRef.current
+    if (!ps) return
+    pendingShapeRef.current = null; pendingDragRef.current = null
+    shapeOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
+    const ctx = canvasRef.current.getContext('2d')
+    drawShape(ctx, ps.type, ps.x1, ps.y1, ps.x2, ps.y2, ps.color, ps.lineWidth, ps.fill)
+    setHasPendingShape(false)
+    saveCurrentFrame()
+  }
+  function cancelPendingShape() {
+    pendingShapeRef.current = null; pendingDragRef.current = null
+    shapeOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
+    setHasPendingShape(false)
+  }
+
   // Close palette on outside click
   useEffect(() => {
     if (!showPalette) return
@@ -282,7 +411,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     if (fillMode) return makeEmojiCursor('🪣', 24, 3, 21)
     if (eraser)   return makeEmojiCursor('🧽', 28, 4, 24)
     return 'crosshair'
-  }, [eraser, fillMode])
+  }, [eraser, fillMode, shapeTool])
 
   // ── Colour helpers (same as Draw.jsx) ──────────────────────────────────────
   function pickColor(c) {
@@ -639,25 +768,84 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   // ── Drawing ────────────────────────────────────────────────────────────────
   function startDraw(e) {
     if (isPlaying || selectTool) return
-    if (!fbSessionTracked.current) {
-      fbSessionTracked.current = true
+    if (!fbSessionTracked.current) fbSessionTracked.current = true
+    updateTouchIndicator(e)
+    hasMovedRef.current = false
+    const pos = getPos(e, canvasRef.current)
+
+    if (pendingShapeRef.current) {
+      const handle = hitCornerHandle(pendingShapeRef.current, pos)
+      if (handle) {
+        pendingDragRef.current = { mode: 'resize', handleId: handle.id, startX: pos.x, startY: pos.y, orig: { ...pendingShapeRef.current } }
+        drawing.current = true
+        return
+      }
+      if (hitInsideShape(pendingShapeRef.current, pos)) {
+        pendingDragRef.current = { mode: 'move', startX: pos.x, startY: pos.y, orig: { ...pendingShapeRef.current } }
+        drawing.current = true
+        return
+      }
+      commitPendingShape()
     }
+
     if (fillMode) {
       saveSnapshot()
-      floodFill(canvasRef.current, ...Object.values(getPos(e, canvasRef.current)), color)
+      floodFill(canvasRef.current, pos.x, pos.y, color)
       saveCurrentFrame()
+      return
+    }
+    if (shapeTool) {
+      saveSnapshot()
+      shapeStartRef.current = pos
+      drawing.current = true
       return
     }
     saveSnapshot()
     drawing.current = true
-    lastPos.current = getPos(e, canvasRef.current)
+    lastPos.current = pos
   }
 
   function doDraw(e) {
     if (!drawing.current || isPlaying) return
+    updateTouchIndicator(e)
+    const pos = getPos(e, canvasRef.current)
+    hasMovedRef.current = true
+
+    if (pendingDragRef.current) {
+      const pd = pendingDragRef.current
+      const dx = pos.x - pd.startX, dy = pos.y - pd.startY
+      const ns = { ...pd.orig }
+      if (pd.mode === 'move') {
+        ns.x1 = pd.orig.x1 + dx; ns.y1 = pd.orig.y1 + dy
+        ns.x2 = pd.orig.x2 + dx; ns.y2 = pd.orig.y2 + dy
+      } else {
+        switch (pd.handleId) {
+          case 'nw': ns.x1 = pd.orig.x1 + dx; ns.y1 = pd.orig.y1 + dy; break
+          case 'ne': ns.x2 = pd.orig.x2 + dx; ns.y1 = pd.orig.y1 + dy; break
+          case 'se': ns.x2 = pd.orig.x2 + dx; ns.y2 = pd.orig.y2 + dy; break
+          case 'sw': ns.x1 = pd.orig.x1 + dx; ns.y2 = pd.orig.y2 + dy; break
+          default: break
+        }
+      }
+      pendingShapeRef.current = ns
+      drawPendingShapeOverlay()
+      return
+    }
+
+    if (shapeTool && shapeStartRef.current) {
+      lastPos.current = pos
+      const ov = shapeOverlayRef.current
+      if (ov) {
+        const ovCtx = ov.getContext('2d')
+        ovCtx.clearRect(0, 0, W, H)
+        ovCtx.globalAlpha = 0.75
+        drawShape(ovCtx, shapeTool, shapeStartRef.current.x, shapeStartRef.current.y, pos.x, pos.y, eraser ? '#ffffff' : color, brush, shapeFill)
+        ovCtx.globalAlpha = 1
+      }
+      return
+    }
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
-    const pos = getPos(e, canvas)
     ctx.beginPath()
     ctx.moveTo(lastPos.current.x, lastPos.current.y)
     ctx.lineTo(pos.x, pos.y)
@@ -670,7 +858,37 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   }
 
   function stopDraw() {
-    if (drawing.current) saveCurrentFrame()   // auto-save every stroke
+    if (touchIndicatorRef.current) touchIndicatorRef.current.style.opacity = '0'
+    if (pendingDragRef.current) {
+      pendingDragRef.current = null
+      drawing.current = false
+      return
+    }
+    if (drawing.current) {
+      if (shapeTool && shapeStartRef.current) {
+        shapeOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
+        if (hasMovedRef.current && lastPos.current) {
+          pendingShapeRef.current = {
+            type: shapeTool, x1: shapeStartRef.current.x, y1: shapeStartRef.current.y,
+            x2: lastPos.current.x, y2: lastPos.current.y,
+            fill: shapeFill, color: eraser ? '#ffffff' : color, lineWidth: brush,
+          }
+          drawPendingShapeOverlay()
+          setHasPendingShape(true)
+        }
+        shapeStartRef.current = null
+      } else if (!hasMovedRef.current && lastPos.current) {
+        const ctx = canvasRef.current.getContext('2d')
+        const r = eraser ? brush : Math.max(brush / 2, 1.5)
+        ctx.beginPath()
+        ctx.arc(lastPos.current.x, lastPos.current.y, r, 0, Math.PI * 2)
+        ctx.fillStyle = eraser ? '#ffffff' : color
+        ctx.fill()
+        saveCurrentFrame()
+      } else {
+        saveCurrentFrame()
+      }
+    }
     drawing.current = false
     lastPos.current = null
   }
@@ -717,6 +935,14 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     sd.phase = null; sd.pixels = null; selTmpRef.current = null
     setSelPanelOpen(false); setSelTick(t => t + 1)
     selOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
+  }
+
+  function deleteSelection() {
+    const sd = selStateRef.current
+    sd.phase = null; sd.pixels = null; selTmpRef.current = null
+    setSelPanelOpen(false); setSelTick(t => t + 1)
+    selOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
+    saveCurrentFrame()
   }
 
   function cancelSelection() {
@@ -861,28 +1087,24 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const bp = useBreakpoint()
-  const isMobile  = bp === 'mobile'
-  const isCompact = bp === 'mobile' || bp === 'tablet'
+  const isMobile = bp === 'mobile'
 
   const total = frames.length
 
   const toolbarStyle = {
-    // compact: full-width top bar (row). desktop/fullscreen: left column
     width:     isFullscreen ? 80 : isCompact ? '100%' : 96,
     flexShrink: 0, alignSelf: 'stretch',
     display: 'flex',
-    flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column',
-    flexWrap:  isCompact && !isFullscreen ? 'wrap' : undefined,
-    gap: isFullscreen ? 8 : isCompact ? 8 : 12,
+    flexDirection: isFullscreen ? 'column' : 'column',
+    flexWrap:  'nowrap',
+    gap: isFullscreen ? 8 : isCompact ? 6 : 12,
     background: 'white',
     borderRadius: isFullscreen ? 0 : 20,
     padding: isFullscreen ? '14px 10px' : isCompact ? '10px 14px' : '16px 10px',
     boxShadow: isFullscreen ? '2px 0 8px rgba(0,0,0,0.06)' : 'var(--shadow)',
-    alignItems: 'center',
-    justifyContent: isCompact && !isFullscreen ? 'space-between' : 'flex-start',
+    alignItems: isCompact && !isFullscreen ? 'stretch' : 'center',
+    justifyContent: 'flex-start',
     overflowY: isCompact ? undefined : 'auto',
-    overflowX: isCompact && !isFullscreen ? 'auto' : undefined,
   }
 
   return (
@@ -913,126 +1135,367 @@ export default function FlipbookStudio({ track = () => {}, child }) {
         {/* ── Toolbar ── */}
         <div style={toolbarStyle}>
 
-          {!isCompact && !isFullscreen && <SectionLabel>Colour</SectionLabel>}
-
-          {/* Active swatch + palette trigger */}
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isCompact ? 6 : 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12,
-              background: eraser ? '#f5f5f5' : color,
-              boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {eraser && <span style={{ fontSize: 20 }}>🧹</span>}
-            </div>
-            <button ref={swatchRef} className="fb-palette-trigger"
-              onClick={() => {
-                const rect = swatchRef.current.getBoundingClientRect()
-                setPalettePos({ x: rect.right + 10, y: rect.top })
-                setShowPalette(p => !p)
-              }}
-              style={{ width: 44, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer',
-                padding: '4px 0', background: showPalette ? 'var(--primary-lt)' : '#f5f5f5',
-                outline: showPalette ? '2px solid var(--primary)' : 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s' }}>
-              <span style={{ fontSize: 16 }}>🎨</span>
-            </button>
-
-            {/* Palette popup */}
-            {showPalette && (
-              <div className="fb-palette-popup" style={{ position: 'fixed', left: palettePos.x,
-                top: palettePos.y, zIndex: 2000, background: 'white', borderRadius: 20,
-                padding: 16, boxShadow: '0 8px 40px rgba(0,0,0,0.18)', width: 240,
-                border: '1px solid #f0f0f0', maxHeight: '80vh', overflowY: 'auto' }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 10, letterSpacing: 1 }}>PRESET COLOURS</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginBottom: 14 }}>
-                  {PRESET_COLORS.map(c => (
-                    <button key={c} onClick={() => { pickColor(c); setShowPalette(false) }}
+          {/* Shared popups (position:fixed) */}
+          {showPalette && (
+            <div className="fb-palette-popup" style={{ position: 'fixed', left: palettePos.x, top: palettePos.y,
+              zIndex: 2000, background: 'white', borderRadius: 20, padding: 16,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.18)', width: 240,
+              border: '1px solid #f0f0f0', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 10, letterSpacing: 1 }}>PRESET COLOURS</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginBottom: 14 }}>
+                {PRESET_COLORS.map(c => (
+                  <button key={c} onClick={() => { pickColor(c); setShowPalette(false) }}
+                    style={{ width: 28, height: 28, borderRadius: 8, background: c, cursor: 'pointer', padding: 0,
+                      border: color === c && !eraser ? '3px solid #333' : c === '#ffffff' ? '1px solid #ddd' : '2px solid transparent',
+                      transform: color === c && !eraser ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.12s' }} />
+                ))}
+              </div>
+              {recentColors.length > 0 && <>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 8, letterSpacing: 1 }}>RECENTLY USED</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {recentColors.map((c, i) => (
+                    <button key={i} onClick={() => { pickColor(c); setShowPalette(false) }}
                       style={{ width: 28, height: 28, borderRadius: 8, background: c, cursor: 'pointer', padding: 0,
-                        border: color === c && !eraser ? '3px solid #333' : c === '#ffffff' ? '1px solid #ddd' : '2px solid transparent',
-                        transform: color === c && !eraser ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.12s' }} />
+                        border: color === c ? '3px solid #333' : c === '#ffffff' ? '1px solid #ddd' : '2px solid transparent' }} />
                   ))}
                 </div>
-                {recentColors.length > 0 && <>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 8, letterSpacing: 1 }}>RECENTLY USED</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-                    {recentColors.map((c, i) => (
-                      <button key={i} onClick={() => { pickColor(c); setShowPalette(false) }}
-                        style={{ width: 28, height: 28, borderRadius: 8, background: c, cursor: 'pointer', padding: 0,
-                          border: color === c ? '3px solid #333' : c === '#ffffff' ? '1px solid #ddd' : '2px solid transparent' }} />
-                    ))}
-                  </div>
-                </>}
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 8, letterSpacing: 1 }}>CUSTOM COLOUR</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: color, border: '1px solid #eee', flexShrink: 0 }} />
-                  <input ref={colorInput} type="color" value={eraser ? '#000000' : color}
-                    onChange={e => pickColor(e.target.value)}
-                    style={{ flex: 1, height: 36, borderRadius: 8, border: '1px solid #eee', cursor: 'pointer', padding: 2 }} />
-                </div>
+              </>}
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 8, letterSpacing: 1 }}>CUSTOM COLOUR</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: color, border: '1px solid #eee', flexShrink: 0 }} />
+                <input ref={colorInput} type="color" value={eraser ? '#000000' : color}
+                  onChange={e => pickColor(e.target.value)}
+                  style={{ flex: 1, height: 36, borderRadius: 8, border: '1px solid #eee', cursor: 'pointer', padding: 2 }} />
               </div>
-            )}
-          </div>
+            </div>
+          )}
+          {showShapePicker && (
+            <div className="fb-shape-picker-popup" style={{
+              position: 'fixed', left: shapePickerPos.x, top: shapePickerPos.y,
+              zIndex: 2000, background: 'white', borderRadius: 18, padding: 18,
+              boxShadow: '0 8px 40px rgba(0,0,0,0.22)', width: shapePickerPos.w,
+              border: '1px solid #f0f0f0', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#bbb', marginBottom: 10, letterSpacing: 1 }}>SHAPES</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(58px, 1fr))', gap: 8, marginBottom: 12 }}>
+                {SHAPES.map(s => (
+                  <button key={s.key} title={s.label}
+                    onClick={() => { setShapeTool(s.key); setShowShapePicker(false); setEraser(false); setFillMode(false); if (selectTool) { commitSelection(); setSelectTool(false) } }}
+                    style={{ padding: '10px 6px 8px', borderRadius: 12, border: 'none', cursor: 'pointer',
+                      background: shapeTool === s.key ? 'var(--primary-lt)' : '#f5f5f5',
+                      outline: shapeTool === s.key ? '2px solid var(--primary)' : 'none',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                    <ShapeIcon shape={s.key} size={26} color={shapeTool === s.key ? 'var(--primary)' : '#555'} strokeWidth={2} />
+                    <span style={{ fontSize: 9, fontWeight: 700, fontFamily: 'Nunito, sans-serif', color: shapeTool === s.key ? 'var(--primary)' : '#888' }}>{s.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#888', fontFamily: 'Nunito, sans-serif' }}>Fill</span>
+                <div onClick={() => setShapeFill(v => !v)} style={{ width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+                  background: shapeFill ? 'var(--primary)' : '#ddd', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', top: 2, left: shapeFill ? 18 : 2, width: 16, height: 16, borderRadius: '50%',
+                    background: 'white', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', display: 'block' }} />
+                </div>
+                <span style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>{shapeFill ? 'Filled' : 'Outline'}</span>
+              </div>
+            </div>
+          )}
 
-          {/* Quick colours */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isCompact ? undefined : 76 }}>
-            {QUICK_COLORS.map(c => (
-              <button key={c} onClick={() => pickColor(c)}
-                style={{ width: isCompact ? 20 : 22, height: isCompact ? 20 : 22, borderRadius: 6, background: c, border: 'none',
-                  cursor: 'pointer', padding: 0,
-                  boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 4px ${c}` : c === '#ffffff' ? '0 0 0 1px #ddd' : 'none',
-                  transform: color === c && !eraser ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.12s' }} />
-            ))}
-          </div>
+          {isCompact && !isFullscreen ? (() => {
+            const swatchSz = isMobile ? 26 : 30
+            const palSz    = isMobile ? 26 : 30
+            const colorSz  = isMobile ? 20 : 22
+            const brushSz  = isMobile ? 36 : 30   // Row 2 is brushes-only so they get more room
+            const btnSz    = isMobile ? 28 : 36
+            const fontSize = isMobile ? 17 : 20
 
-          {!isCompact && !isFullscreen && <HDivider />}
-          {!isCompact && !isFullscreen && <SectionLabel>Size</SectionLabel>}
+            const tabletRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }
+            const mobileRow = { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
+            const rowStyle  = isMobile ? mobileRow : tabletRow
 
-          {/* Brush sizes */}
-          <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
-            {BRUSHES.map(b => (
-              <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
-                style={{ width: isFullscreen ? 44 : isCompact ? 34 : 72,
-                  height: isFullscreen ? b.btnH * 0.8 : isCompact ? b.btnH * 0.75 : b.btnH,
-                  borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
-                  outline: brush === b.size ? '2px solid var(--primary)' : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 6px' }}>
-                <div style={{ width: b.dotSize, height: b.dotSize, borderRadius: '50%', flexShrink: 0,
-                  background: brush === b.size ? 'var(--primary)' : '#aaa' }} />
-              </button>
-            ))}
-          </div>
+            const btnStyle = (active) => ({
+              width: btnSz, height: btnSz, minWidth: btnSz, borderRadius: 9, border: 'none',
+              cursor: 'pointer', flexShrink: 0,
+              background: active ? 'var(--primary-lt)' : '#f0f0f0',
+              outline: active ? '2px solid var(--primary)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize,
+            })
 
-          {!isCompact && !isFullscreen && <HDivider />}
-          {!isCompact && !isFullscreen && <SectionLabel>Tools</SectionLabel>}
+            if (isMobile) {
+              // ── MOBILE: 2-column layout ──
+              // Col 1: colour swatch + 🎨 + 8-colour 4×2 grid
+              // Col 2 Row 1: 3 brush sizes
+              // Col 2 Row 2: ✏️ 🪣 🧽 ⬚ shapes
+              // Col 2 Row 3: ↩️ 🗑️ 👁️
+              const col2Btn = (active, extra) => ({
+                width: 36, height: 26, minWidth: 36, borderRadius: 7, border: 'none',
+                flexShrink: 0, cursor: 'pointer',
+                background: active ? 'var(--primary-lt)' : '#f0f0f0',
+                outline: active ? '2px solid var(--primary)' : 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, ...extra,
+              })
+              const col2Row = { display: 'flex', gap: 4, justifyContent: 'space-around' }
+              return (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
 
-          {/* Tool buttons */}
-          <div style={{ display: 'flex', flexDirection: isFullscreen ? 'column' : isCompact ? 'row' : 'column', gap: 5, alignItems: 'center' }}>
-            {[
-              { key: 'pencil', emoji: '✏️', active: !eraser && !fillMode && !selectTool, title: 'Pencil', onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false) } },
-              { key: 'fill',   emoji: '🪣', active: fillMode,   title: 'Fill',   onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false) } },
-              { key: 'eraser', emoji: '🧽', active: eraser,     title: 'Eraser', onClick: () => { if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false) } },
-              { key: 'select', emoji: '⬚',  active: selectTool, title: 'Select & Move — drag to cut a region, then place or slide it', onClick: () => {
-                if (selectTool) { commitSelection(); setSelectTool(false) }
-                else { setEraser(false); setFillMode(false); setSelectTool(true) }
-              }},
-              { key: 'undo',   emoji: '↩️', active: false, disabled: !canUndo, title: 'Undo', onClick: handleUndo },
-              { key: 'clear',  emoji: '🗑️', active: false,  title: 'Clear frame', onClick: clearCurrentFrame },
-              { key: 'onion',  emoji: '👁️', active: showOnionSkin, title: 'Onion skin', onClick: () => setShowOnionSkin(v => !v) },
-            ].map(({ key, emoji, active, disabled, onClick, title }) => (
-              <button key={key} onClick={onClick} disabled={disabled} title={title ?? key}
-                style={{ width: isFullscreen ? 44 : isCompact ? 40 : 72,
-                  height: isFullscreen ? 40 : isCompact ? 38 : 32,
-                  borderRadius: 8, border: 'none',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  background: active ? 'var(--primary-lt)' : '#f5f5f5',
-                  outline: active ? '2px solid var(--primary)' : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  opacity: disabled ? 0.35 : 1, fontSize: 18 }}>
-                {emoji}
-              </button>
-            ))}
-          </div>
+                  {/* ── Column 1: colours ── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, width: 68, flexShrink: 0 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: '50%',
+                      background: eraser ? '#e8e8e8' : color,
+                      border: '2px solid rgba(0,0,0,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    }}>
+                      {eraser && <span style={{ fontSize: 13 }}>🧹</span>}
+                    </div>
+                    <button ref={swatchRef} className="fb-palette-trigger"
+                      onClick={() => {
+                        const rect = swatchRef.current.getBoundingClientRect()
+                        setPalettePos({ x: rect.right + 8, y: Math.min(rect.top, window.innerHeight - 320) })
+                        setShowPalette(p => !p)
+                      }}
+                      style={{
+                        width: 44, height: 26, borderRadius: 7, border: 'none', cursor: 'pointer',
+                        fontSize: 15, background: showPalette ? 'var(--primary-lt)' : '#f0f0f0',
+                        outline: showPalette ? '2px solid var(--primary)' : 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>🎨</button>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 14px)', gap: 3 }}>
+                      {QUICK_COLORS.map(c => (
+                        <button key={c} onClick={() => pickColor(c)}
+                          style={{
+                            width: 14, height: 14, borderRadius: '50%', padding: 0,
+                            background: c, border: 'none', cursor: 'pointer',
+                            boxShadow: color === c && !eraser ? `0 0 0 1.5px white, 0 0 0 3px ${c}` : c === '#ffffff' ? '0 0 0 1px #ccc inset' : 'none',
+                            transform: color === c && !eraser ? 'scale(1.3)' : 'scale(1)', transition: 'transform 0.1s',
+                          }} />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* ── Column 2: 3 rows ── */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+
+                    {/* Row 1: brush sizes — scaled dot */}
+                    <div style={col2Row}>
+                      {BRUSHES.map((b, i) => {
+                        const dotSz = 6 + i * 4   // 6, 10, 14, 18, 22 px
+                        return (
+                          <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
+                            style={{ ...col2Btn(brush === b.size), background: brush === b.size ? 'var(--primary-lt)' : '#fff' }}>
+                            <div style={{ width: dotSz, height: dotSz, borderRadius: '50%', flexShrink: 0,
+                              background: brush === b.size ? 'var(--primary)' : '#222' }} />
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Row 2: ✏️ 🪣 🧽 ⬚ shapes */}
+                    <div style={col2Row}>
+                      {[
+                        { key: 'pencil', emoji: '✏️', active: !eraser && !fillMode && !selectTool && !shapeTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false); setShapeTool(null) } },
+                        { key: 'fill',   emoji: '🪣', active: fillMode,   onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false); setShapeTool(null) } },
+                        { key: 'eraser', emoji: '🧽', active: eraser,     onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false); setShapeTool(null) } },
+                        { key: 'select', emoji: '⬚',  active: selectTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setShapeTool(null); setSelectTool(true) } } },
+                      ].map(({ key, emoji, active, onClick }) => (
+                        <button key={key} onClick={onClick} style={col2Btn(active)}>{emoji}</button>
+                      ))}
+                      <button ref={shapesBtnRef} onClick={openShapePicker} className="fb-shape-picker-trigger"
+                        style={col2Btn(!!shapeTool, { gap: 2 })}>
+                        <ShapeIcon shape={shapeTool || 'rect'} size={11} color={shapeTool ? 'var(--primary)' : '#888'} />
+                        <span style={{ fontSize: 6, color: shapeTool ? 'var(--primary)' : '#aaa' }}>▾</span>
+                      </button>
+                    </div>
+
+                    {/* Row 3: ↩️ 🗑️ 👁️ */}
+                    <div style={col2Row}>
+                      {[
+                        { key: 'undo',  emoji: '↩️',  disabled: !canUndo, active: false,         onClick: handleUndo },
+                        { key: 'clear', emoji: '🗑️', disabled: false,    active: false,         onClick: clearCurrentFrame },
+                        { key: 'onion', emoji: '👁️',  disabled: false,    active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
+                      ].map(({ key, emoji, active, disabled, onClick }) => (
+                        <button key={key} onClick={onClick} disabled={disabled}
+                          style={col2Btn(active, { opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' })}>
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+              )
+            }
+
+            // ── 2-ROW TABLET LAYOUT ──
+            return (
+              <>
+                {/* Row 1: swatch · 🎨 · 8 colours · 3 brushes */}
+                <div style={rowStyle}>
+                  <div style={{
+                    width: swatchSz, height: swatchSz, minWidth: swatchSz,
+                    borderRadius: '50%', flexShrink: 0,
+                    background: eraser ? '#e8e8e8' : color,
+                    border: '2px solid rgba(0,0,0,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {eraser && <span style={{ fontSize: 14 }}>🧹</span>}
+                  </div>
+                  <button ref={swatchRef} className="fb-palette-trigger"
+                    onClick={() => {
+                      const rect = swatchRef.current.getBoundingClientRect()
+                      setPalettePos({ x: Math.min(rect.left, window.innerWidth - 256), y: rect.bottom + 8 })
+                      setShowPalette(p => !p)
+                    }}
+                    style={{
+                      width: palSz, height: palSz, minWidth: palSz, borderRadius: 8, border: 'none',
+                      cursor: 'pointer', flexShrink: 0, fontSize: 17,
+                      background: showPalette ? 'var(--primary-lt)' : '#f0f0f0',
+                      outline: showPalette ? '2px solid var(--primary)' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>🎨</button>
+                  {QUICK_COLORS.map(c => (
+                    <button key={c} onClick={() => pickColor(c)}
+                      style={{
+                        width: colorSz, height: colorSz, minWidth: colorSz,
+                        borderRadius: '50%', padding: 0, flexShrink: 0,
+                        background: c, border: 'none', cursor: 'pointer',
+                        boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : c === '#ffffff' ? '0 0 0 1px #ccc inset' : 'none',
+                        transform: color === c && !eraser ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.1s',
+                      }} />
+                  ))}
+                  {BRUSHES.map(b => (
+                    <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
+                      style={{
+                        width: brushSz, height: brushSz, minWidth: brushSz,
+                        borderRadius: 7, border: 'none', cursor: 'pointer', flexShrink: 0,
+                        background: brush === b.size ? 'var(--primary-lt)' : '#f0f0f0',
+                        outline: brush === b.size ? '2px solid var(--primary)' : 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                      <div style={{ width: b.dotSize, height: b.dotSize, borderRadius: '50%', flexShrink: 0,
+                        background: brush === b.size ? 'var(--primary)' : '#999' }} />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Row 2: ✏️ 🪣 🧽 ⬚ shapes | ↩️ 🗑️ 👁️ */}
+                <div style={rowStyle}>
+                  {[
+                    { key: 'pencil', emoji: '✏️', active: !eraser && !fillMode && !selectTool && !shapeTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false); setShapeTool(null) } },
+                    { key: 'fill',   emoji: '🪣', active: fillMode,   onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false); setShapeTool(null) } },
+                    { key: 'eraser', emoji: '🧽', active: eraser,     onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false); setShapeTool(null) } },
+                    { key: 'select', emoji: '⬚',  active: selectTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setShapeTool(null); setSelectTool(true) } } },
+                  ].map(({ key, emoji, active, onClick }) => (
+                    <button key={key} onClick={onClick} style={btnStyle(active)}>{emoji}</button>
+                  ))}
+                  <button ref={shapesBtnRef} onClick={openShapePicker} className="fb-shape-picker-trigger"
+                    style={{ ...btnStyle(!!shapeTool), gap: 2 }}>
+                    <ShapeIcon shape={shapeTool || 'rect'} size={16} color={shapeTool ? 'var(--primary)' : '#888'} />
+                    <span style={{ fontSize: 7, color: shapeTool ? 'var(--primary)' : '#aaa' }}>▾</span>
+                  </button>
+                  <div style={{ width: 1, height: btnSz * 0.7, background: '#ccc', flexShrink: 0 }} />
+                  {[
+                    { key: 'undo',  emoji: '↩️',  disabled: !canUndo, active: false,         onClick: handleUndo },
+                    { key: 'clear', emoji: '🗑️', disabled: false,    active: false,         onClick: clearCurrentFrame },
+                    { key: 'onion', emoji: '👁️',  disabled: false,    active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
+                  ].map(({ key, emoji, active, disabled, onClick }) => (
+                    <button key={key} onClick={onClick} disabled={disabled}
+                      style={{ ...btnStyle(active), opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )
+          })() : (
+            /* ── DESKTOP + FULLSCREEN ── */
+            <>
+              {!isFullscreen && <SectionLabel>Colour</SectionLabel>}
+              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: eraser ? '#f5f5f5' : color,
+                  boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {eraser && <span style={{ fontSize: 20 }}>🧹</span>}
+                </div>
+                <button ref={swatchRef} className="fb-palette-trigger"
+                  onClick={() => {
+                    const rect = swatchRef.current.getBoundingClientRect()
+                    setPalettePos({ x: rect.right + 10, y: rect.top })
+                    setShowPalette(p => !p)
+                  }}
+                  style={{ width: 44, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', padding: '4px 0',
+                    background: showPalette ? 'var(--primary-lt)' : '#f5f5f5',
+                    outline: showPalette ? '2px solid var(--primary)' : 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  <span style={{ fontSize: 16 }}>🎨</span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isFullscreen ? 52 : 76 }}>
+                {QUICK_COLORS.map(c => (
+                  <button key={c} onClick={() => pickColor(c)}
+                    style={{ width: 22, height: 22, borderRadius: 6, background: c, border: 'none', cursor: 'pointer', padding: 0,
+                      boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 4px ${c}` : c === '#ffffff' ? '0 0 0 1px #ddd' : 'none',
+                      transform: color === c && !eraser ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.12s' }} />
+                ))}
+              </div>
+
+              {!isFullscreen && <HDivider />}
+              {!isFullscreen && <SectionLabel>Size</SectionLabel>}
+              {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
+                {BRUSHES.map(b => (
+                  <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
+                    style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? b.btnH * 0.8 : b.btnH,
+                      borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
+                      outline: brush === b.size ? '2px solid var(--primary)' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 6px' }}>
+                    <div style={{ width: b.dotSize, height: b.dotSize, borderRadius: '50%', flexShrink: 0,
+                      background: brush === b.size ? 'var(--primary)' : '#aaa' }} />
+                  </button>
+                ))}
+              </div>
+
+              {!isFullscreen && <HDivider />}
+              {!isFullscreen && <SectionLabel>Tools</SectionLabel>}
+              {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
+                {[
+                  { key: 'pencil', emoji: '✏️', active: !eraser && !fillMode && !selectTool && !shapeTool, title: 'Pencil', onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false); setShapeTool(null) } },
+                  { key: 'fill',   emoji: '🪣', active: fillMode,   title: 'Fill',   onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false); setShapeTool(null) } },
+                  { key: 'eraser', emoji: '🧽', active: eraser,     title: 'Eraser', onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false); setShapeTool(null) } },
+                  { key: 'select', emoji: '⬚',  active: selectTool, title: 'Select', onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setShapeTool(null); setSelectTool(true) } } },
+                  { key: 'undo',   emoji: '↩️', active: false, disabled: !canUndo, title: 'Undo', onClick: handleUndo },
+                  { key: 'clear',  emoji: '🗑️', active: false, title: 'Clear frame', onClick: clearCurrentFrame },
+                  { key: 'onion',  emoji: '👁️', active: showOnionSkin, title: 'Onion skin', onClick: () => setShowOnionSkin(v => !v) },
+                ].map(({ key, emoji, active, disabled, onClick, title }) => (
+                  <button key={key} onClick={onClick} disabled={disabled} title={title}
+                    style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
+                      borderRadius: 8, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
+                      background: active ? 'var(--primary-lt)' : '#f5f5f5',
+                      outline: active ? '2px solid var(--primary)' : 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: disabled ? 0.35 : 1, fontSize: 18 }}>
+                    {emoji}
+                  </button>
+                ))}
+
+                <button ref={shapesBtnRef} onClick={openShapePicker} title="Draw shapes" className="fb-shape-picker-trigger"
+                  style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
+                    borderRadius: 8, border: 'none', cursor: 'pointer',
+                    background: shapeTool ? 'var(--primary-lt)' : '#f5f5f5',
+                    outline: shapeTool ? '2px solid var(--primary)' : 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                  <ShapeIcon shape={shapeTool || 'rect'} size={20} color={shapeTool ? 'var(--primary)' : '#aaa'} />
+                  <span style={{ fontSize: 9, color: shapeTool ? 'var(--primary)' : '#aaa', marginTop: 1 }}>▾</span>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── Canvas column: title + canvas ── */}
@@ -1080,6 +1543,18 @@ export default function FlipbookStudio({ track = () => {}, child }) {
               cursor: 'crosshair' }}
             onMouseDown={onSelDown} onMouseMove={onSelMove}
             onMouseUp={onSelUp} onMouseLeave={onSelUp} />
+          {/* Shape preview overlay */}
+          <canvas ref={shapeOverlayRef} width={W} height={H}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+              pointerEvents: 'none', display: showPlayback ? 'none' : 'block' }} />
+          {/* Touch indicator */}
+          <div ref={touchIndicatorRef} style={{
+            position: 'absolute', width: 18, height: 18, borderRadius: '50%',
+            border: '2.5px solid #000', transform: 'translate(-50%, -50%)',
+            pointerEvents: 'none', opacity: 0, zIndex: 10,
+            transition: 'border-color 0.08s',
+            left: 0, top: 0,
+          }} />
 
           {/* Selection panel — floats inside canvas area when a region is lifted */}
           {selPanelOpen && selStateRef.current.phase === 'floating' && !isPlaying && (
@@ -1098,6 +1573,13 @@ export default function FlipbookStudio({ track = () => {}, child }) {
                       background: 'var(--primary)', color: 'white',
                       fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
                     ✓ Place
+                  </button>
+                  <button onClick={deleteSelection}
+                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
+                      background: '#ffe0e0', color: '#d00',
+                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}
+                    title="Delete selection">
+                    🗑️
                   </button>
                   <button onClick={cancelSelection}
                     style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
@@ -1194,6 +1676,28 @@ export default function FlipbookStudio({ track = () => {}, child }) {
             </div>
           )}
 
+          {hasPendingShape && !showPlayback && (
+            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
+              background: 'white', borderRadius: 16, padding: '8px 14px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1.5px solid var(--primary-lt)',
+              fontFamily: 'Nunito, sans-serif', fontSize: 13,
+              display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 13 }}>🔷 Drag · corners to resize</span>
+              <button onClick={commitPendingShape}
+                style={{ padding: '4px 12px', borderRadius: 8, border: 'none',
+                  background: 'var(--primary)', color: 'white',
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+                ✓ Place
+              </button>
+              <button onClick={cancelPendingShape}
+                style={{ padding: '4px 8px', borderRadius: 8, border: 'none',
+                  background: 'var(--primary-lt)', color: 'var(--primary)',
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Playback overlay */}
           {showPlayback && (
             <div style={{
@@ -1279,13 +1783,9 @@ export default function FlipbookStudio({ track = () => {}, child }) {
               title={isPlaying ? 'Pause' : 'Play my flipbook!'}
               style={{ width: 54, height: 54, minWidth: 54, borderRadius: '50%', border: 'none',
                 cursor: total < 2 ? 'not-allowed' : 'pointer', padding: 0, flexShrink: 0,
-                background: isPlaying
-                  ? 'linear-gradient(135deg,#ff6b81,#ff4757)'
-                  : 'linear-gradient(135deg,#9c6ef8,#1e90ff)',
+                background: 'var(--primary)',
                 color: 'white', fontSize: 24,
-                boxShadow: isPlaying
-                  ? '0 4px 16px rgba(255,71,87,0.4)'
-                  : '0 4px 16px rgba(156,110,248,0.45)',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: total < 2 ? 0.4 : 1,
                 paddingLeft: isPlaying ? 0 : 3,
@@ -1349,8 +1849,8 @@ export default function FlipbookStudio({ track = () => {}, child }) {
                   title={fx.label}
                   style={{ padding: '4px 10px', borderRadius: 20, border: 'none',
                     cursor: 'pointer', flexShrink: 0,
-                    background: active ? 'linear-gradient(135deg,#ff6b81,#ff9f43)' : 'white',
-                    boxShadow: active ? '0 3px 10px rgba(255,107,129,0.4)' : '0 2px 6px rgba(0,0,0,0.08)',
+                    background: active ? 'var(--primary)' : '#f5f5f5',
+                    boxShadow: active ? '0 3px 10px rgba(0,0,0,0.18)' : '0 2px 6px rgba(0,0,0,0.08)',
                     fontFamily: 'Nunito, sans-serif', fontWeight: 800,
                     color: active ? 'white' : '#888',
                     transition: 'all 0.15s',

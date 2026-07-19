@@ -121,14 +121,28 @@ export default function MyWriting({ child, quota }) {
     writingApi.getByChild(child.id).then(setEntries).catch(() => {})
   }, [child.id])
 
-  // Auto-save every 30s while editing
+  const untitledTitle = () => `Untitled – ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+
+  // Auto-save every 30s while editing (uses untitled fallback if no title yet)
   useEffect(() => {
     if (!editing) return
     autoSaveRef.current = setInterval(() => {
-      if (title.trim() && content.trim()) handleSave(true)
+      if (content.trim()) handleSave(true, title.trim() ? undefined : untitledTitle())
     }, 30000)
     return () => clearInterval(autoSaveRef.current)
   }, [editing, title, content])
+
+  // Emergency save ref — updated every render to capture latest state
+  const mwEmergencyRef = useRef(null)
+  mwEmergencyRef.current = () => {
+    if (editing && content.trim()) handleSave(true, title.trim() ? undefined : untitledTitle())
+  }
+  useEffect(() => {
+    window.__glumbiEmergencySaves ??= new Set()
+    const fn = () => mwEmergencyRef.current?.()
+    window.__glumbiEmergencySaves.add(fn)
+    return () => window.__glumbiEmergencySaves?.delete(fn)
+  }, [])
 
   function startNew() {
     savedId.current = null; parentStoryIdRef.current = null; seriesIdRef.current = null
@@ -175,11 +189,12 @@ export default function MyWriting({ child, quota }) {
     parentStoryIdRef.current = null; seriesIdRef.current = null
   }
 
-  async function handleSave(silent = false) {
-    if (!title.trim() || !content.trim()) return
+  async function handleSave(silent = false, fallbackTitle = undefined) {
+    const effectiveTitle = title.trim() || fallbackTitle
+    if (!effectiveTitle || !content.trim()) return
     if (!silent) setSaving(true)
     try {
-      const data = { childId: child.id, title, content,
+      const data = { childId: child.id, title: effectiveTitle, content,
         parentStoryId: parentStoryIdRef.current || undefined,
         seriesId: seriesIdRef.current || undefined,
       }

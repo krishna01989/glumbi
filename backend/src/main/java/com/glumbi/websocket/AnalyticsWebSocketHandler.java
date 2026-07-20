@@ -79,12 +79,17 @@ public class AnalyticsWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
         sessions.remove(session.getId());
+        // ClosedChannelException (null message) and "Connection reset" are both normal browser
+        // disconnects — tab close, refresh, OS kill, or visibility-change self-close from the client.
+        // Suppress them to debug; only warn on genuinely unexpected errors.
         String msg = exception.getMessage();
-        // "Connection reset" is a normal browser disconnect (tab close, refresh, OS kill) — not an error
-        if (msg != null && msg.contains("Connection reset")) {
-            log.debug("Analytics WS disconnected abruptly: session={}", session.getId());
+        boolean normalDisconnect = msg == null                       // ClosedChannelException
+                || msg.contains("Connection reset")                  // TCP-level drop
+                || msg.contains("Broken pipe");                      // write to closed socket
+        if (normalDisconnect) {
+            log.debug("Analytics WS client disconnected: session={}", session.getId());
         } else {
-            log.warn("Analytics WS transport error: session={} error={}", session.getId(), msg);
+            log.warn("Analytics WS transport error: session={} error={}", session.getId(), exception.getMessage());
         }
         closeQuietly(session, CloseStatus.SERVER_ERROR);
     }

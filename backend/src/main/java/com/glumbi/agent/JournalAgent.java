@@ -22,15 +22,19 @@ public class JournalAgent {
 
     public record JournalResult(String content, String mood, String milestone) {}
 
-    public JournalResult generateEntry(String childName, int age, List<String> activitySummaries) {
+    public JournalResult generateEntry(String childName, int age, List<String> activitySummaries, String selectedMood) {
         // Cap to 5 activities so the AI response stays bounded
         List<String> capped = activitySummaries.stream().limit(5).toList();
         String activitiesText = capped.isEmpty()
             ? "No specific activities recorded today."
             : String.join("\n", capped.stream().map(a -> "- " + a).toList());
 
+        String moodInstruction = (selectedMood != null && !selectedMood.isBlank())
+            ? "\n<selected_mood>" + selectedMood + "</selected_mood>\nThe child/parent selected this mood — use it as-is in the mood field and reflect it in the writing tone."
+            : "";
+
         String system = promptLoader.load("journal-system");
-        String prompt = String.format(promptLoader.load("journal-user"), childName, age, activitiesText, childName);
+        String prompt = String.format(promptLoader.load("journal-user"), childName, age, activitiesText, childName) + moodInstruction;
 
         try {
             ObjectNode body = mapper.createObjectNode();

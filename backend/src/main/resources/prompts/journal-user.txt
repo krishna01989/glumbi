@@ -8,6 +8,6 @@
 <output>
 Return JSON with:
 - content: 2-3 sentence heartfelt journal entry, first person (e.g. "Today %s...")
-- mood: exactly one of: happy, excited, proud, curious, calm, tired, sad, grumpy, silly
+- mood: if <selected_mood> is provided use it exactly; otherwise infer from activities — exactly one of: happy, excited, proud, grateful, loved, curious, calm, bored, tired, nervous, scared, sad, angry, grumpy, silly, surprised, confused, sick
 - milestone: short tag if something notable happened, else empty string
 </output>

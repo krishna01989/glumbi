@@ -17,9 +17,11 @@ export default function Journal({ child, featureConfig, quota }) {
   const [content, setContent]     = useState('')
   const [mood, setMood]           = useState('')
   const [milestone, setMilestone] = useState('')
-  const [saving, setSaving]       = useState(false)
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError]     = useState('')
+  const [saving, setSaving]         = useState(false)
+  const [aiLoading, setAiLoading]   = useState(false)
+  const [aiError, setAiError]       = useState('')
+  const [aiMoodStep, setAiMoodStep] = useState(false)   // true = mood picker visible
+  const [showAllMoods, setShowAllMoods] = useState(false)
 
   const journalAiEnabled = (() => {
     if (!featureConfig) return true
@@ -43,11 +45,19 @@ export default function Journal({ child, featureConfig, quota }) {
     } finally { setSaving(false) }
   }
 
-  async function handleAi() {
+  function handleAiClick() {
     if (offline || !journalAiEnabled) return
+    setAiError('')
+    setShowAllMoods(false)
+    setAiMoodStep(true)
+  }
+
+  async function handleAiWithMood(selectedMood) {
+    setAiMoodStep(false)
     setAiLoading(true); setAiError('')
+    if (selectedMood) setMood(selectedMood)
     try {
-      const result = await journalApi.generateAiEntry(child.id)
+      const result = await journalApi.generateAiEntry(child.id, selectedMood)
       track('journal', 'ai_generate')
       setContent(result.content || '')
       if (result.mood)      setMood(result.mood)
@@ -135,10 +145,44 @@ export default function Journal({ child, featureConfig, quota }) {
             <div style={{ fontSize: 13, color: '#e74c3c', background: '#fdecea', padding: '8px 12px', borderRadius: 8 }}>{aiError}</div>
           )}
 
+          {/* Mood picker — shown after tapping "Write with AI" */}
+          {aiMoodStep && (() => {
+            const QUICK = ['happy', 'excited', 'proud', 'curious', 'tired', 'sad']
+            const shown = showAllMoods ? MOODS : MOODS.filter(m => QUICK.includes(m.value))
+            return (
+              <div style={{ background: '#fafafa', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#888', letterSpacing: 0.5 }}>
+                  HOW IS {child.name.toUpperCase()} FEELING TODAY?
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {shown.map(m => (
+                    <button key={m.value} type="button" onClick={() => handleAiWithMood(m.value)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                        borderRadius: 50, border: `2px solid ${m.color}`, background: m.bg,
+                        cursor: 'pointer', fontSize: 13, fontWeight: 700, color: m.color }}>
+                      {m.emoji} {m.label}
+                    </button>
+                  ))}
+                  <button type="button"
+                    onClick={() => setShowAllMoods(v => !v)}
+                    style={{ padding: '7px 14px', borderRadius: 50, border: '2px solid #e8e8e8',
+                      background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#aaa' }}>
+                    {showAllMoods ? 'Less…' : 'More…'}
+                  </button>
+                </div>
+                <button type="button" onClick={() => handleAiWithMood(null)}
+                  style={{ alignSelf: 'flex-start', fontSize: 12, fontWeight: 700, color: '#bbb',
+                    background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  Skip — let AI decide
+                </button>
+              </div>
+            )
+          })()}
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: 10 }}>
-            {journalAiEnabled && (
-              <button type="button" onClick={handleAi} disabled={offline || aiLoading}
+            {journalAiEnabled && !aiMoodStep && (
+              <button type="button" onClick={handleAiClick} disabled={offline || aiLoading}
                 style={{ flex: 1, padding: '11px', fontSize: 14, fontWeight: 700, borderRadius: 50, border: '2px solid var(--primary)',
                   background: 'white', color: offline ? '#aaa' : 'var(--primary)',
                   cursor: offline ? 'not-allowed' : 'pointer', borderColor: offline ? '#ddd' : 'var(--primary)' }}>

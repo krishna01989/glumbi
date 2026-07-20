@@ -103,8 +103,8 @@ public class MemoryPlayService {
         Child child = childService.getByIdUnchecked(childId);
         int age = ChildService.ageFromBirthYear(child.getBirthYear());
 
-        List<String> recentWords = wordOfDayRepo.findByChildIdOrderByDateDesc(childId)
-                .stream().limit(10).map(w -> w.getWord()).toList();
+        List<String> recentWords = wordOfDayRepo.findTop30ByChildIdOrderByDateDesc(childId)
+                .stream().map(WordOfDay::getWord).toList();
 
         MemoryPlayAgent.WordResult agentResult = agent.generateWordOfDay(child.getName(), age, today, recentWords);
         if (agentResult == null) return null;

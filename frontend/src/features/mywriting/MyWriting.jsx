@@ -41,7 +41,7 @@ function StoryCard({ e, chapterNum, selected, onOpen }) {
   return (
     <div onClick={() => onOpen(e)}
       style={{
-        borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+        borderRadius: 16, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
         boxShadow: isSelected ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
         transition: 'box-shadow 0.2s',
       }}>
@@ -69,7 +69,7 @@ function StoryCard({ e, chapterNum, selected, onOpen }) {
 function SeriesGroup({ root, chapters, selected, onOpen }) {
   const [open, setOpen] = useState(false)
   return (
-    <div>
+    <div style={{ flexShrink: 0 }}>
       <div onClick={() => setOpen(v => !v)}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 4px', marginBottom: 4 }}>
         <span style={{ fontSize: 13, color: '#aaa' }}>{open ? '▾' : '▸'}</span>
@@ -93,9 +93,10 @@ export default function MyWriting({ child, quota }) {
   useFeatureDuration('mywriting', track)
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
-  const [entriesPage, setEntriesPage]           = useState(0)
+  const [entriesPage, setEntriesPage]             = useState(0)
   const [entriesTotalPages, setEntriesTotalPages] = useState(1)
-  const [entriesLoading, setEntriesLoading]     = useState(false)
+  const [entriesTotalCount, setEntriesTotalCount] = useState(0)
+  const [entriesLoading, setEntriesLoading]       = useState(false)
   const [selected, setSelected] = useState(null)  // entry being viewed
   const [editing,  setEditing]  = useState(false) // true = editor open
 
@@ -126,9 +127,11 @@ export default function MyWriting({ child, quota }) {
     setEntriesLoading(true)
     try {
       const data = await writingApi.getByChildPaged(child.id, page)
-      setEntries(prev => replace ? data.content : [...prev, ...data.content])
+      const flat = data.content.flatMap(({ root, chapters }) => [root, ...(chapters || [])])
+      setEntries(prev => replace ? flat : [...prev, ...flat])
       setEntriesPage(data.number)
       setEntriesTotalPages(data.totalPages)
+      setEntriesTotalCount(data.totalElements)
     } catch {} finally { setEntriesLoading(false) }
   }
 
@@ -707,7 +710,7 @@ export default function MyWriting({ child, quota }) {
         return acc
       }, {})
       return (
-        <HistoryDrawer icon="✍️" title="My Stories" count={entries.length}>
+        <HistoryDrawer icon="✍️" title="My Stories" count={entriesTotalCount}>
           {close => (<>
             {roots.map(root => {
               const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))

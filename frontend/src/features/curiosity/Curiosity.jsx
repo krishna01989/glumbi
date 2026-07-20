@@ -87,7 +87,7 @@ function CuriosityCard({ entry, onDelete }) {
   }
 
   return (
-    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16, flexShrink: 0 }}>
       {/* Question header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flex: 1 }}>

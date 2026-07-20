@@ -212,7 +212,7 @@ export default function ReadQuiz({ child, quota }) {
         {entries.map(e => (
           <div key={e.id} onClick={() => { openEntry(e); close() }}
             style={{
-              borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+              borderRadius: 16, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
               boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
               transition: 'box-shadow 0.2s',
             }}>

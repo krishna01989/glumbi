@@ -221,7 +221,7 @@ export default function Journal({ child, featureConfig, quota }) {
         {entries.map(entry => {
           const m = moodFor(entry.mood) || MOODS[0]
           return (
-            <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+            <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden', flexShrink: 0 }}>
               <div style={{ width: 6, flexShrink: 0, background: entry.mood ? m.color : 'var(--primary-lt)' }} />
               <div style={{ flex: 1, padding: '14px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 8 }}>

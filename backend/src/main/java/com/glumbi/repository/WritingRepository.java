@@ -11,6 +11,7 @@ import java.util.List;
 public interface WritingRepository extends JpaRepository<WritingEntry, Long> {
     List<WritingEntry> findByChildIdOrderByCreatedAtDesc(Long childId);
     Page<WritingEntry> findByChildIdOrderByCreatedAtDesc(Long childId, Pageable pageable);
+    Page<WritingEntry> findByChildIdAndSeriesIdIsNullOrderByCreatedAtDesc(Long childId, Pageable pageable);
     List<WritingEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     long countByCreatedAtAfter(LocalDateTime since);
     long countByChildIdAndFeedbackReceivedTrueAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);

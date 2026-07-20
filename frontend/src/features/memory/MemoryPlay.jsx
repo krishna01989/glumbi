@@ -174,7 +174,7 @@ function FlashcardsTab({ child, quota }) {
       <HistoryDrawer icon="🧠" title="Past Sets" count={sets.length}>
         {close => (<>
           {sets.map(s => (
-            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10, flexShrink: 0 }}>
               <button onClick={() => { loadSet(s); close() }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
                 📇 {s.topic}
@@ -300,7 +300,7 @@ function WordOfDayTab({ child }) {
       {/* History button */}
       <HistoryDrawer icon="🧠" title={`Past Words`} count={history.length}>
         {history.map((h, i) => (
-          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
+          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none', flexShrink: 0 }}>
             <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -692,7 +692,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
       <HistoryDrawer icon="🎴" title="Past Games" count={matches.length}>
         {close => (<>
           {matches.map(m => (
-            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
+            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10, flexShrink: 0 }}>
               <button onClick={() => { startMatch(m); close() }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
                 🔁 Replay: {m.theme}

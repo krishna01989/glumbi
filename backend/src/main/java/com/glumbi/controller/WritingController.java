@@ -87,7 +87,7 @@ public class WritingController {
     }
 
     @GetMapping("/child/{childId}/paged")
-    public Page<WritingEntry> getByChildPaged(@PathVariable Long childId,
+    public Page<java.util.Map<String, Object>> getByChildPaged(@PathVariable Long childId,
                                                @RequestParam(defaultValue = "0") int page) {
         return service.getByChildPaged(childId, PageRequest.of(page, 20));
     }

@@ -86,7 +86,7 @@ function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
   return (
     <div onClick={() => onSelect(s)}
       style={{
-        borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
+        borderRadius: 16, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
         boxShadow: isSelected ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
         transition: 'box-shadow 0.2s',
       }}>
@@ -120,7 +120,7 @@ function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
   const [open, setOpen] = useState(false)
   const rootTitle = root.title.includes(' · ') ? root.title.substring(0, root.title.indexOf(' · ')) : root.title
   return (
-    <div>
+    <div style={{ flexShrink: 0 }}>
       <div onClick={() => setOpen(v => !v)}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 4px', marginBottom: 4 }}>
         <span style={{ fontSize: 13, color: '#aaa' }}>{open ? '▾' : '▸'}</span>
@@ -144,9 +144,10 @@ export default function Stories({ child, quota }) {
   useFeatureDuration('stories', track)
   const offline = useOffline()
   const [stories, setStories] = useState([])
-  const [storiesPage, setStoriesPage]           = useState(0)
+  const [storiesPage, setStoriesPage]               = useState(0)
   const [historiesTotalPages, setHistoriesTotalPages] = useState(1)
-  const [storiesLoading, setStoriesLoading]     = useState(false)
+  const [storiesTotalCount, setStoriesTotalCount]   = useState(0)
+  const [storiesLoading, setStoriesLoading]         = useState(false)
   const [keywords, setKeywords]           = useState('')
   const [category, setCategory]           = useState('adventure')
   const [loading, setLoading] = useState(false)
@@ -227,6 +228,7 @@ export default function Stories({ child, quota }) {
       setStories(prev => replace ? flat : [...prev, ...flat])
       setStoriesPage(data.number)
       setHistoriesTotalPages(data.totalPages)
+      setStoriesTotalCount(data.totalElements)
     } finally { setStoriesLoading(false) }
   }
 
@@ -980,7 +982,7 @@ export default function Stories({ child, quota }) {
         track('stories', 'read', { metadata: { category: s.category } })
       }
       return (
-        <HistoryDrawer icon="📖" title="My Adventures" count={stories.length}>
+        <HistoryDrawer icon="📖" title="My Adventures" count={storiesTotalCount}>
           {close => (<>
             {roots.map(root => {
               const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))

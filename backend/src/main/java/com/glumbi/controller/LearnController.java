@@ -71,7 +71,14 @@ public class LearnController {
             return ResponseEntity.status(403).body(Map.of("error", "Learn to Write is currently unavailable."));
         }
 
-        String scriptLabel = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
+        String scriptLabel = switch (script) {
+            case "tamil"     -> "Tamil";
+            case "hindi"     -> "Hindi";
+            case "malayalam" -> "Malayalam";
+            case "kannada"   -> "Kannada";
+            case "telugu"    -> "Telugu";
+            default          -> "English";
+        };
         String prompt = String.format(
             "A %d-year-old child named %s is learning to write the %s letter/character \"%s\". " +
             "IMPORTANT RULES:\n" +
@@ -118,8 +125,16 @@ public class LearnController {
             if (correct && childId != null) {
                 final Long fChildId = childId;
                 childRepository.findById(fChildId).ifPresent(child -> {
-                    String emoji  = switch (script) { case "tamil" -> "🌺"; case "hindi" -> "🇮🇳"; default -> "🔤"; };
-                    String label  = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
+                    String emoji  = switch (script) {
+                        case "tamil" -> "🌺"; case "hindi" -> "🇮🇳";
+                        case "malayalam" -> "🌴"; case "kannada" -> "🏵️"; case "telugu" -> "🌸";
+                        default -> "🔤";
+                    };
+                    String label  = switch (script) {
+                        case "tamil" -> "Tamil"; case "hindi" -> "Hindi";
+                        case "malayalam" -> "Malayalam"; case "kannada" -> "Kannada"; case "telugu" -> "Telugu";
+                        default -> "English";
+                    };
                     Activity entry = new Activity();
                     entry.setChild(child);
                     entry.setTitle("Wrote " + letter + " (" + label + ")");
@@ -158,14 +173,13 @@ public class LearnController {
             return ResponseEntity.status(403).body(Map.of("error", "Learn to Write is currently unavailable."));
         }
 
-        String scriptLabel  = switch (script) { case "tamil" -> "Tamil"; case "hindi" -> "Hindi"; default -> "English"; };
-        String primaryTrans = switch (script) {
-            case "tamil"  -> "\"tamil\": \"" + targetWord + "\"";
-            case "hindi"  -> "\"hindi\": \"" + targetWord + "\"";
-            default       -> "\"tamil\": \"Tamil translation in Tamil script\"";
+        String scriptLabel  = switch (script) {
+            case "tamil" -> "Tamil"; case "hindi" -> "Hindi";
+            case "malayalam" -> "Malayalam"; case "kannada" -> "Kannada"; case "telugu" -> "Telugu";
+            default -> "English";
         };
         // cross-language key used for timeline save
-        String crossTransKey = switch (script) { case "tamil" -> "english"; default -> "tamil"; };
+        String crossTransKey = script.equals("english") ? "tamil" : "english";
 
         String prompt = String.format(
             "A %d-year-old child named %s has practised writing the %s word \"%s\" on a white canvas. " +
@@ -180,17 +194,20 @@ public class LearnController {
             "  \"word\": \"%s\",\n" +
             "  \"couldRead\": true,\n" +
             "  \"feedback\": \"a warm, enthusiastic 1-2 sentence celebration for a %d-year-old who just practised writing\",\n" +
-            "  \"meaning\": \"a simple 1-2 sentence explanation of what '%s' means\",\n" +
+            "  \"meaning\": \"a simple 1-2 sentence explanation of what '%s' means in English\",\n" +
             "  \"funFact\": \"one short fun fact about this word/thing for a child\",\n" +
             "  \"emoji\": \"the single most fitting emoji\",\n" +
             "  \"translations\": {\n" +
-            "    %s,\n" +
+            "    \"english\": \"English word\",\n" +
+            "    \"tamil\": \"Tamil word in Tamil script\",\n" +
             "    \"hindi\": \"Hindi word in Devanagari script\",\n" +
-            "    \"french\": \"French word\"\n" +
+            "    \"malayalam\": \"Malayalam word in Malayalam script\",\n" +
+            "    \"kannada\": \"Kannada word in Kannada script\",\n" +
+            "    \"telugu\": \"Telugu word in Telugu script\"\n" +
             "  }\n" +
             "}",
             childAge, childName, scriptLabel, targetWord,
-            targetWord, childAge, targetWord, primaryTrans
+            targetWord, childAge, targetWord
         );
 
         try {
@@ -257,9 +274,12 @@ public class LearnController {
             @RequestParam(defaultValue = "english") String language) {
         try {
             String lang = switch (language.toLowerCase()) {
-                case "tamil"   -> "tamil";
-                case "hindi"   -> "hindi";
-                default        -> "english";
+                case "tamil"     -> "tamil";
+                case "hindi"     -> "hindi";
+                case "malayalam" -> "malayalam";
+                case "kannada"   -> "kannada";
+                case "telugu"    -> "telugu";
+                default          -> "english";
             };
             String cacheKey = text.toLowerCase().trim() + ":" + lang;
             byte[] audio = audioCache.get(cacheKey, k -> {

@@ -62,7 +62,8 @@ export default function ScreenTimeModal({
           <button onClick={onDone}
             style={{
               padding: '14px', borderRadius: 50, border: 'none',
-              background: '#f5f5f5', color: '#aaa', cursor: 'pointer',
+              background: 'linear-gradient(135deg, var(--primary), var(--accent))',
+              color: 'white', cursor: 'pointer',
               fontSize: 14, fontWeight: 700,
             }}>
             {childLocked ? "I'm done — lock 🔒" : "I'm done for now 👋"}

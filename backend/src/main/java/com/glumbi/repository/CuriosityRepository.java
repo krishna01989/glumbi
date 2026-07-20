@@ -1,6 +1,8 @@
 package com.glumbi.repository;
 
 import com.glumbi.entity.CuriosityEntry;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +13,7 @@ import java.util.List;
 
 public interface CuriosityRepository extends JpaRepository<CuriosityEntry, Long> {
     List<CuriosityEntry> findByChildIdOrderByCreatedAtDesc(Long childId);
+    Page<CuriosityEntry> findByChildIdOrderByCreatedAtDesc(Long childId, Pageable pageable);
     List<CuriosityEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     void deleteByChildId(Long childId);
     long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);

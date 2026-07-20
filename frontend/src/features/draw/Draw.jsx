@@ -130,14 +130,28 @@ export default function Draw({ child, quota, featureConfig }) {
   const [animLabel, setAnimLabel]     = useState('')
 
   // Draw saves
-  const [drawSaves, setDrawSaves] = useState([])
+  const [drawSaves, setDrawSaves]       = useState([])
+  const [drawSavesPage, setDrawSavesPage]         = useState(0)
+  const [drawSavesTotalPages, setDrawSavesTotalPages] = useState(0)
+  const [drawSavesLoading, setDrawSavesLoading]   = useState(false)
   const [currentSaveId, setCurrentSaveId] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [drawingTitle, setDrawingTitle] = useState('')
 
-  useEffect(() => {
-    if (child?.id) drawSaveApi.getByChild(child.id).then(setDrawSaves).catch(() => {})
-  }, [child?.id])
+  function fetchDrawSaves(page, replace = false) {
+    if (!child?.id) return
+    setDrawSavesLoading(true)
+    drawSaveApi.getByChild(child.id, page)
+      .then(data => {
+        setDrawSaves(prev => replace ? data.content : [...prev, ...data.content])
+        setDrawSavesTotalPages(data.totalPages)
+        setDrawSavesPage(page)
+      })
+      .catch(() => {})
+      .finally(() => setDrawSavesLoading(false))
+  }
+
+  useEffect(() => { fetchDrawSaves(0, true) }, [child?.id])
 
   // Autosave every 60s if there is unsaved canvas content
   const drawAutoSaveRef = useRef(null)
@@ -161,20 +175,23 @@ export default function Draw({ child, quota, featureConfig }) {
     if (!canvasRef.current || isEmpty) return
     setIsSaving(true)
     try {
-      const imageData = canvasRef.current.toDataURL()
+      const imageData = canvasRef.current.toDataURL('image/png').split(',')[1]
       const title = drawingTitle.trim() || untitledTitle()
       if (currentSaveId) {
         const updated = await drawSaveApi.update(currentSaveId, imageData, title)
-        setDrawSaves(prev => prev.map(s => s.id === currentSaveId ? updated : s))
+        // updated has thumbnail from server; keep list entry in sync
+        setDrawSaves(prev => prev.map(s => s.id === currentSaveId
+          ? { id: updated.id, title: updated.title, thumbnail: updated.thumbnail, updatedAt: updated.updatedAt }
+          : s))
       } else {
         const saved = await drawSaveApi.save(child.id, imageData, title)
-        setDrawSaves(prev => [saved, ...prev])
+        setDrawSaves(prev => [{ id: saved.id, title: saved.title, thumbnail: saved.thumbnail, updatedAt: saved.updatedAt }, ...prev])
         setCurrentSaveId(saved.id)
       }
     } finally { setIsSaving(false) }
   }
 
-  function loadDrawSave(save) {
+  async function loadDrawSave(save) {
     stopAnimation()
     setAiReply('')
     setGuide('')
@@ -184,6 +201,8 @@ export default function Draw({ child, quota, featureConfig }) {
     setAnimBlocked(false)
     setAnimLabel('')
     setAnimBlockMsg('')
+    const full = await drawSaveApi.getFull(save.id).catch(() => null)
+    if (!full) return
     const img = new Image()
     img.onload = () => {
       const ctx = getCtx()
@@ -191,10 +210,10 @@ export default function Draw({ child, quota, featureConfig }) {
       ctx.drawImage(img, 0, 0)
       saveSnapshot()
       setIsEmpty(false)
-      setCurrentSaveId(save.id)
-      setDrawingTitle(save.title || '')
+      setCurrentSaveId(full.id)
+      setDrawingTitle(full.title || '')
     }
-    img.src = save.imageData
+    img.src = 'data:image/png;base64,' + full.imageData
   }
 
   async function deleteDrawSave(id) {
@@ -1848,37 +1867,49 @@ export default function Draw({ child, quota, featureConfig }) {
     </></div>
 
     {drawTab === 'draw' && <HistoryDrawer icon="🎨" title="My Drawings" count={drawSaves.length}>
-      {close => drawSaves.map(s => (
-        <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
-          <img src={s.imageData} alt={s.title || 'Drawing'}
-            onClick={() => { loadDrawSave(s); close() }}
-            style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6, flexShrink: 0,
-              border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
-              cursor: 'pointer', background: '#fafafa' }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
-              color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {s.title || 'Untitled drawing'}
+      {close => <>
+        {drawSaves.map(s => (
+          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+            <img src={s.thumbnail ? 'data:image/png;base64,' + s.thumbnail : ''}
+              alt={s.title || 'Drawing'}
+              onClick={() => { loadDrawSave(s); close() }}
+              style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6, flexShrink: 0,
+                border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
+                cursor: 'pointer', background: '#fafafa' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
+                color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {s.title || 'Untitled drawing'}
+              </div>
+              <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
+                {fmtDate(s.updatedAt)}
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
-              {fmtDate(s.updatedAt || s.createdAt)}
-            </div>
+            <button onClick={() => { loadDrawSave(s); close() }}
+              style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
+                background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
+                fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
+              Resume
+            </button>
+            <button onClick={() => deleteDrawSave(s.id)}
+              className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28,
+                borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ✕
+            </button>
           </div>
-          <button onClick={() => { loadDrawSave(s); close() }}
-            style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
-              background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
-              fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
-            Resume
+        ))}
+        {drawSavesPage + 1 < drawSavesTotalPages && (
+          <button onClick={() => fetchDrawSaves(drawSavesPage + 1)}
+            disabled={drawSavesLoading}
+            style={{ width: '100%', marginTop: 10, padding: '10px 0', borderRadius: 14, border: 'none',
+              background: 'var(--primary-lt)', color: 'var(--primary)', fontWeight: 800, fontSize: 13,
+              fontFamily: 'Nunito, sans-serif', cursor: 'pointer' }}>
+            {drawSavesLoading ? 'Loading…' : 'Load more'}
           </button>
-          <button onClick={() => deleteDrawSave(s.id)}
-            className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28,
-              borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            ✕
-          </button>
-        </div>
-      ))}
+        )}
+      </>}
     </HistoryDrawer>}
   </div>
   )

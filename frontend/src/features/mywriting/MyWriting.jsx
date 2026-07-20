@@ -93,6 +93,9 @@ export default function MyWriting({ child, quota }) {
   useFeatureDuration('mywriting', track)
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
+  const [entriesPage, setEntriesPage]           = useState(0)
+  const [entriesTotalPages, setEntriesTotalPages] = useState(1)
+  const [entriesLoading, setEntriesLoading]     = useState(false)
   const [selected, setSelected] = useState(null)  // entry being viewed
   const [editing,  setEditing]  = useState(false) // true = editor open
 
@@ -117,9 +120,17 @@ export default function MyWriting({ child, quota }) {
   const foldHighlightRef   = useRef(null)
   const touchStartX        = useRef(null)
 
-  useEffect(() => {
-    writingApi.getByChild(child.id).then(setEntries).catch(() => {})
-  }, [child.id])
+  useEffect(() => { fetchEntries(0, true) }, [child.id])
+
+  async function fetchEntries(page, replace) {
+    setEntriesLoading(true)
+    try {
+      const data = await writingApi.getByChildPaged(child.id, page)
+      setEntries(prev => replace ? data.content : [...prev, ...data.content])
+      setEntriesPage(data.number)
+      setEntriesTotalPages(data.totalPages)
+    } catch {} finally { setEntriesLoading(false) }
+  }
 
   const untitledTitle = () => `Untitled – ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 
@@ -697,13 +708,23 @@ export default function MyWriting({ child, quota }) {
       }, {})
       return (
         <HistoryDrawer icon="✍️" title="My Stories" count={entries.length}>
-          {close => roots.map(root => {
-            const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-            const open = e => { openEntry(e); close() }
-            return chapters.length > 0
-              ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={open} />
-              : <StoryCard key={root.id} e={root} selected={selected} onOpen={open} />
-          })}
+          {close => (<>
+            {roots.map(root => {
+              const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+              const open = e => { openEntry(e); close() }
+              return chapters.length > 0
+                ? <SeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onOpen={open} />
+                : <StoryCard key={root.id} e={root} selected={selected} onOpen={open} />
+            })}
+            {entriesPage + 1 < entriesTotalPages && (
+              <button onClick={() => fetchEntries(entriesPage + 1, false)} disabled={entriesLoading}
+                style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+                  border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+                  fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: entriesLoading ? 0.6 : 1 }}>
+                {entriesLoading ? 'Loading…' : 'Load more'}
+              </button>
+            )}
+          </>)}
         </HistoryDrawer>
       )
     })()}

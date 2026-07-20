@@ -144,6 +144,9 @@ export default function Stories({ child, quota }) {
   useFeatureDuration('stories', track)
   const offline = useOffline()
   const [stories, setStories] = useState([])
+  const [storiesPage, setStoriesPage]           = useState(0)
+  const [historiesTotalPages, setHistoriesTotalPages] = useState(1)
+  const [storiesLoading, setStoriesLoading]     = useState(false)
   const [keywords, setKeywords]           = useState('')
   const [category, setCategory]           = useState('adventure')
   const [loading, setLoading] = useState(false)
@@ -211,13 +214,20 @@ export default function Stories({ child, quota }) {
   }
 
   useEffect(() => {
-    loadStories()
+    fetchStories(0, true)
     voiceApi.list().then(setFamilyVoices).catch(() => {})
   }, [child.id])
 
-  async function loadStories() {
-    const data = await storyApi.getByChild(child.id)
-    setStories(data)
+  async function fetchStories(page, replace) {
+    setStoriesLoading(true)
+    try {
+      const data = await storyApi.getByChildPaged(child.id, page)
+      // Flatten { root, chapters } entries back into a single array (same shape as before)
+      const flat = data.content.flatMap(({ root, chapters }) => [root, ...(chapters || [])])
+      setStories(prev => replace ? flat : [...prev, ...flat])
+      setStoriesPage(data.number)
+      setHistoriesTotalPages(data.totalPages)
+    } finally { setStoriesLoading(false) }
   }
 
   async function handleGenerate(e) {
@@ -971,13 +981,23 @@ export default function Stories({ child, quota }) {
       }
       return (
         <HistoryDrawer icon="📖" title="My Adventures" count={stories.length}>
-          {close => roots.map(root => {
-            const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-            const sel = s => { handleSelect(s); close() }
-            return chapters.length > 0
-              ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={sel} onToggleFav={toggleFav} />
-              : <StoryListCard key={root.id} s={root} selected={selected} onSelect={sel} onToggleFav={toggleFav} />
-          })}
+          {close => (<>
+            {roots.map(root => {
+              const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+              const sel = s => { handleSelect(s); close() }
+              return chapters.length > 0
+                ? <StorySeriesGroup key={root.id} root={root} chapters={chapters} selected={selected} onSelect={sel} onToggleFav={toggleFav} />
+                : <StoryListCard key={root.id} s={root} selected={selected} onSelect={sel} onToggleFav={toggleFav} />
+            })}
+            {storiesPage + 1 < historiesTotalPages && (
+              <button onClick={() => fetchStories(storiesPage + 1, false)} disabled={storiesLoading}
+                style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+                  border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+                  fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: storiesLoading ? 0.6 : 1 }}>
+                {storiesLoading ? 'Loading…' : 'Load more'}
+              </button>
+            )}
+          </>)}
         </HistoryDrawer>
       )
     })()}

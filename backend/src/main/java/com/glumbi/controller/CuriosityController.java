@@ -13,6 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +63,12 @@ public class CuriosityController {
                                             @RequestParam(required = false) LocalDateTime from,
                                             @RequestParam(required = false) LocalDateTime to) {
         return service.getByChild(childId, from, to);
+    }
+
+    @GetMapping("/child/{childId}/paged")
+    public Page<CuriosityEntry> getByChildPaged(@PathVariable Long childId,
+                                                 @RequestParam(defaultValue = "0") int page) {
+        return service.getByChildPaged(childId, PageRequest.of(page, 20));
     }
 
     @DeleteMapping("/{id}")

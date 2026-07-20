@@ -1,6 +1,8 @@
 package com.glumbi.repository;
 
 import com.glumbi.entity.Story;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +13,7 @@ import java.util.List;
 
 public interface StoryRepository extends JpaRepository<Story, Long> {
     List<Story> findByChildIdOrderByCreatedAtDesc(Long childId);
+    Page<Story> findByChildIdAndSeriesIdIsNullOrderByCreatedAtDesc(Long childId, Pageable pageable);
     List<Story> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     List<Story> findByChildIdAndFavoriteTrueOrderByCreatedAtDesc(Long childId);
     void deleteByChildId(Long childId);

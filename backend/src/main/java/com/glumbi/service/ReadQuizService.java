@@ -9,6 +9,9 @@ import com.glumbi.repository.ReadQuizRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -68,6 +71,10 @@ public class ReadQuizService {
         if (from != null && to != null)
             return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);
         return repo.findByChildIdOrderByCreatedAtDesc(childId);
+    }
+
+    public Page<ReadQuizEntry> getByChildPaged(Long childId, Pageable pageable) {
+        return repo.findByChildIdOrderByCreatedAtDesc(childId, pageable);
     }
 
     public void delete(Long id) { repo.deleteById(id); }

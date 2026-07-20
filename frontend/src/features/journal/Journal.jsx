@@ -14,6 +14,9 @@ export default function Journal({ child, featureConfig, quota }) {
   useFeatureDuration('journal', track)
   const offline = useOffline()
   const [entries, setEntries]     = useState([])
+  const [entriesPage, setEntriesPage]           = useState(0)
+  const [entriesTotalPages, setEntriesTotalPages] = useState(1)
+  const [entriesLoading, setEntriesLoading]     = useState(false)
   const [content, setContent]     = useState('')
   const [mood, setMood]           = useState('')
   const [milestone, setMilestone] = useState('')
@@ -29,9 +32,17 @@ export default function Journal({ child, featureConfig, quota }) {
     return !fc || fc.enabled !== false
   })()
 
-  useEffect(() => {
-    journalApi.getByChild(child.id).then(setEntries).catch(() => {})
-  }, [child.id])
+  useEffect(() => { fetchEntries(0, true) }, [child.id])
+
+  async function fetchEntries(page, replace) {
+    setEntriesLoading(true)
+    try {
+      const data = await journalApi.getByChildPaged(child.id, page)
+      setEntries(prev => replace ? data.content : [...prev, ...data.content])
+      setEntriesPage(data.number)
+      setEntriesTotalPages(data.totalPages)
+    } catch {} finally { setEntriesLoading(false) }
+  }
 
   async function handleSave(e) {
     e.preventDefault()
@@ -206,7 +217,8 @@ export default function Journal({ child, featureConfig, quota }) {
       )}
 
       <HistoryDrawer icon="📝" title="Past Entries" count={entries.length}>
-        {() => entries.map(entry => {
+        {() => (<>
+        {entries.map(entry => {
           const m = moodFor(entry.mood) || MOODS[0]
           return (
             <div key={entry.id} style={{ display: 'flex', gap: 0, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
@@ -238,6 +250,15 @@ export default function Journal({ child, featureConfig, quota }) {
             </div>
           )
         })}
+        {entriesPage + 1 < entriesTotalPages && (
+          <button onClick={() => fetchEntries(entriesPage + 1, false)} disabled={entriesLoading}
+            style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+              border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+              fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: entriesLoading ? 0.6 : 1 }}>
+            {entriesLoading ? 'Loading…' : 'Load more'}
+          </button>
+        )}
+        </>)}
       </HistoryDrawer>
     </div>
     </>

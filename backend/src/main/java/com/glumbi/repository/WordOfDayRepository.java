@@ -1,6 +1,8 @@
 package com.glumbi.repository;
 
 import com.glumbi.entity.WordOfDay;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
@@ -12,6 +14,7 @@ public interface WordOfDayRepository extends JpaRepository<WordOfDay, Long> {
     Optional<WordOfDay> findByChildIdAndDate(Long childId, LocalDate date);
     long countByChildIdAndDateBetween(Long childId, LocalDate from, LocalDate to);
     List<WordOfDay> findByChildIdOrderByDateDesc(Long childId);
+    Page<WordOfDay> findByChildIdOrderByDateDesc(Long childId, Pageable pageable);
     long countByCreatedAtAfter(LocalDateTime since);
     List<WordOfDay> findTop5ByOrderByCreatedAtDesc();
     void deleteByChildId(Long childId);

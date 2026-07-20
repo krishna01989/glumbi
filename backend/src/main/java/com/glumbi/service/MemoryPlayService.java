@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,10 @@ public class MemoryPlayService {
 
     public List<FlashcardSet> getFlashcardSets(Long childId) {
         return flashcardSetRepo.findTop20ByChildIdOrderByCreatedAtDesc(childId);
+    }
+
+    public Page<FlashcardSet> getFlashcardSetsPaged(Long childId, Pageable pageable) {
+        return flashcardSetRepo.findByChildIdOrderByCreatedAtDesc(childId, pageable);
     }
 
     public void deleteFlashcardSet(Long id) {
@@ -123,6 +129,10 @@ public class MemoryPlayService {
         return wordOfDayRepo.findByChildIdOrderByDateDesc(childId);
     }
 
+    public Page<WordOfDay> getWordOfDayHistoryPaged(Long childId, Pageable pageable) {
+        return wordOfDayRepo.findByChildIdOrderByDateDesc(childId, pageable);
+    }
+
     // ── Memory Match ──────────────────────────────────────────────────────────
 
     public MemoryMatch generateMemoryMatch(Long childId, String theme) {
@@ -144,6 +154,10 @@ public class MemoryPlayService {
 
     public List<MemoryMatch> getMemoryMatches(Long childId) {
         return memoryMatchRepo.findTop10ByChildIdOrderByCreatedAtDesc(childId);
+    }
+
+    public Page<MemoryMatch> getMemoryMatchesPaged(Long childId, Pageable pageable) {
+        return memoryMatchRepo.findByChildIdOrderByCreatedAtDesc(childId, pageable);
     }
 
     public void deleteMemoryMatch(Long id) {

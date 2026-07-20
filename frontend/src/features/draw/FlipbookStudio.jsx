@@ -187,14 +187,28 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
 
   // Flipbook saves
-  const [flipbookSaves, setFlipbookSaves] = useState([])
+  const [flipbookSaves, setFlipbookSaves]             = useState([])
+  const [flipbookSavesPage, setFlipbookSavesPage]     = useState(0)
+  const [flipbookSavesTotalPages, setFlipbookSavesTotalPages] = useState(0)
+  const [flipbookSavesLoading, setFlipbookSavesLoading] = useState(false)
   const [currentSaveId, setCurrentSaveId] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [flipbookTitle, setFlipbookTitle] = useState('')
 
-  useEffect(() => {
-    if (child?.id) flipbookSaveApi.getByChild(child.id).then(setFlipbookSaves).catch(() => {})
-  }, [child?.id])
+  function fetchFlipbookSaves(page, replace = false) {
+    if (!child?.id) return
+    setFlipbookSavesLoading(true)
+    flipbookSaveApi.getByChild(child.id, page)
+      .then(data => {
+        setFlipbookSaves(prev => replace ? data.content : [...prev, ...data.content])
+        setFlipbookSavesTotalPages(data.totalPages)
+        setFlipbookSavesPage(page)
+      })
+      .catch(() => {})
+      .finally(() => setFlipbookSavesLoading(false))
+  }
+
+  useEffect(() => { fetchFlipbookSaves(0, true) }, [child?.id])
 
   // Autosave every 60s if there are frames to save
   const fbAutoSaveRef = useRef(null)
@@ -227,25 +241,28 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       const title = flipbookTitle.trim() || untitledTitle()
       if (currentSaveId) {
         const updated = await flipbookSaveApi.update(currentSaveId, framesJson, thumbnail, fpsRef.current, count, title)
-        setFlipbookSaves(prev => prev.map(s => s.id === currentSaveId ? updated : s))
+        setFlipbookSaves(prev => prev.map(s => s.id === currentSaveId
+          ? { id: updated.id, title: updated.title, thumbnail: updated.thumbnail, fps: updated.fps, frameCount: updated.frameCount, updatedAt: updated.updatedAt }
+          : s))
       } else {
         const saved = await flipbookSaveApi.save(child.id, framesJson, thumbnail, fpsRef.current, count, title)
-        setFlipbookSaves(prev => [saved, ...prev])
+        setFlipbookSaves(prev => [{ id: saved.id, title: saved.title, thumbnail: saved.thumbnail, fps: saved.fps, frameCount: saved.frameCount, updatedAt: saved.updatedAt }, ...prev])
         setCurrentSaveId(saved.id)
       }
     } finally { setIsSaving(false) }
   }
 
-  function loadFlipbookSave(save) {
+  async function loadFlipbookSave(save) {
+    const full = await flipbookSaveApi.getFull(save.id).catch(() => null)
+    if (!full) return
     try {
-      const loaded = JSON.parse(save.framesJson)
+      const loaded = JSON.parse(full.framesJson)
       framesRef.current = loaded
       setFrames([...loaded])
       setCurrentIdx(0)
       currentIdxRef.current = 0
-      setCurrentSaveId(save.id)
-      setFlipbookTitle(save.title || '')
-      // Render first frame onto canvas
+      setCurrentSaveId(full.id)
+      setFlipbookTitle(full.title || '')
       const first = loaded[0]
       if (first && canvasRef.current) {
         const img = new Image()
@@ -2001,37 +2018,48 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     </div>
 
     <HistoryDrawer icon="🎬" title="My Flipbooks" count={flipbookSaves.length}>
-      {close => flipbookSaves.map(save => (
-        <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
-          {save.thumbnail && (
-            <img src={save.thumbnail} alt="thumbnail"
-              onClick={() => { loadFlipbookSave(save); close() }}
-              style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
-                border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
-                flexShrink: 0, cursor: 'pointer' }} />
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
-              color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {save.title || `Flipbook (${save.frameCount} frames)`}
+      {close => <>
+        {flipbookSaves.map(save => (
+          <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+            {save.thumbnail && (
+              <img src={save.thumbnail} alt="thumbnail"
+                onClick={() => { loadFlipbookSave(save); close() }}
+                style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
+                  border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
+                  flexShrink: 0, cursor: 'pointer' }} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
+                color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {save.title || `Flipbook (${save.frameCount} frames)`}
+              </div>
+              <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
+                {fmtDate(save.updatedAt)}
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: '#aaa', fontFamily: 'Nunito, sans-serif' }}>
-              {fmtDate(save.updatedAt)}
-            </div>
+            <button onClick={() => { loadFlipbookSave(save); close() }}
+              style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
+                background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
+                fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
+              Resume
+            </button>
+            <button onClick={() => deleteFlipbookSave(save.id)}
+              className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              ✕
+            </button>
           </div>
-          <button onClick={() => { loadFlipbookSave(save); close() }}
-            style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
-              background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
-              fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
-            Resume
+        ))}
+        {flipbookSavesPage + 1 < flipbookSavesTotalPages && (
+          <button onClick={() => fetchFlipbookSaves(flipbookSavesPage + 1)}
+            disabled={flipbookSavesLoading}
+            style={{ width: '100%', marginTop: 10, padding: '10px 0', borderRadius: 14, border: 'none',
+              background: 'var(--primary-lt)', color: 'var(--primary)', fontWeight: 800, fontSize: 13,
+              fontFamily: 'Nunito, sans-serif', cursor: 'pointer' }}>
+            {flipbookSavesLoading ? 'Loading…' : 'Load more'}
           </button>
-          <button onClick={() => deleteFlipbookSave(save.id)}
-            className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            ✕
-          </button>
-        </div>
-      ))}
+        )}
+      </>}
     </HistoryDrawer>
 
     <style>{`

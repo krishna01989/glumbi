@@ -90,10 +90,21 @@ function FlashcardsTab({ child, quota }) {
   useFeatureDuration('flashcards', track)
   const [sets, setSets] = useState([])
   const [activeSet, setActiveSet] = useState(null)
+  const [setsPage, setSetsPage]           = useState(0)
+  const [setsTotalPages, setSetsTotalPages] = useState(1)
+  const [setsLoading, setSetsLoading]     = useState(false)
 
-  useEffect(() => {
-    memoryApi.getFlashcards(child.id).then(setSets).catch(() => {})
-  }, [child.id])
+  useEffect(() => { fetchSets(0, true) }, [child.id])
+
+  async function fetchSets(page, replace) {
+    setSetsLoading(true)
+    try {
+      const data = await memoryApi.getFlashcardsPaged(child.id, page)
+      setSets(prev => replace ? data.content : [...prev, ...data.content])
+      setSetsPage(data.number)
+      setSetsTotalPages(data.totalPages)
+    } catch {} finally { setSetsLoading(false) }
+  }
 
   async function handleGenerate(e) {
     e.preventDefault()
@@ -161,16 +172,26 @@ function FlashcardsTab({ child, quota }) {
       )}
 
       <HistoryDrawer icon="🧠" title="Past Sets" count={sets.length}>
-        {close => sets.map(s => (
-          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
-            <button onClick={() => { loadSet(s); close() }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
-              📇 {s.topic}
+        {close => (<>
+          {sets.map(s => (
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
+              <button onClick={() => { loadSet(s); close() }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
+                📇 {s.topic}
+              </button>
+              <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(s.createdAt)}</span>
+              <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(s.id)}>✕</button>
+            </div>
+          ))}
+          {setsPage + 1 < setsTotalPages && (
+            <button onClick={() => fetchSets(setsPage + 1, false)} disabled={setsLoading}
+              style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+                border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+                fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: setsLoading ? 0.6 : 1 }}>
+              {setsLoading ? 'Loading…' : 'Load more'}
             </button>
-            <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(s.createdAt)}</span>
-            <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(s.id)}>✕</button>
-          </div>
-        ))}
+          )}
+        </>)}
       </HistoryDrawer>
 
       {sets.length === 0 && !loading && (
@@ -186,14 +207,15 @@ function FlashcardsTab({ child, quota }) {
 
 // ── Word of Day tab ────────────────────────────────────────────────────────────
 
-const HISTORY_DAYS = 7
-
 function WordOfDayTab({ child }) {
   const { track } = useTracker()
   useFeatureDuration('wordofday', track)
   const offline = useOffline()
   const [word, setWord] = useState(null)
   const [history, setHistory] = useState([])
+  const [histPage, setHistPage]           = useState(0)
+  const [histTotalPages, setHistTotalPages] = useState(1)
+  const [histLoading, setHistLoading]     = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [speaking, setSpeaking] = useState(false)
@@ -207,15 +229,27 @@ function WordOfDayTab({ child }) {
     setLoading(true)
     Promise.all([
       memoryApi.getWordOfDay(child.id),
-      memoryApi.getWordOfDayHistory(child.id),
-    ]).then(([today, hist]) => {
+      memoryApi.getWordOfDayHistoryPaged(child.id, 0),
+    ]).then(([today, histData]) => {
       if (today) track('wordofday', 'view')
       setWord(today)
-      setHistory(hist.filter(h => h.id !== today.id).slice(0, HISTORY_DAYS))
+      setHistory(histData.content.filter(h => h.id !== today?.id))
+      setHistPage(histData.number)
+      setHistTotalPages(histData.totalPages)
     }).catch(err => setError(err.message))
       .finally(() => setLoading(false))
     window.__glumbiRefreshQuota?.()
   }, [child.id])
+
+  async function fetchHistory(page) {
+    setHistLoading(true)
+    try {
+      const data = await memoryApi.getWordOfDayHistoryPaged(child.id, page)
+      setHistory(prev => [...prev, ...data.content.filter(h => h.id !== word?.id)])
+      setHistPage(data.number)
+      setHistTotalPages(data.totalPages)
+    } catch {} finally { setHistLoading(false) }
+  }
 
   if (loading) return <ThemeLoader theme={child.theme} />
 
@@ -264,7 +298,7 @@ function WordOfDayTab({ child }) {
       </div>
 
       {/* History button */}
-      <HistoryDrawer icon="🧠" title={`Past ${history.length} Word${history.length !== 1 ? 's' : ''}`} count={history.length}>
+      <HistoryDrawer icon="🧠" title={`Past Words`} count={history.length}>
         {history.map((h, i) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
             <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
@@ -283,6 +317,14 @@ function WordOfDayTab({ child }) {
             </button>
           </div>
         ))}
+        {histPage + 1 < histTotalPages && (
+          <button onClick={() => fetchHistory(histPage + 1)} disabled={histLoading}
+            style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+              border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+              fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: histLoading ? 0.6 : 1 }}>
+            {histLoading ? 'Loading…' : 'Load more'}
+          </button>
+        )}
       </HistoryDrawer>
     </div>
   )
@@ -545,13 +587,24 @@ function MemoryMatchTab({ child, quota, isActive }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [matches, setMatches] = useState([])
+  const [matchesPage, setMatchesPage]           = useState(0)
+  const [matchesTotalPages, setMatchesTotalPages] = useState(1)
+  const [matchesLoading, setMatchesLoading]     = useState(false)
   const [activeMatch, setActiveMatch] = useState(null)
   const [activePairs, setActivePairs] = useState(null)
   const [difficulty, setDifficulty] = useState('medium')
 
-  useEffect(() => {
-    memoryApi.getMatches(child.id).then(setMatches).catch(() => {})
-  }, [child.id])
+  useEffect(() => { fetchMatches(0, true) }, [child.id])
+
+  async function fetchMatches(page, replace) {
+    setMatchesLoading(true)
+    try {
+      const data = await memoryApi.getMatchesPaged(child.id, page)
+      setMatches(prev => replace ? data.content : [...prev, ...data.content])
+      setMatchesPage(data.number)
+      setMatchesTotalPages(data.totalPages)
+    } catch {} finally { setMatchesLoading(false) }
+  }
 
   async function handleGenerate(e) {
     e.preventDefault()
@@ -637,16 +690,26 @@ function MemoryMatchTab({ child, quota, isActive }) {
       )}
 
       <HistoryDrawer icon="🎴" title="Past Games" count={matches.length}>
-        {close => matches.map(m => (
-          <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
-            <button onClick={() => { startMatch(m); close() }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
-              🔁 Replay: {m.theme}
+        {close => (<>
+          {matches.map(m => (
+            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
+              <button onClick={() => { startMatch(m); close() }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
+                🔁 Replay: {m.theme}
+              </button>
+              <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(m.createdAt)}</span>
+              <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(m.id)}>✕</button>
+            </div>
+          ))}
+          {matchesPage + 1 < matchesTotalPages && (
+            <button onClick={() => fetchMatches(matchesPage + 1, false)} disabled={matchesLoading}
+              style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+                border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+                fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: matchesLoading ? 0.6 : 1 }}>
+              {matchesLoading ? 'Loading…' : 'Load more'}
             </button>
-            <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(m.createdAt)}</span>
-            <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => handleDelete(m.id)}>✕</button>
-          </div>
-        ))}
+          )}
+        </>)}
       </HistoryDrawer>
 
       {matches.length === 0 && !loading && (

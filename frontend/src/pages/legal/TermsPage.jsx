@@ -44,7 +44,7 @@ export default function TermsPage({ inApp = false }) {
 
       <h2>6. Usage limits</h2>
       <ul>
-        <li>Accounts are subject to a fair-use monthly limit of 200 AI-generated responses.</li>
+        <li>Accounts are subject to a fair-use monthly AI credit limit that resets on the 1st of each month. The current default limit is displayed on your account dashboard.</li>
         <li>Demo usage (without an account) is limited to 2 stories per IP address per day and subject to a global daily cap.</li>
         <li>We reserve the right to adjust these limits at any time with reasonable notice.</li>
       </ul>

@@ -28,6 +28,9 @@ public class DrawSave {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String imageData;
 
+    @Column(columnDefinition = "TEXT")
+    private String thumbnail;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 

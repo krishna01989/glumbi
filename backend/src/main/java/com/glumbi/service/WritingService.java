@@ -8,6 +8,9 @@ import com.glumbi.repository.WritingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -72,6 +75,10 @@ public class WritingService {
         if (from != null && to != null)
             return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);
         return repo.findByChildIdOrderByCreatedAtDesc(childId);
+    }
+
+    public Page<WritingEntry> getByChildPaged(Long childId, Pageable pageable) {
+        return repo.findByChildIdOrderByCreatedAtDesc(childId, pageable);
     }
 
     @org.springframework.transaction.annotation.Transactional

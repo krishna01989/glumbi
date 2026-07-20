@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +63,12 @@ public class MemoryPlayController {
     @GetMapping("/flashcards/child/{childId}")
     public List<FlashcardSet> getFlashcards(@PathVariable Long childId) {
         return service.getFlashcardSets(childId);
+    }
+
+    @GetMapping("/flashcards/child/{childId}/paged")
+    public Page<FlashcardSet> getFlashcardsPaged(@PathVariable Long childId,
+                                                   @RequestParam(defaultValue = "0") int page) {
+        return service.getFlashcardSetsPaged(childId, PageRequest.of(page, 20));
     }
 
     @DeleteMapping("/flashcards/{id}")
@@ -133,9 +141,21 @@ public class MemoryPlayController {
         return service.getWordOfDayHistory(childId);
     }
 
+    @GetMapping("/word-of-day/child/{childId}/history/paged")
+    public Page<WordOfDay> getWordOfDayHistoryPaged(@PathVariable Long childId,
+                                                     @RequestParam(defaultValue = "0") int page) {
+        return service.getWordOfDayHistoryPaged(childId, PageRequest.of(page, 20));
+    }
+
     @GetMapping("/match/child/{childId}")
     public List<MemoryMatch> getMatches(@PathVariable Long childId) {
         return service.getMemoryMatches(childId);
+    }
+
+    @GetMapping("/match/child/{childId}/paged")
+    public Page<MemoryMatch> getMatchesPaged(@PathVariable Long childId,
+                                              @RequestParam(defaultValue = "0") int page) {
+        return service.getMemoryMatchesPaged(childId, PageRequest.of(page, 20));
     }
 
     @DeleteMapping("/match/{id}")

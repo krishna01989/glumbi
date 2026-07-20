@@ -42,6 +42,9 @@ export default function ReadQuiz({ child, quota }) {
   const quizStartTime = useRef(null)
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
+  const [entriesPage, setEntriesPage]           = useState(0)
+  const [entriesTotalPages, setEntriesTotalPages] = useState(1)
+  const [entriesLoading, setEntriesLoading]     = useState(false)
   const [selected, setSelected] = useState(null)
   const [topic,    setTopic]    = useState('')
   const [loading,  setLoading]  = useState(false)
@@ -64,9 +67,17 @@ export default function ReadQuiz({ child, quota }) {
     else document.exitFullscreen?.()
   }
 
-  useEffect(() => {
-    readQuizApi.getByChild(child.id).then(setEntries).catch(() => {})
-  }, [child.id])
+  useEffect(() => { fetchEntries(0, true) }, [child.id])
+
+  async function fetchEntries(page, replace) {
+    setEntriesLoading(true)
+    try {
+      const data = await readQuizApi.getByChildPaged(child.id, page)
+      setEntries(prev => replace ? data.content : [...prev, ...data.content])
+      setEntriesPage(data.number)
+      setEntriesTotalPages(data.totalPages)
+    } catch {} finally { setEntriesLoading(false) }
+  }
 
   async function handleGenerate(e) {
     e.preventDefault()
@@ -197,7 +208,8 @@ export default function ReadQuiz({ child, quota }) {
       </div>
 
       <HistoryDrawer icon="📚" title="My Reads" count={entries.length}>
-        {close => entries.map(e => (
+        {close => (<>
+        {entries.map(e => (
           <div key={e.id} onClick={() => { openEntry(e); close() }}
             style={{
               borderRadius: 16, overflow: 'hidden', cursor: 'pointer',
@@ -233,6 +245,15 @@ export default function ReadQuiz({ child, quota }) {
             </div>
           </div>
         ))}
+        {entriesPage + 1 < entriesTotalPages && (
+          <button onClick={() => fetchEntries(entriesPage + 1, false)} disabled={entriesLoading}
+            style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+              border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+              fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: entriesLoading ? 0.6 : 1 }}>
+            {entriesLoading ? 'Loading…' : 'Load more'}
+          </button>
+        )}
+        </>)}
       </HistoryDrawer>
 
       {/* ── Right panel ── */}

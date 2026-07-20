@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.*;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.PostConstruct;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -96,6 +98,12 @@ public class StoryController {
                                   @RequestParam(required = false) LocalDateTime from,
                                   @RequestParam(required = false) LocalDateTime to) {
         return service.getByChild(childId, from, to);
+    }
+
+    @GetMapping("/child/{childId}/paged")
+    public Page<Map<String, Object>> getByChildPaged(@PathVariable Long childId,
+                                                      @RequestParam(defaultValue = "0") int page) {
+        return service.getByChildPaged(childId, PageRequest.of(page, 20));
     }
 
     @GetMapping("/child/{childId}/favorites")

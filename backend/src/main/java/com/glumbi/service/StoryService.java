@@ -8,8 +8,14 @@ import com.glumbi.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -90,6 +96,19 @@ public class StoryService {
         if (from != null && to != null)
             return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);
         return repo.findByChildIdOrderByCreatedAtDesc(childId);
+    }
+
+    /** Paginate root stories; embed chapters for each root so the client can group correctly. */
+    public Page<Map<String, Object>> getByChildPaged(Long childId, Pageable pageable) {
+        Page<Story> roots = repo.findByChildIdAndSeriesIdIsNullOrderByCreatedAtDesc(childId, pageable);
+        List<Map<String, Object>> content = roots.getContent().stream().map(root -> {
+            List<Story> chapters = repo.findBySeriesId(root.getId());
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("root", root);
+            entry.put("chapters", chapters);
+            return entry;
+        }).toList();
+        return new PageImpl<>(content, pageable, roots.getTotalElements());
     }
 
     public List<Story> getFavorites(Long childId) {

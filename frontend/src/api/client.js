@@ -88,6 +88,7 @@ export const storyApi = {
   generate:       (data)              => api.post('/stories/generate', data).then(r => r.data),
   continue:       (childId, previousStoryId) => api.post('/stories/generate', { childId, keywords: 'continue', previousStoryId }).then(r => r.data),
   getByChild:     (childId, params)   => api.get(`/stories/child/${childId}`, { params }).then(r => r.data),
+  getByChildPaged:(childId, page = 0) => api.get(`/stories/child/${childId}/paged`, { params: { page } }).then(r => r.data),
   getFavorites:   (childId)           => api.get(`/stories/child/${childId}/favorites`).then(r => r.data),
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
   getSimilar:     (id)                => api.get(`/stories/${id}/similar`).then(r => r.data),
@@ -105,6 +106,7 @@ export const storyApi = {
 export const journalApi = {
   create:         (data)     => api.post('/journal', data).then(r => r.data),
   getByChild:     (childId, params) => api.get(`/journal/child/${childId}`, { params }).then(r => r.data),
+  getByChildPaged:(childId, page = 0) => api.get(`/journal/child/${childId}/paged`, { params: { page } }).then(r => r.data),
   generateAiEntry:(childId, selectedMood) => api.post(`/journal/ai-entry/child/${childId}`, selectedMood ? { selectedMood } : {}).then(r => r.data),
   delete:         (id)       => api.delete(`/journal/${id}`),
 }
@@ -119,9 +121,10 @@ export const activityApi = {
 }
 
 export const curiosityApi = {
-  ask:        (data)            => api.post('/curiosity/ask', data).then(r => r.data),
-  getByChild: (childId, params) => api.get(`/curiosity/child/${childId}`, { params }).then(r => r.data),
-  delete:     (id)      => api.delete(`/curiosity/${id}`),
+  ask:            (data)            => api.post('/curiosity/ask', data).then(r => r.data),
+  getByChild:     (childId, params) => api.get(`/curiosity/child/${childId}`, { params }).then(r => r.data),
+  getByChildPaged:(childId, page = 0) => api.get(`/curiosity/child/${childId}/paged`, { params: { page } }).then(r => r.data),
+  delete:         (id)      => api.delete(`/curiosity/${id}`),
   getSimilar: (id)      => api.get(`/curiosity/${id}/similar`).then(r => r.data),
 }
 
@@ -138,10 +141,11 @@ export const drawApi = {
 }
 
 export const drawSaveApi = {
-  save:       (childId, imageData, title)        => api.post('/draw-saves', { childId, imageData, title }).then(r => r.data),
-  update:     (id, imageData, title)             => api.put(`/draw-saves/${id}`, { imageData, title }).then(r => r.data),
-  getByChild: (childId)                          => api.get(`/draw-saves/child/${childId}`).then(r => r.data),
-  delete:     (id)                               => api.delete(`/draw-saves/${id}`),
+  save:        (childId, imageData, title)  => api.post('/draw-saves', { childId, imageData, title }).then(r => r.data),
+  update:      (id, imageData, title)       => api.put(`/draw-saves/${id}`, { imageData, title }).then(r => r.data),
+  getByChild:  (childId, page = 0)          => api.get(`/draw-saves/child/${childId}`, { params: { page } }).then(r => r.data),
+  getFull:     (id)                         => api.get(`/draw-saves/${id}/full`).then(r => r.data),
+  delete:      (id)                         => api.delete(`/draw-saves/${id}`),
 }
 
 export const flipbookSaveApi = {
@@ -149,8 +153,9 @@ export const flipbookSaveApi = {
     api.post('/draw-saves/flipbook', { childId, framesJson, thumbnail, fps, frameCount, title }).then(r => r.data),
   update:     (id, framesJson, thumbnail, fps, frameCount, title) =>
     api.put(`/draw-saves/flipbook/${id}`, { framesJson, thumbnail, fps, frameCount, title }).then(r => r.data),
-  getByChild: (childId)  => api.get(`/draw-saves/flipbook/child/${childId}`).then(r => r.data),
-  delete:     (id)       => api.delete(`/draw-saves/flipbook/${id}`),
+  getByChild: (childId, page = 0) => api.get(`/draw-saves/flipbook/child/${childId}`, { params: { page } }).then(r => r.data),
+  getFull:    (id)                 => api.get(`/draw-saves/flipbook/${id}/full`).then(r => r.data),
+  delete:     (id)                 => api.delete(`/draw-saves/flipbook/${id}`),
 }
 
 export const learnApi = {
@@ -171,10 +176,11 @@ export const demoApi = {
 }
 
 export const readQuizApi = {
-  generate:  (childId, topic)    => api.post('/readquiz/generate', { childId, topic }).then(r => r.data),
-  submit:    (id, answers)       => api.post(`/readquiz/${id}/submit`, { answers }).then(r => r.data),
-  getByChild:(childId, params)   => api.get(`/readquiz/child/${childId}`, { params }).then(r => r.data),
-  delete:    (id)               => api.delete(`/readquiz/${id}`),
+  generate:       (childId, topic)    => api.post('/readquiz/generate', { childId, topic }).then(r => r.data),
+  submit:         (id, answers)       => api.post(`/readquiz/${id}/submit`, { answers }).then(r => r.data),
+  getByChild:     (childId, params)   => api.get(`/readquiz/child/${childId}`, { params }).then(r => r.data),
+  getByChildPaged:(childId, page = 0) => api.get(`/readquiz/child/${childId}/paged`, { params: { page } }).then(r => r.data),
+  delete:         (id)               => api.delete(`/readquiz/${id}`),
 }
 
 export const writingApi = {
@@ -182,8 +188,9 @@ export const writingApi = {
   update:    (id, data)          => api.put(`/writing/${id}`, data).then(r => r.data),
   feedback:  (id)                => api.post(`/writing/${id}/feedback`).then(r => r.data),
   continue:  (id)                => api.post(`/writing/${id}/continue`).then(r => r.data),
-  getByChild:(childId, params)   => api.get(`/writing/child/${childId}`, { params }).then(r => r.data),
-  delete:    (id)               => api.delete(`/writing/${id}`).then(r => r.data).catch(() => null),
+  getByChild:     (childId, params)   => api.get(`/writing/child/${childId}`, { params }).then(r => r.data),
+  getByChildPaged:(childId, page = 0) => api.get(`/writing/child/${childId}/paged`, { params: { page } }).then(r => r.data),
+  delete:         (id)               => api.delete(`/writing/${id}`).then(r => r.data).catch(() => null),
 }
 
 export const userApi = {
@@ -214,14 +221,17 @@ export const notificationApi = {
 }
 
 export const memoryApi = {
-  generateFlashcards: (childId, topic) => api.post('/memory/flashcards', { childId, topic }).then(r => r.data),
-  getFlashcards: (childId) => api.get(`/memory/flashcards/child/${childId}`).then(r => r.data),
-  deleteFlashcards: (id) => api.delete(`/memory/flashcards/${id}`),
-  getWordOfDay: (childId) => api.get(`/memory/word-of-day/child/${childId}`).then(r => r.data),
-  getWordOfDayHistory: (childId) => api.get(`/memory/word-of-day/child/${childId}/history`).then(r => r.data),
-  generateMatch: (childId, theme) => api.post('/memory/match', { childId, theme }).then(r => r.data),
-  getMatches: (childId) => api.get(`/memory/match/child/${childId}`).then(r => r.data),
-  deleteMatch: (id) => api.delete(`/memory/match/${id}`),
+  generateFlashcards:      (childId, topic) => api.post('/memory/flashcards', { childId, topic }).then(r => r.data),
+  getFlashcards:           (childId) => api.get(`/memory/flashcards/child/${childId}`).then(r => r.data),
+  getFlashcardsPaged:      (childId, page = 0) => api.get(`/memory/flashcards/child/${childId}/paged`, { params: { page } }).then(r => r.data),
+  deleteFlashcards:        (id) => api.delete(`/memory/flashcards/${id}`),
+  getWordOfDay:            (childId) => api.get(`/memory/word-of-day/child/${childId}`).then(r => r.data),
+  getWordOfDayHistory:     (childId) => api.get(`/memory/word-of-day/child/${childId}/history`).then(r => r.data),
+  getWordOfDayHistoryPaged:(childId, page = 0) => api.get(`/memory/word-of-day/child/${childId}/history/paged`, { params: { page } }).then(r => r.data),
+  generateMatch:           (childId, theme) => api.post('/memory/match', { childId, theme }).then(r => r.data),
+  getMatches:              (childId) => api.get(`/memory/match/child/${childId}`).then(r => r.data),
+  getMatchesPaged:         (childId, page = 0) => api.get(`/memory/match/child/${childId}/paged`, { params: { page } }).then(r => r.data),
+  deleteMatch:             (id) => api.delete(`/memory/match/${id}`),
 }
 
 export const traceApi = {

@@ -1,6 +1,8 @@
 package com.glumbi.repository;
 
 import com.glumbi.entity.ReadQuizEntry;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -9,6 +11,7 @@ import java.util.List;
 
 public interface ReadQuizRepository extends JpaRepository<ReadQuizEntry, Long> {
     List<ReadQuizEntry> findByChildIdOrderByCreatedAtDesc(Long childId);
+    Page<ReadQuizEntry> findByChildIdOrderByCreatedAtDesc(Long childId, Pageable pageable);
     List<ReadQuizEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
     long countByCreatedAtAfter(LocalDateTime since);
     long countByChildIdAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);

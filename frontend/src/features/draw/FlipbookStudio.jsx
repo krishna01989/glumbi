@@ -38,7 +38,7 @@ const BRUSHES = [
   { size: 40, title: 'Extra thick',dotSize: 26, btnH: 46 },
 ]
 const W = 1200, H = 800
-const MAX_FRAMES = 24
+const MAX_FRAMES = 100
 const untitledTitle = () => `Untitled – ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
 const SPEEDS = [
   { fps: 2,  emoji: '🐌', label: 'Slow' },

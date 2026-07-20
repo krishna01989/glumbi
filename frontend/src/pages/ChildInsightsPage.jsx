@@ -4,6 +4,15 @@ import { analyticsApi, userApi, childApi } from '../api/client'
 import { THEMES } from '../themes'
 import Timeline from '../features/timeline/Timeline'
 
+const SCRIPT_META = {
+  tamil:     { label: 'Tamil',     flag: '🌺' },
+  hindi:     { label: 'Hindi',     flag: '🇮🇳' },
+  malayalam: { label: 'Malayalam', flag: '🌴' },
+  kannada:   { label: 'Kannada',   flag: '🏵️' },
+  telugu:    { label: 'Telugu',    flag: '🌸' },
+  english:   { label: 'English',   flag: '🔤' },
+}
+
 /* ── helpers ── */
 const ACTIVITY_FEATURES = {
   stories:     { label: 'Stories',        emoji: '📖' },
@@ -191,15 +200,31 @@ function ActivityTab({ childName, t }) {
                   extraChips.push({ key: 'words', icon: '✍️', text: `avg ${data.mywritingAvgWordCount} words/submission`, color: '#10b981', bg: '#f0fdf4' })
                 if (feature === 'memorymatch' && data?.topMemoryMatchTheme)
                   extraChips.push({ key: 'theme', icon: '⭐', text: `Fav theme: ${data.topMemoryMatchTheme}`, color: '#8b5cf6', bg: '#faf5ff' })
+                if (feature === 'learn' && data?.learnFavoriteScript) {
+                  const scripts = data.learnFavoriteScript.split(',')
+                  const tied = scripts.length > 1
+                  const label = scripts.map(s => (SCRIPT_META[s]?.flag || '') + ' ' + (SCRIPT_META[s]?.label || s)).join(' & ')
+                  extraChips.push({ key: 'fav-script', icon: tied ? '🌐' : (SCRIPT_META[scripts[0]]?.flag || '✏️'), text: tied ? `Explores ${label} equally` : `Practices ${label.trim()} most`, color: '#6366f1', bg: '#eef2ff' })
+                }
                 if (feature === 'learn' && data?.learnPracticeCount > 0)
                   extraChips.push({ key: 'practice', icon: '✏️', text: `${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
+                if (feature === 'learn' && data?.learnTranslationPlays > 0)
+                  extraChips.push({ key: 'trans', icon: '🌐', text: `${data.learnTranslationPlays} translation${data.learnTranslationPlays !== 1 ? 's' : ''} explored`, color: '#0ea5e9', bg: '#f0f9ff' })
                 if (feature === 'learn' && data?.letterAccuracy?.length > 0) {
-                  const worst = data.letterAccuracy[0]
-                  extraChips.push({ key: 'letter', icon: '🔤', text: `Hardest letter: "${worst.letter}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
+                  const byScript = {}
+                  data.letterAccuracy.forEach(r => { if (!byScript[r.script]) byScript[r.script] = r })
+                  Object.values(byScript).forEach((worst, i) => {
+                    const sm = SCRIPT_META[worst.script] || { flag: '' }
+                    extraChips.push({ key: `letter-${worst.script}`, icon: '🔤', text: `Hardest ${sm.flag}: "${worst.letter}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
+                  })
                 }
                 if (feature === 'learn' && data?.wordAccuracy?.length > 0) {
-                  const worst = data.wordAccuracy[0]
-                  extraChips.push({ key: 'word', icon: '📝', text: `Hardest word: "${worst.word}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
+                  const byScript = {}
+                  data.wordAccuracy.forEach(r => { if (!byScript[r.script]) byScript[r.script] = r })
+                  Object.values(byScript).forEach((worst, i) => {
+                    const sm = SCRIPT_META[worst.script] || { flag: '' }
+                    extraChips.push({ key: `word-${worst.script}`, icon: '📝', text: `Hardest word ${sm.flag}: "${worst.word}" (${worst.rate}% pass)`, color: worst.rate < 50 ? '#ef4444' : '#f59e0b', bg: worst.rate < 50 ? '#fef2f2' : '#fffbeb' })
+                  })
                 }
                 if (feature === 'draw' && data?.drawAnimateCount > 0)
                   extraChips.push({ key: 'animate', icon: '✨', text: `${data.drawAnimateCount} drawing${data.drawAnimateCount !== 1 ? 's' : ''} brought to life`, color: '#9c6ef8', bg: '#faf5ff' })

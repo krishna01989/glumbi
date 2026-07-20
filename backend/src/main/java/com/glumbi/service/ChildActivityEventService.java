@@ -234,8 +234,22 @@ public class ChildActivityEventService {
         long riddleHints = repo.countByChildFeatureEventType(childId, "riddle",  "hint_used",    from);
         // Stories: similar_viewed count
         long storiesSimilar = repo.countByChildFeatureEventType(childId, "stories", "similar_viewed", from);
-        // Learn: free practice attempts
+        // Learn: free practice attempts + favorite script + translation plays
         long learnPractice = repo.countByChildFeatureEventType(childId, "learn", "practice", from);
+        long learnTranslationPlays = repo.countByChildFeatureEventType(childId, "learn", "translation_play", from);
+        String favoriteScript = null;
+        List<Object[]> fsRows = repo.getFavoriteScriptForChild(childId, from);
+        if (!fsRows.isEmpty() && fsRows.get(0)[0] != null) {
+            if (fsRows.size() >= 2) {
+                long top = ((Number) fsRows.get(0)[1]).longValue();
+                long second = ((Number) fsRows.get(1)[1]).longValue();
+                favoriteScript = top > second
+                    ? fsRows.get(0)[0].toString()
+                    : fsRows.get(0)[0].toString() + "," + fsRows.get(1)[0].toString();
+            } else {
+                favoriteScript = fsRows.get(0)[0].toString();
+            }
+        }
         // MyWriting: avg word count at feedback time
         Double mywritingAvgWords = repo.avgWritingWordCountForChild(childId, from);
         // Memory match: top theme
@@ -255,6 +269,8 @@ public class ChildActivityEventService {
         result.put("riddleHints",            riddleHints);
         result.put("storiesSimilarViewed",   storiesSimilar);
         result.put("learnPracticeCount",     learnPractice);
+        result.put("learnTranslationPlays",  learnTranslationPlays);
+        result.put("learnFavoriteScript",    favoriteScript);
         result.put("mywritingAvgWordCount",  mywritingAvgWords != null ? mywritingAvgWords.longValue() : null);
         result.put("topMemoryMatchTheme",    topMemoryTheme);
         result.put("drawAnimateCount",       drawAnimateCount);
@@ -392,6 +408,20 @@ public class ChildActivityEventService {
         long   adminRiddleHints  = repo.countByFeatureEventTypeSince("riddle",  "hint_used",     from);
         long   adminSimilarViewed    = repo.countByFeatureEventTypeSince("stories", "similar_viewed",from);
         long   adminLearnPractice    = repo.countByFeatureEventTypeSince("learn",   "practice",      from);
+        long   adminLearnTranslations = repo.countByFeatureEventTypeSince("learn",  "translation_play", from);
+        String adminTopScript = null;
+        List<Object[]> atsRows = repo.getTopScriptPlatform(from);
+        if (!atsRows.isEmpty() && atsRows.get(0)[0] != null) {
+            if (atsRows.size() >= 2) {
+                long top = ((Number) atsRows.get(0)[1]).longValue();
+                long second = ((Number) atsRows.get(1)[1]).longValue();
+                adminTopScript = top > second
+                    ? atsRows.get(0)[0].toString()
+                    : atsRows.get(0)[0].toString() + "," + atsRows.get(1)[0].toString();
+            } else {
+                adminTopScript = atsRows.get(0)[0].toString();
+            }
+        }
 
         result.put("accuracyByFeature",      adminAccuracyByFeature);
         result.put("completionsByFeature",   adminCompletionsByFeature);
@@ -401,6 +431,8 @@ public class ChildActivityEventService {
         result.put("riddleHints",            adminRiddleHints);
         result.put("storiesSimilarViewed",   adminSimilarViewed);
         result.put("learnPracticeCount",     adminLearnPractice);
+        result.put("learnTranslationPlays",  adminLearnTranslations);
+        result.put("learnFavoriteScript",    adminTopScript);
         result.put("totalCreditsUsed",       totalCreditsUsed);
         return result;
     }

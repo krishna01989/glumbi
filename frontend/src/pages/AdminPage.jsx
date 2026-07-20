@@ -818,6 +818,15 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
               signals.push({ key: 'sim', icon: '🔗', label: 'Stories', primary: `${data.storiesSimilarViewed} similar explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
             if ((data.learnPracticeCount ?? 0) > 0)
               signals.push({ key: 'practice', icon: '✏️', label: 'Learn to Write', primary: `${data.learnPracticeCount} free practice${data.learnPracticeCount !== 1 ? 's' : ''}`, sub: 'without AI check', color: '#6366f1', bg: '#eef2ff' })
+            if ((data.learnTranslationPlays ?? 0) > 0)
+              signals.push({ key: 'learn-trans', icon: '🌐', label: 'Learn to Write', primary: `${data.learnTranslationPlays} translation${data.learnTranslationPlays !== 1 ? 's' : ''} explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
+            if (data.learnFavoriteScript) {
+              const SMAP = { tamil:'Tamil 🌺', hindi:'Hindi 🇮🇳', malayalam:'Malayalam 🌴', kannada:'Kannada 🏵️', telugu:'Telugu 🌸', english:'English 🔤' }
+              const parts = data.learnFavoriteScript.split(',')
+              const tied = parts.length > 1
+              const scriptLabel = parts.map(s => SMAP[s] || s).join(' & ')
+              signals.push({ key: 'learn-script', icon: tied ? '🌐' : '🗺️', label: 'Learn to Write', primary: scriptLabel, sub: tied ? 'equally practiced' : 'practiced most', color: '#8b5cf6', bg: '#faf5ff' })
+            }
             if (signals.length === 0) return null
             return (
               <div style={{ marginBottom: 20 }}>
@@ -1141,25 +1150,6 @@ function Dashboard() {
       {/* Activity analytics */}
       {!loading && analyticsData && <ActivityAnalytics rangeLabel={RANGES.find(r => r.value === range)?.label} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
 
-      {/* Recent activity — always last */}
-      {stats && <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 16 }}>🕐 Recent Activity</div>
-        {stats.recentActivity.length === 0
-          ? <div style={{ color: '#aaa', fontSize: 13 }}>No activity yet.</div>
-          : stats.recentActivity.map((a, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < stats.recentActivity.length - 1 ? '1px solid #f5f5f5' : 'none' }}>
-              <span style={{ fontSize: 20 }}>{a.icon}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, color: '#333', fontWeight: 600 }}>{a.label}</div>
-                {a.childName && <div style={{ fontSize: 11, color: '#aaa' }}>for {a.childName}</div>}
-              </div>
-              <div style={{ fontSize: 11, color: '#bbb' }}>
-                {new Date(a.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
-          ))
-        }
-      </div>}
     </div>
   )
 }

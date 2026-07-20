@@ -1180,7 +1180,7 @@ function WordMode({ script, child, quota }) {
                   <span style={{ fontFamily:crossFont, fontSize:26, color:'var(--primary)', fontWeight:700 }}>
                     {result.translations[crossKey]}
                   </span>
-                  <button onClick={() => play(result.translations[crossKey], crossTts)}
+                  <button onClick={() => { play(result.translations[crossKey], crossTts); track('learn', 'translation_play', { metadata: { script, word: targetWord, lang: crossKey } }) }}
                     style={{ background:'linear-gradient(135deg,var(--primary),var(--accent))', border:'none', borderRadius:50, padding:'8px 16px', fontSize:13, fontWeight:800, color:'white', cursor:'pointer' }}>
                     🔊 Hear it
                   </button>
@@ -1204,7 +1204,7 @@ function WordMode({ script, child, quota }) {
                   <div style={{ fontSize:11, fontWeight:800, color:'#bbb', textTransform:'uppercase', letterSpacing:1, marginBottom:8 }}>Also in</div>
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:10 }}>
                     {extraLangs.map(l => (
-                      <button key={l.key} onClick={() => setExtraLang(extraLang === l.key ? null : l.key)}
+                      <button key={l.key} onClick={() => { const next = extraLang === l.key ? null : l.key; setExtraLang(next); if (next) track('learn', 'translation_play', { metadata: { script, word: targetWord, lang: l.key } }) }}
                         style={{ padding:'6px 14px', borderRadius:50, border:'none', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'Nunito,sans-serif', background: extraLang===l.key ? '#f0f0f0' : '#f8f8f8', color: extraLang===l.key ? '#333' : '#aaa', boxShadow: extraLang===l.key ? '0 2px 8px rgba(0,0,0,0.1)' : 'none' }}>
                         {l.flag} {l.label}
                       </button>

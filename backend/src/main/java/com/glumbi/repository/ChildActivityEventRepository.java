@@ -132,6 +132,30 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
         """, nativeQuery = true)
     List<Object[]> getWordAccuracyForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
 
+    // Favorite script (most ai_validate + ai_word events by script)
+    @Query(value = """
+        SELECT CAST(metadata AS json)->>'script' AS script, COUNT(*) AS cnt
+        FROM child_activity_events
+        WHERE child_id = :childId AND feature = 'learn'
+          AND event_type IN ('ai_validate','ai_word')
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'script' IS NOT NULL
+        GROUP BY script ORDER BY cnt DESC LIMIT 2
+        """, nativeQuery = true)
+    List<Object[]> getFavoriteScriptForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
+
+    // Platform-wide favorite script
+    @Query(value = """
+        SELECT CAST(metadata AS json)->>'script' AS script, COUNT(*) AS cnt
+        FROM child_activity_events
+        WHERE feature = 'learn'
+          AND event_type IN ('ai_validate','ai_word')
+          AND occurred_at >= :from AND metadata IS NOT NULL
+          AND CAST(metadata AS json)->>'script' IS NOT NULL
+        GROUP BY script ORDER BY cnt DESC LIMIT 2
+        """, nativeQuery = true)
+    List<Object[]> getTopScriptPlatform(@Param("from") LocalDateTime from);
+
     // Avg wall hits from maze complete events
     @Query(value = """
         SELECT ROUND(AVG(CAST(CAST(metadata AS json)->>'wallHits' AS integer)), 1)

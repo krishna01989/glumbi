@@ -150,67 +150,6 @@ public class AdminController {
             ageDistribution.computeIfPresent(key, (k, v) -> v + 1);
         });
 
-        // Recent activity feed — merge across all feature tables, show newest 15
-        List<Map<String, Object>> recentActivity = new ArrayList<>();
-        storyRepo.findTop10ByOrderByCreatedAtDesc().forEach(s -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "story"); a.put("icon", "📖");
-            a.put("label", "Story: " + s.getTitle());
-            a.put("childName", s.getChild() != null ? s.getChild().getName() : "");
-            a.put("createdAt", s.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        curiosityRepo.findTop5ByOrderByCreatedAtDesc().forEach(c -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "curiosity"); a.put("icon", "🔍");
-            a.put("label", "Asked: " + c.getQuestion());
-            a.put("childName", c.getChild() != null ? c.getChild().getName() : "");
-            a.put("createdAt", c.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        quizRepo.findTop5ByCompletedTrueOrderByCreatedAtDesc().forEach(q -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "quiz"); a.put("icon", "📚");
-            a.put("label", "Quiz: " + q.getTopic() + " — " + q.getScore() + "/3");
-            a.put("childName", q.getChild() != null ? q.getChild().getName() : "");
-            a.put("createdAt", q.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        writingRepo.findTop5ByOrderByCreatedAtDesc().forEach(w -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "writing"); a.put("icon", "✍️");
-            a.put("label", "Writing: " + w.getTitle());
-            a.put("childName", w.getChild() != null ? w.getChild().getName() : "");
-            a.put("createdAt", w.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        activityRepo.findTop5ByCategoryNotOrderByCreatedAtDesc("learn").forEach(act -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "activity"); a.put("icon", act.getEmoji() != null ? act.getEmoji() : "🎮");
-            a.put("label", "Activity: " + act.getTitle());
-            a.put("childName", act.getChild() != null ? act.getChild().getName() : "");
-            a.put("createdAt", act.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        flashcardSetRepo.findTop5ByOrderByCreatedAtDesc().forEach(f -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "flashcards"); a.put("icon", "🧠");
-            a.put("label", "Flashcards: " + f.getTopic());
-            a.put("childName", f.getChild() != null ? f.getChild().getName() : "");
-            a.put("createdAt", f.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        wordOfDayRepo.findTop5ByOrderByCreatedAtDesc().forEach(w -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "wordofday"); a.put("icon", "📘");
-            a.put("label", "Word of Day: " + w.getWord());
-            a.put("childName", w.getChild() != null ? w.getChild().getName() : "");
-            a.put("createdAt", w.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        memoryMatchRepo.findTop5ByOrderByCreatedAtDesc().forEach(m -> {
-            Map<String, Object> a = new LinkedHashMap<>();
-            a.put("type", "memorymatch"); a.put("icon", "🃏");
-            a.put("label", "Memory Match: " + m.getTheme());
-            a.put("childName", m.getChild() != null ? m.getChild().getName() : "");
-            a.put("createdAt", m.getCreatedAt().toString()); recentActivity.add(a);
-        });
-        recentActivity.sort((x, y) -> y.get("createdAt").toString().compareTo(x.get("createdAt").toString()));
-        List<Map<String, Object>> recentActivityTrimmed = recentActivity.stream().limit(15).collect(Collectors.toList());
-
         // Quota overview — current month usage across all users
         String thisMonth = YearMonth.now().toString();
         YearMonth nowMonth = YearMonth.now();
@@ -266,7 +205,6 @@ public class AdminController {
         result.put("quizScoreDistribution", quizScores);
         result.put("engagementBuckets",   engagementBuckets);
         result.put("ageDistribution",     ageDistribution);
-        result.put("recentActivity",      recentActivityTrimmed);
         result.put("alerts",              alerts);
         result.put("totalQuotaCalls",        totalQuotaCalls);
         result.put("usersAtLimit",           usersAtLimit);

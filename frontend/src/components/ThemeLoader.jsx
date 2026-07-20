@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 /* ─── Per-theme animation configs ─────────────────────────────────────────── */
 const THEMES_ANIM = {
@@ -1748,8 +1749,9 @@ export default function ThemeLoader({ theme = 'coral', label }) {
   const msgRef = useRef(anim ? pickMsg(anim.msg) : pickMsg(DEFAULT_MSGS))
 
   const msg = label || msgRef.current
+  const target = document.fullscreenElement || document.body
 
-  return (
+  return createPortal(
     <div style={{
       position: 'fixed', inset: 0, zIndex: 9000,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1799,6 +1801,7 @@ export default function ThemeLoader({ theme = 'coral', label }) {
           to   { transform: scale(1);   opacity: 1; }
         }
       `}</style>
-    </div>
+    </div>,
+    target
   )
 }

@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function CreditPop() {
   const [pops, setPops] = useState([])
+  const [target, setTarget] = useState(() => document.body)
 
   useEffect(() => {
     function handler(e) {
       const id = Date.now() + Math.random()
+      // Capture the fullscreen element at fire time so the portal targets correctly
+      setTarget(document.fullscreenElement || document.body)
       setPops(prev => [...prev, { id, cost: e.detail.cost }])
-      setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 1600)
+      setTimeout(() => setPops(prev => prev.filter(p => p.id !== id)), 2800)
     }
     window.addEventListener('glumbi:credit-used', handler)
     return () => window.removeEventListener('glumbi:credit-used', handler)
@@ -15,7 +19,7 @@ export default function CreditPop() {
 
   if (!pops.length) return null
 
-  return (
+  return createPortal(
     <>
       <style>{`
         @keyframes creditRise {
@@ -58,6 +62,7 @@ export default function CreditPop() {
           -{p.cost} credit{p.cost !== 1 ? 's' : ''}
         </div>
       ))}
-    </>
+    </>,
+    target
   )
 }

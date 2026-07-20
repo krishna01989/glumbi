@@ -2423,9 +2423,30 @@ export function bringToLife(overlay, drawCanvas, detectedObjects, age=6, onDone,
     const validObjects = detectedObjects.filter(o => o.boundingBox?.w > 0.04 && o.boundingBox?.h > 0.04)
     const allObjects   = validObjects.length > 0 ? validObjects : detectedObjects.slice(0,1)
 
-    if (allObjects.length > 1) {
-      // Multi-object: adaptive scene engine assigns each object a role and
-      // composes a meaningful layered animation automatically — any scene works.
+    // If detected objects have overlapping bounding boxes they are anatomical parts
+    // of the same drawing (e.g. flower petal + stem + leaf) — animate as one cutout.
+    const isCompound = allObjects.length > 1 && (() => {
+      const bb = allObjects.map(o => o.boundingBox).filter(Boolean)
+      for (let i = 0; i < bb.length; i++)
+        for (let j = i + 1; j < bb.length; j++) {
+          const a = bb[i], b = bb[j]
+          if (a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y)
+            return true
+        }
+      return false
+    })()
+
+    if (isCompound) {
+      // Parts of the same object — extract the union bbox as a single cutout
+      const primary = allObjects[0]
+      const union   = unionBbox(allObjects)
+      const cut     = extractCutout(drawCanvas, union, W, H)
+      const colors  = getPalette(primary)
+      const subType = getSubType(primary.label, primary.tags)
+      const maker   = ANIMATORS[subType] ?? ANIMATORS.flower ?? ANIMATORS.ball
+      anim = maker(cut, W, H, colors, primary)
+    } else if (allObjects.length > 1) {
+      // Genuinely separate objects — adaptive scene engine
       const groups = {}
       allObjects.forEach(o => {
         const subType = getSubType(o.label, o.tags)

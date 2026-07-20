@@ -3,7 +3,8 @@ import { useState } from 'react'
 const FEATURE_DISPLAY = {
   'story': { label: 'Story', icon: '📖' }, 'activity': { label: 'Activity', icon: '🎮' },
   'curiosity': { label: 'Curiosity', icon: '🔍' }, 'read-quiz': { label: 'Read & Quiz', icon: '📚' },
-  'writing-coach': { label: 'Writing Coach', icon: '✍️' }, 'draw': { label: 'Drawing', icon: '🎨' },
+  'writing-coach': { label: 'Writing Coach', icon: '✍️' }, 'draw': { label: 'What did I draw?', icon: '🎨' },
+  'draw-animate': { label: 'Bring to Life', icon: '✨' }, 'draw-guide': { label: 'Draw Guide', icon: '🖌️' },
   'learn-validate': { label: 'Letter Check', icon: '🔤' }, 'learn-word': { label: 'Learn Word', icon: '✏️' },
 }
 

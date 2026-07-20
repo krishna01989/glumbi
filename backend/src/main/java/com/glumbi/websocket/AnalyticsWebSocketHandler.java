@@ -83,9 +83,10 @@ public class AnalyticsWebSocketHandler extends TextWebSocketHandler {
         // disconnects — tab close, refresh, OS kill, or visibility-change self-close from the client.
         // Suppress them to debug; only warn on genuinely unexpected errors.
         String msg = exception.getMessage();
-        boolean normalDisconnect = msg == null                       // ClosedChannelException
-                || msg.contains("Connection reset")                  // TCP-level drop
-                || msg.contains("Broken pipe");                      // write to closed socket
+        boolean normalDisconnect = msg == null                          // bare ClosedChannelException
+                || msg.contains("ClosedChannelException")             // wrapped by Spring as message string
+                || msg.contains("Connection reset")                   // TCP-level drop
+                || msg.contains("Broken pipe");                       // write to closed socket
         if (normalDisconnect) {
             log.debug("Analytics WS client disconnected: session={}", session.getId());
         } else {

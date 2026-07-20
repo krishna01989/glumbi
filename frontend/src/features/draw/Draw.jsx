@@ -175,6 +175,15 @@ export default function Draw({ child, quota, featureConfig }) {
   }
 
   function loadDrawSave(save) {
+    stopAnimation()
+    setAiReply('')
+    setGuide('')
+    setGuideSubject('')
+    setGuideInput('')
+    setAnimResult(null)
+    setAnimBlocked(false)
+    setAnimLabel('')
+    setAnimBlockMsg('')
     const img = new Image()
     img.onload = () => {
       const ctx = getCtx()
@@ -640,6 +649,7 @@ export default function Draw({ child, quota, featureConfig }) {
       const { response } = await drawApi.identify(imageData, child?.name || 'you', age, guideSubject)
       track('draw', 'ai_praise')
       setAiReply(response)
+      window.__glumbiRefreshQuota?.('draw')
     } catch {
       setAiReply('Wow, what an amazing drawing! 🌟')
     } finally {
@@ -698,7 +708,7 @@ export default function Draw({ child, quota, featureConfig }) {
         imageData, child?.name || 'you', age, guideSubject, child?.id
       )
       track('draw', 'animate')
-      window.__glumbiRefreshQuota?.('draw')
+      window.__glumbiRefreshQuota?.('draw-animate')
 
       let parsed
       try { parsed = JSON.parse(rawJson) } catch { parsed = null }
@@ -1488,7 +1498,8 @@ export default function Draw({ child, quota, featureConfig }) {
               ref={canvasRef}
               width={1200}
               height={800}
-              style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none' }}
+              style={{ width: '100%', height: '100%', display: 'block', touchAction: 'none',
+                opacity: animPlaying ? 0 : 1, transition: 'opacity 0.3s' }}
               onMouseDown={startDraw}
               onMouseMove={draw}
               onMouseUp={stopDraw}

@@ -133,7 +133,10 @@ If harmful content detected:
 
 Additional rules:
 - IMPORTANT: Kids draw rough, imperfect shapes — be VERY generous. A wobbly oval could be a sun, fish, or face. A jagged line could be a mountain or a boat. Always try to find something to animate.
-- List up to 5 objects, most prominent first. For scenery/landscape drawings ALWAYS split into separate objects — sun, cloud, mountain, tree, river, rainbow, moon, star each get their own entry with their own tight boundingBox around just that element. NEVER merge an entire scenery into one object. The tags on each object should also include scene-level hints (e.g. mountain tags: ["mountain","hill","peak","landscape","scenery"]).
+- CRITICAL SPLITTING RULE — read carefully:
+  • A single subject (flower, person, dog, car, rocket, fish, butterfly) = ONE object entry, even if it has visible parts (petals+stem+leaves = one "flower"; body+wheels+windows = one "car"; head+body+legs = one "person"). Use a boundingBox that covers the whole subject. NEVER split one subject into its anatomical parts.
+  • A scene with multiple distinct subjects = multiple entries, one per subject. A sun AND a mountain AND a tree = 3 entries. Each gets its own tight boundingBox around just that subject.
+  • Rule of thumb: if the parts are attached or touching, it is ONE object. If the subjects are separate and spatially apart, they are multiple objects.
 - Use simple, child-friendly vocabulary
 - tags should include synonyms, related concepts, and category words (e.g. "car" → also tag "vehicle","road","wheels","driving")
 - confidence reflects recognisability: rough scribble=0.4, somewhat clear=0.6, clear=0.85. NEVER return 0 or skip an object just because it is rough.

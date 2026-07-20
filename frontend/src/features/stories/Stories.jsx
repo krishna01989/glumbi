@@ -963,6 +963,7 @@ export default function Stories({ child, quota }) {
       }, {})
       function handleSelect(s) {
         if (selected?.id === s.id) return
+        if (speaking) stopSpeaking()
         setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
         storyApi.getSimilar(s.id).then(r => { setSimilarStories(r); if (r.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
         if (isMobile) setShowList(false)

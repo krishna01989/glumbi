@@ -1,7 +1,10 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { analyticsSocket } from '../grpc/analyticsSocket'
+import { analyticsApi } from '../api/client'
 
-const QUEUE_KEY = 'glm_activity_queue'
+const QUEUE_KEY  = 'glm_activity_queue'
+const QUEUE_MAX  = 5000  // emergency brake only — real protection is the deadlock fix
+const WS_FAIL_HTTP_THRESHOLD = 3   // fall back to HTTP after this many consecutive WS failures
 
 function readQueue() {
   try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]') } catch { return [] }
@@ -12,13 +15,24 @@ function writeQueue(q) {
 }
 
 export default function useActivityTracker(child, isOffline, childLocked) {
-  const sendingRef  = useRef(0)   // how many events are in-flight waiting for ACK
+  const sendingRef    = useRef(0)    // events currently in-flight waiting for ACK
   const closeTimerRef = useRef(null)
 
   const flush = useCallback(() => {
-    if (sendingRef.current > 0) return  // wait for ACK before sending more
+    if (sendingRef.current > 0) return   // wait for ACK before sending more
     const queue = readQueue()
-    if (!queue.length || !analyticsSocket.isOpen()) return
+    if (!queue.length) return
+
+    // Fall back to HTTP if WebSocket has failed repeatedly
+    if (!analyticsSocket.isOpen()) {
+      if (analyticsSocket.consecutiveFailures >= WS_FAIL_HTTP_THRESHOLD) {
+        analyticsApi.batchEvents(queue)
+          .then(() => writeQueue([]))
+          .catch(() => {})  // keep queue intact on HTTP failure, retry next poll
+      }
+      return
+    }
+
     sendingRef.current = queue.length
     const sent = analyticsSocket.send(queue)
     if (!sent) sendingRef.current = 0
@@ -27,46 +41,49 @@ export default function useActivityTracker(child, isOffline, childLocked) {
   // Open socket when child locks in, close when session ends
   useEffect(() => {
     if (!childLocked || !child?.id) return
+
     analyticsSocket.open()
 
+    // Reset in-flight counter whenever the socket (re)connects so a mid-flight
+    // disconnect doesn't permanently block flush() for the rest of the session.
+    // Events re-sent after reconnect are deduplicated server-side by clientKey.
+    analyticsSocket.onReconnect = () => {
+      sendingRef.current = 0
+      flush()
+    }
+
     analyticsSocket.onAck = () => {
-      // Drop exactly the events we sent, preserving any newly enqueued ones
       const current = readQueue()
       writeQueue(current.slice(sendingRef.current))
       sendingRef.current = 0
-      // Drain remaining queue if more events accumulated while we were waiting
       if (readQueue().length > 0) flush()
     }
 
     return () => {
-      // Defer close so child effect cleanups (useFeatureDuration in feature pages) run first.
-      // React runs passive effect cleanups parent-before-child, so a synchronous flush here
-      // would see an empty queue — the session event hasn't been enqueued yet by the child.
-      // setTimeout(0) pushes the close past the current commit cycle, by which point all
-      // children have fired their session events into localStorage.
+      // Defer close so child useFeatureDuration cleanups enqueue their session
+      // events before the socket shuts down (React runs parent cleanups first).
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
       closeTimerRef.current = setTimeout(() => {
         flush()
-        analyticsSocket.onAck = null
+        analyticsSocket.onAck       = null
+        analyticsSocket.onReconnect = null
         analyticsSocket.close()
-        sendingRef.current = 0
+        sendingRef.current    = 0
         closeTimerRef.current = null
       }, 0)
     }
   }, [childLocked, child?.id, flush])
 
-  // Cancel any pending deferred close on full unmount
   useEffect(() => {
     return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current) }
   }, [])
 
-  // Poll every 2s to drain the queue after a reconnect
+  // Poll every 2s — drains queue after reconnect or HTTP fallback window
   useEffect(() => {
     const interval = setInterval(flush, 2000)
     return () => clearInterval(interval)
   }, [flush])
 
-  // Flush when network comes back
   useEffect(() => {
     window.addEventListener('online', flush)
     return () => window.removeEventListener('online', flush)
@@ -87,8 +104,9 @@ export default function useActivityTracker(child, isOffline, childLocked) {
     }
     const queue = readQueue()
     queue.push(event)
+    // Cap queue size — drop oldest events when over limit
+    if (queue.length > QUEUE_MAX) queue.splice(0, queue.length - QUEUE_MAX)
     writeQueue(queue)
-
     if (navigator.onLine) flush()
   }, [child?.id, child?.name, isOffline, childLocked, flush])
 

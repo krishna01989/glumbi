@@ -28,7 +28,7 @@ public class Notification {
     private Child child;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(50)")
     private NotificationType type;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -46,6 +46,8 @@ public class Notification {
         LEARNING_INSIGHT,
         LEARN_TO_WRITE,
         MEMORY_PLAY,
+        CURIOSITY_INSIGHT,
+        JOURNAL_INSIGHT,
         QUOTA_WARNING
     }
 }

@@ -5,11 +5,18 @@
   <quizzes_completed>%d</quizzes_completed>
   <average_quiz_score>%s</average_quiz_score>
   <writing_entries>%d</writing_entries>
+  <curiosity_questions_asked>%d</curiosity_questions_asked>
+  <journal_entries_written>%d</journal_entries_written>
+  <dominant_mood_this_week>%s</dominant_mood_this_week>
+  <memory_flashcard_sets>%d</memory_flashcard_sets>
+  <words_of_day_learned>%d</words_of_day_learned>
+  <memory_match_games>%d</memory_match_games>
 </activity_this_week>
 
 <rules>
-  <rule>Write 2-3 friendly sentences</rule>
-  <rule>Be specific about the numbers</rule>
+  <rule>Write 2-4 friendly sentences covering the highlights — not every number needs to be mentioned</rule>
+  <rule>Focus on the areas where the child was most active this week</rule>
+  <rule>Skip any activity with a zero count — do not mention it</rule>
   <rule>End with a positive note</rule>
   <rule>Always refer to the child by name only — never use he/she/his/her/him/they pronouns</rule>
 </rules>

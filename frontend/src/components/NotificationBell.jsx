@@ -8,6 +8,8 @@ const TYPE_ICON = {
   LEARNING_INSIGHT:     '💡',
   LEARN_TO_WRITE:       '✏️',
   MEMORY_PLAY:          '🧠',
+  CURIOSITY_INSIGHT:    '🔍',
+  JOURNAL_INSIGHT:      '📓',
   QUOTA_WARNING:        '⚠️',
 }
 
@@ -18,6 +20,8 @@ const TYPE_LABEL = {
   LEARNING_INSIGHT:     'Learning Insight',
   LEARN_TO_WRITE:       'Learn to Write',
   MEMORY_PLAY:          'Memory Play',
+  CURIOSITY_INSIGHT:    'Curiosity Insight',
+  JOURNAL_INSIGHT:      'Journal Insight',
   QUOTA_WARNING:        'Quota Warning',
 }
 

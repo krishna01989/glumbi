@@ -32,6 +32,8 @@ public class NotificationScheduler {
     public static final String AGENT_LEARNING    = "learning-insight";
     public static final String AGENT_LEARN_WRITE = "learn-to-write";
     public static final String AGENT_MEMORY      = "memory-play";
+    public static final String AGENT_CURIOSITY   = "curiosity-insight";
+    public static final String AGENT_JOURNAL     = "journal-insight";
 
     private final UserRepository           userRepository;
     private final ChildRepository          childRepository;
@@ -39,6 +41,8 @@ public class NotificationScheduler {
     private final ReadQuizRepository       quizRepository;
     private final WritingRepository        writingRepository;
     private final ActivityRepository       activityRepository;
+    private final CuriosityRepository      curiosityRepository;
+    private final JournalRepository        journalRepository;
     private final NotificationService      notificationService;
     private final AppSettingRepository     appSettingRepo;
     private final SchedulerRunRepository   schedulerRunRepo;
@@ -49,9 +53,12 @@ public class NotificationScheduler {
     private final LearningInsightAgent     learningInsightAgent;
     private final LearnToWriteAgent        learnToWriteAgent;
     private final MemoryPlayAgent          memoryPlayAgent;
+    private final CuriosityInsightAgent    curiosityInsightAgent;
+    private final JournalInsightAgent      journalInsightAgent;
 
     private final FlashcardSetRepository   flashcardSetRepo;
     private final WordOfDayRepository      wordOfDayRepo;
+    private final MemoryMatchRepository    memoryMatchRepo;
 
     private final ObjectMapper objectMapper;
 
@@ -71,7 +78,6 @@ public class NotificationScheduler {
     // Runs every Sunday at 8:00 AM UTC
     @Scheduled(cron = "0 0 8 * * SUN")
     public void runWeeklyNotifications() {
-        // Insert RUNNING row immediately so admin can see it started
         SchedulerRun run = new SchedulerRun();
         run.setSchedulerId(SCHEDULER_ID);
         run.setStartedAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -88,6 +94,8 @@ public class NotificationScheduler {
         boolean runLearning   = isAgentEnabled(AGENT_LEARNING);
         boolean runLearnWrite = isAgentEnabled(AGENT_LEARN_WRITE);
         boolean runMemory     = isAgentEnabled(AGENT_MEMORY);
+        boolean runCuriosity  = isAgentEnabled(AGENT_CURIOSITY);
+        boolean runJournal    = isAgentEnabled(AGENT_JOURNAL);
 
         if (!runProgress)   { skipped.add("Progress Report");      System.out.println("[Scheduler] SKIP Progress Report — disabled by admin"); }
         if (!runMilestone)  { skipped.add("Milestone");            System.out.println("[Scheduler] SKIP Milestone — disabled by admin"); }
@@ -95,6 +103,8 @@ public class NotificationScheduler {
         if (!runLearning)   { skipped.add("Learning Insight");     System.out.println("[Scheduler] SKIP Learning Insight — disabled by admin"); }
         if (!runLearnWrite) { skipped.add("Learn to Write");       System.out.println("[Scheduler] SKIP Learn to Write — disabled by admin"); }
         if (!runMemory)     { skipped.add("Memory Play");          System.out.println("[Scheduler] SKIP Memory Play — disabled by admin"); }
+        if (!runCuriosity)  { skipped.add("Curiosity Insight");    System.out.println("[Scheduler] SKIP Curiosity Insight — disabled by admin"); }
+        if (!runJournal)    { skipped.add("Journal Insight");      System.out.println("[Scheduler] SKIP Journal Insight — disabled by admin"); }
 
         LocalDateTime weekAgo     = LocalDateTime.now(ZoneOffset.UTC).minusDays(7);
         LocalDateTime twoWeeksAgo = LocalDateTime.now(ZoneOffset.UTC).minusDays(14);
@@ -110,7 +120,8 @@ public class NotificationScheduler {
                     try {
                         boolean processed = runAgentsForChild(
                             user, child, weekAgo, twoWeeksAgo,
-                            runProgress, runMilestone, runStoryRec, runLearning, runLearnWrite, runMemory
+                            runProgress, runMilestone, runStoryRec, runLearning,
+                            runLearnWrite, runMemory, runCuriosity, runJournal
                         );
                         if (processed) childrenProcessed++;
                     } catch (Exception e) {
@@ -127,13 +138,14 @@ public class NotificationScheduler {
             if (runLearning)   ran.add("Learning Insight");
             if (runLearnWrite) ran.add("Learn to Write");
             if (runMemory)     ran.add("Memory Play");
+            if (runCuriosity)  ran.add("Curiosity Insight");
+            if (runJournal)    ran.add("Journal Insight");
 
         } catch (Exception e) {
             errors.add("Fatal: " + e.getMessage());
             System.err.println("[Scheduler] FATAL " + e.getMessage());
         }
 
-        // Update row with final result
         run.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
         run.setStatus(errors.isEmpty() ? "SUCCESS" : "FAILED");
         run.setChildrenProcessed(childrenProcessed);
@@ -142,7 +154,6 @@ public class NotificationScheduler {
         run.setErrors(toJson(errors));
         schedulerRunRepo.save(run);
 
-        // Keep AppSetting last-run for the inline status card
         saveLastRunAppSetting(run);
 
         System.out.println("[Scheduler] Weekly notifications done. Ran: " + ran + " Skipped: " + skipped + " Errors: " + errors.size());
@@ -152,22 +163,37 @@ public class NotificationScheduler {
                                       LocalDateTime weekAgo, LocalDateTime twoWeeksAgo,
                                       boolean runProgress, boolean runMilestone,
                                       boolean runStoryRec, boolean runLearning,
-                                      boolean runLearnWrite, boolean runMemory) {
+                                      boolean runLearnWrite, boolean runMemory,
+                                      boolean runCuriosity, boolean runJournal) {
         Long childId = child.getId();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
-        List<Story>         weekStories  = storyRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, LocalDateTime.now(ZoneOffset.UTC));
-        List<ReadQuizEntry> weekQuizzes  = quizRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, LocalDateTime.now(ZoneOffset.UTC));
-        List<WritingEntry>  weekWritings = writingRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, LocalDateTime.now(ZoneOffset.UTC));
-        List<Activity>      weekLearn    = activityRepository.findByChildIdAndCategoryAndCreatedAtBetweenOrderByCreatedAtDesc(childId, "learn", weekAgo, LocalDateTime.now(ZoneOffset.UTC));
+        List<Story>          weekStories     = storyRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
+        List<ReadQuizEntry>  weekQuizzes     = quizRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
+        List<WritingEntry>   weekWritings    = writingRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
+        List<Activity>       weekLearn       = activityRepository.findByChildIdAndCategoryAndCreatedAtBetweenOrderByCreatedAtDesc(childId, "learn", weekAgo, now);
+        List<CuriosityEntry> weekCuriosities = curiosityRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
+        List<JournalEntry>   weekJournals    = journalRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
 
-        if (weekStories.isEmpty() && weekQuizzes.isEmpty() && weekWritings.isEmpty() && weekLearn.isEmpty()) return false;
+        // Skip child if there was no activity at all this week
+        boolean anyActivity = !weekStories.isEmpty() || !weekQuizzes.isEmpty()
+                || !weekWritings.isEmpty() || !weekLearn.isEmpty()
+                || !weekCuriosities.isEmpty() || !weekJournals.isEmpty();
+        if (!anyActivity) return false;
+
+        int flashcardSets = flashcardSetRepo.findByChildIdAndCreatedAtBetween(childId, weekAgo, now).size();
+        long wordsLearned = wordOfDayRepo.countByChildIdAndDateBetween(childId, weekAgo.toLocalDate(), LocalDate.now());
+        long matchGames   = memoryMatchRepo.countByChildIdAndCreatedAtBetween(childId, weekAgo, now);
 
         List<Story>         allStories  = null;
         List<ReadQuizEntry> allQuizzes  = null;
         List<WritingEntry>  allWritings = null;
 
         if (runProgress) {
-            String progress = progressReportAgent.generate(child, weekStories, weekQuizzes, weekWritings);
+            String progress = progressReportAgent.generate(
+                child, weekStories, weekQuizzes, weekWritings,
+                weekCuriosities, weekJournals,
+                flashcardSets, (int) wordsLearned, (int) matchGames);
             notificationService.save(user, child, NotificationType.PROGRESS_REPORT, progress);
         }
 
@@ -188,8 +214,8 @@ public class NotificationScheduler {
         }
 
         if (runLearning) {
-            List<ReadQuizEntry> biWeeklyQuizzes  = quizRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, twoWeeksAgo, LocalDateTime.now(ZoneOffset.UTC));
-            List<WritingEntry>  biWeeklyWritings = writingRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, twoWeeksAgo, LocalDateTime.now(ZoneOffset.UTC));
+            List<ReadQuizEntry> biWeeklyQuizzes  = quizRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, twoWeeksAgo, now);
+            List<WritingEntry>  biWeeklyWritings = writingRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, twoWeeksAgo, now);
             String insight = learningInsightAgent.generate(child, biWeeklyQuizzes, biWeeklyWritings);
             if (insight != null) notificationService.save(user, child, NotificationType.LEARNING_INSIGHT, insight);
         }
@@ -200,11 +226,21 @@ public class NotificationScheduler {
         }
 
         if (runMemory) {
-            int flashcardSets = flashcardSetRepo.findByChildIdAndCreatedAtBetween(childId, weekAgo, LocalDateTime.now(ZoneOffset.UTC)).size();
-            long wordsLearned = wordOfDayRepo.countByChildIdAndDateBetween(childId, weekAgo.toLocalDate(), LocalDate.now());
-            int childAge = child.getBirthYear() != null ? LocalDate.now().getYear() - child.getBirthYear() : 5;
-            String memMsg = memoryPlayAgent.generateWeeklyInsight(child.getName(), childAge, flashcardSets, (int) wordsLearned);
+            String memMsg = memoryPlayAgent.generateWeeklyInsight(
+                child.getName(),
+                com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()),
+                flashcardSets, (int) wordsLearned, (int) matchGames);
             if (memMsg != null) notificationService.save(user, child, NotificationType.MEMORY_PLAY, memMsg);
+        }
+
+        if (runCuriosity && !weekCuriosities.isEmpty()) {
+            String curiosityMsg = curiosityInsightAgent.generate(child, weekCuriosities);
+            if (curiosityMsg != null) notificationService.save(user, child, NotificationType.CURIOSITY_INSIGHT, curiosityMsg);
+        }
+
+        if (runJournal && !weekJournals.isEmpty()) {
+            String journalMsg = journalInsightAgent.generate(child, weekJournals);
+            if (journalMsg != null) notificationService.save(user, child, NotificationType.JOURNAL_INSIGHT, journalMsg);
         }
 
         return true;

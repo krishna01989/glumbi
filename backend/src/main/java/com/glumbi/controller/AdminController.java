@@ -544,7 +544,9 @@ public class AdminController {
         Map.of("id", NotificationScheduler.AGENT_STORY_REC, "label", "Story Recommendation",   "description", "Analyses a child's reading history and suggests a new story theme tailored to their interests."),
         Map.of("id", NotificationScheduler.AGENT_LEARNING,  "label", "Learning Insight",       "description", "Reviews the last two weeks of quizzes and writing to surface patterns and tips for the parent."),
         Map.of("id", NotificationScheduler.AGENT_LEARN_WRITE, "label", "Learn to Write",       "description", "Summarises the letters and words a child practised writing this week and suggests what to try next."),
-        Map.of("id", NotificationScheduler.AGENT_MEMORY,      "label", "Memory Play",           "description", "Reviews the child's flashcard sessions and words of the day from the past week and sends an encouraging memory activity summary.")
+        Map.of("id", NotificationScheduler.AGENT_MEMORY,      "label", "Memory Play",           "description", "Reviews the child's flashcard sessions, words of the day, and memory match games from the past week and sends an encouraging summary."),
+        Map.of("id", NotificationScheduler.AGENT_CURIOSITY,   "label", "Curiosity Insight",      "description", "Highlights the questions a child asked this week and celebrates their curiosity with a warm parent notification."),
+        Map.of("id", NotificationScheduler.AGENT_JOURNAL,     "label", "Journal Insight",        "description", "Summarises the child's journaling activity and mood trend from the past week.")
     );
 
     @GetMapping("/agents")

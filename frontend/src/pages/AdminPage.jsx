@@ -1466,6 +1466,9 @@ const AGENT_ICONS = {
   'story-recommendation': '✨',
   'learning-insight':     '💡',
   'learn-to-write':       '✏️',
+  'memory-play':          '🧠',
+  'curiosity-insight':    '🔍',
+  'journal-insight':      '📓',
 }
 
 function Agents() {

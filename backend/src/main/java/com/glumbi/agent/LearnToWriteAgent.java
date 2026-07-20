@@ -68,6 +68,9 @@ public class LearnToWriteAgent {
         return switch (emoji) {
             case "🌺" -> "Tamil";
             case "🇮🇳" -> "Hindi";
+            case "🌸" -> "Telugu";
+            case "🌴" -> "Malayalam";
+            case "🏵️" -> "Kannada";
             default   -> "English";
         };
     }

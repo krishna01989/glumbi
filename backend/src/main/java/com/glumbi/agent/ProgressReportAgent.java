@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.glumbi.entity.Child;
+import com.glumbi.entity.CuriosityEntry;
+import com.glumbi.entity.JournalEntry;
 import com.glumbi.entity.ReadQuizEntry;
 import com.glumbi.entity.Story;
 import com.glumbi.entity.WritingEntry;
@@ -12,7 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalDouble;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -25,10 +29,21 @@ public class ProgressReportAgent {
     @Value("${anthropic.model}")                        private String model;
     @Value("${anthropic.max-tokens.progress-report}")   private int maxTokens;
 
-    public String generate(Child child, List<Story> stories, List<ReadQuizEntry> quizzes, List<WritingEntry> writings) {
-        int storyCount = stories.size();
-        int quizCount = (int) quizzes.stream().filter(ReadQuizEntry::isCompleted).count();
-        int writingCount = writings.size();
+    public String generate(Child child,
+                           List<Story> stories,
+                           List<ReadQuizEntry> quizzes,
+                           List<WritingEntry> writings,
+                           List<CuriosityEntry> curiosities,
+                           List<JournalEntry> journals,
+                           int flashcardSets,
+                           int wordsLearned,
+                           int matchGames) {
+
+        int storyCount     = stories.size();
+        int quizCount      = (int) quizzes.stream().filter(ReadQuizEntry::isCompleted).count();
+        int writingCount   = writings.size();
+        int curiosityCount = curiosities.size();
+        int journalCount   = journals.size();
 
         OptionalDouble avgScore = quizzes.stream()
                 .filter(q -> q.getScore() != null)
@@ -39,9 +54,19 @@ public class ProgressReportAgent {
                 ? String.format("%.0f%%", (avgScore.getAsDouble() / 3.0) * 100)
                 : "no quizzes completed";
 
+        String dominantMood = journals.stream()
+                .filter(j -> j.getMood() != null && !j.getMood().isBlank())
+                .collect(Collectors.groupingBy(JournalEntry::getMood, Collectors.counting()))
+                .entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("not recorded");
+
         String prompt = String.format(promptLoader.load("progress-report-user"),
                 child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()),
-                storyCount, quizCount, scoreSummary, writingCount);
+                storyCount, quizCount, scoreSummary, writingCount,
+                curiosityCount, journalCount, dominantMood,
+                flashcardSets, wordsLearned, matchGames);
 
         return callClaude(prompt);
     }
@@ -60,7 +85,9 @@ public class ProgressReportAgent {
             JsonNode root = mapper.readTree(response);
             return root.path("content").get(0).path("text").asText().trim();
         } catch (Exception e) {
-            return String.format("Great week for %s! Keep up the wonderful learning journey.", "your child");
+            return String.format("Great week for %s! Keep up the wonderful learning journey.", child_name_fallback());
         }
     }
+
+    private String child_name_fallback() { return "your child"; }
 }

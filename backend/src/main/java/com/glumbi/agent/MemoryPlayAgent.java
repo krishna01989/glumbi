@@ -136,14 +136,14 @@ public class MemoryPlayAgent {
 
     // ── Weekly Insight ────────────────────────────────────────────────────────
 
-    public String generateWeeklyInsight(String childName, int age, int flashcardSets, int wordsLearned) {
-        if (flashcardSets == 0 && wordsLearned == 0) return null;
+    public String generateWeeklyInsight(String childName, int age, int flashcardSets, int wordsLearned, int matchGames) {
+        if (flashcardSets == 0 && wordsLearned == 0 && matchGames == 0) return null;
 
         String prompt = String.format(
             "Write a warm 1-2 sentence weekly summary for a parent about their child %s (age %d) who practised memory games this week. " +
-            "They completed %d flashcard set(s) and learned %d word(s) of the day. " +
-            "Be encouraging and specific. No markdown.",
-            childName, age, flashcardSets, wordsLearned);
+            "They completed %d flashcard set(s), learned %d word(s) of the day, and played %d memory match game(s). " +
+            "Only mention activities with a non-zero count. Be encouraging and specific. No markdown.",
+            childName, age, flashcardSets, wordsLearned, matchGames);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);

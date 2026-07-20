@@ -4,76 +4,183 @@ export function fmtDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
+const STORAGE_KEY = 'history_drawer_corner'
+
+const POSITIONS = {
+  tl: { left: 0,  top: 20,    bottom: undefined, mid: false, borderRadius: '0 14px 14px 0', shadow: '3px 0 14px rgba(0,0,0,0.18)',  side: 'left'  },
+  ml: { left: 0,  top: '50%', bottom: undefined, mid: true,  borderRadius: '0 14px 14px 0', shadow: '3px 0 14px rgba(0,0,0,0.18)',  side: 'left'  },
+  bl: { left: 0,  top: undefined, bottom: 90,    mid: false, borderRadius: '0 14px 14px 0', shadow: '3px 0 14px rgba(0,0,0,0.18)',  side: 'left'  },
+  tr: { right: 0, top: 20,    bottom: undefined, mid: false, borderRadius: '14px 0 0 14px', shadow: '-3px 0 14px rgba(0,0,0,0.18)', side: 'right' },
+  mr: { right: 0, top: '50%', bottom: undefined, mid: true,  borderRadius: '14px 0 0 14px', shadow: '-3px 0 14px rgba(0,0,0,0.18)', side: 'right' },
+  br: { right: 0, top: undefined, bottom: 90,    mid: false, borderRadius: '14px 0 0 14px', shadow: '-3px 0 14px rgba(0,0,0,0.18)', side: 'right' },
+}
+
+function nearestPosition(x, y) {
+  const h = x < window.innerWidth  / 2 ? 'l' : 'r'
+  const third = window.innerHeight / 3
+  const v = y < third ? 't' : y < third * 2 ? 'm' : 'b'
+  return v + h
+}
+
+function readPos() {
+  try { return localStorage.getItem(STORAGE_KEY) || (window.innerWidth < 640 ? 'tl' : 'tr') }
+  catch { return 'tr' }
+}
+
+function posStyle(ps, extraTransform = '') {
+  return {
+    left: ps.left, right: ps.right, top: ps.top, bottom: ps.bottom,
+    transform: ps.mid
+      ? `translateY(-50%)${extraTransform ? ' ' + extraTransform : ''}`
+      : extraTransform || undefined,
+  }
+}
+
+const FADE_DELAY = 2500
+
 export default function HistoryDrawer({ title, count, icon = '📖', children }) {
-  const [open, setOpen] = useState(false)
-  const mobile = typeof window !== 'undefined' && window.innerWidth < 640
-  const dragStart = useRef(null)
-  const dragged = useRef(false)
+  const [open,     setOpen]     = useState(false)
+  const [pos,      setPos]      = useState(readPos)
+  const [dragging, setDragging] = useState(false)
+  const [snapHint, setSnapHint] = useState(null)
+  const [faded,    setFaded]    = useState(false)
+  const dragRef   = useRef({ startX: 0, startY: 0 })
+  const didDrag   = useRef(false)   // true if pointer moved > 8px — suppresses onClick
+  const fadeTimer = useRef(null)
 
   useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    scheduleFade()
+    return () => clearTimeout(fadeTimer.current)
+  }, [])
+
+  useEffect(() => {
+    if (open) { clearTimeout(fadeTimer.current); setFaded(false) }
+    else scheduleFade()
   }, [open])
 
-  // ── Mouse drag (desktop only) ───────────────────────────────────────────────
-  function onMouseDown(e) {
-    dragStart.current = e.clientX
-    dragged.current = false
+  function scheduleFade() {
+    clearTimeout(fadeTimer.current)
+    setFaded(false)
+    fadeTimer.current = setTimeout(() => setFaded(true), FADE_DELAY)
+  }
 
-    function onMouseMove(ev) {
-      if (dragStart.current === null) return
-      const delta = ev.clientX - dragStart.current
-      if (mobile && delta > 20) { setOpen(true); dragged.current = true; cleanup() }
-      if (!mobile && delta < -20) { setOpen(true); dragged.current = true; cleanup() }
+  function savePos(p) {
+    setPos(p)
+    try { localStorage.setItem(STORAGE_KEY, p) } catch {}
+  }
+
+  // onClick is the single source of truth for open/close — works on both mouse and touch
+  function handleClick() {
+    if (didDrag.current) { didDrag.current = false; return }
+    scheduleFade()
+    setOpen(v => !v)
+  }
+
+  function startDrag(clientX, clientY) {
+    scheduleFade()
+    didDrag.current = false
+    dragRef.current = { startX: clientX, startY: clientY }
+
+    function onMove(x, y) {
+      if (!didDrag.current) {
+        if (Math.abs(x - dragRef.current.startX) > 8 || Math.abs(y - dragRef.current.startY) > 8) {
+          didDrag.current = true
+          setDragging(true)
+        }
+      }
+      if (didDrag.current) setSnapHint(nearestPosition(x, y))
     }
 
-    function onMouseUp() {
+    function onEnd(x, y) {
       cleanup()
+      setDragging(false)
+      setSnapHint(null)
+      if (didDrag.current) savePos(nearestPosition(x, y))
+      // open/close is handled by onClick — don't call setOpen here
     }
+
+    function onMouseMove(e) { onMove(e.clientX, e.clientY) }
+    function onMouseUp(e)   { onEnd(e.clientX, e.clientY) }
+    function onTouchMove(e) {
+      const t = e.touches[0]
+      onMove(t.clientX, t.clientY)
+      if (didDrag.current) e.preventDefault()  // stop page scroll while dragging
+    }
+    function onTouchEnd(e) { const t = e.changedTouches[0]; onEnd(t.clientX, t.clientY) }
 
     function cleanup() {
       window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-      dragStart.current = null
+      window.removeEventListener('mouseup',   onMouseUp)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend',  onTouchEnd)
     }
 
     window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-  }
-
-  function onClick() {
-    if (dragged.current) { dragged.current = false; return }
-    setOpen(v => !v)
+    window.addEventListener('mouseup',   onMouseUp)
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend',  onTouchEnd)
   }
 
   if (!count) return null
 
+  const cs     = POSITIONS[pos]
+  const onLeft = cs.side === 'left'
+  const hintCs = snapHint && snapHint !== pos ? POSITIONS[snapHint] : null
+
   return (
     <>
-      {/* Floating trigger tab */}
+      <style>{`
+        @keyframes hd-pulse {
+          0%   { opacity: 0.12; transform: var(--hd-base, '') scale(1); }
+          50%  { opacity: 0.45; transform: var(--hd-base, '') scale(1.14); }
+          100% { opacity: 0.12; transform: var(--hd-base, '') scale(1); }
+        }
+      `}</style>
+
+      {/* Pulsing snap-hint ghost */}
+      {hintCs && (
+        <div style={{
+          position: 'fixed',
+          left: hintCs.left, right: hintCs.right,
+          top: hintCs.top, bottom: hintCs.bottom,
+          borderRadius: hintCs.borderRadius,
+          zIndex: 998,
+          width: 34, padding: '14px 0',
+          background: 'var(--primary)',
+          pointerEvents: 'none',
+          '--hd-base': hintCs.mid ? 'translateY(-50%)' : '',
+          animation: 'hd-pulse 0.85s ease-in-out infinite',
+        }} />
+      )}
+
+      {/* Draggable trigger tab */}
       <div
-        onClick={onClick}
-        onMouseDown={onMouseDown}
+        onClick={handleClick}
+        onMouseDown={e => startDrag(e.clientX, e.clientY)}
+        onMouseEnter={scheduleFade}
+        onTouchStart={e => { const t = e.touches[0]; startDrag(t.clientX, t.clientY) }}
         style={{
           position: 'fixed',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          ...(mobile ? { left: 0, borderRadius: '0 14px 14px 0' } : { right: 0, borderRadius: '14px 0 0 14px' }),
+          ...posStyle(cs, dragging ? 'scale(1.15)' : ''),
+          borderRadius: cs.borderRadius,
+          boxShadow: cs.shadow,
           zIndex: 999,
           background: 'var(--primary)',
           color: 'white',
           width: 34,
           padding: '14px 0',
-          cursor: 'pointer',
+          cursor: dragging ? 'grabbing' : 'grab',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           gap: 6,
-          boxShadow: mobile ? '3px 0 14px rgba(0,0,0,0.18)' : '-3px 0 14px rgba(0,0,0,0.18)',
           userSelect: 'none',
           WebkitTapHighlightColor: 'transparent',
-          transition: 'opacity 0.15s',
+          opacity: dragging ? 0.85 : faded ? 0.18 : 1,
+          transition: dragging
+            ? 'transform 0.1s, opacity 0.1s'
+            : 'top 0.3s cubic-bezier(0.4,0,0.2,1), bottom 0.3s cubic-bezier(0.4,0,0.2,1), left 0.3s cubic-bezier(0.4,0,0.2,1), right 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease, border-radius 0.3s',
         }}
       >
         <span style={{ fontSize: 16 }}>{icon}</span>
@@ -99,17 +206,16 @@ export default function HistoryDrawer({ title, count, icon = '📖', children })
       <div style={{
         position: 'fixed',
         top: 0, bottom: 0,
-        ...(mobile ? { left: 0 } : { right: 0 }),
-        width: mobile ? '88vw' : 360,
+        ...(onLeft ? { left: 0 } : { right: 0 }),
+        width: window.innerWidth < 640 ? '88vw' : 360,
         maxWidth: '100vw',
         zIndex: 1001,
         background: 'white',
-        boxShadow: mobile ? '4px 0 24px rgba(0,0,0,0.18)' : '-4px 0 24px rgba(0,0,0,0.18)',
-        transform: open ? 'translateX(0)' : (mobile ? 'translateX(-100%)' : 'translateX(100%)'),
-        transition: 'transform 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: onLeft ? '4px 0 24px rgba(0,0,0,0.18)' : '-4px 0 24px rgba(0,0,0,0.18)',
+        transform: open ? 'translateX(0)' : (onLeft ? 'translateX(-100%)' : 'translateX(100%)'),
+        transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
-        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '16px 20px', borderBottom: '1.5px solid #f0f0f0',
@@ -133,7 +239,6 @@ export default function HistoryDrawer({ title, count, icon = '📖', children })
           </button>
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {typeof children === 'function' ? children(() => setOpen(false)) : children}
         </div>

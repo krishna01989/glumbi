@@ -529,6 +529,7 @@ export default function Draw({ child, quota, featureConfig }) {
       saveSnapshot()
       floodFill(canvasRef.current, pos.x, pos.y, color)
       setIsEmpty(false)
+      setDrawnAfterAnim(true)
       return
     }
     if (shapeTool) {

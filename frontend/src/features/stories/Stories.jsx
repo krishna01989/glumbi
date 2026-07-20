@@ -117,7 +117,7 @@ function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
 }
 
 function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const rootTitle = root.title.includes(' · ') ? root.title.substring(0, root.title.indexOf(' · ')) : root.title
   return (
     <div>

@@ -67,7 +67,7 @@ function StoryCard({ e, chapterNum, selected, onOpen }) {
 }
 
 function SeriesGroup({ root, chapters, selected, onOpen }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   return (
     <div>
       <div onClick={() => setOpen(v => !v)}

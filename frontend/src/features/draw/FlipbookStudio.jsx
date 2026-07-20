@@ -2000,7 +2000,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       </div>
     </div>
 
-    <HistoryDrawer title="My Flipbooks" count={flipbookSaves.length}>
+    <HistoryDrawer icon="🎬" title="My Flipbooks" count={flipbookSaves.length}>
       {close => flipbookSaves.map(save => (
         <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>

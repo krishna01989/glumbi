@@ -696,7 +696,7 @@ export default function MyWriting({ child, quota }) {
         return acc
       }, {})
       return (
-        <HistoryDrawer title="My Stories" count={entries.length}>
+        <HistoryDrawer icon="✍️" title="My Stories" count={entries.length}>
           {close => roots.map(root => {
             const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
             const open = e => { openEntry(e); close() }

@@ -1836,7 +1836,7 @@ export default function Draw({ child, quota, featureConfig }) {
       `}</style>
     </></div>
 
-    {drawTab === 'draw' && <HistoryDrawer title="My Drawings" count={drawSaves.length}>
+    {drawTab === 'draw' && <HistoryDrawer icon="🎨" title="My Drawings" count={drawSaves.length}>
       {close => drawSaves.map(s => (
         <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
           padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>

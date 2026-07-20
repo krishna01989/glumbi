@@ -4,7 +4,7 @@ export function fmtDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-export default function HistoryDrawer({ title, count, children }) {
+export default function HistoryDrawer({ title, count, icon = '📖', children }) {
   const [open, setOpen] = useState(false)
   const mobile = typeof window !== 'undefined' && window.innerWidth < 640
   const dragStart = useRef(null)
@@ -76,7 +76,7 @@ export default function HistoryDrawer({ title, count, children }) {
           transition: 'opacity 0.15s',
         }}
       >
-        <span style={{ fontSize: 16 }}>📚</span>
+        <span style={{ fontSize: 16 }}>{icon}</span>
         <span style={{
           fontSize: 11, fontWeight: 800, fontFamily: 'Nunito, sans-serif',
           background: 'rgba(255,255,255,0.25)', borderRadius: '50%',

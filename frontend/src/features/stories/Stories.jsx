@@ -969,7 +969,7 @@ export default function Stories({ child, quota }) {
         track('stories', 'read', { metadata: { category: s.category } })
       }
       return (
-        <HistoryDrawer title="My Adventures" count={stories.length}>
+        <HistoryDrawer icon="📖" title="My Adventures" count={stories.length}>
           {close => roots.map(root => {
             const chapters = (chaptersBySeriesId[root.id] || []).slice().sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
             const sel = s => { handleSelect(s); close() }

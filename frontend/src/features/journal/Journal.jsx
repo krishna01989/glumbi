@@ -161,7 +161,7 @@ export default function Journal({ child, featureConfig, quota }) {
         </div>
       )}
 
-      <HistoryDrawer title="Past Entries" count={entries.length}>
+      <HistoryDrawer icon="📝" title="Past Entries" count={entries.length}>
         {() => entries.map(entry => {
           const m = moodFor(entry.mood) || MOODS[0]
           return (

@@ -285,7 +285,7 @@ export default function Activities({ child, quota }) {
         </div>
       )}
 
-      <HistoryDrawer title="Completed Activities" count={completed.length}>
+      <HistoryDrawer icon="🎯" title="Completed Activities" count={completed.length}>
         {completed.map(a => (
           <div key={a.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.85 }}>
             <span style={{ fontSize: 28 }}>{a.emoji}</span>

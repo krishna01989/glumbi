@@ -160,7 +160,7 @@ function FlashcardsTab({ child, quota }) {
         </div>
       )}
 
-      <HistoryDrawer title="Past Sets" count={sets.length}>
+      <HistoryDrawer icon="🧠" title="Past Sets" count={sets.length}>
         {close => sets.map(s => (
           <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
             <button onClick={() => { loadSet(s); close() }}
@@ -264,7 +264,7 @@ function WordOfDayTab({ child }) {
       </div>
 
       {/* History button */}
-      <HistoryDrawer title={`Past ${history.length} Word${history.length !== 1 ? 's' : ''}`} count={history.length}>
+      <HistoryDrawer icon="🧠" title={`Past ${history.length} Word${history.length !== 1 ? 's' : ''}`} count={history.length}>
         {history.map((h, i) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
             <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
@@ -636,7 +636,7 @@ function MemoryMatchTab({ child, quota, isActive }) {
         </div>
       )}
 
-      <HistoryDrawer title="Past Games" count={matches.length}>
+      <HistoryDrawer icon="🎴" title="Past Games" count={matches.length}>
         {close => matches.map(m => (
           <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10 }}>
             <button onClick={() => { startMatch(m); close() }}

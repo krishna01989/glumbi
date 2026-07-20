@@ -196,7 +196,7 @@ export default function ReadQuiz({ child, quota }) {
 
       </div>
 
-      <HistoryDrawer title="My Reads" count={entries.length}>
+      <HistoryDrawer icon="📚" title="My Reads" count={entries.length}>
         {close => entries.map(e => (
           <div key={e.id} onClick={() => { openEntry(e); close() }}
             style={{

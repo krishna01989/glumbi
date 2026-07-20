@@ -262,7 +262,7 @@ export default function Curiosity({ child, quota }) {
         </div>
       )}
 
-      <HistoryDrawer title="Past Questions" count={entries.length}>
+      <HistoryDrawer icon="🔍" title="Past Questions" count={entries.length}>
         {entries.map(entry => (
           <CuriosityCard key={entry.id} entry={entry} onDelete={handleDelete} />
         ))}

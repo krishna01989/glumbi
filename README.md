@@ -30,6 +30,8 @@ Live at **[glumbi.com](https://glumbi.com)**
 | 🔥 **Daily Streak** | A streak counter in the nav rewards kids for opening Glumbi on consecutive days. Visiting on consecutive days increments the streak; missing a day resets it to 1. Streaks are stored per child so each profile has its own counter. |
 | ▶ **Story Continuation & Series** | Any AI-generated story can be continued as a new chapter. Glumbi generates a follow-on chapter using the same characters and world, links it under the root via `seriesId`/`parentStoryId`, and groups the series in the list with chapter labels (Ch.1, Ch.2…). Deleting the root warns the parent and cascades to all chapters. |
 | ✨ **"What happens next?" (My Writing)** | After reading a child's own written story, tap **What happens next?** to get an AI-suggested next chapter as inspiration. The child can adopt the suggestion into the editor and keep writing, or request a fresh idea. The suggestion is not saved automatically. |
+| 🔐 **Password Reset** | Forgot-password flow with expirable UUID tokens (1 hour, UTC). Email sent via Resend. Token is validated on page load before showing the reset form — invalid or expired tokens get an error screen, not a blank form. No user enumeration: the API always returns 200 regardless of whether the email exists. |
+| 📧 **Transactional Emails** | Password reset link, password-changed notification (triggered by self-change, admin change, or reset link with context field distinguishing each), and weekly recap email reusing ProgressReportAgent output. Thymeleaf HTML templates with email-safe layout (table-based, no CSS gradients), coral theme, Nunito font. Sent via Resend API with fire-and-forget WebClient. |
 
 ---
 
@@ -63,6 +65,7 @@ See the individual READMEs for setup details:
 | Vector search | pgvector — PostgreSQL extension for nearest-neighbour similarity |
 | Text-to-Speech | Google Cloud TTS (WaveNet voices) + ElevenLabs (custom voice cloning) |
 | Auth | JWT + Google OAuth 2.0 |
+| Email | Resend API (transactional email) + Thymeleaf (HTML templates) |
 | Bot protection | Cloudflare Turnstile |
 | Real-time | WebSocket (analytics streaming) + gRPC / gRPC-Web bridge (event ingest) |
 | Hosting | Vercel (frontend) + Railway (backend + DB) |

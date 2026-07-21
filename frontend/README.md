@@ -55,6 +55,8 @@ src/
 ├── pages/
 │   ├── LandingPage.jsx         # Public home page with feature carousel
 │   ├── AuthPage.jsx            # Login / register (email + Google OAuth)
+│   ├── ForgotPasswordPage.jsx  # Forgot password — email entry, coral theme
+│   ├── ResetPasswordPage.jsx   # Reset password — token validated on load, coral theme
 │   ├── DemoPage.jsx            # Public demo (Cloudflare Turnstile protected)
 │   ├── ChildList.jsx           # Parent dashboard — child switcher
 │   ├── ChildForm.jsx           # Add / edit child profile (with two-step delete)
@@ -250,6 +252,15 @@ The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding c
 - `hooks/useAuth.js` reads these on mount and initialises auth state synchronously from `window.location.pathname`
 - Google Sign-In uses the Google Identity Services script loaded in `index.html`
 - Admin accounts are always password-only — Google OAuth is not available for `ADMIN` or `SUPER_ADMIN` roles
+- **"Forgot password?" link** in `AuthPage.jsx` uses React Router `<Link>` (not `<a href>`) to avoid a full-page reload
+
+### Password reset flow (`ForgotPasswordPage.jsx` + `ResetPasswordPage.jsx`)
+
+1. User enters email on `/forgot-password` → `authApi.forgotPassword(email)` → always shows success (no user enumeration)
+2. Email contains a one-time UUID token (1 hour TTL); clicking the link opens `/reset-password?token=xxx`
+3. On mount, `ResetPasswordPage` calls `authApi.validateResetToken(token)` — a non-destructive GET that shows an error screen immediately if the token is expired/invalid/already used, before the user fills in anything
+4. On submit, `authApi.resetPassword(token, password)` validates password policy server-side and marks the token used
+5. Both pages use `PublicHeader` + `Footer` (SPA, no full reload) and the coral theme (`#ff6b6b` gradient background)
 
 ### Theming
 
@@ -308,6 +319,7 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 
 ### Admin panel (`AdminPage.jsx` + `AdminProfilePage.jsx`)
 
+- **Collapsible sidebar (desktop)**: the admin sidebar collapses to a 52px icon-only rail via a floating circular toggle button (`‹`/`›`) that pokes out of the sidebar edge. Width animates between 220px and 52px; collapsed mode shows only centred icons with `title` tooltips.
 - **Role hierarchy**: `ADMIN` manages app users; `SUPER_ADMIN` additionally manages admins (promote, demote, create). Guards are enforced on both frontend (kebab menu items hidden based on `callerRole`) and backend.
 - **Users** section: three groups — 👑 Super Admins / 🛡️ Administrators / 👤 App Users. Hold/release is available for app users only; admin and super admin accounts can only be deleted. Quota bar colours: green (<50%) → blue (50–79%) → amber (80–99%) → red (100%).
 - **Kebab menu**: uses `position: fixed` + `getBoundingClientRect()` to escape clipping. Flips upward when there is not enough space below. Returns `null` (no popup) when the caller has no valid actions on that row.
@@ -406,7 +418,7 @@ Routes are split across three files. `App.jsx` selects which set to render based
 
 | File | Routes |
 |---|---|
-| `routes/PublicRoutes.jsx` | `/`, `/about`, `/demo`, `/login`, `/privacy`, `/terms`, `/contact` |
+| `routes/PublicRoutes.jsx` | `/`, `/about`, `/demo`, `/login`, `/forgot-password`, `/reset-password`, `/privacy`, `/terms`, `/contact` |
 | `layouts/ManagementLayout.jsx` (children from `App.jsx`) | `/child`, `/child/new`, `/child/:id/edit`, `/profile`, `/help` |
 | `routes/ChildRoutes.jsx` | All `/child/:childId/*` feature routes |
 
@@ -414,6 +426,8 @@ Routes are split across three files. `App.jsx` selects which set to render based
 |---|---|
 | `/` | Landing page |
 | `/auth` | Login / register |
+| `/forgot-password` | Forgot password (coral theme, no user enumeration) |
+| `/reset-password?token=xxx` | Reset password (token validated on page load) |
 | `/demo` | Public demo |
 | `/children` | Child switcher (parent) |
 | `/child/:id/stories` | Stories |

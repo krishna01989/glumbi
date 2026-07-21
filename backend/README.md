@@ -14,6 +14,8 @@ Spring Boot 3.2.5 REST API powering the Glumbi kids learning app.
 - **Voyage AI** — `voyage-3` embedding model (1024 dimensions); called once per record at save time, async
 - **Google Cloud TTS** — audio narration with WaveNet voices (default)
 - **ElevenLabs API** — custom voice cloning for parent-recorded voices
+- **Thymeleaf** — HTML email template engine (`spring-boot-starter-thymeleaf`)
+- **Resend API** — transactional email via `ResendClient` (WebFlux `WebClient`, fire-and-forget)
 - **Lombok** — boilerplate reduction
 - **JJWT 0.11.5** — JWT signing and verification
 
@@ -99,7 +101,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 
 | Controller | Base Path | Notes |
 |---|---|---|
-| `AuthController` | `/api/auth` | Register, login, Google OAuth, health check. Sets `quotaLimit` to current global default on new user creation. |
+| `AuthController` | `/api/auth` | Register, login, Google OAuth, health check, password reset flow (`forgot-password`, `validate-reset-token`, `reset-password`). Sets `quotaLimit` to current global default on new user creation. |
 | `StoryController` | `/api/stories` | CRUD + `/listen` audio endpoint with HTTP Range support and optional `?voice=` param |
 | `ActivityController` | `/api/activities` | Generate and list activities; `GET /{id}/similar` returns semantically similar completed activities via pgvector |
 | `CuriosityController` | `/api/curiosity` | Daily curiosity questions; `GET /{id}/similar` returns semantically related questions via pgvector |
@@ -135,6 +137,8 @@ Set these in your shell (local) or in Railway dashboard (production).
 | `VOYAGE_API_KEY` | Voyage AI API key for semantic embeddings (`voyage-3` model). Optional — if absent, embedding is skipped but all other features work normally. |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key (server-side verification) |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins e.g. `https://glumbi.com,https://www.glumbi.com` |
+| `RESEND_API_KEY` | Resend API key for transactional email |
+| `RESEND_FROM` | Sender address e.g. `Glumbi <no-reply@glumbi.com>` |
 | `PORT` | Auto-set by Railway — do not set manually |
 
 ### Local example (shell export)
@@ -428,6 +432,16 @@ ALTER TABLE app_users ADD CONSTRAINT app_users_role_check
 3. Every protected request must include `Authorization: Bearer <token>`
 4. `JwtFilter` validates the token and sets `SecurityContextHolder` before the request reaches controllers
 
+### Password Reset Endpoints
+
+| Endpoint | Notes |
+|---|---|
+| `POST /api/auth/forgot-password` | Always returns 200 (no user enumeration). Skips Google-only accounts. Invalidates existing tokens then creates a new one expiring 1 hour from now (UTC). Sends password-reset email via Resend. |
+| `GET /api/auth/validate-reset-token?token=xxx` | Validates token without consuming it. Used by `ResetPasswordPage` on mount to decide whether to show the form or an error screen. |
+| `POST /api/auth/reset-password` | Validates token expiry (UTC), enforces password policy (`8+ chars, uppercase, number, special char`), marks token used, updates password hash, sends password-changed email with context "via a password reset link". |
+
+Password policy regex: `^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]).{8,}$` — same as registration.
+
 ---
 
 ## Database Schema
@@ -435,6 +449,8 @@ ALTER TABLE app_users ADD CONSTRAINT app_users_role_check
 Schema is managed by JPA `ddl-auto: update` — tables are created/altered automatically on startup. Main entities:
 
 `AppUser` → `Child` → `Story`, `Activity`, `CuriosityEntry`, `ReadQuizEntry`, `WritingEntry`, `JournalEntry`, `Notification`
+
+`PasswordResetToken` — fields: `token` (UUID string), `userId`, `expiresAt` (UTC `LocalDateTime`), `used` (boolean), `createdAt`. `isExpired()` compares `expiresAt` against `LocalDateTime.now(ZoneOffset.UTC)`. Repository: `PasswordResetTokenRepository` — `findByToken()`, `invalidateAllForUser()` (sets `used = true` on all active tokens for a user before issuing a new one).
 
 `Child` has two streak fields: `streak_count` (integer, default 0) and `last_streak_date` (date). `ChildService.checkin()` implements the streak logic: same day → no-op; yesterday → increment; gap > 1 day → reset to 1. Called on every child profile open via `POST /api/children/{id}/checkin`.
 

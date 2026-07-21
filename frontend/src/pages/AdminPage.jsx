@@ -522,18 +522,17 @@ function HBar({ label, value, max, color, total }) {
 }
 
 const RANGES = [
-  { value: '7d',  label: '7 Days'   },
-  { value: '30d', label: '30 Days'  },
-  { value: '90d', label: '90 Days'  },
-  { value: 'all', label: 'All Time' },
+  { value: '7d',  label: '7 Days'  },
+  { value: '30d', label: '30 Days' },
+  { value: '90d', label: '90 Days' },
+  { value: '1y',  label: '1 Year'  },
 ]
 
 function rangeToDates(r) {
   const today = new Date()
   const fmt = d => d.toISOString().slice(0, 10)
   const to = fmt(today)
-  if (r === 'all') return { from: null, to: null }
-  const days = r === '7d' ? 7 : r === '30d' ? 30 : 90
+  const days = r === '7d' ? 7 : r === '30d' ? 30 : r === '90d' ? 90 : 365
   const from = fmt(new Date(today - (days - 1) * 86400000))
   return { from, to }
 }

@@ -15,8 +15,22 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByGoogleSub(String googleSub);
     boolean existsByEmail(String email);
     long countByCreatedAtAfter(LocalDateTime since);
+    long countByRoleAndCreatedAtAfter(AppUser.Role role, LocalDateTime since);
     long countByRole(AppUser.Role role);
     List<AppUser> findTop20ByOrderByCreatedAtDesc();
+    List<AppUser> findByRoleAndCreatedAtAfter(AppUser.Role role, LocalDateTime since);
+
+    @Query("SELECT COUNT(u) FROM AppUser u WHERE u.role = 'USER' AND u.id NOT IN (SELECT c.owner.id FROM Child c)")
+    long countUsersWithNoChildren();
+
+    @Query("SELECT COUNT(u) FROM AppUser u WHERE u.role = 'USER' AND u.apiCallMonth = :month " +
+           "AND u.monthlyApiCalls >= CASE WHEN u.quotaLimit > 0 THEN u.quotaLimit ELSE :defaultLimit END")
+    long countUsersAtQuotaLimit(@Param("month") String month, @Param("defaultLimit") int defaultLimit);
+
+    @Query("SELECT COUNT(u) FROM AppUser u WHERE u.role = 'USER' AND u.apiCallMonth = :month " +
+           "AND u.monthlyApiCalls >= (CASE WHEN u.quotaLimit > 0 THEN u.quotaLimit ELSE :defaultLimit END) * 0.8 " +
+           "AND u.monthlyApiCalls < (CASE WHEN u.quotaLimit > 0 THEN u.quotaLimit ELSE :defaultLimit END)")
+    long countUsersNearQuotaLimit(@Param("month") String month, @Param("defaultLimit") int defaultLimit);
 
     /**
      * Atomically deduct credits when within quota. Returns 1 if deducted, 0 if quota exceeded.

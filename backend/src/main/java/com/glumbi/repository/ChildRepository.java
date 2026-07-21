@@ -15,4 +15,7 @@ public interface ChildRepository extends JpaRepository<Child, Long> {
 
     @Query("SELECT c.owner.id FROM Child c GROUP BY c.owner.id")
     List<Long> findOwnerIdsWithChildren();
+
+    @Query("SELECT c.birthYear, COUNT(c) FROM Child c WHERE c.birthYear IS NOT NULL GROUP BY c.birthYear")
+    List<Object[]> countByBirthYear();
 }

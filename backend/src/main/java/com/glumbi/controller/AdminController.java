@@ -19,7 +19,6 @@ import java.time.temporal.ChronoUnit;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -30,7 +29,6 @@ public class AdminController {
     private final ChildRepository         childRepo;
     private final StoryRepository         storyRepo;
     private final ActivityRepository      activityRepo;
-    private final CuriosityRepository     curiosityRepo;
     private final ReadQuizRepository      quizRepo;
     private final WritingRepository       writingRepo;
     private final PasswordEncoder         encoder;
@@ -61,12 +59,11 @@ public class AdminController {
         long spanDays = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
         // bucket mode: ≤14d→daily, ≤90d→weekly, else→monthly
         String bucketMode = spanDays <= 14 ? "daily" : spanDays <= 90 ? "weekly" : "monthly";
-        
-        // For backwards compat keep "week" alias used in alerts
+
         LocalDateTime week = now.minusDays(7);
 
-        // Totals
-        long totalUsers      = userRepo.count();
+        // Totals (always all-time — unaffected by date filter)
+        long totalUsers      = userRepo.countByRole(AppUser.Role.USER);
         long totalChildren   = childRepo.count();
         long totalStories    = storyRepo.count();
         long totalQuizzes    = quizRepo.count();
@@ -74,23 +71,19 @@ public class AdminController {
         long totalActivities = activityRepo.count();
 
         // New in selected range (for stat card sub-labels)
-        long newUsersWeek    = userRepo.countByCreatedAtAfter(since);
-        long newStoriesWeek  = storyRepo.countByCreatedAtAfter(since);
-        long newChildrenWeek = childRepo.countByCreatedAtAfter(since);
+        long newUsersInRange    = userRepo.countByRoleAndCreatedAtAfter(AppUser.Role.USER, since);
+        long newStoriesInRange  = storyRepo.countByCreatedAtAfter(since);
+        long newChildrenInRange = childRepo.countByCreatedAtAfter(since);
 
         // Users with no children (alerts)
-        Set<Long> ownersWithChildren = new HashSet<>(childRepo.findOwnerIdsWithChildren());
-        long usersNoChildren = userRepo.findAll().stream()
-                .filter(u -> u.getRole() == AppUser.Role.USER && !ownersWithChildren.contains(u.getId()))
-                .count();
+        long usersNoChildren = userRepo.countUsersWithNoChildren();
 
         // Build ordered bucket keys based on span
         Map<String, Long> signupsByDay = buildBuckets(fromDate, toDate, bucketMode, dayFmt, monFmt);
         Map<String, Long> contentByDay = buildBuckets(fromDate, toDate, bucketMode, dayFmt, monFmt);
 
         // Fill signups buckets
-        userRepo.findAll().stream()
-            .filter(u -> u.getCreatedAt().isAfter(since))
+        userRepo.findByRoleAndCreatedAtAfter(AppUser.Role.USER, since)
             .forEach(u -> fillBucket(signupsByDay, u.getCreatedAt(), fromDate, toDate, bucketMode, dayFmt, monFmt));
 
         // Fill content (stories) buckets
@@ -98,26 +91,21 @@ public class AdminController {
             fillBucket(contentByDay, s.getCreatedAt(), fromDate, toDate, bucketMode, dayFmt, monFmt));
 
         // Feature usage — filtered by selected range
-        boolean isAllTime = from == null && to == null;
         Map<String, Long> featureUsage = new LinkedHashMap<>();
-        long totalFlashcards = flashcardSetRepo.count();
-        long totalWordOfDay  = wordOfDayRepo.count();
-        long totalMemMatch   = memoryMatchRepo.count();
-
-        featureUsage.put("Stories",       isAllTime ? totalStories    : storyRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Quizzes",       isAllTime ? totalQuizzes    : quizRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Writing",       isAllTime ? totalWritings   : writingRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Activities",    isAllTime ? totalActivities : activityRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Flashcards",    isAllTime ? totalFlashcards : flashcardSetRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Word of Day",   isAllTime ? totalWordOfDay  : wordOfDayRepo.countByCreatedAtAfter(since));
-        featureUsage.put("Memory Match",  isAllTime ? totalMemMatch   : memoryMatchRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Stories",       storyRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Quizzes",       quizRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Writing",       writingRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Activities",    activityRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Flashcards",    flashcardSetRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Word of Day",   wordOfDayRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Memory Match",  memoryMatchRepo.countByCreatedAtAfter(since));
 
         // Quiz score distribution — filtered by selected range
         Map<String, Long> quizScores = new LinkedHashMap<>();
         quizScores.put("1/3", 0L);
         quizScores.put("2/3", 0L);
         quizScores.put("3/3", 0L);
-        (isAllTime ? quizRepo.countByScore() : quizRepo.countByScoreAfter(since)).forEach(row -> {
+        quizRepo.countByScoreAfter(since).forEach(row -> {
             int score = ((Number) row[0]).intValue();
             long cnt  = ((Number) row[1]).longValue();
             if (score >= 1 && score <= 3) quizScores.put(score + "/3", cnt);
@@ -142,12 +130,13 @@ public class AdminController {
         Map<String, Long> ageDistribution = new LinkedHashMap<>();
         for (int age = 3; age <= 11; age++) ageDistribution.put(String.valueOf(age), 0L);
         ageDistribution.put("12+", 0L);
-        childRepo.findAll().forEach(c -> {
-            if (c.getBirthYear() == null) return;
-            int age = com.glumbi.service.ChildService.ageFromBirthYear(c.getBirthYear());
+        childRepo.countByBirthYear().forEach(row -> {
+            int birthYear = ((Number) row[0]).intValue();
+            long cnt      = ((Number) row[1]).longValue();
+            int age = com.glumbi.service.ChildService.ageFromBirthYear(birthYear);
             if (age < 3) return;
             String key = age >= 12 ? "12+" : String.valueOf(age);
-            ageDistribution.computeIfPresent(key, (k, v) -> v + 1);
+            ageDistribution.computeIfPresent(key, (k, v) -> v + cnt);
         });
 
         // Quota overview — current month usage across all users
@@ -156,17 +145,12 @@ public class AdminController {
         LocalDateTime monthStart = nowMonth.atDay(1).atStartOfDay();
         LocalDateTime monthEnd   = nowMonth.atEndOfMonth().atTime(23, 59, 59);
         long totalQuotaCalls = usageLogRepo.sumCreditsInPeriod(monthStart, monthEnd);
-        long usersAtLimit   = userRepo.findAll().stream()
-            .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
-            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits(); return u.getMonthlyApiCalls() >= lim; })
-            .count();
-        long usersNearLimit = userRepo.findAll().stream()
-            .filter(u -> u.getRole() == AppUser.Role.USER && thisMonth.equals(u.getApiCallMonth()))
-            .filter(u -> { int lim = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits(); return u.getMonthlyApiCalls() >= lim * 0.8 && u.getMonthlyApiCalls() < lim; })
-            .count();
+        int defaultLimit    = quotaService.getDefaultMonthlyCredits();
+        long usersAtLimit   = userRepo.countUsersAtQuotaLimit(thisMonth, defaultLimit);
+        long usersNearLimit = userRepo.countUsersNearQuotaLimit(thisMonth, defaultLimit);
 
         // Alerts — always based on 7-day window regardless of selected range
-        long newUsersThisWeek = userRepo.countByCreatedAtAfter(week);
+        long newUsersThisWeek = userRepo.countByRoleAndCreatedAtAfter(AppUser.Role.USER, week);
         List<Map<String, String>> alerts = new ArrayList<>();
         if (usersNoChildren > 0)
             alerts.add(Map.of("level", "warn", "msg", usersNoChildren + " user(s) signed up but haven't added a child yet"));
@@ -179,16 +163,16 @@ public class AdminController {
         if (scoredTotal >= 5 && perfectScores * 100 / scoredTotal < 30)
             alerts.add(Map.of("level", "warn", "msg", perfectScores + " of " + scoredTotal + " quizzes scored 3/3 (" + (perfectScores * 100 / scoredTotal) + "%) — content may be too hard"));
 
-        String rangeLabel = isAllTime ? "All Time"
-                : spanDays == 1 ? "Today"
+        String rangeLabel = spanDays == 1 ? "Today"
                 : spanDays <= 14 ? "Last " + spanDays + " Days"
                 : spanDays <= 45 ? "Last 30 Days"
                 : spanDays <= 120 ? "Last 90 Days"
+                : spanDays <= 370 ? "Last Year"
                 : "Custom Range";
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("from",                from != null ? from : fromDate.toString());
-        result.put("to",                  to   != null ? to   : toDate.toString());
+        result.put("from",                fromDate.toString());
+        result.put("to",                  toDate.toString());
         result.put("rangeLabel",          rangeLabel);
         result.put("totalUsers",          totalUsers);
         result.put("totalChildren",       totalChildren);
@@ -196,9 +180,9 @@ public class AdminController {
         result.put("totalQuizzes",        totalQuizzes);
         result.put("totalWritings",       totalWritings);
         result.put("totalActivities",     totalActivities);
-        result.put("newUsersInRange",     newUsersWeek);
-        result.put("newStoriesInRange",   newStoriesWeek);
-        result.put("newChildrenInRange",  newChildrenWeek);
+        result.put("newUsersInRange",     newUsersInRange);
+        result.put("newStoriesInRange",   newStoriesInRange);
+        result.put("newChildrenInRange",  newChildrenInRange);
         result.put("signupsByDay",        signupsByDay);
         result.put("contentByDay",        contentByDay);
         result.put("featureUsage",        featureUsage);

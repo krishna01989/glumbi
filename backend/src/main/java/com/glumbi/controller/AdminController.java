@@ -126,17 +126,15 @@ public class AdminController {
         engagementBuckets.put("6–15",        eng2);
         engagementBuckets.put("15+",         eng3);
 
-        // Children age distribution (ages 3–12+)
+        // Children age distribution (ages 1–10)
         Map<String, Long> ageDistribution = new LinkedHashMap<>();
-        for (int age = 3; age <= 11; age++) ageDistribution.put(String.valueOf(age), 0L);
-        ageDistribution.put("12+", 0L);
+        for (int age = 1; age <= 10; age++) ageDistribution.put(String.valueOf(age), 0L);
         childRepo.countByBirthYear().forEach(row -> {
             int birthYear = ((Number) row[0]).intValue();
             long cnt      = ((Number) row[1]).longValue();
             int age = com.glumbi.service.ChildService.ageFromBirthYear(birthYear);
-            if (age < 3) return;
-            String key = age >= 12 ? "12+" : String.valueOf(age);
-            ageDistribution.computeIfPresent(key, (k, v) -> v + cnt);
+            if (age < 1 || age > 10) return;
+            ageDistribution.computeIfPresent(String.valueOf(age), (k, v) -> v + cnt);
         });
 
         // Quota overview — current month usage across all users

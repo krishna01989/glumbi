@@ -486,20 +486,27 @@ function StatCard({ icon, label, value, sub, color }) {
 function BarChart({ data, color = '#6366f1' }) {
   const entries = Object.entries(data)
   const max = Math.max(...entries.map(([, v]) => v), 1)
+  const n = entries.length
+  const maxIdx = entries.reduce((best, [, v], i) => v > entries[best][1] ? i : best, 0)
+  const showLabel = i => i === 0 || i === n - 1 || i === maxIdx
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 80, padding: '0 4px' }}>
-      {entries.map(([label, value]) => (
-        <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <div style={{ fontSize: 10, color: '#888', fontWeight: 700 }}>{value || ''}</div>
-          <div style={{
-            width: '100%', background: value > 0 ? color : '#f0f0f0',
-            borderRadius: '4px 4px 0 0',
-            height: `${Math.max((value / max) * 56, value > 0 ? 6 : 2)}px`,
-            transition: 'height 0.3s ease',
-          }} />
-          <div style={{ fontSize: 9, color: '#bbb', textAlign: 'center', whiteSpace: 'nowrap' }}>{label}</div>
-        </div>
-      ))}
+    <div style={{ overflowX: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 96, padding: '0 4px' }}>
+        {entries.map(([label, value], i) => (
+          <div key={label} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontSize: 9, color: '#888', fontWeight: 700 }}>{i === maxIdx && value ? value : ''}</div>
+            <div style={{
+              width: '100%', background: value > 0 ? color : '#f0f0f0',
+              borderRadius: '4px 4px 0 0',
+              height: `${Math.max((value / max) * 56, value > 0 ? 6 : 2)}px`,
+              transition: 'height 0.3s ease',
+            }} />
+            <div style={{ fontSize: 8, color: '#bbb', textAlign: 'center', overflow: 'visible', whiteSpace: 'nowrap', position: 'relative' }}>
+              {showLabel(i) ? label : ''}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

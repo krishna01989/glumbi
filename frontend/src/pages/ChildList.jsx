@@ -511,6 +511,7 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   const [animDir, setAnimDir]     = useState(1)
   const [animKey, setAnimKey]     = useState(0)
   const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
 
   const navigate = useNavigate()
 
@@ -568,13 +569,19 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   }
 
   // Touch swipe
-  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
   function onTouchEnd(e) {
     if (touchStartX.current === null) return
     const dx = touchStartX.current - e.changedTouches[0].clientX
+    const dy = touchStartY.current - e.changedTouches[0].clientY
+    touchStartX.current = null
+    touchStartY.current = null
+    if (Math.abs(dy) > Math.abs(dx)) return
     if (dx > 48)  next()
     if (dx < -48) prev()
-    touchStartX.current = null
   }
 
   // Background — morph between child themes as you slide

@@ -56,6 +56,7 @@ function FeatureCarousel() {
   const [animKey, setAnimKey] = useState(0)
   const timerRef = useRef(null)
   const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
 
   function goTo(idx, direction) {
     setDir(direction)
@@ -71,12 +72,18 @@ function FeatureCarousel() {
   }
   useEffect(() => { resetTimer(); return () => clearInterval(timerRef.current) }, [active])
 
-  function onTouchStart(e) { touchStartX.current = e.touches[0].clientX }
+  function onTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
   function onTouchEnd(e) {
     if (!touchStartX.current) return
     const dx = touchStartX.current - e.changedTouches[0].clientX
-    if (dx > 48) next(); else if (dx < -48) prev()
+    const dy = touchStartY.current - e.changedTouches[0].clientY
     touchStartX.current = null
+    touchStartY.current = null
+    if (Math.abs(dy) > Math.abs(dx)) return
+    if (dx > 48) next(); else if (dx < -48) prev()
   }
 
   const f = FEATURES[active]

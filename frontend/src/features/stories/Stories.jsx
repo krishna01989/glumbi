@@ -178,6 +178,7 @@ export default function Stories({ child, quota }) {
   const langBtnRef         = useRef(null)
   const fsRef              = useRef(null)
   const touchStartX        = useRef(null)
+  const touchStartY        = useRef(null)
   const oldPageTurningRef  = useRef(null)
   const foldShadowRef      = useRef(null)
   const foldHighlightRef   = useRef(null)
@@ -804,12 +805,17 @@ export default function Stories({ child, quota }) {
 
           {/* ── Story body (shared between FS and normal mode) ── */}
           <div
-            onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+            onTouchStart={e => {
+              touchStartX.current = e.touches[0].clientX
+              touchStartY.current = e.touches[0].clientY
+            }}
             onTouchEnd={e => {
               if (touchStartX.current === null) return
               const dx = e.changedTouches[0].clientX - touchStartX.current
+              const dy = e.changedTouches[0].clientY - touchStartY.current
               touchStartX.current = null
-              if (Math.abs(dx) < 50) return
+              touchStartY.current = null
+              if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return
               if (dx < 0 && hasNext) navigateChapter('right')
               else if (dx > 0 && hasPrev) navigateChapter('left')
             }}

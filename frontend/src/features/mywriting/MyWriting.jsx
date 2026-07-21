@@ -120,6 +120,7 @@ export default function MyWriting({ child, quota }) {
   const foldShadowRef      = useRef(null)
   const foldHighlightRef   = useRef(null)
   const touchStartX        = useRef(null)
+  const touchStartY        = useRef(null)
 
   useEffect(() => { fetchEntries(0, true) }, [child.id])
 
@@ -544,12 +545,17 @@ export default function MyWriting({ child, quota }) {
 
                 if (!flipState) return (
                   <div
-                    onTouchStart={e => { touchStartX.current = e.touches[0].clientX }}
+                    onTouchStart={e => {
+                      touchStartX.current = e.touches[0].clientX
+                      touchStartY.current = e.touches[0].clientY
+                    }}
                     onTouchEnd={e => {
                       if (touchStartX.current === null) return
                       const dx = e.changedTouches[0].clientX - touchStartX.current
+                      const dy = e.changedTouches[0].clientY - touchStartY.current
                       touchStartX.current = null
-                      if (Math.abs(dx) < 50) return
+                      touchStartY.current = null
+                      if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return
                       if (dx < 0 && hasNext) navigateChapter('right')
                       else if (dx > 0 && hasPrev) navigateChapter('left')
                     }}>

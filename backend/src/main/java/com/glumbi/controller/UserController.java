@@ -7,6 +7,8 @@ import com.glumbi.repository.FeatureConfigRepository;
 import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.EmailTemplates;
+import com.glumbi.service.ResendClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,6 +38,8 @@ public class UserController {
     private final FeatureConfigRepository       featureConfigRepo;
     private final UserFeatureOverrideRepository overrideRepo;
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
+    private final ResendClient  resendClient;
+    private final EmailTemplates emailTemplates;
 
     @GetMapping("/me/quota")
     @Transactional
@@ -120,6 +124,13 @@ public class UserController {
 
         user.setPasswordHash(encoder.encode(newPass));
         userRepository.save(user);
+
+        resendClient.send(
+            user.getEmail(),
+            "Your Glumbi password was changed",
+            emailTemplates.passwordChanged(user.getDisplayName(), "by you")
+        );
+
         return ResponseEntity.ok(Map.of("message", "Password updated"));
     }
 

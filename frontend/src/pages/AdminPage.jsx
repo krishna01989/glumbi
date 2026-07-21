@@ -2270,6 +2270,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
   const location     = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const isMobile = useIsMobile()
 
   // Derive active section from URL: /admin/users → 'users', /admin → 'dashboard'
@@ -2285,55 +2286,76 @@ export default function AdminPage({ onBack, onLogout }) {
 
       {/* ── Sidebar ── */}
       <aside style={{
-        width: isMobile ? (sidebarOpen ? 220 : 0) : 220,
-        minWidth: isMobile ? (sidebarOpen ? 220 : 0) : 220,
+        width: isMobile ? (sidebarOpen ? 220 : 0) : (sidebarCollapsed ? 52 : 220),
+        minWidth: isMobile ? (sidebarOpen ? 220 : 0) : (sidebarCollapsed ? 52 : 220),
         background: '#0f172a', display: 'flex', flexDirection: 'column',
-        transition: 'width 0.2s, min-width 0.2s', overflow: 'hidden',
+        transition: 'width 0.22s ease, min-width 0.22s ease', overflow: 'visible',
         position: isMobile ? 'fixed' : 'relative',
-        zIndex: isMobile ? 1000 : 'auto',
+        zIndex: isMobile ? 1000 : 1,
         height: '100vh', top: 0, left: 0,
         boxShadow: isMobile && sidebarOpen ? '4px 0 24px rgba(0,0,0,0.3)' : 'none',
       }}>
+        {/* Desktop collapse toggle */}
+        {!isMobile && (
+          <button onClick={() => setSidebarCollapsed(c => !c)}
+            style={{
+              position: 'absolute', top: 24, right: -14,
+              width: 28, height: 28, minWidth: 28, borderRadius: '50%',
+              background: 'white', border: 'none', cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+              fontSize: 12, color: '#6366f1', fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 0, flexShrink: 0, zIndex: 20,
+            }}>
+            {sidebarCollapsed ? '›' : '‹'}
+          </button>
+        )}
+
         {/* Logo */}
-        <div style={{ padding: '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 22 }}>🛡️</span>
+        <div style={{ padding: sidebarCollapsed && !isMobile ? '20px 0' : '24px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: 10, overflow: 'hidden' }}>
+          <span style={{ fontSize: 22, flexShrink: 0 }}>🛡️</span>
+          {(!sidebarCollapsed || isMobile) && (
             <div>
-              <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, color: 'white', lineHeight: 1.2 }}>Glumbi</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase' }}>Admin Panel</div>
+              <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, color: 'white', lineHeight: 1.2, whiteSpace: 'nowrap' }}>Glumbi</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Admin Panel</div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <nav style={{ flex: 1, padding: sidebarCollapsed && !isMobile ? '16px 6px' : '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {NAV.map(item => (
             <button key={item.id} onClick={() => { navigate(`/admin/${item.id}`); setSidebarOpen(false) }}
+              title={sidebarCollapsed && !isMobile ? item.label : undefined}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '11px 14px', borderRadius: 50, border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: 12,
+                padding: sidebarCollapsed && !isMobile ? '11px 0' : '11px 14px', borderRadius: 50, border: 'none', cursor: 'pointer',
                 background: active === item.id ? 'rgba(255,255,255,0.92)' : 'transparent',
                 color: active === item.id ? '#6366f1' : 'rgba(255,255,255,0.55)',
                 fontWeight: active === item.id ? 700 : 500, fontSize: 14,
                 textAlign: 'left', width: '100%',
                 transition: 'all 0.15s',
               }}>
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
-              {item.label}
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+              {(!sidebarCollapsed || isMobile) && item.label}
             </button>
           ))}
         </nav>
 
         {/* Bottom actions */}
-        <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ padding: sidebarCollapsed && !isMobile ? '16px 6px' : '16px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button onClick={() => { navigate('/admin/profile'); setSidebarOpen(false) }}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 50, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
-            👤 My Profile
+            title={sidebarCollapsed && !isMobile ? 'My Profile' : undefined}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: 10, padding: sidebarCollapsed && !isMobile ? '10px 0' : '10px 14px', borderRadius: 50, border: 'none', cursor: 'pointer', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
+            <span style={{ flexShrink: 0 }}>👤</span>
+            {(!sidebarCollapsed || isMobile) && ' My Profile'}
           </button>
           {onLogout && (
             <button onClick={onLogout}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 50, border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.15)', color: '#ff6b6b', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
-              🚪 Sign Out
+              title={sidebarCollapsed && !isMobile ? 'Sign Out' : undefined}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: 10, padding: sidebarCollapsed && !isMobile ? '10px 0' : '10px 14px', borderRadius: 50, border: 'none', cursor: 'pointer', background: 'rgba(231,76,60,0.15)', color: '#ff6b6b', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
+              <span style={{ flexShrink: 0 }}>🚪</span>
+              {(!sidebarCollapsed || isMobile) && ' Sign Out'}
             </button>
           )}
         </div>

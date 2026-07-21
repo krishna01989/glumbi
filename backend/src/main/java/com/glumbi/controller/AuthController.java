@@ -3,9 +3,13 @@ package com.glumbi.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.entity.AppUser;
+import com.glumbi.entity.PasswordResetToken;
+import com.glumbi.repository.PasswordResetTokenRepository;
 import com.glumbi.repository.UserRepository;
 import com.glumbi.security.JwtUtil;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.EmailTemplates;
+import com.glumbi.service.ResendClient;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -17,21 +21,28 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepo;
-    private final PasswordEncoder encoder;
-    private final JwtUtil jwtUtil;
-    private final WebClient.Builder webClientBuilder;
-    private final ApiQuotaService quotaService;
+    private final UserRepository              userRepo;
+    private final PasswordResetTokenRepository resetTokenRepo;
+    private final PasswordEncoder             encoder;
+    private final JwtUtil                     jwtUtil;
+    private final WebClient.Builder           webClientBuilder;
+    private final ApiQuotaService             quotaService;
+    private final ResendClient                resendClient;
+    private final EmailTemplates              emailTemplates;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${app.google.token-info-url}") private String googleTokenInfoUrl;
+    @Value("${app.frontend-url}")          private String frontendUrl;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
@@ -135,6 +146,89 @@ public class AuthController {
     public static class LoginRequest {
         @NotBlank private String email;
         @NotBlank private String password;
+    }
+
+    // Always return 200 regardless of whether email exists — prevents user enumeration
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        String email = body.getOrDefault("email", "").toLowerCase().trim();
+        var userOpt = userRepo.findByEmail(email);
+
+        userOpt.ifPresent(user -> {
+            if (user.getPasswordHash() == null) return;
+            resetTokenRepo.invalidateAllForUser(user.getId());
+
+            PasswordResetToken prt = new PasswordResetToken();
+            prt.setToken(UUID.randomUUID().toString());
+            prt.setUserId(user.getId());
+            prt.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(1));
+            resetTokenRepo.save(prt);
+
+            String resetUrl = frontendUrl + "/reset-password?token=" + prt.getToken();
+            resendClient.send(
+                user.getEmail(),
+                "Reset your Glumbi password",
+                emailTemplates.passwordReset(user.getDisplayName(), resetUrl)
+            );
+        });
+
+        return ResponseEntity.ok(Map.of("message", "If that email is registered, you'll receive a reset link shortly."));
+    }
+
+    @GetMapping("/validate-reset-token")
+    public ResponseEntity<?> validateResetToken(@RequestParam String token) {
+        PasswordResetToken prt = resetTokenRepo.findByToken(token).orElse(null);
+        if (prt == null || prt.isUsed()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or already used reset link"));
+        }
+        if (prt.isExpired()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This reset link has expired. Please request a new one."));
+        }
+        return ResponseEntity.ok(Map.of("valid", true));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        String token    = body.getOrDefault("token", "");
+        String password = body.getOrDefault("password", "");
+
+        if (token.isBlank() || password.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token and password are required"));
+        }
+
+        String passwordPolicy = "^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{}|;':\",./<>?]).{8,}$";
+        if (!password.matches(passwordPolicy)) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                "Password must be at least 8 characters and include an uppercase letter, a number, and a special character"));
+        }
+
+        PasswordResetToken prt = resetTokenRepo.findByToken(token).orElse(null);
+        if (prt == null || prt.isUsed()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or already used reset link"));
+        }
+        // Compare in UTC — safe regardless of user's timezone
+        if (prt.isExpired()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "This reset link has expired. Please request a new one."));
+        }
+
+        AppUser user = userRepo.findById(prt.getUserId()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+
+        user.setPasswordHash(encoder.encode(password));
+        userRepo.save(user);
+
+        resendClient.send(
+            user.getEmail(),
+            "Your Glumbi password was changed",
+            emailTemplates.passwordChanged(user.getDisplayName(), "via a password reset link")
+        );
+
+        prt.setUsed(true);
+        resetTokenRepo.save(prt);
+
+        return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
     }
 
     @GetMapping("/health")

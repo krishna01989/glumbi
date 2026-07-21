@@ -67,9 +67,12 @@ api.interceptors.response.use(
 )
 
 export const authApi = {
-  register: (data)    => api.post('/auth/register', data).then(r => r.data),
-  login:    (data)    => api.post('/auth/login',    data).then(r => r.data),
-  google:   (idToken) => api.post('/auth/google', { idToken }).then(r => r.data),
+  register:        (data)            => api.post('/auth/register', data).then(r => r.data),
+  login:           (data)            => api.post('/auth/login',    data).then(r => r.data),
+  google:          (idToken)         => api.post('/auth/google', { idToken }).then(r => r.data),
+  forgotPassword:      (email)           => api.post('/auth/forgot-password', { email }).then(r => r.data),
+  validateResetToken:  (token)           => api.get(`/auth/validate-reset-token?token=${token}`).then(r => r.data),
+  resetPassword:       (token, password) => api.post('/auth/reset-password', { token, password }).then(r => r.data),
 }
 
 export const childApi = {

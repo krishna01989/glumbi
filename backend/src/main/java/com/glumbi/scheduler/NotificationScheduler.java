@@ -5,7 +5,9 @@ import com.glumbi.agent.*;
 import com.glumbi.entity.*;
 import com.glumbi.entity.Notification.NotificationType;
 import com.glumbi.repository.*;
+import com.glumbi.service.EmailTemplates;
 import com.glumbi.service.NotificationService;
+import com.glumbi.service.ResendClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -32,8 +34,9 @@ public class NotificationScheduler {
     public static final String AGENT_LEARNING    = "learning-insight";
     public static final String AGENT_LEARN_WRITE = "learn-to-write";
     public static final String AGENT_MEMORY      = "memory-play";
-    public static final String AGENT_CURIOSITY   = "curiosity-insight";
-    public static final String AGENT_JOURNAL     = "journal-insight";
+    public static final String AGENT_CURIOSITY    = "curiosity-insight";
+    public static final String AGENT_JOURNAL      = "journal-insight";
+    public static final String AGENT_WEEKLY_EMAIL = "weekly-recap-email";
 
     private final UserRepository           userRepository;
     private final ChildRepository          childRepository;
@@ -59,6 +62,8 @@ public class NotificationScheduler {
     private final FlashcardSetRepository   flashcardSetRepo;
     private final WordOfDayRepository      wordOfDayRepo;
     private final MemoryMatchRepository    memoryMatchRepo;
+    private final ResendClient             resendClient;
+    private final EmailTemplates           emailTemplates;
 
     private final ObjectMapper objectMapper;
 
@@ -88,23 +93,25 @@ public class NotificationScheduler {
         List<String> skipped = new ArrayList<>();
         List<String> errors  = new ArrayList<>();
 
-        boolean runProgress   = isAgentEnabled(AGENT_PROGRESS);
-        boolean runMilestone  = isAgentEnabled(AGENT_MILESTONE);
-        boolean runStoryRec   = isAgentEnabled(AGENT_STORY_REC);
-        boolean runLearning   = isAgentEnabled(AGENT_LEARNING);
-        boolean runLearnWrite = isAgentEnabled(AGENT_LEARN_WRITE);
-        boolean runMemory     = isAgentEnabled(AGENT_MEMORY);
-        boolean runCuriosity  = isAgentEnabled(AGENT_CURIOSITY);
-        boolean runJournal    = isAgentEnabled(AGENT_JOURNAL);
+        boolean runProgress    = isAgentEnabled(AGENT_PROGRESS);
+        boolean runMilestone   = isAgentEnabled(AGENT_MILESTONE);
+        boolean runStoryRec    = isAgentEnabled(AGENT_STORY_REC);
+        boolean runLearning    = isAgentEnabled(AGENT_LEARNING);
+        boolean runLearnWrite  = isAgentEnabled(AGENT_LEARN_WRITE);
+        boolean runMemory      = isAgentEnabled(AGENT_MEMORY);
+        boolean runCuriosity   = isAgentEnabled(AGENT_CURIOSITY);
+        boolean runJournal     = isAgentEnabled(AGENT_JOURNAL);
+        boolean runWeeklyEmail = isAgentEnabled(AGENT_WEEKLY_EMAIL);
 
-        if (!runProgress)   { skipped.add("Progress Report");      System.out.println("[Scheduler] SKIP Progress Report — disabled by admin"); }
-        if (!runMilestone)  { skipped.add("Milestone");            System.out.println("[Scheduler] SKIP Milestone — disabled by admin"); }
-        if (!runStoryRec)   { skipped.add("Story Recommendation"); System.out.println("[Scheduler] SKIP Story Recommendation — disabled by admin"); }
-        if (!runLearning)   { skipped.add("Learning Insight");     System.out.println("[Scheduler] SKIP Learning Insight — disabled by admin"); }
-        if (!runLearnWrite) { skipped.add("Learn to Write");       System.out.println("[Scheduler] SKIP Learn to Write — disabled by admin"); }
-        if (!runMemory)     { skipped.add("Memory Play");          System.out.println("[Scheduler] SKIP Memory Play — disabled by admin"); }
-        if (!runCuriosity)  { skipped.add("Curiosity Insight");    System.out.println("[Scheduler] SKIP Curiosity Insight — disabled by admin"); }
-        if (!runJournal)    { skipped.add("Journal Insight");      System.out.println("[Scheduler] SKIP Journal Insight — disabled by admin"); }
+        if (!runProgress)    { skipped.add("Progress Report");      System.out.println("[Scheduler] SKIP Progress Report — disabled by admin"); }
+        if (!runMilestone)   { skipped.add("Milestone");            System.out.println("[Scheduler] SKIP Milestone — disabled by admin"); }
+        if (!runStoryRec)    { skipped.add("Story Recommendation"); System.out.println("[Scheduler] SKIP Story Recommendation — disabled by admin"); }
+        if (!runLearning)    { skipped.add("Learning Insight");     System.out.println("[Scheduler] SKIP Learning Insight — disabled by admin"); }
+        if (!runLearnWrite)  { skipped.add("Learn to Write");       System.out.println("[Scheduler] SKIP Learn to Write — disabled by admin"); }
+        if (!runMemory)      { skipped.add("Memory Play");          System.out.println("[Scheduler] SKIP Memory Play — disabled by admin"); }
+        if (!runCuriosity)   { skipped.add("Curiosity Insight");    System.out.println("[Scheduler] SKIP Curiosity Insight — disabled by admin"); }
+        if (!runJournal)     { skipped.add("Journal Insight");      System.out.println("[Scheduler] SKIP Journal Insight — disabled by admin"); }
+        if (!runWeeklyEmail) { skipped.add("Weekly Recap Email");   System.out.println("[Scheduler] SKIP Weekly Recap Email — disabled by admin"); }
 
         LocalDateTime weekAgo     = LocalDateTime.now(ZoneOffset.UTC).minusDays(7);
         LocalDateTime twoWeeksAgo = LocalDateTime.now(ZoneOffset.UTC).minusDays(14);
@@ -121,7 +128,8 @@ public class NotificationScheduler {
                         boolean processed = runAgentsForChild(
                             user, child, weekAgo, twoWeeksAgo,
                             runProgress, runMilestone, runStoryRec, runLearning,
-                            runLearnWrite, runMemory, runCuriosity, runJournal
+                            runLearnWrite, runMemory, runCuriosity, runJournal,
+                            runWeeklyEmail
                         );
                         if (processed) childrenProcessed++;
                     } catch (Exception e) {
@@ -132,14 +140,15 @@ public class NotificationScheduler {
                 }
             }
 
-            if (runProgress)   ran.add("Progress Report");
-            if (runMilestone)  ran.add("Milestone");
-            if (runStoryRec)   ran.add("Story Recommendation");
-            if (runLearning)   ran.add("Learning Insight");
-            if (runLearnWrite) ran.add("Learn to Write");
-            if (runMemory)     ran.add("Memory Play");
-            if (runCuriosity)  ran.add("Curiosity Insight");
-            if (runJournal)    ran.add("Journal Insight");
+            if (runProgress)    ran.add("Progress Report");
+            if (runMilestone)   ran.add("Milestone");
+            if (runStoryRec)    ran.add("Story Recommendation");
+            if (runLearning)    ran.add("Learning Insight");
+            if (runLearnWrite)  ran.add("Learn to Write");
+            if (runMemory)      ran.add("Memory Play");
+            if (runCuriosity)   ran.add("Curiosity Insight");
+            if (runJournal)     ran.add("Journal Insight");
+            if (runWeeklyEmail) ran.add("Weekly Recap Email");
 
         } catch (Exception e) {
             errors.add("Fatal: " + e.getMessage());
@@ -164,7 +173,8 @@ public class NotificationScheduler {
                                       boolean runProgress, boolean runMilestone,
                                       boolean runStoryRec, boolean runLearning,
                                       boolean runLearnWrite, boolean runMemory,
-                                      boolean runCuriosity, boolean runJournal) {
+                                      boolean runCuriosity, boolean runJournal,
+                                      boolean runWeeklyEmail) {
         Long childId = child.getId();
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
@@ -189,12 +199,15 @@ public class NotificationScheduler {
         List<ReadQuizEntry> allQuizzes  = null;
         List<WritingEntry>  allWritings = null;
 
-        if (runProgress) {
-            String progress = progressReportAgent.generate(
+        String progressText = null;
+        if (runProgress || runWeeklyEmail) {
+            progressText = progressReportAgent.generate(
                 child, weekStories, weekQuizzes, weekWritings,
                 weekCuriosities, weekJournals,
                 flashcardSets, (int) wordsLearned, (int) matchGames);
-            notificationService.save(user, child, NotificationType.PROGRESS_REPORT, progress);
+            if (runProgress) {
+                notificationService.save(user, child, NotificationType.PROGRESS_REPORT, progressText);
+            }
         }
 
         if (runMilestone) {
@@ -241,6 +254,15 @@ public class NotificationScheduler {
         if (runJournal && !weekJournals.isEmpty()) {
             String journalMsg = journalInsightAgent.generate(child, weekJournals);
             if (journalMsg != null) notificationService.save(user, child, NotificationType.JOURNAL_INSIGHT, journalMsg);
+        }
+
+        // Weekly recap email — reuses progress report text, zero extra Claude call
+        if (runWeeklyEmail && progressText != null) {
+            resendClient.send(
+                user.getEmail(),
+                "🌟 " + child.getName() + "'s week on Glumbi",
+                emailTemplates.weeklyRecap(user.getDisplayName(), child.getName(), progressText)
+            );
         }
 
         return true;

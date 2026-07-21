@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Nunito','Nunito',Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#ffffff;padding:24px 32px;text-align:center;border-bottom:3px solid #ff6b6b;">
+              <img src="https://glumbi.com/logo.svg" alt="Glumbi" width="140" style="display:block;margin:0 auto;">
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background:#ffffff;padding:36px 32px;">
+              <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+                Dear <span th:text="${parentName}">there</span>,
+              </p>
+              <h2 style="margin:0 0 4px;font-size:20px;font-weight:bold;color:#1a1a2e;">
+                🌟 <span th:text="${childName}">Child</span>'s week on Glumbi
+              </h2>
+              <p style="margin:0 0 24px;font-size:12px;color:#aaaaaa;">Weekly learning recap</p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="background:#f8f8f8;padding:20px;border-left:4px solid #ff6b6b;">
+                    <p th:utext="${recapHtml}" style="margin:0;font-size:15px;color:#333333;line-height:1.8;"></p>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.6;">
+                Keep up the great work! See you next week. 🎉
+              </p>
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px auto;">
+                <tr>
+                  <td style="background:#ff6b6b;padding:12px 32px;text-align:center;">
+                    <a href="https://glumbi.com" style="color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Open Glumbi</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0;font-size:14px;color:#555555;line-height:1.8;">
+                Warm regards,<br>
+                <strong>The Glumbi Team</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#aaaaaa;">
+                &copy; Glumbi &nbsp;&middot;&nbsp;
+                <a href="https://glumbi.com/privacy" style="color:#aaaaaa;">Privacy</a>
+                &nbsp;&middot;&nbsp;
+                <a href="https://glumbi.com/contact" style="color:#aaaaaa;">Contact</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

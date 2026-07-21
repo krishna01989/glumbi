@@ -44,6 +44,8 @@ public class AdminController {
     private final MemoryMatchRepository         memoryMatchRepo;
     private final AiUsageLogRepository          usageLogRepo;
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
+    private final com.glumbi.service.ResendClient  resendClient;
+    private final com.glumbi.service.EmailTemplates emailTemplates;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(
@@ -424,6 +426,11 @@ public class AdminController {
                 return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can reset another admin's password."));
             u.setPasswordHash(encoder.encode(newPassword));
             userRepo.save(u);
+            resendClient.send(
+                u.getEmail(),
+                "Your Glumbi password was changed",
+                emailTemplates.passwordChanged(u.getDisplayName(), "by an administrator")
+            );
             return ResponseEntity.ok(Map.of("message", "Password updated"));
         }).orElse(ResponseEntity.notFound().build());
     }

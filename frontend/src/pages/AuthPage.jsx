@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { authApi } from '../api/client'
 import ErrorBox from '../components/ErrorBox'
 import PublicHeader from '../components/PublicHeader'
@@ -168,6 +168,14 @@ export default function AuthPage({ onAuth }) {
               )
             })()}
           </div>
+
+          {mode === 'login' && (
+            <div style={{ textAlign: 'right', marginTop: -4, marginBottom: 4 }}>
+              <Link to="/forgot-password" style={{ fontSize: 12, color: '#888', textDecoration: 'none', fontWeight: 600 }}>
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           <ErrorBox msg={error} />
 

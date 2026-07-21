@@ -168,12 +168,73 @@ export default function FlipbookStudio({ track = () => {}, child }) {
   const shapesBtnRef     = useRef(null)
   const pendingShapeRef  = useRef(null)
   const pendingDragRef   = useRef(null)
-  const selTmpRef      = useRef(null)   // cached canvas for the lifted pixels
+  const selTmpRef      = useRef(null)
+  const selGestureRef  = useRef({ active: false, startDist: 1, startAngle: 0, liveDist: 1, liveAngle: 0, origCanvas: null, origW: 0, origH: 0 })
   const selStateRef    = useRef({ phase: null, startX: 0, startY: 0,
     x: 0, y: 0, w: 0, h: 0, pixels: null, posX: 0, posY: 0,
     dragging: false, dragStartX: 0, dragStartY: 0, dragOrigX: 0, dragOrigY: 0 })
   const [selTick, setSelTick]             = useState(0)
   const [selPanelOpen, setSelPanelOpen]   = useState(false)
+  const [selPanelPos, setSelPanelPos]     = useState({ x: 10, y: 10 })
+  const [selPanelSize, setSelPanelSize]   = useState({ w: null, h: null })
+  const selPanelDragRef   = useRef(null)
+  const selPanelResizeRef = useRef(null)
+
+  function onSelPanelResizeStart(e) {
+    e.stopPropagation(); e.preventDefault()
+    const src = e.touches ? e.touches[0] : e
+    const panel = e.currentTarget.parentElement
+    const rect = panel.getBoundingClientRect()
+    selPanelResizeRef.current = { sx: src.clientX, sy: src.clientY, ow: rect.width, oh: rect.height }
+    function onMove(ev) {
+      if (!selPanelResizeRef.current) return
+      const s = ev.touches ? ev.touches[0] : ev
+      const canvas = canvasRef.current
+      const cr = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 }
+      setSelPanelSize({
+        w: Math.max(180, Math.min(selPanelResizeRef.current.ow + s.clientX - selPanelResizeRef.current.sx, cr.width - selPanelPos.x - 8)),
+        h: Math.max(64, selPanelResizeRef.current.oh + s.clientY - selPanelResizeRef.current.sy),
+      })
+    }
+    function onUp() {
+      selPanelResizeRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
+  }
+
+  function onSelPanelDragStart(e) {
+    e.stopPropagation()
+    const src = e.touches ? e.touches[0] : e
+    selPanelDragRef.current = { sx: src.clientX, sy: src.clientY, ox: selPanelPos.x, oy: selPanelPos.y }
+    function onMove(ev) {
+      if (!selPanelDragRef.current) return
+      const s = ev.touches ? ev.touches[0] : ev
+      const canvas = canvasRef.current
+      const rect = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 }
+      setSelPanelPos({
+        x: Math.max(0, Math.min(selPanelDragRef.current.ox + s.clientX - selPanelDragRef.current.sx, rect.width - 80)),
+        y: Math.max(0, Math.min(selPanelDragRef.current.oy + s.clientY - selPanelDragRef.current.sy, rect.height - 40)),
+      })
+    }
+    function onUp() {
+      selPanelDragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
+  }
   const [stampCount, setStampCount]       = useState(1)
   const [slideEndFrame, setSlideEndFrame] = useState(null)
   const [slideStepX, setSlideStepX]       = useState(20)
@@ -208,11 +269,19 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       .finally(() => setFlipbookSavesLoading(false))
   }
 
-  useEffect(() => { fetchFlipbookSaves(0, true) }, [child?.id])
+  useEffect(() => {
+    fetchFlipbookSaves(0, true)
+    hasContentRef.current = false
+    setHasContent(false)
+  }, [child?.id])
 
   // Autosave every 60s if there are frames to save
+  const hasContentRef = useRef(false)
+  const [hasContent, setHasContent] = useState(false)
+  const markHasContent = () => { if (!hasContentRef.current) { hasContentRef.current = true; setHasContent(true) } }
+
   const fbAutoSaveRef = useRef(null)
-  fbAutoSaveRef.current = () => { if (total >= 1 && !isSaving && !isPlaying && child?.id) saveFlipbook() }
+  fbAutoSaveRef.current = () => { if (total >= 1 && !isSaving && !isPlaying && child?.id && hasContentRef.current) saveFlipbook() }
   useEffect(() => {
     const t = setInterval(() => fbAutoSaveRef.current?.(), 60_000)
     return () => clearInterval(t)
@@ -263,6 +332,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       currentIdxRef.current = 0
       setCurrentSaveId(full.id)
       setFlipbookTitle(full.title || '')
+      markHasContent()
       const first = loaded[0]
       if (first && canvasRef.current) {
         const img = new Image()
@@ -386,6 +456,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     const ctx = canvasRef.current.getContext('2d')
     drawShape(ctx, ps.type, ps.x1, ps.y1, ps.x2, ps.y2, ps.color, ps.lineWidth, ps.fill)
     setHasPendingShape(false)
+    if (ps.color !== '#ffffff') markHasContent()
     saveCurrentFrame()
   }
   function cancelPendingShape() {
@@ -808,6 +879,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     if (fillMode) {
       saveSnapshot()
       floodFill(canvasRef.current, pos.x, pos.y, color)
+      if (color !== '#ffffff') markHasContent()
       saveCurrentFrame()
       return
     }
@@ -901,8 +973,10 @@ export default function FlipbookStudio({ track = () => {}, child }) {
         ctx.arc(lastPos.current.x, lastPos.current.y, r, 0, Math.PI * 2)
         ctx.fillStyle = eraser ? '#ffffff' : color
         ctx.fill()
+        if (!eraser) markHasContent()
         saveCurrentFrame()
       } else {
+        if (!eraser) markHasContent()
         saveCurrentFrame()
       }
     }
@@ -927,19 +1001,36 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       ctx.restore()
     } else if (sd.phase === 'floating') {
       const px = Math.round(sd.posX), py = Math.round(sd.posY)
-      if (selTmpRef.current) {
-        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 8
-        ctx.drawImage(selTmpRef.current, px, py); ctx.restore()
+      const g = selGestureRef.current
+      if (g.active && g.origCanvas) {
+        const scale = g.liveDist / g.startDist
+        const rot   = g.liveAngle - g.startAngle
+        const cx = px + g.origW / 2, cy = py + g.origH / 2
+        ctx.save()
+        ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(scale, scale)
+        ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 8
+        ctx.drawImage(g.origCanvas, -g.origW / 2, -g.origH / 2)
+        ctx.restore()
+        ctx.save()
+        ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(scale, scale)
+        ctx.strokeStyle = primary; ctx.lineWidth = 2 / scale; ctx.setLineDash([8 / scale, 4 / scale])
+        ctx.strokeRect(-g.origW / 2, -g.origH / 2, g.origW, g.origH)
+        ctx.restore()
+      } else {
+        if (selTmpRef.current) {
+          ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 8
+          ctx.drawImage(selTmpRef.current, px, py); ctx.restore()
+        }
+        ctx.save()
+        ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
+        ctx.strokeRect(px, py, sd.w, sd.h)
+        ctx.setLineDash([])
+        ;[[px, py], [px + sd.w, py], [px, py + sd.h], [px + sd.w, py + sd.h]].forEach(([cx, cy]) => {
+          ctx.fillStyle = 'white'; ctx.fillRect(cx - 4, cy - 4, 8, 8)
+          ctx.strokeStyle = primary; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 4, cy - 4, 8, 8)
+        })
+        ctx.restore()
       }
-      ctx.save()
-      ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
-      ctx.strokeRect(px, py, sd.w, sd.h)
-      ctx.setLineDash([])
-      ;[[px, py], [px + sd.w, py], [px, py + sd.h], [px + sd.w, py + sd.h]].forEach(([cx, cy]) => {
-        ctx.fillStyle = 'white'; ctx.fillRect(cx - 4, cy - 4, 8, 8)
-        ctx.strokeStyle = primary; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 4, cy - 4, 8, 8)
-      })
-      ctx.restore()
     }
   }
 
@@ -947,6 +1038,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     const sd = selStateRef.current
     if (sd.phase === 'floating' && selTmpRef.current) {
       canvasRef.current.getContext('2d').drawImage(selTmpRef.current, Math.round(sd.posX), Math.round(sd.posY))
+      markHasContent()
       saveCurrentFrame()
     }
     sd.phase = null; sd.pixels = null; selTmpRef.current = null
@@ -960,6 +1052,71 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     setSelPanelOpen(false); setSelTick(t => t + 1)
     selOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
     saveCurrentFrame()
+  }
+
+  function applySelTransform(fn) {
+    const src = selTmpRef.current
+    if (!src || selStateRef.current.phase !== 'floating') return
+    const { canvas, nw, nh } = fn(src)
+    selTmpRef.current = canvas
+    selStateRef.current.w = nw
+    selStateRef.current.h = nh
+    drawSelOverlay()
+  }
+
+  function flipSelH() {
+    applySelTransform(src => {
+      const w = src.width, h = src.height
+      const dst = document.createElement('canvas'); dst.width = w; dst.height = h
+      const ctx = dst.getContext('2d'); ctx.translate(w, 0); ctx.scale(-1, 1); ctx.drawImage(src, 0, 0)
+      return { canvas: dst, nw: w, nh: h }
+    })
+  }
+
+  function flipSelV() {
+    applySelTransform(src => {
+      const w = src.width, h = src.height
+      const dst = document.createElement('canvas'); dst.width = w; dst.height = h
+      const ctx = dst.getContext('2d'); ctx.translate(0, h); ctx.scale(1, -1); ctx.drawImage(src, 0, 0)
+      return { canvas: dst, nw: w, nh: h }
+    })
+  }
+
+  function rotateSel(deg) {
+    applySelTransform(src => {
+      const rad = deg * Math.PI / 180
+      const sw = src.width, sh = src.height
+      const nw = Math.round(Math.abs(sw * Math.cos(rad)) + Math.abs(sh * Math.sin(rad)))
+      const nh = Math.round(Math.abs(sw * Math.sin(rad)) + Math.abs(sh * Math.cos(rad)))
+      const dst = document.createElement('canvas'); dst.width = nw; dst.height = nh
+      const ctx = dst.getContext('2d')
+      ctx.translate(nw / 2, nh / 2); ctx.rotate(rad); ctx.drawImage(src, -sw / 2, -sh / 2)
+      return { canvas: dst, nw, nh }
+    })
+  }
+
+  function scaleSel(factor) {
+    applySelTransform(src => {
+      const nw = Math.max(10, Math.round(src.width * factor))
+      const nh = Math.max(10, Math.round(src.height * factor))
+      const dst = document.createElement('canvas'); dst.width = nw; dst.height = nh
+      dst.getContext('2d').drawImage(src, 0, 0, nw, nh)
+      return { canvas: dst, nw, nh }
+    })
+  }
+
+  function duplicateSel() {
+    const src = selTmpRef.current
+    if (!src || selStateRef.current.phase !== 'floating') return
+    const sd = selStateRef.current
+    canvasRef.current.getContext('2d').drawImage(src, Math.round(sd.posX), Math.round(sd.posY))
+    saveCurrentFrame()
+    const dup = document.createElement('canvas'); dup.width = src.width; dup.height = src.height
+    dup.getContext('2d').drawImage(src, 0, 0)
+    selTmpRef.current = dup
+    sd.posX = Math.min(sd.posX + 20, W - sd.w)
+    sd.posY = Math.min(sd.posY + 20, H - sd.h)
+    setSelTick(t => t + 1)
   }
 
   function cancelSelection() {
@@ -1029,7 +1186,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
       sd.posX = xi; sd.posY = yi; sd.phase = 'floating'; sd.dragging = false
       setSlideEndFrame(Math.min(currentIdxRef.current + 1, framesRef.current.length - 1))
       setSlideStepX(0); setSlideStepY(0)
-      setSelPanelOpen(true); setSelTick(t => t + 1)
+      setSelPanelOpen(true); setSelPanelPos({ x: 10, y: 10 }); setSelPanelSize({ w: null, h: null }); setSelTick(t => t + 1)
       drawSelOverlay()
     } else if (sd.phase === 'floating') {
       sd.dragging = false
@@ -1041,9 +1198,69 @@ export default function FlipbookStudio({ track = () => {}, child }) {
     if (!selectTool) return
     const ov = selOverlayRef.current
     if (!ov) return
-    const onTS = e => { e.preventDefault(); onSelDown(e) }
-    const onTM = e => { e.preventDefault(); onSelMove(e) }
-    const onTE = e => { e.preventDefault(); onSelUp() }
+    function pinchInfo(e) {
+      const t0 = e.touches[0], t1 = e.touches[1]
+      const dx = t1.clientX - t0.clientX, dy = t1.clientY - t0.clientY
+      return { dist: Math.hypot(dx, dy), angle: Math.atan2(dy, dx) }
+    }
+
+    const onTS = e => {
+      e.preventDefault()
+      if (e.touches.length === 2 && selStateRef.current.phase === 'floating') {
+        const { dist, angle } = pinchInfo(e)
+        const g = selGestureRef.current
+        const sd = selStateRef.current
+        g.active = true
+        g.startDist = dist; g.startAngle = angle
+        g.liveDist  = dist; g.liveAngle  = angle
+        g.origCanvas = selTmpRef.current
+        g.origW = sd.w; g.origH = sd.h
+        return
+      }
+      onSelDown(e)
+    }
+
+    const onTM = e => {
+      e.preventDefault()
+      const g = selGestureRef.current
+      if (g.active && e.touches.length === 2) {
+        const { dist, angle } = pinchInfo(e)
+        g.liveDist = dist; g.liveAngle = angle
+        drawSelOverlay()
+        return
+      }
+      onSelMove(e)
+    }
+
+    const onTE = e => {
+      e.preventDefault()
+      const g = selGestureRef.current
+      if (g.active) {
+        if (e.touches.length < 2) {
+          const scale  = g.liveDist / g.startDist
+          const rotDeg = (g.liveAngle - g.startAngle) * 180 / Math.PI
+          g.active = false
+          const src = g.origCanvas
+          if (src) {
+            const rad = rotDeg * Math.PI / 180
+            const sw = src.width * scale, sh = src.height * scale
+            const nw = Math.round(Math.abs(sw * Math.cos(rad)) + Math.abs(sh * Math.sin(rad)))
+            const nh = Math.round(Math.abs(sw * Math.sin(rad)) + Math.abs(sh * Math.cos(rad)))
+            const dst = document.createElement('canvas'); dst.width = nw; dst.height = nh
+            const ctx = dst.getContext('2d')
+            ctx.translate(nw / 2, nh / 2); ctx.rotate(rad); ctx.scale(scale, scale)
+            ctx.drawImage(src, -src.width / 2, -src.height / 2)
+            selTmpRef.current = dst
+            selStateRef.current.w = nw
+            selStateRef.current.h = nh
+          }
+          drawSelOverlay()
+        }
+        return
+      }
+      onSelUp()
+    }
+
     ov.addEventListener('touchstart', onTS, { passive: false })
     ov.addEventListener('touchmove',  onTM, { passive: false })
     ov.addEventListener('touchend',   onTE, { passive: false })
@@ -1056,6 +1273,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
 
   async function stampSelectionToFrames(count) {
     if (!selTmpRef.current || selStateRef.current.phase !== 'floating') return
+    markHasContent()
     setIsStamping(true)
     const sd = selStateRef.current
     const startFrame = currentIdxRef.current
@@ -1573,125 +1791,173 @@ export default function FlipbookStudio({ track = () => {}, child }) {
             left: 0, top: 0,
           }} />
 
-          {/* Selection panel — floats inside canvas area when a region is lifted */}
-          {selPanelOpen && selStateRef.current.phase === 'floating' && !isPlaying && (
-            <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 20,
-              background: 'white', borderRadius: 16, padding: '10px 14px',
+          {/* Selection panel — draggable + resizable, floats inside canvas area */}
+          {selPanelOpen && selStateRef.current.phase === 'floating' && !isPlaying && (() => {
+            const ps = selPanelSize.w ? Math.max(0.65, Math.min(1.5, selPanelSize.w / 260)) : 1
+            const pf = n => Math.round(n * ps)
+            const pp = n => Math.round(n * ps)
+            const tBtn = (label, title, onClick) => (
+              <button key={title} onClick={onClick} title={title}
+                style={{ padding: `${pp(5)}px ${pp(8)}px`, borderRadius: pp(7), border: '1.5px solid var(--primary-lt)',
+                  background: 'white', color: 'var(--primary)', flexShrink: 0,
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 800, cursor: 'pointer', fontSize: pf(13) }}>
+                {label}
+              </button>
+            )
+            return (
+            <div style={{
+              position: 'absolute', top: selPanelPos.y, left: selPanelPos.x, zIndex: 20,
+              background: 'white', borderRadius: 14,
               boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1.5px solid #e8e0ff',
-              fontFamily: 'Nunito, sans-serif', fontSize: 13,
-              display: 'flex', flexDirection: 'column', gap: 8, minWidth: 260, maxWidth: '92%' }}>
-
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 14 }}>✂️ Selection</span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={commitSelection}
-                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
-                      background: 'var(--primary)', color: 'white',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                    ✓ Place
-                  </button>
-                  <button onClick={deleteSelection}
-                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
-                      background: '#ffe0e0', color: '#d00',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}
-                    title="Delete selection">
-                    🗑️
-                  </button>
-                  <button onClick={cancelSelection}
-                    style={{ padding: '4px 10px', borderRadius: 8, border: 'none',
-                      background: 'var(--primary-lt)', color: 'var(--primary)',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                    ✕
-                  </button>
-                </div>
+              fontFamily: 'Nunito, sans-serif',
+              display: 'flex', flexDirection: 'column',
+              ...(selPanelSize.w ? { width: selPanelSize.w } : { maxWidth: 'calc(100% - 20px)' }),
+              ...(selPanelSize.h ? { height: selPanelSize.h } : {}),
+              touchAction: 'none',
+            }}>
+              {/* Drag handle row */}
+              <div
+                onMouseDown={onSelPanelDragStart}
+                onTouchStart={onSelPanelDragStart}
+                style={{ display: 'flex', alignItems: 'center', gap: pp(7), cursor: 'grab',
+                  userSelect: 'none', padding: `${pp(8)}px ${pp(10)}px ${pp(6)}px`, flexShrink: 0 }}>
+                <span style={{ fontSize: pf(11), color: '#bbb', lineHeight: 1 }}>⠿</span>
+                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: pf(13), flex: 1 }}>✂️ Selection</span>
+                <button onClick={commitSelection}
+                  style={{ padding: `${pp(3)}px ${pp(10)}px`, borderRadius: pp(7), border: 'none',
+                    background: 'var(--primary)', color: 'white',
+                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(11) }}>
+                  ✓ Place
+                </button>
+                <button onClick={deleteSelection}
+                  style={{ padding: `${pp(3)}px ${pp(7)}px`, borderRadius: pp(7), border: 'none',
+                    background: '#ffe0e0', color: '#d00', fontWeight: 700, cursor: 'pointer', fontSize: pf(13) }}
+                  title="Delete">🗑️</button>
+                <button onClick={cancelSelection}
+                  style={{ padding: `${pp(3)}px ${pp(7)}px`, borderRadius: pp(7), border: 'none',
+                    background: 'var(--primary-lt)', color: 'var(--primary)',
+                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(11) }}>
+                  ✕
+                </button>
               </div>
 
-              {/* Stamp */}
-              <div style={{ background: 'var(--primary-lt)', borderRadius: 10, padding: '8px 10px' }}>
-                <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 5, fontSize: 11 }}>
-                  📌 Copy to next frames at same spot
+              {/* Scrollable content */}
+              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: `0 ${pp(10)}px ${pp(10)}px`, display: 'flex', flexDirection: 'column', gap: pp(7) }}>
+                {/* Transform tools */}
+                <div style={{ display: 'flex', gap: pp(5), flexWrap: 'wrap', alignItems: 'center', paddingBottom: 2 }}>
+                  {tBtn('↔️', 'Flip horizontal', flipSelH)}
+                  {tBtn('↕️', 'Flip vertical', flipSelV)}
+                  {tBtn('↺', 'Rotate left', () => rotateSel(-90))}
+                  {tBtn('↻', 'Rotate right', () => rotateSel(90))}
+                  {tBtn('⊕', 'Scale up 25%', () => scaleSel(1.25))}
+                  {tBtn('⊖', 'Scale down 25%', () => scaleSel(0.75))}
+                  {tBtn('❐', 'Duplicate', duplicateSel)}
+                  <input type="number" min={1} max={359}
+                    placeholder="°" title="Custom angle — press Enter"
+                    style={{ width: pf(42), padding: `${pp(4)}px ${pp(5)}px`, borderRadius: pp(7),
+                      border: '1.5px solid var(--primary-lt)',
+                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: pf(11),
+                      color: 'var(--primary)', outline: 'none', flexShrink: 0 }}
+                    onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(e.target.value); if (v) { rotateSel(v); e.target.value = '' } } }} />
+                  <span style={{ fontSize: pf(10), color: '#bbb', flexShrink: 0 }}>°↵</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, color: 'var(--primary)' }}>Next</span>
-                  {[1, 2, 3, 5].map(n => (
-                    <button key={n} onClick={() => setStampCount(n)}
-                      style={{ width: 26, height: 26, borderRadius: 6, border: 'none',
-                        background: stampCount === n ? 'var(--primary)' : 'white',
-                        color: stampCount === n ? 'white' : 'var(--primary)',
-                        fontWeight: 800, fontSize: 12, cursor: 'pointer', padding: 0,
-                        outline: stampCount === n ? 'none' : '1.5px solid var(--primary)' }}>{n}</button>
-                  ))}
-                  <span style={{ fontSize: 11, color: 'var(--primary)' }}>frames</span>
-                  <button onClick={() => stampSelectionToFrames(stampCount)} disabled={isStamping}
-                    style={{ marginLeft: 'auto', padding: '4px 12px', borderRadius: 8, border: 'none',
-                      background: isStamping ? 'var(--primary-lt)' : 'var(--primary)',
-                      color: isStamping ? 'var(--primary)' : 'white',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 700,
-                      cursor: isStamping ? 'not-allowed' : 'pointer', fontSize: 12 }}>
-                    {isStamping ? '⏳' : 'Stamp!'}
-                  </button>
-                </div>
-              </div>
 
-              {/* Slide */}
-              {total > 1 && currentIdxRef.current < total - 1 && (
-                <div style={{ background: 'var(--primary-lt)', borderRadius: 10, padding: '8px 10px' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: 6, fontSize: 11 }}>
-                    🎬 Slide across frames
+                {/* Stamp */}
+                <div style={{ background: 'var(--primary-lt)', borderRadius: pp(10), padding: `${pp(8)}px ${pp(10)}px` }}>
+                  <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: pp(5), fontSize: pf(11) }}>
+                    📌 Copy to next frames at same spot
                   </div>
-                  {/* End frame picker */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, color: 'var(--primary)' }}>Until frame</span>
-                    <input type="range"
-                      min={currentIdxRef.current + 1} max={total - 1}
-                      value={slideEndFrame ?? currentIdxRef.current + 1}
-                      onChange={e => setSlideEndFrame(Number(e.target.value))}
-                      style={{ width: 70 }} />
-                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--primary)', minWidth: 16 }}>
-                      {(slideEndFrame ?? currentIdxRef.current + 1) + 1}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: pp(6), flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: pf(11), color: 'var(--primary)' }}>Next</span>
+                    {[1, 2, 3, 5].map(n => (
+                      <button key={n} onClick={() => setStampCount(n)}
+                        style={{ width: pp(26), height: pp(26), borderRadius: pp(6), border: 'none',
+                          background: stampCount === n ? 'var(--primary)' : 'white',
+                          color: stampCount === n ? 'white' : 'var(--primary)',
+                          fontWeight: 800, fontSize: pf(12), cursor: 'pointer', padding: 0,
+                          outline: stampCount === n ? 'none' : '1.5px solid var(--primary)' }}>{n}</button>
+                    ))}
+                    <span style={{ fontSize: pf(11), color: 'var(--primary)' }}>frames</span>
+                    <button onClick={() => stampSelectionToFrames(stampCount)} disabled={isStamping}
+                      style={{ marginLeft: 'auto', padding: `${pp(4)}px ${pp(12)}px`, borderRadius: pp(8), border: 'none',
+                        background: isStamping ? 'var(--primary-lt)' : 'var(--primary)',
+                        color: isStamping ? 'var(--primary)' : 'white',
+                        fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+                        cursor: isStamping ? 'not-allowed' : 'pointer', fontSize: pf(12) }}>
+                      {isStamping ? '⏳' : 'Stamp!'}
+                    </button>
                   </div>
-                  {/* Direction presets */}
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', marginBottom: 5 }}>Which way does it move?</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                    {[
-                      { label: '→',  sx:  40, sy:   0 },
-                      { label: '←',  sx: -40, sy:   0 },
-                      { label: '↓',  sx:   0, sy:  40 },
-                      { label: '↑',  sx:   0, sy: -40 },
-                      { label: '↗',  sx:  40, sy: -40 },
-                      { label: '↘',  sx:  40, sy:  40 },
-                    ].map(({ label, sx, sy }) => {
-                      const active = slideStepX === sx && slideStepY === sy
-                      return (
-                        <button key={label} onClick={() => { setSlideStepX(sx); setSlideStepY(sy) }}
-                          style={{ width: 38, height: 38, borderRadius: 10, border: 'none',
-                            background: active ? 'var(--primary)' : 'white',
-                            color: active ? 'white' : 'var(--primary)',
-                            outline: active ? 'none' : '1.5px solid var(--primary)',
-                            fontSize: 18, cursor: 'pointer', padding: 0,
-                            boxShadow: active ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-                            transform: active ? 'scale(1.12)' : 'scale(1)',
-                            transition: 'all 0.12s' }}>
-                          {label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <button onClick={slideSelectionAcrossFrames}
-                    disabled={isStamping || (slideStepX === 0 && slideStepY === 0)}
-                    style={{ width: '100%', padding: '6px 0', borderRadius: 8, border: 'none',
-                      background: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'var(--primary-lt)' : 'var(--primary)',
-                      color: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'var(--primary)' : 'white',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
-                      cursor: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'not-allowed' : 'pointer' }}>
-                    {isStamping ? '⏳ Sliding…' : '🎬 Slide!'}
-                  </button>
                 </div>
-              )}
+
+                {/* Slide */}
+                {total > 1 && currentIdxRef.current < total - 1 && (
+                  <div style={{ background: 'var(--primary-lt)', borderRadius: pp(10), padding: `${pp(8)}px ${pp(10)}px` }}>
+                    <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: pp(6), fontSize: pf(11) }}>
+                      🎬 Slide across frames
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: pp(6), marginBottom: pp(8) }}>
+                      <span style={{ fontSize: pf(11), color: 'var(--primary)' }}>Until frame</span>
+                      <input type="range"
+                        min={currentIdxRef.current + 1} max={total - 1}
+                        value={slideEndFrame ?? currentIdxRef.current + 1}
+                        onChange={e => setSlideEndFrame(Number(e.target.value))}
+                        style={{ width: pp(70) }} />
+                      <span style={{ fontSize: pf(12), fontWeight: 800, color: 'var(--primary)', minWidth: 16 }}>
+                        {(slideEndFrame ?? currentIdxRef.current + 1) + 1}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: pf(11), fontWeight: 700, color: 'var(--primary)', marginBottom: pp(5) }}>Which way does it move?</div>
+                    <div style={{ display: 'flex', gap: pp(6), flexWrap: 'wrap', marginBottom: pp(8) }}>
+                      {[
+                        { label: '→',  sx:  40, sy:   0 },
+                        { label: '←',  sx: -40, sy:   0 },
+                        { label: '↓',  sx:   0, sy:  40 },
+                        { label: '↑',  sx:   0, sy: -40 },
+                        { label: '↗',  sx:  40, sy: -40 },
+                        { label: '↘',  sx:  40, sy:  40 },
+                      ].map(({ label, sx, sy }) => {
+                        const active = slideStepX === sx && slideStepY === sy
+                        return (
+                          <button key={label} onClick={() => { setSlideStepX(sx); setSlideStepY(sy) }}
+                            style={{ width: pp(38), height: pp(38), borderRadius: pp(10), border: 'none',
+                              background: active ? 'var(--primary)' : 'white',
+                              color: active ? 'white' : 'var(--primary)',
+                              outline: active ? 'none' : '1.5px solid var(--primary)',
+                              fontSize: pf(18), cursor: 'pointer', padding: 0,
+                              boxShadow: active ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                              transform: active ? 'scale(1.12)' : 'scale(1)',
+                              transition: 'all 0.12s' }}>
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <button onClick={slideSelectionAcrossFrames}
+                      disabled={isStamping || (slideStepX === 0 && slideStepY === 0)}
+                      style={{ width: '100%', padding: `${pp(6)}px 0`, borderRadius: pp(8), border: 'none',
+                        background: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'var(--primary-lt)' : 'var(--primary)',
+                        color: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'var(--primary)' : 'white',
+                        fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: pf(13),
+                        cursor: (isStamping || (slideStepX === 0 && slideStepY === 0)) ? 'not-allowed' : 'pointer' }}>
+                      {isStamping ? '⏳ Sliding…' : '🎬 Slide!'}
+                    </button>
+                  </div>
+                )}
+              </div>{/* end scrollable content */}
+              {/* Resize handle */}
+              <div
+                onMouseDown={onSelPanelResizeStart}
+                onTouchStart={onSelPanelResizeStart}
+                style={{ position: 'absolute', bottom: 0, right: 0, width: 18, height: 18,
+                  cursor: 'nwse-resize', display: 'flex', alignItems: 'flex-end',
+                  justifyContent: 'flex-end', padding: '3px', userSelect: 'none', touchAction: 'none' }}>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M9 1L1 9M9 5L5 9M9 9" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </div>
             </div>
-          )}
+            )
+          })()}
 
           {hasPendingShape && !showPlayback && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
@@ -1921,14 +2187,14 @@ export default function FlipbookStudio({ track = () => {}, child }) {
           </button>
 
           {/* Save to DB */}
-          <button onClick={saveFlipbook} disabled={isSaving || isPlaying || total < 1 || !child?.id}
+          <button onClick={saveFlipbook} disabled={isSaving || isPlaying || !hasContent || !child?.id}
             title="Save flipbook to resume later"
             style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
               fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
-              cursor: (isSaving || isPlaying || total < 1) ? 'not-allowed' : 'pointer',
-              background: (isSaving || isPlaying || total < 1) ? '#e0e0e0' : 'var(--primary)',
-              color: (isSaving || isPlaying || total < 1) ? '#aaa' : 'white',
-              boxShadow: (isSaving || isPlaying || total < 1) ? 'none' : '0 3px 12px rgba(0,0,0,0.2)',
+              cursor: (isSaving || isPlaying || !hasContent) ? 'not-allowed' : 'pointer',
+              background: (isSaving || isPlaying || !hasContent) ? '#e0e0e0' : 'var(--primary)',
+              color: (isSaving || isPlaying || !hasContent) ? '#aaa' : 'white',
+              boxShadow: (isSaving || isPlaying || !hasContent) ? 'none' : '0 3px 12px rgba(0,0,0,0.2)',
               whiteSpace: 'nowrap', flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 16 }}>{isSaving ? '⏳' : '💾'}</span>

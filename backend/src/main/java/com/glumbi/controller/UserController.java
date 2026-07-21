@@ -128,7 +128,7 @@ public class UserController {
         resendClient.send(
             user.getEmail(),
             "Your Glumbi password was changed",
-            emailTemplates.passwordChanged(user.getDisplayName(), "by you")
+            emailTemplates.passwordChanged("by you")
         );
 
         return ResponseEntity.ok(Map.of("message", "Password updated"));

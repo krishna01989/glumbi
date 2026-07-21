@@ -429,7 +429,7 @@ public class AdminController {
             resendClient.send(
                 u.getEmail(),
                 "Your Glumbi password was changed",
-                emailTemplates.passwordChanged(u.getDisplayName(), "by an administrator")
+                emailTemplates.passwordChanged("by an administrator")
             );
             return ResponseEntity.ok(Map.of("message", "Password updated"));
         }).orElse(ResponseEntity.notFound().build());

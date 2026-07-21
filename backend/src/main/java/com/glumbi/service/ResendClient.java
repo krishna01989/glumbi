@@ -21,11 +21,7 @@ public class ResendClient {
     @Value("${resend.from}")    private String from;
 
     public void send(String to, String subject, String html) {
-        if (apiKey == null || apiKey.isBlank()) {
-            System.err.println("[ResendClient] RESEND_API_KEY is not set — skipping email to " + to);
-            return;
-        }
-        System.out.println("[ResendClient] Sending email to " + to + " from " + from);
+        if (apiKey == null || apiKey.isBlank()) return;
         webClientBuilder.build()
             .post()
             .uri("https://api.resend.com/emails")
@@ -41,7 +37,7 @@ public class ResendClient {
             .bodyToMono(String.class)
             .timeout(Duration.ofSeconds(5))
             .subscribe(
-                ok  -> System.out.println("[ResendClient] Email sent to " + to + " — response: " + ok),
+                ok  -> {},
                 err -> System.err.println("[ResendClient] Failed to send email to " + to + ": " + err.getMessage())
             );
     }

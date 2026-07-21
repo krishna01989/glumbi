@@ -168,7 +168,7 @@ public class AuthController {
             resendClient.send(
                 user.getEmail(),
                 "Reset your Glumbi password",
-                emailTemplates.passwordReset(user.getDisplayName(), resetUrl)
+                emailTemplates.passwordReset(resetUrl)
             );
         });
 
@@ -222,7 +222,7 @@ public class AuthController {
         resendClient.send(
             user.getEmail(),
             "Your Glumbi password was changed",
-            emailTemplates.passwordChanged(user.getDisplayName(), "via a password reset link")
+            emailTemplates.passwordChanged("via a password reset link")
         );
 
         prt.setUsed(true);

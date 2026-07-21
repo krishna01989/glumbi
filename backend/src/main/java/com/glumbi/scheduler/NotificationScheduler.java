@@ -261,7 +261,7 @@ public class NotificationScheduler {
             resendClient.send(
                 user.getEmail(),
                 "🌟 " + child.getName() + "'s week on Glumbi",
-                emailTemplates.weeklyRecap(user.getDisplayName(), child.getName(), progressText)
+                emailTemplates.weeklyRecap(child.getName(), progressText)
             );
         }
 

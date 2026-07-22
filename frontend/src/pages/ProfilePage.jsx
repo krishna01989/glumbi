@@ -58,12 +58,14 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError]     = useState('')
   const [showDelete, setShowDelete]       = useState(false)
+  const [marketingEmails, setMarketingEmails] = useState(true)
+  const [marketingLoading, setMarketingLoading] = useState(false)
 
   const [quota,     setQuota]     = useState(null)
   const [breakdown, setBreakdown] = useState(null)
 
   useEffect(() => {
-    userApi.getProfile().then(setProfile).finally(() => setLoading(false))
+    userApi.getProfile().then(p => { setProfile(p); setMarketingEmails(p.marketingEmailsEnabled ?? true) }).finally(() => setLoading(false))
     voiceApi.list().then(setVoices).catch(() => {})
     userApi.quota().then(setQuota).catch(() => {})
     userApi.creditBreakdown().then(setBreakdown).catch(() => {})
@@ -477,6 +479,40 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
             {voiceMsg.type === 'success' ? '✅' : '🚫'} {voiceMsg.text}
           </div>
         )}
+      </div>
+
+      {/* Email notifications */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 20px' }}>
+        <div style={{ flex: 1, height: 1, background: '#e0e0e0' }} />
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Notifications</span>
+        <div style={{ flex: 1, height: 1, background: '#e0e0e0' }} />
+      </div>
+      <div style={{ background: '#fff', border: '1.5px solid #e0e0e0', borderRadius: 16, padding: '18px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#1a1a2e', marginBottom: 3 }}>Product updates & activity emails</div>
+          <div style={{ fontSize: 13, color: '#888' }}>Weekly activity recaps, quiet-week nudges, and product announcements. Account and security emails are always sent regardless.</div>
+        </div>
+        <button
+          disabled={marketingLoading}
+          onClick={async () => {
+            setMarketingLoading(true)
+            try {
+              const next = !marketingEmails
+              await userApi.updateMarketingEmails(next)
+              setMarketingEmails(next)
+            } finally {
+              setMarketingLoading(false)
+            }
+          }}
+          style={{
+            flexShrink: 0, width: 48, height: 28, borderRadius: 14, border: 'none', cursor: marketingLoading ? 'not-allowed' : 'pointer',
+            background: marketingEmails ? '#ff6b6b' : '#e0e0e0', position: 'relative', transition: 'background 0.2s',
+          }}>
+          <div style={{
+            position: 'absolute', top: 3, left: marketingEmails ? 23 : 3, width: 22, height: 22,
+            borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+          }} />
+        </button>
       </div>
 
       {/* Danger zone divider */}

@@ -47,6 +47,9 @@ public class AppUser {
     @Column(nullable = true, columnDefinition = "boolean default false")
     private boolean onHold = false;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean marketingEmailsEnabled = true;
+
     @Column(columnDefinition = "TEXT")
     private String holdReason;
 

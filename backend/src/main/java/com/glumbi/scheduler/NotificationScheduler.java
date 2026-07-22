@@ -123,7 +123,7 @@ public class NotificationScheduler {
                 if (user.isAdminOrAbove()) continue;
                 List<Child> children = childRepository.findByOwnerId(user.getId());
                 if (children.isEmpty()) {
-                    if (runWeeklyEmail) {
+                    if (runWeeklyEmail && user.isMarketingEmailsEnabled()) {
                         resendClient.send(
                             user.getEmail(),
                             "👋 Your Glumbi adventure hasn't started yet",
@@ -200,7 +200,7 @@ public class NotificationScheduler {
                 || !weekWritings.isEmpty() || !weekLearn.isEmpty()
                 || !weekCuriosities.isEmpty() || !weekJournals.isEmpty();
         if (!anyActivity) {
-            if (runWeeklyEmail) {
+            if (runWeeklyEmail && user.isMarketingEmailsEnabled()) {
                 resendClient.send(
                     user.getEmail(),
                     "A quiet week for " + child.getName() + " 😴",
@@ -276,7 +276,7 @@ public class NotificationScheduler {
         }
 
         // Weekly recap email — reuses progress report text, zero extra Claude call
-        if (runWeeklyEmail && progressText != null) {
+        if (runWeeklyEmail && progressText != null && user.isMarketingEmailsEnabled()) {
             resendClient.send(
                 user.getEmail(),
                 "🌟 " + child.getName() + "'s week on Glumbi",

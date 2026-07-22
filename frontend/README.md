@@ -300,6 +300,13 @@ The listen button opens a language picker popup that includes:
 - When a custom voice is selected, `?familyVoiceId=<id>` is passed to the backend listen URL instead of a WaveNet voice name
 - **Practice mode (AI off) + listen**: allowed only if the story already has a cached R2 URL (free redirect). First-time listens are blocked with a friendly message — they would cost a TTS call. The check uses `story.audioUrls` (returned in the story JSON) to decide before making any API call.
 
+### Email Notification Preference (`ProfilePage.jsx`)
+
+- Toggle switch under a "Notifications" section above the danger zone.
+- Controls `marketingEmailsEnabled` — weekly activity emails and announcements. Account/security emails always fire.
+- Toggle is **local state only** — the `PATCH /api/users/me/marketing-emails` call fires only on explicit Save, not on toggle.
+- On load, `GET /api/users/me` returns `marketingEmailsEnabled` which seeds the toggle state.
+
 ### Custom Story Voices (`ProfilePage.jsx`)
 
 Parents manage up to 5 named voices from My Account → Story Voices:

@@ -91,9 +91,10 @@ public class UserController {
         AppUser user = userRepository.findById(authUser.id())
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return ResponseEntity.ok(Map.of(
-            "email",      user.getEmail(),
-            "authMethod", user.getGoogleSub() != null ? "google" : "password",
-            "joinedAt",   user.getCreatedAt().toString()
+            "email",                   user.getEmail(),
+            "authMethod",              user.getGoogleSub() != null ? "google" : "password",
+            "joinedAt",                user.getCreatedAt().toString(),
+            "marketingEmailsEnabled",  user.isMarketingEmailsEnabled()
         ));
     }
 
@@ -207,6 +208,19 @@ public class UserController {
             "month",    now.toString(),
             "children", breakdown
         ));
+    }
+
+    @PatchMapping("/me/marketing-emails")
+    public ResponseEntity<?> updateMarketingEmails(
+            @AuthenticationPrincipal AuthUser authUser,
+            @RequestBody Map<String, Boolean> body) {
+        AppUser user = userRepository.findById(authUser.id())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        Boolean enabled = body.get("enabled");
+        if (enabled == null) return ResponseEntity.badRequest().body(Map.of("error", "Missing 'enabled' field"));
+        user.setMarketingEmailsEnabled(enabled);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("marketingEmailsEnabled", enabled));
     }
 
     @DeleteMapping("/me")

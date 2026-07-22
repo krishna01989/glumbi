@@ -109,7 +109,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 | `WritingController` | `/api/writing` | Submit writing, get feedback, `POST /{id}/continue` generates a story continuation suggestion (not saved) |
 | `LearnController` | `/api/learn` | Letter validation (vision AI), word identification, TTS audio for letters |
 | `ChildController` | `/api/children` | Child profile management; `POST /{id}/checkin` updates the daily streak counter |
-| `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`) |
+| `UserController` | `/api/users` | Parent quota (`/me/quota` reads counter), per-child credit breakdown (`/me/credit-breakdown` reads `AiUsageLog`). `GET /me` returns `marketingEmailsEnabled`. `PATCH /me/marketing-emails` toggles per-user email opt-out. |
 | `FamilyVoiceController` | `/api/voices` | CRUD for custom story voices — list, create (upload + clone via ElevenLabs), rename, delete. Capped at 5 voices per family. |
 | `TraceController` | `/api/trace` | `POST /generate` — calls `TraceAgent` to produce a maze theme (emojis, story, bg colour) for the Maze feature. Feature key: `maze`. |
 | `RiddleController` | `/api/riddle` | `POST /generate` — calls `RiddleAgent` to produce 5 age-appropriate riddles. Feature key: `riddle`. |
@@ -461,7 +461,7 @@ All emails sent via `ResendClient` (fire-and-forget WebClient). `send()` uses 5s
 | `account-released.html` | Admin reinstates account | `AdminController.releaseUser` |
 | `account-deleted-by-admin.html` | Admin deletes a user | `AdminController.deleteUser` — email captured before deletion |
 | `account-deleted-self.html` | User deletes own account | `UserController.deleteAccount` — email captured before deletion |
-| `announcement.html` | Admin broadcast to all app users | `AdminController.POST /api/admin/announcements/send` — batched via `sendBatch()` in `CompletableFuture.runAsync()`; returns `{ queued: N }` immediately |
+| `announcement.html` | Admin broadcast to all app users | `AdminController.POST /api/admin/announcements/send` — batched via `sendBatch()` in `CompletableFuture.runAsync()`; returns `{ queued: N }` immediately. Only sent to users with `marketingEmailsEnabled = true`. |
 
 ---
 

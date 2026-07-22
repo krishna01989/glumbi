@@ -2272,34 +2272,27 @@ function Announcements() {
   const [headline,     setHeadline]     = useState('')
   const [status,       setStatus]       = useState(null) // null | 'sending' | { sent: N } | 'error'
   const [showPreview,  setShowPreview]  = useState(false)
-  const editorRef = useRef(null)
+  const [floatingBar,  setFloatingBar]  = useState(null) // { top, left } | null
+  const editorRef  = useRef(null)
   const previewRef = useRef(null)
-  const isMobile = useIsMobile()
-
-  const TOOLBAR = [
-    { cmd: 'bold',        icon: <strong>B</strong>,  title: 'Bold' },
-    { cmd: 'italic',      icon: <em>I</em>,          title: 'Italic' },
-    { cmd: 'underline',   icon: <u>U</u>,            title: 'Underline' },
-    { cmd: 'insertUnorderedList', icon: '☰',         title: 'Bullet list' },
-    { cmd: 'insertOrderedList',   icon: '1.',         title: 'Numbered list' },
-  ]
+  const floatRef   = useRef(null)
+  const isMobile   = useIsMobile()
 
   function execCmd(cmd, value) {
     editorRef.current.focus()
     document.execCommand(cmd, false, value ?? null)
     syncPreview()
+    updateFloatingBar()
   }
 
-  function insertHeading() {
+  function formatBlock(tag) {
     editorRef.current.focus()
-    document.execCommand('formatBlock', false, 'h3')
+    const sel = window.getSelection()
+    const block = sel?.anchorNode?.parentElement?.closest('h1,h2,h3,p,div')
+    const current = block?.tagName?.toLowerCase()
+    document.execCommand('formatBlock', false, current === tag ? 'p' : tag)
     syncPreview()
-  }
-
-  function insertDivider() {
-    editorRef.current.focus()
-    document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">')
-    syncPreview()
+    setTimeout(updateFloatingBar, 0)
   }
 
   function insertLink() {
@@ -2307,10 +2300,47 @@ function Announcements() {
     if (url) execCmd('createLink', url)
   }
 
+  function insertDivider() {
+    editorRef.current.focus()
+    document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"><p><br></p>')
+    syncPreview()
+    setFloatingBar(null)
+  }
+
   function syncPreview() {
-    if (previewRef.current && editorRef.current) {
+    if (previewRef.current && editorRef.current)
       previewRef.current.innerHTML = editorRef.current.innerHTML
+  }
+
+  function updateFloatingBar() {
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+      setFloatingBar(null)
+      return
     }
+    if (!editorRef.current?.contains(sel.anchorNode)) { setFloatingBar(null); return }
+    const rect     = sel.getRangeAt(0).getBoundingClientRect()
+    const barW     = 270 // approximate horizontal toolbar width
+    const margin   = 8
+    const vertical = window.innerWidth < barW + margin * 2
+    const rawLeft  = rect.left + window.scrollX + rect.width / 2
+    const left     = vertical ? margin : Math.min(Math.max(rawLeft, barW / 2 + margin), window.innerWidth - barW / 2 - margin)
+    const top      = rect.top + window.scrollY - (vertical ? rect.height + 8 : 48)
+    setFloatingBar({ top, left, vertical })
+  }
+
+  function handleSelectionChange() {
+    // small delay so selection is settled
+    setTimeout(updateFloatingBar, 10)
+  }
+
+  function isActive(cmd) {
+    try { return document.queryCommandState(cmd) } catch { return false }
+  }
+
+  function currentBlock() {
+    const sel = window.getSelection()
+    return sel?.anchorNode?.parentElement?.closest('h1,h2,h3,p,div')?.tagName?.toLowerCase() ?? 'p'
   }
 
   async function handleSend() {
@@ -2330,15 +2360,16 @@ function Announcements() {
   }
 
   function handleReset() {
-    setSubject(''); setHeadline(''); setStatus(null)
+    setSubject(''); setHeadline(''); setStatus(null); setFloatingBar(null)
     if (editorRef.current) editorRef.current.innerHTML = ''
     if (previewRef.current) previewRef.current.innerHTML = ''
   }
 
-  const btnStyle = (active) => ({
-    padding: '5px 10px', borderRadius: 6, border: '1.5px solid #e0e0e0',
-    background: active ? '#f1f5f9' : '#fff', cursor: 'pointer',
-    fontSize: 13, fontWeight: 700, color: '#1a1a2e', lineHeight: 1.2,
+  const fbBtn = (active) => ({
+    background: active ? '#f1f5f9' : 'transparent',
+    border: 'none', borderRadius: 4, color: '#1a1a2e',
+    padding: '4px 8px', cursor: 'pointer', fontSize: 13, fontWeight: 700, lineHeight: 1.3,
+    whiteSpace: 'nowrap',
   })
 
   return (
@@ -2376,24 +2407,76 @@ function Announcements() {
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none' }} />
             </div>
 
-            {/* Toolbar */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6, padding: '8px 10px', background: '#f8fafc', borderRadius: '8px 8px 0 0', border: '1.5px solid #e0e0e0', borderBottom: 'none' }}>
-              {TOOLBAR.map(t => (
-                <button key={t.cmd} onMouseDown={e => { e.preventDefault(); execCmd(t.cmd) }} title={t.title} style={btnStyle(false)}>{t.icon}</button>
+            {/* Bottom toolbar — block-level actions that don't need selection */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6, padding: '8px 10px', background: '#f8fafc', borderRadius: '8px 8px 0 0', border: '1.5px solid #e0e0e0', borderBottom: 'none', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#aaa', marginRight: 4, fontWeight: 600 }}>INSERT</span>
+              {[
+                { label: '• List',  cmd: () => execCmd('insertUnorderedList') },
+                { label: '1. List', cmd: () => execCmd('insertOrderedList') },
+                { label: '— Rule',  cmd: insertDivider },
+              ].map(t => (
+                <button key={t.label} onMouseDown={e => { e.preventDefault(); t.cmd() }}
+                  style={{ padding: '5px 10px', borderRadius: 6, border: '1.5px solid #e0e0e0', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#1a1a2e', lineHeight: 1.2 }}>
+                  {t.label}
+                </button>
               ))}
-              <button onMouseDown={e => { e.preventDefault(); insertHeading() }} title="Heading" style={btnStyle(false)}>H3</button>
-              <button onMouseDown={e => { e.preventDefault(); insertLink() }} title="Link" style={btnStyle(false)}>🔗</button>
-              <button onMouseDown={e => { e.preventDefault(); insertDivider() }} title="Divider" style={btnStyle(false)}>—</button>
+              <span style={{ fontSize: 11, color: '#bbb', marginLeft: 8 }}>Select text for formatting options</span>
             </div>
 
-            {/* Editable body */}
-            <div
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={syncPreview}
-              style={{ minHeight: 220, padding: '14px 16px', border: '1.5px solid #e0e0e0', borderRadius: '0 0 8px 8px', fontSize: 14, lineHeight: 1.8, fontFamily: 'Nunito, sans-serif', color: '#333', outline: 'none', background: '#fff' }}
-            />
+            {/* Editable body — position:relative so floating bar is anchored to it */}
+            <style>{`
+              .glm-editor h2 { margin:14px 0 4px; font-size:18px; font-weight:800; color:#1a1a2e; }
+              .glm-editor h3, .glm-preview h3 { margin:12px 0 4px; font-size:15px; font-weight:800; color:#1a1a2e; }
+              .glm-preview h2 { margin:14px 0 4px; font-size:18px; font-weight:800; color:#1a1a2e; }
+              .glm-editor ul, .glm-preview ul { margin:6px 0; padding-left:20px; }
+              .glm-editor ol, .glm-preview ol { margin:6px 0; padding-left:20px; }
+              .glm-editor a,  .glm-preview a  { color:#ff6b6b; }
+            `}</style>
+            <div style={{ position: 'relative' }}>
+              {/* Floating selection toolbar */}
+              {floatingBar && (
+                <div ref={floatRef}
+                  onMouseDown={e => e.preventDefault()}
+                  style={{
+                    position: 'fixed',
+                    top: floatingBar.top,
+                    left: floatingBar.left,
+                    transform: floatingBar.vertical ? 'none' : 'translateX(-50%)',
+                    background: '#fff',
+                    border: '1.5px solid #e0e0e0',
+                    borderRadius: 8,
+                    padding: '4px 6px',
+                    display: 'flex',
+                    flexDirection: floatingBar.vertical ? 'column' : 'row',
+                    gap: floatingBar.vertical ? 4 : 2,
+                    alignItems: floatingBar.vertical ? 'stretch' : 'center',
+                    zIndex: 9999,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                    whiteSpace: 'nowrap',
+                  }}>
+                  <button onMouseDown={e => { e.preventDefault(); execCmd('bold') }}        style={fbBtn(isActive('bold'))}>B</button>
+                  <button onMouseDown={e => { e.preventDefault(); execCmd('italic') }}      style={fbBtn(isActive('italic'))}><em>I</em></button>
+                  <button onMouseDown={e => { e.preventDefault(); execCmd('underline') }}   style={fbBtn(isActive('underline'))}><u>U</u></button>
+                  <div style={{ width: 1, background: 'rgba(255,255,255,0.2)', height: 18, margin: '0 2px' }} />
+                  <button onMouseDown={e => { e.preventDefault(); formatBlock('h2') }}      style={fbBtn(currentBlock() === 'h2')}>H2</button>
+                  <button onMouseDown={e => { e.preventDefault(); formatBlock('h3') }}      style={fbBtn(currentBlock() === 'h3')}>H3</button>
+                  <div style={{ width: 1, background: 'rgba(255,255,255,0.2)', height: 18, margin: '0 2px' }} />
+                  <button onMouseDown={e => { e.preventDefault(); insertLink() }}           style={fbBtn(false)}>🔗</button>
+                  <button onMouseDown={e => { e.preventDefault(); execCmd('strikeThrough') }} style={fbBtn(isActive('strikeThrough'))} title="Strikethrough"><s>S</s></button>
+                  {/* small arrow below */}
+                </div>
+              )}
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={syncPreview}
+                onMouseUp={handleSelectionChange}
+                onKeyUp={handleSelectionChange}
+                className="glm-editor"
+                style={{ minHeight: 220, padding: '14px 16px', border: '1.5px solid #e0e0e0', borderRadius: '0 0 8px 8px', fontSize: 14, lineHeight: 1.8, fontFamily: 'Nunito, sans-serif', color: '#333', outline: 'none', background: '#fff' }}
+              />
+            </div>
 
             {/* Send row */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
@@ -2407,7 +2490,7 @@ function Announcements() {
                 onClick={handleSend}
                 disabled={status === 'sending' || !subject.trim() || !headline.trim()}
                 style={{ marginLeft: 'auto', background: status === 'sending' ? '#ccc' : 'linear-gradient(135deg,#ff6b6b,#ff8e53)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 800, fontSize: 14, cursor: status === 'sending' ? 'not-allowed' : 'pointer' }}>
-                {status === 'sending' ? 'Sending…' : '📣 Send Announcement'}
+                {status === 'sending' ? 'Sending…' : '📣 Send'}
               </button>
             </div>
 
@@ -2435,7 +2518,7 @@ function Announcements() {
                   <h2 style={{ margin: '0 0 24px', fontSize: 22, fontWeight: 800, color: '#1a1a2e' }}>
                     {headline || <span style={{ color: '#ccc', fontWeight: 400 }}>Headline will appear here</span>}
                   </h2>
-                  <div ref={previewRef} style={{ fontSize: 15, color: '#333333', lineHeight: 1.8, minHeight: 40 }} />
+                  <div ref={previewRef} className="glm-preview" style={{ fontSize: 15, color: '#333333', lineHeight: 1.8, minHeight: 40 }} />
                   <p style={{ margin: '28px 0 0', fontSize: 14, color: '#555555', lineHeight: 1.8 }}>
                     Warm regards,<br /><strong>The Glumbi Team</strong>
                   </p>

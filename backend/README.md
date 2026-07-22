@@ -114,7 +114,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 | `TraceController` | `/api/trace` | `POST /generate` — calls `TraceAgent` to produce a maze theme (emojis, story, bg colour) for the Maze feature. Feature key: `maze`. |
 | `RiddleController` | `/api/riddle` | `POST /generate` — calls `RiddleAgent` to produce 5 age-appropriate riddles. Feature key: `riddle`. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
-| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. |
+| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. Sends transactional emails on hold (`PATCH /users/{id}/hold`), release (`PATCH /users/{id}/release`), and delete (`DELETE /users/{id}`). |
 
 ---
 
@@ -441,6 +441,26 @@ ALTER TABLE app_users ADD CONSTRAINT app_users_role_check
 | `POST /api/auth/reset-password` | Validates token expiry (UTC), enforces password policy (`8+ chars, uppercase, number, special char`), marks token used, updates password hash, sends password-changed email with context "via a password reset link". |
 
 Password policy regex: `^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]).{8,}$` — same as registration.
+
+---
+
+### Transactional Emails
+
+All emails sent via `ResendClient` (fire-and-forget WebClient, 5s timeout). Templates rendered by `EmailTemplates` using Thymeleaf. All use email-safe HTML (table layout, no CSS gradients/border-radius), coral theme (`#ff6b6b`), Nunito font, Glumbi logo from `https://glumbi.com/logo.svg`.
+
+| Template | Trigger | Fired from |
+|---|---|---|
+| `onboarding.html` | New account created | `AuthController.register` + `AuthController.googleLogin` (new user only) |
+| `password-reset.html` | Forgot password request | `AuthController.forgotPassword` |
+| `password-changed.html` | Password changed | `AuthController.resetPassword` (context: "via a password reset link"), `UserController.changePassword` (context: "by you"), `AdminController.resetPassword` (context: "by an administrator") |
+| `weekly-recap.html` | Child has activity this week | `NotificationScheduler` — reuses `ProgressReportAgent` output |
+| `quiet-week.html` | Child has no activity this week | `NotificationScheduler` — 8 rotating messages via `ThreadLocalRandom` |
+| `no-child.html` | Parent has no children added | `NotificationScheduler` — 7 rotating messages via `ThreadLocalRandom` |
+| `quota-warning.html` | Credits at 80% or 100% | `ApiQuotaService.consumeCredits` — once per month per threshold, guarded by `quotaWarnMonth` / `quotaExhaustedMonth` on `AppUser` |
+| `account-on-hold.html` | Admin suspends account | `AdminController.holdUser` — reason is **not** included in email (internal only) |
+| `account-released.html` | Admin reinstates account | `AdminController.releaseUser` |
+| `account-deleted-by-admin.html` | Admin deletes a user | `AdminController.deleteUser` — email captured before deletion |
+| `account-deleted-self.html` | User deletes own account | `UserController.deleteAccount` — email captured before deletion |
 
 ---
 

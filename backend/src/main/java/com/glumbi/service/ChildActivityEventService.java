@@ -258,6 +258,13 @@ public class ChildActivityEventService {
         if (!themeRows.isEmpty() && themeRows.get(0)[0] != null) topMemoryTheme = themeRows.get(0)[0].toString();
         // Draw: animate count
         long drawAnimateCount = repo.countByChildFeatureEventType(childId, "draw", "animate", from);
+        // Glumbi Guide: stories
+        long glumbiMidChoices      = repo.countByChildFeatureEventType(childId, "stories",   "glumbi_mid_choice",         from);
+        long glumbiEpilogues       = repo.countByChildFeatureEventType(childId, "stories",   "glumbi_epilogue_requested", from);
+        long glumbiPostResponses   = repo.countByChildFeatureEventType(childId, "stories",   "glumbi_post_response",      from);
+        // Glumbi Guide: readquiz + curiosity
+        long glumbiQuizReady       = repo.countByChildFeatureEventType(childId, "readquiz",  "glumbi_ready",              from);
+        long glumbiFollowupChoices = repo.countByChildFeatureEventType(childId, "curiosity", "glumbi_followup_choice",    from);
 
         result.put("accuracyByFeature",      accuracyByFeature);
         result.put("completionsByFeature",   completionsByFeature);
@@ -273,7 +280,12 @@ public class ChildActivityEventService {
         result.put("learnFavoriteScript",    favoriteScript);
         result.put("mywritingAvgWordCount",  mywritingAvgWords != null ? mywritingAvgWords.longValue() : null);
         result.put("topMemoryMatchTheme",    topMemoryTheme);
-        result.put("drawAnimateCount",       drawAnimateCount);
+        result.put("drawAnimateCount",         drawAnimateCount);
+        result.put("glumbiMidChoices",         glumbiMidChoices);
+        result.put("glumbiEpilogues",          glumbiEpilogues);
+        result.put("glumbiPostResponses",      glumbiPostResponses);
+        result.put("glumbiQuizReady",          glumbiQuizReady);
+        result.put("glumbiFollowupChoices",    glumbiFollowupChoices);
         result.put("totalEvents",            total);
         result.put("totalSessions",          totalSessions);
         result.put("onlineCount",            online);
@@ -433,6 +445,17 @@ public class ChildActivityEventService {
         result.put("learnPracticeCount",     adminLearnPractice);
         result.put("learnTranslationPlays",  adminLearnTranslations);
         result.put("learnFavoriteScript",    adminTopScript);
+        // Glumbi Guide platform-wide
+        long adminGlumbiMidChoices    = repo.countByFeatureEventTypeSince("stories",   "glumbi_mid_choice",         from);
+        long adminGlumbiEpilogues     = repo.countByFeatureEventTypeSince("stories",   "glumbi_epilogue_requested", from);
+        long adminGlumbiPostResponses = repo.countByFeatureEventTypeSince("stories",   "glumbi_post_response",      from);
+        long adminGlumbiQuizReady     = repo.countByFeatureEventTypeSince("readquiz",  "glumbi_ready",              from);
+        long adminGlumbiFollowups     = repo.countByFeatureEventTypeSince("curiosity", "glumbi_followup_choice",    from);
+        result.put("glumbiMidChoices",       adminGlumbiMidChoices);
+        result.put("glumbiEpilogues",        adminGlumbiEpilogues);
+        result.put("glumbiPostResponses",    adminGlumbiPostResponses);
+        result.put("glumbiQuizReady",        adminGlumbiQuizReady);
+        result.put("glumbiFollowupChoices",  adminGlumbiFollowups);
         result.put("totalCreditsUsed",       totalCreditsUsed);
         return result;
     }

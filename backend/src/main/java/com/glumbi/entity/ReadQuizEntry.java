@@ -43,6 +43,12 @@ public class ReadQuizEntry {
     private Integer score;          // 0-3, null until submitted
     private boolean completed = false;
 
+    // Glumbi guide fields
+    @Column(columnDefinition = "TEXT")
+    private String glumbiIntro;         // pre-reading teaser line
+    @Column(columnDefinition = "TEXT")
+    private String glumbiScoreComment;  // score-aware post-quiz comment (3 lines separated by |)
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 }

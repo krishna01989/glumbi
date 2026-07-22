@@ -22,13 +22,15 @@ public class ReadQuizService {
     private final ReadQuizRepository repo;
     private final ChildService childService;
     private final ReadQuizAgent agent;
+    private final GlumbiMemoryService glumbiMemory;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public ReadQuizEntry generate(ReadQuizRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
         int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
-        ReadQuizAgent.ReadQuizResult result = agent.generate(child.getName(), age, req.getTopic());
+        String memory = glumbiMemory.getMemoryContext(child.getId());
+        ReadQuizAgent.ReadQuizResult result = agent.generate(child.getName(), age, req.getTopic(), memory);
 
         ReadQuizEntry entry = new ReadQuizEntry();
         entry.setChild(child);
@@ -42,6 +44,8 @@ public class ReadQuizService {
         } catch (Exception e) {
             entry.setQuestionsJson("[]");
         }
+        entry.setGlumbiIntro(result.glumbiIntro());
+        entry.setGlumbiScoreComment(result.glumbiScoreComment());
         return repo.save(entry);
     }
 

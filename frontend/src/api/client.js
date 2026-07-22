@@ -96,12 +96,14 @@ export const storyApi = {
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
   getSimilar:     (id)                => api.get(`/stories/${id}/similar`).then(r => r.data),
   translate:      (id, language)      => api.get(`/stories/${id}/translate?language=${language}`).then(r => r.data),
-  listenUrl:      (id, language, voice, familyVoiceId) => {
+  listenUrl:      (id, language, voice, familyVoiceId, part, branch) => {
     const token = localStorage.getItem('glm_token')
     const base = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
     const v  = voice ? `&voice=${encodeURIComponent(voice)}` : ''
     const fv = familyVoiceId ? `&familyVoiceId=${familyVoiceId}` : ''
-    return `${base}/stories/${id}/listen?language=${language}${v}${fv}&token=${token}`
+    const p  = part ? `&part=${part}` : ''
+    const b  = part === 2 && branch != null ? `&branch=${branch === 1 ? 'b' : 'a'}` : ''
+    return `${base}/stories/${id}/listen?language=${language}${v}${fv}${p}${b}&token=${token}`
   },
   delete:         (id)                => api.delete(`/stories/${id}`).then(r => r.data).catch(() => null),
 }

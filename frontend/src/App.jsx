@@ -33,8 +33,8 @@ const NAV_GROUPS = [
     id: 'stories', label: 'Stories', emoji: '📖',
     items: [
       { path: 'stories',   label: 'Stories',     emoji: '📖', id: 'tour-stories-tab'  },
-      { path: 'mywriting', label: 'My Writing',  emoji: '✍️', id: 'tour-writing-tab'  },
       { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚', id: 'tour-readquiz-tab' },
+      { path: 'mywriting', label: 'My Writing',  emoji: '✍️', id: 'tour-writing-tab'  },
     ]
   },
   {

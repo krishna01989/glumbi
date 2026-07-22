@@ -142,6 +142,8 @@ public class StoryController {
             @RequestParam(required = false) String voice,
             @RequestParam(required = false) Long familyVoiceId,
             @RequestParam(required = false) String token,
+            @RequestParam(required = false) Integer part,
+            @RequestParam(required = false) String branch,
             @AuthenticationPrincipal AuthUser authUser,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader) {
         try {
@@ -153,8 +155,13 @@ public class StoryController {
                     elVoiceId = fv.getElevenLabsVoiceId();
                 }
             }
+            // part=1 or part=2 scopes audio to a Glumbi half; branch=a|b selects the chosen story branch for part2
+            String partSuffix = "";
+            if (part != null && part == 1) partSuffix = ":p1";
+            else if (part != null && part == 2) partSuffix = "b".equalsIgnoreCase(branch) ? ":p2b" : ":p2a";
             String cacheKey = id + ":" + language.toLowerCase()
-                    + (elVoiceId != null ? ":el:" + elVoiceId : (voice != null ? ":" + voice : ""));
+                    + (elVoiceId != null ? ":el:" + elVoiceId : (voice != null ? ":" + voice : ""))
+                    + partSuffix;
 
             // 1. Hot in-memory cache hit — serve bytes directly (Range-request friendly)
             byte[] audio = audioCache.getIfPresent(cacheKey);
@@ -175,14 +182,31 @@ public class StoryController {
                 }
                 Story story = service.getById(id);
                 Long listenChildId = story.getChild() != null ? story.getChild().getId() : null;
+                // Select the right content slice for Glumbi parts
+                String rawContent = story.getContent();
+                if (part != null && part == 1 && story.getStoryPart1() != null && !story.getStoryPart1().isBlank()) {
+                    rawContent = story.getStoryPart1();
+                } else if (part != null && part == 2) {
+                    // Prefer the chosen branch; fall back to the other branch, then legacy storyPart2
+                    String branchA = story.getStoryPart2A();
+                    String branchB = story.getStoryPart2B();
+                    String legacy  = story.getStoryPart2();
+                    if ("b".equalsIgnoreCase(branch) && branchB != null && !branchB.isBlank()) {
+                        rawContent = branchB;
+                    } else if (!"b".equalsIgnoreCase(branch) && branchA != null && !branchA.isBlank()) {
+                        rawContent = branchA;
+                    } else if (legacy != null && !legacy.isBlank()) {
+                        rawContent = legacy; // old stories without branching
+                    }
+                }
                 String title, content;
                 if ("english".equalsIgnoreCase(language)) {
                     title   = story.getTitle();
-                    content = story.getContent();
+                    content = rawContent;
                 } else {
                     // Translation credit charged after the Anthropic call completes (cache miss only)
                     TranslationAgent.TranslationResult translated =
-                            translationAgent.translate(story.getTitle(), story.getContent(), language);
+                            translationAgent.translate(story.getTitle(), rawContent, language);
                     if (authUser != null) {
                         quotaService.tryConsume(authUser.id(), "translation", listenChildId);
                     }

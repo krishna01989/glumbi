@@ -108,7 +108,7 @@ public class WritingController {
         String name = child != null ? child.getName() : "you";
         StoryAgent.StoryResult storyResult;
         try {
-            storyResult = storyAgent.continueStory(name, age, gender, entry.getTitle(), entry.getContent(), "adventure");
+            storyResult = storyAgent.continueStory(name, age, gender, entry.getTitle(), entry.getContent(), "adventure", "");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not continue story"));
         }

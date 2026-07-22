@@ -20,7 +20,7 @@ public class ReadQuizAgent {
     @Value("${anthropic.model}")                 private String model;
     @Value("${anthropic.max-tokens.read-quiz}")  private int maxTokens;
 
-    public ReadQuizResult generate(String childName, int childAge, String topic) {
+    public ReadQuizResult generate(String childName, int childAge, String topic, String glumbiMemory) {
         relevance.validate(topic, RelevanceGuard.Context.STORY);
         safety.validateInput(topic);
 
@@ -30,10 +30,20 @@ public class ReadQuizAgent {
         String prompt = String.format(promptLoader.load("read-quiz-user"),
                 childName, childAge, topic, childAge);
 
+        String glumbiInstructions = """
+            Also return these Glumbi guide fields in the same JSON:
+            - "glumbiIntro": one short enthusiastic line Glumbi says before the child reads (max 12 words, no spoilers, builds excitement)
+            - "glumbiScoreComment0": Glumbi's warm comment if score is 0 (encouraging, not sad, max 15 words)
+            - "glumbiScoreComment1": Glumbi's comment if score is 1 (encouraging, max 15 words)
+            - "glumbiScoreComment2": Glumbi's comment if score is 2 (positive, max 15 words)
+            - "glumbiScoreComment3": Glumbi's comment if score is 3 (celebrate!, max 15 words)
+            """;
+
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", maxTokens);
-        body.putArray("messages").addObject().put("role", "user").put("content", prompt);
+        body.put("max_tokens", maxTokens + 200);
+        String memorySection = (glumbiMemory != null && !glumbiMemory.isBlank()) ? "\n\n" + glumbiMemory : "";
+        body.putArray("messages").addObject().put("role", "user").put("content", prompt + "\n\n" + glumbiInstructions + memorySection);
 
         String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
 
@@ -69,12 +79,18 @@ public class ReadQuizAgent {
                 );
             }
 
+            String glumbiIntro = node.path("glumbiIntro").asText("");
+            String scoreComment = node.path("glumbiScoreComment0").asText("You gave it a great try!")
+                + "|" + node.path("glumbiScoreComment1").asText("Nice work — you're learning!")
+                + "|" + node.path("glumbiScoreComment2").asText("Wow, so close — brilliant!")
+                + "|" + node.path("glumbiScoreComment3").asText("Perfect! You're a superstar! 🌟");
+
             return new ReadQuizResult(
                 node.path("title").asText("A Reading Adventure"),
                 node.path("story").asText(),
                 node.path("readingTime").asText("5 mins"),
                 node.path("lesson").asText("Curiosity"),
-                questions
+                questions, glumbiIntro, scoreComment
             );
         } catch (Exception e) {
             return fallback(topic);
@@ -96,10 +112,12 @@ public class ReadQuizAgent {
         return new ReadQuizResult(
             "The Big Adventure",
             safety.safeFallback("story"),
-            "5 mins", "Courage", qs
+            "5 mins", "Courage", qs,
+            "Ready to read? Let's go!",
+            "You gave it a great try!|Nice work!|So close — brilliant!|Perfect! You're a superstar! 🌟"
         );
     }
 
-    public record ReadQuizResult(String title, String story, String readingTime, String lesson, Question[] questions) {}
+    public record ReadQuizResult(String title, String story, String readingTime, String lesson, Question[] questions, String glumbiIntro, String glumbiScoreComment) {}
     public record Question(String question, String[] options, int correctIndex) {}
 }

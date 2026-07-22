@@ -34,7 +34,7 @@ public class CuriosityAgent {
     @Value("${anthropic.model}")                private String model;
     @Value("${anthropic.max-tokens.curiosity}") private int maxTokens;
 
-    public CuriosityResult explain(String question, String childName, int childAge) {
+    public CuriosityResult explain(String question, String childName, int childAge, String glumbiMemory) {
         // Layer 0 — relevance (is this a child-appropriate curiosity question?)
         relevance.validate(question, RelevanceGuard.Context.CURIOSITY);
         // Layer 1 — safety
@@ -43,12 +43,20 @@ public class CuriosityAgent {
         String prompt = String.format(promptLoader.load("curiosity-user"),
                 childAge, childName, question, childAge, childAge, ageComparisons(childAge));
 
+        String glumbiInstructions = """
+            Also return these Glumbi guide fields in the same JSON:
+            - "glumbiFollowUp": one short "what if" or "I wonder" question Glumbi asks to dig deeper (max 15 words, age-appropriate, curious tone)
+            - "glumbiFollowUpChoices": a JSON array of exactly 2 short imaginative answer choices (each max 6 words)
+            - "glumbiReaction": one warm enthusiastic line Glumbi says after the child picks (works for either choice, max 12 words)
+            """;
+
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
-        body.put("max_tokens", maxTokens);
+        body.put("max_tokens", maxTokens + 150);
 
         ArrayNode messages = body.putArray("messages");
-        messages.addObject().put("role", "user").put("content", prompt);
+        String memorySection = (glumbiMemory != null && !glumbiMemory.isBlank()) ? "\n\n" + glumbiMemory : "";
+        messages.addObject().put("role", "user").put("content", prompt + "\n\n" + glumbiInstructions + memorySection);
 
         String response = anthropicClient.callWithCachedSystem(body,
                 safety.safetySystemPreamble(),
@@ -78,6 +86,8 @@ public class CuriosityAgent {
             text = text.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();
 
             JsonNode node = mapper.readTree(text);
+            JsonNode choicesNode = node.path("glumbiFollowUpChoices");
+            String followUpChoices = choicesNode.isArray() ? choicesNode.toString() : "[\"I wonder!\",\"That's wild!\"]";
             return new CuriosityResult(
                     node.path("funFact1").asText(),
                     node.path("funFact2").asText(),
@@ -87,7 +97,10 @@ public class CuriosityAgent {
                     node.path("quizOption1").asText(),
                     node.path("quizOption2").asText(),
                     node.path("quizOption3").asText(),
-                    node.path("sticker").asText("🌟")
+                    node.path("sticker").asText("🌟"),
+                    node.path("glumbiFollowUp").asText(""),
+                    followUpChoices,
+                    node.path("glumbiReaction").asText("Your brain is amazing! 🌟")
             );
         } catch (Exception e) {
             return safeDefault();
@@ -100,7 +113,8 @@ public class CuriosityAgent {
             "Scientists discover new amazing things every single day!",
             "It's like the world is one big magic trick!",
             "Is the world full of amazing things?",
-            "Yes!", "Yes!", "Maybe", "No", "🌟"
+            "Yes!", "Yes!", "Maybe", "No", "🌟",
+            "", "[\"I wonder!\",\"That's wild!\"]", "Your brain is amazing! 🌟"
         );
     }
 
@@ -108,5 +122,6 @@ public class CuriosityAgent {
             String funFact1, String funFact2, String funFact3,
             String quizQuestion, String quizAnswer,
             String quizOption1, String quizOption2, String quizOption3,
-            String sticker) {}
+            String sticker,
+            String glumbiFollowUp, String glumbiFollowUpChoices, String glumbiReaction) {}
 }

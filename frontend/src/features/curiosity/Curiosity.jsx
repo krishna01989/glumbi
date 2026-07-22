@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { curiosityApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
@@ -61,12 +62,16 @@ const QuizCard = memo(function QuizCard({ entry, onCorrect }) {
   )
 })
 
-function CuriosityCard({ entry, onDelete }) {
+function CuriosityCard({ entry }) {
   const [activeTab, setActiveTab] = useState(null) // null | 'quiz' | 'related'
   const [won, setWon]             = useState(false)
   const [related, setRelated]     = useState(null)
   const [relLoading, setRelLoading] = useState(false)
   const { track } = useTracker()
+
+  // Glumbi follow-up state
+  const [glumbiPicked, setGlumbiPicked] = useState(null) // null | index
+  const [glumbiDone, setGlumbiDone]     = useState(false)
 
   async function selectTab(tab) {
     if (activeTab === tab) {
@@ -101,8 +106,6 @@ function CuriosityCard({ entry, onDelete }) {
             </div>
           </div>
         </div>
-        <button className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => onDelete(entry.id)}>✕</button>
       </div>
 
       {/* 3 fun facts */}
@@ -118,6 +121,60 @@ function CuriosityCard({ entry, onDelete }) {
           </div>
         ))}
       </div>
+
+      {/* ── Glumbi follow-up ── */}
+      {entry.glumbiFollowUp && !glumbiDone && (() => {
+        const gbtn = (label, onClick, solid = true) => (
+          <button onClick={onClick} style={{
+            padding: '9px 20px', borderRadius: 50, fontSize: 14, fontWeight: 800, cursor: 'pointer',
+            border: solid ? 'none' : '2.5px solid var(--primary)',
+            background: solid ? 'var(--primary)' : 'transparent',
+            color: solid ? '#fff' : 'var(--primary)',
+            fontFamily: 'Nunito, sans-serif',
+          }}>{label}</button>
+        )
+        let choices = []
+        try { choices = JSON.parse(entry.glumbiFollowUpChoices || '[]') } catch {}
+
+        return (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: 'var(--primary-lt, #fff8f0)', border: '2px solid var(--primary)', borderRadius: 18, boxShadow: '0 2px 10px rgba(0,0,0,0.07)' }}>
+            <div style={{ fontSize: 28, flexShrink: 0, lineHeight: 1 }}>🌟</div>
+            <div style={{ flex: 1 }}>
+              {glumbiPicked === null ? (
+                <>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.5, marginBottom: 10, fontFamily: 'Nunito, sans-serif' }}>
+                    <strong>Glumbi:</strong> {entry.glumbiFollowUp}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {choices.map((c, i) => (
+                      <button key={i} onClick={() => {
+                        setGlumbiPicked(i)
+                        track('curiosity', 'glumbi_followup_choice', { metadata: { choice: i, choiceText: c, question: entry.glumbiFollowUp } })
+                      }} style={{
+                        padding: '9px 20px', borderRadius: 50, border: '2.5px solid var(--primary)',
+                        fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: 'all 0.15s',
+                        background: 'transparent', color: 'var(--primary)', fontFamily: 'Nunito, sans-serif',
+                      }}>{c}</button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.5, marginBottom: 10, fontFamily: 'Nunito, sans-serif' }}>
+                    <strong>Glumbi:</strong> {entry.glumbiReaction}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {gbtn('Turn into a story! 📖', () => {
+                      navigate(`/child/${child.id}/stories`, { state: { glumbiPrefill: entry.question } })
+                    })}
+                    {gbtn('Bye Glumbi! 🌙', () => setGlumbiDone(true), false)}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Tab content */}
       {activeTab === 'quiz' && (
@@ -181,7 +238,10 @@ export default function Curiosity({ child, quota }) {
   const { track } = useTracker()
   useFeatureDuration('curiosity', track)
   const offline = useOffline()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [entries, setEntries] = useState([])
+  const [selected, setSelected] = useState(null)
   const [question, setQuestion] = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
@@ -189,7 +249,11 @@ export default function Curiosity({ child, quota }) {
   const [entriesTotalPages, setEntriesTotalPages] = useState(1)
   const [entriesLoading, setEntriesLoading]     = useState(false)
 
-  useEffect(() => { fetchEntries(0, true) }, [child.id])
+  useEffect(() => {
+    fetchEntries(0, true); setSelected(null)
+    const prefill = location.state?.glumbiPrefill
+    if (prefill) setQuestion(prefill)
+  }, [child.id])
 
   async function fetchEntries(page, replace) {
     setEntriesLoading(true)
@@ -201,15 +265,15 @@ export default function Curiosity({ child, quota }) {
     } finally { setEntriesLoading(false) }
   }
 
-  async function handleAsk(e) {
-    e.preventDefault()
-    if (!question.trim()) return
+  async function submitQuestion(q) {
+    if (!q.trim()) return
     setLoading(true)
     setError('')
     try {
-      const entry = await curiosityApi.ask({ childId: child.id, question })
+      const entry = await curiosityApi.ask({ childId: child.id, question: q })
       track('curiosity', 'ask')
       setEntries(prev => [entry, ...prev])
+      setSelected(entry)
       setQuestion('')
       window.__glumbiRefreshQuota?.('curiosity')
     } catch (e) {
@@ -217,9 +281,18 @@ export default function Curiosity({ child, quota }) {
     } finally { setLoading(false) }
   }
 
+  async function handleAsk(e) {
+    e.preventDefault()
+    await submitQuestion(question)
+  }
+
   async function handleDelete(id) {
     await curiosityApi.delete(id)
-    setEntries(prev => prev.filter(e => e.id !== id))
+    setEntries(prev => {
+      const next = prev.filter(e => e.id !== id)
+      if (selected?.id === id) setSelected(next[0] ?? null)
+      return next
+    })
   }
 
   return (
@@ -270,18 +343,49 @@ export default function Curiosity({ child, quota }) {
         </div>
       )}
 
+      {/* Selected answer shown inline */}
+      {selected && (
+        <CuriosityCard key={selected.id} entry={selected} />
+      )}
+
       <HistoryDrawer icon="🔍" title="Past Questions" count={entries.length}>
-        {entries.map(entry => (
-          <CuriosityCard key={entry.id} entry={entry} onDelete={handleDelete} />
-        ))}
-        {entriesPage + 1 < entriesTotalPages && (
-          <button onClick={() => fetchEntries(entriesPage + 1, false)} disabled={entriesLoading}
-            style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
-              border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
-              fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: entriesLoading ? 0.6 : 1 }}>
-            {entriesLoading ? 'Loading…' : 'Load more'}
-          </button>
-        )}
+        {close => (<>
+          {entries.map(entry => {
+            const isSelected = selected?.id === entry.id
+            return (
+              <div key={entry.id} onClick={() => { setSelected(entry); close() }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                  borderRadius: 12, cursor: 'pointer',
+                  background: isSelected ? 'var(--primary-lt)' : 'white',
+                  border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid #f0f0f0',
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}>
+                <span style={{ fontSize: 20, flexShrink: 0 }}>{entry.sticker}</span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 700,
+                  color: isSelected ? 'var(--primary)' : '#333',
+                  overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {entry.question}
+                </span>
+                <span style={{ fontSize: 10, color: '#bbb', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  {fmtDate(entry.createdAt)}
+                </span>
+                <button className="btn-danger" onClick={e => { e.stopPropagation(); handleDelete(entry.id) }}
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  ✕
+                </button>
+              </div>
+            )
+          })}
+          {entriesPage + 1 < entriesTotalPages && (
+            <button onClick={() => fetchEntries(entriesPage + 1, false)} disabled={entriesLoading}
+              style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+                border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+                fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: entriesLoading ? 0.6 : 1 }}>
+              {entriesLoading ? 'Loading…' : 'Load more'}
+            </button>
+          )}
+        </>)}
       </HistoryDrawer>
     </div>
   )

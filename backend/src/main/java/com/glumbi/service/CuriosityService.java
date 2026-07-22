@@ -25,13 +25,15 @@ public class CuriosityService {
     private final ChildService           childService;
     private final CuriosityAgent         agent;
     private final CuriosityEmbeddingService embeddingService;
+    private final GlumbiMemoryService    glumbiMemory;
     @Qualifier("embeddingExecutor") private final ExecutorService embeddingExecutor;
 
     public CuriosityEntry explain(CuriosityRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
         int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
 
-        CuriosityAgent.CuriosityResult result = agent.explain(req.getQuestion(), child.getName(), age);
+        String memory = glumbiMemory.getMemoryContext(child.getId());
+        CuriosityAgent.CuriosityResult result = agent.explain(req.getQuestion(), child.getName(), age, memory);
 
         CuriosityEntry entry = new CuriosityEntry();
         entry.setChild(child);
@@ -45,6 +47,9 @@ public class CuriosityService {
         entry.setQuizOption2(result.quizOption2());
         entry.setQuizOption3(result.quizOption3());
         entry.setSticker(result.sticker());
+        entry.setGlumbiFollowUp(result.glumbiFollowUp());
+        entry.setGlumbiFollowUpChoices(result.glumbiFollowUpChoices());
+        entry.setGlumbiReaction(result.glumbiReaction());
         CuriosityEntry saved = repo.save(entry);
 
         CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved), embeddingExecutor);

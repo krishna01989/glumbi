@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { readQuizApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
@@ -40,6 +41,8 @@ export default function ReadQuiz({ child, quota }) {
   const { track } = useTracker()
   useFeatureDuration('readquiz', track)
   const quizStartTime = useRef(null)
+  const navigate = useNavigate()
+  const location = useLocation()
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
   const [entriesPage, setEntriesPage]           = useState(0)
@@ -56,6 +59,15 @@ export default function ReadQuiz({ child, quota }) {
   const fsRef = useRef(null)
   const isMobile = useIsMobile()
 
+  // Glumbi guide state
+  const [glumbiPhase, setGlumbiPhase] = useState('idle') // idle | intro | reading | post
+  const [glumbiPicked, setGlumbiPicked] = useState(null)
+
+  function initGlumbi(entry) {
+    setGlumbiPhase(entry.glumbiIntro ? 'intro' : 'idle')
+    setGlumbiPicked(null)
+  }
+
   useEffect(() => {
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onFsChange)
@@ -67,7 +79,11 @@ export default function ReadQuiz({ child, quota }) {
     else document.exitFullscreen?.()
   }
 
-  useEffect(() => { fetchEntries(0, true) }, [child.id])
+  useEffect(() => {
+    fetchEntries(0, true)
+    const prefill = location.state?.glumbiPrefill
+    if (prefill) setTopic(prefill)
+  }, [child.id])
 
   async function fetchEntries(page, replace) {
     setEntriesLoading(true)
@@ -90,6 +106,7 @@ export default function ReadQuiz({ child, quota }) {
       const questions = JSON.parse(entry.questionsJson || '[]')
       setEntries(prev => [{ ...entry, questions }, ...prev])
       openEntry({ ...entry, questions })
+      initGlumbi(entry)
       setTopic('')
       window.__glumbiRefreshQuota?.('read-quiz')
     } catch (e) { setError(e.message) }
@@ -104,6 +121,7 @@ export default function ReadQuiz({ child, quota }) {
       : [null, null, null]
     setAnswers(savedAnswers)
     setSubmitted(entry.completed)
+    initGlumbi(entry)
   }
 
   async function handleSubmit() {
@@ -121,6 +139,7 @@ export default function ReadQuiz({ child, quota }) {
       setSelected({ ...selected, score: result.score, completed: true, answersJson: result.answersJson })
       setEntries(prev => prev.map(e => e.id === result.id ? { ...e, score: result.score, completed: true, answersJson: result.answersJson } : e))
       setSubmitted(true)
+      if (selected.glumbiIntro) setGlumbiPhase('post')
     } catch (e) { setError(e.message) }
   }
 
@@ -209,42 +228,36 @@ export default function ReadQuiz({ child, quota }) {
 
       <HistoryDrawer icon="📚" title="My Reads" count={entries.length}>
         {close => (<>
-        {entries.map(e => (
-          <div key={e.id} onClick={() => { openEntry(e); close() }}
-            style={{
-              borderRadius: 16, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
-              boxShadow: selected?.id === e.id ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
-              transition: 'box-shadow 0.2s',
-            }}>
-            <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
-              <span style={{ fontSize: 22 }}>{TOPICS.find(t => t.label === e.topic)?.emoji || '📖'}</span>
-              <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        {entries.map(e => {
+          const isSelected = selected?.id === e.id
+          return (
+            <div key={e.id} onClick={() => { openEntry(e); close() }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                borderRadius: 12, cursor: 'pointer', flexShrink: 0,
+                background: isSelected ? 'var(--primary-lt)' : 'white',
+                border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid #f0f0f0',
+                transition: 'background 0.15s, border-color 0.15s',
+              }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>{TOPICS.find(t => t.label === e.topic)?.emoji || '📖'}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: isSelected ? 'var(--primary)' : '#333',
+                overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                 {e.title}
               </span>
-              {e.completed && (
-                <span style={{ fontSize: 12, fontWeight: 800, color: 'white', background: 'rgba(0,0,0,0.2)', borderRadius: 50, padding: '2px 8px' }}>
-                  {e.score}/3
+              {e.lesson && (
+                <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)',
+                  padding: '2px 7px', borderRadius: 50, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  {e.lesson}
                 </span>
               )}
+              {e.completed
+                ? <span style={{ fontSize: 15, flexShrink: 0 }}>{e.score === 3 ? '🏆' : e.score >= 2 ? '⭐' : '💪'}</span>
+                : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa',
+                    padding: '2px 7px', borderRadius: 50, flexShrink: 0 }}>New</span>
+              }
             </div>
-            <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{e.topic}</span>
-                <span style={{ fontSize: 11, color: '#bbb', fontWeight: 600 }}>{fmtDate(e.createdAt)}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                {e.lesson && (
-                  <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
-                    {e.lesson}
-                  </span>
-                )}
-                {e.completed && (
-                  <span style={{ fontSize: 13 }}>{e.score === 3 ? '🏆' : e.score >= 2 ? '⭐' : '💪'}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+          )
+        })}
         {entriesPage + 1 < entriesTotalPages && (
           <button onClick={() => fetchEntries(entriesPage + 1, false)} disabled={entriesLoading}
             style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
@@ -348,6 +361,61 @@ export default function ReadQuiz({ child, quota }) {
                 </div>
               </div>
 
+              {/* ── Glumbi guide ── */}
+              {selected.glumbiIntro && glumbiPhase !== 'idle' && (() => {
+                const gbtn = (label, onClick, solid = true) => (
+                  <button onClick={onClick} style={{
+                    padding: '10px 22px', borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: 'pointer',
+                    border: solid ? 'none' : '2.5px solid var(--primary)',
+                    background: solid ? 'var(--primary)' : 'transparent',
+                    color: solid ? '#fff' : 'var(--primary)',
+                    fontFamily: 'Nunito, sans-serif',
+                  }}>{label}</button>
+                )
+                const GlumbiBubble = ({ text, children }) => (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '14px 0', padding: '16px 18px', background: 'var(--primary-lt, #fff8f0)', border: '2px solid var(--primary)', borderRadius: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+                    <div style={{ fontSize: 32, flexShrink: 0, lineHeight: 1 }}>🌟</div>
+                    <div style={{ flex: 1 }}>
+                      {text && <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.55, marginBottom: children ? 12 : 0, fontFamily: 'Nunito, sans-serif' }}><strong>Glumbi:</strong> {text}</div>}
+                      {children}
+                    </div>
+                  </div>
+                )
+
+                if (glumbiPhase === 'intro') return (
+                  <GlumbiBubble text={selected.glumbiIntro}>
+                    {gbtn("Let's read! 📖", () => setGlumbiPhase('reading'))}
+                  </GlumbiBubble>
+                )
+
+                if (glumbiPhase === 'reading') return (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '10px 0', padding: '12px 16px', background: 'var(--primary-lt, #fff8f0)', border: '2px solid var(--primary)', borderRadius: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 22 }}>🌟</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', fontFamily: 'Nunito, sans-serif' }}>Read the story, then answer the questions below!</span>
+                    </div>
+                    {gbtn("I'm ready! 🧠", () => { setGlumbiPhase('idle'); track('readquiz', 'glumbi_ready', { metadata: { topic: selected?.topic, title: selected?.title } }); document.getElementById('rq-quiz-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) })}
+                  </div>
+                )
+
+                if (glumbiPhase === 'post' && selected.glumbiScoreComment) {
+                  const scoreIndex = Math.min(selected.score ?? 0, 3)
+                  const comment = selected.glumbiScoreComment.split('|')[scoreIndex] || 'Amazing effort!'
+                  return (
+                    <GlumbiBubble text={comment}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {gbtn('Read a story! 📖', () => {
+                          navigate(`/child/${child.id}/stories`, { state: { glumbiPrefill: selected.topic } })
+                        })}
+                        {gbtn('Bye Glumbi! 🌙', () => setGlumbiPhase('idle'), false)}
+                      </div>
+                    </GlumbiBubble>
+                  )
+                }
+
+                return null
+              })()}
+
               {/* Story text */}
               <div style={{
                 background: 'white', borderRadius: 14, padding: 'clamp(16px,2vw,24px)',
@@ -366,7 +434,7 @@ export default function ReadQuiz({ child, quota }) {
             </div>
 
             {/* Quiz */}
-            <div style={{
+            <div id="rq-quiz-section" style={{
               background: isFullscreen ? 'rgba(255,255,255,0.95)' : `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
               borderRadius: 20, padding: 'clamp(20px,3vw,32px)',
               border: isFullscreen ? 'none' : `2px solid ${lessonColor}33`, marginBottom: 24,

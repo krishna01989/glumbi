@@ -25,6 +25,7 @@ public class StoryService {
     private final ChildService         childService;
     private final StoryAgent           storyAgent;
     private final StoryEmbeddingService embeddingService;
+    private final GlumbiMemoryService  glumbiMemory;
 
     public StoryGenerateResult generate(StoryRequest req) {
         Child child = childService.getByIdUnchecked(req.getChildId());
@@ -43,13 +44,15 @@ public class StoryService {
             String prevTitleForAi = prev.getTitle().contains(" · ")
                     ? prev.getTitle().substring(prev.getTitle().indexOf(" · ") + 3)
                     : prev.getTitle();
+            String memory = glumbiMemory.getMemoryContext(child.getId());
             result = storyAgent.continueStory(
-                    child.getName(), age, child.getGender(), prevTitleForAi, prev.getContent(), inheritedCategory
+                    child.getName(), age, child.getGender(), prevTitleForAi, prev.getContent(), inheritedCategory, memory
             );
             category = inheritedCategory;
         } else {
+            String memory = glumbiMemory.getMemoryContext(child.getId());
             result = storyAgent.generateStory(
-                    child.getName(), age, child.getGender(), req.getKeywords(), category
+                    child.getName(), age, child.getGender(), req.getKeywords(), category, memory
             );
         }
 
@@ -57,6 +60,14 @@ public class StoryService {
         story.setChild(child);
         story.setContent(result.content());
         story.setCategory(category);
+        story.setStoryPart1(result.part1());
+        story.setStoryPart2A(result.part2a());
+        story.setStoryPart2B(result.part2b());
+        story.setGlumbiIntro(result.glumbiIntro());
+        story.setGlumbiMidQuestion(result.glumbiMidQuestion());
+        story.setGlumbiMidChoices(result.glumbiMidChoices());
+        story.setGlumbiPostQuestion(result.glumbiPostQuestion());
+        story.setGlumbiEpilogue(result.glumbiEpilogue());
         if (prev != null) {
             story.setKeywords(prev.getKeywords());
             // Always use the root story title as prefix so chaining doesn't nest titles

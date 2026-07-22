@@ -45,6 +45,14 @@ public class CuriosityEntry {
 
     private String sticker;       // emoji sticker awarded
 
+    // Glumbi guide fields
+    @Column(columnDefinition = "TEXT")
+    private String glumbiFollowUp;        // dig-deeper question after fun facts
+    @Column(columnDefinition = "TEXT")
+    private String glumbiFollowUpChoices; // JSON array of 2 short choices
+    @Column(columnDefinition = "TEXT")
+    private String glumbiReaction;        // 1-line reaction shown after child picks (same for both choices)
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 }

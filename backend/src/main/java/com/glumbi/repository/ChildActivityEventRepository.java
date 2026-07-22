@@ -197,6 +197,18 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
         """, nativeQuery = true)
     List<Object[]> getTopMemoryMatchThemeForChild(@Param("childId") Long childId, @Param("from") LocalDateTime from);
 
+    // Recent Glumbi interactions for memory context — ordered newest-first, limited to last N events
+    @Query(value = """
+        SELECT feature, event_type, metadata, occurred_at
+        FROM child_activity_events
+        WHERE child_id = :childId
+          AND event_type IN ('glumbi_mid_choice','glumbi_followup_choice','glumbi_ready')
+          AND metadata IS NOT NULL
+        ORDER BY occurred_at DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> findRecentGlumbiEvents(@Param("childId") Long childId, @Param("limit") int limit);
+
     long countByChildId(Long childId);
     long countByChildIdAndOnlineTrue(Long childId);
     long countByChildIdAndOccurredAtAfter(Long childId, LocalDateTime from);

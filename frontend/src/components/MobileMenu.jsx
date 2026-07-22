@@ -6,8 +6,8 @@ const NAV_GROUPS = [
     id: 'stories', label: 'Stories', emoji: '📖',
     items: [
       { path: 'stories',   label: 'Stories',     emoji: '📖' },
-      { path: 'mywriting', label: 'My Writing',  emoji: '✍️' },
       { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚' },
+      { path: 'mywriting', label: 'My Writing',  emoji: '✍️' },
     ]
   },
   {

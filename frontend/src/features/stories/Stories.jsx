@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { storyApi, voiceApi } from '../../api/client'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
@@ -83,35 +84,33 @@ const LANG_SCRIPT = {
 function StoryListCard({ s, selected, onSelect, onToggleFav, chapterNum }) {
   const isSelected = selected?.id === s.id
   const chapterLabel = s.title.includes(' · ') ? s.title.substring(s.title.indexOf(' · ') + 3) : null
+  const displayTitle = `${chapterNum ? `Ch.${chapterNum}: ` : ''}${chapterLabel || s.title}`
+  const tag = s.keywords && !s.title.includes(' · ') ? s.keywords.split(',')[0] : null
+  const lang = s.language && s.language !== 'english' ? s.language : null
   return (
     <div onClick={() => onSelect(s)}
       style={{
-        borderRadius: 16, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
-        boxShadow: isSelected ? '0 0 0 3px var(--primary), 0 4px 20px rgba(255,107,107,0.2)' : 'var(--shadow)',
-        transition: 'box-shadow 0.2s',
+        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+        borderRadius: 12, cursor: 'pointer', flexShrink: 0,
+        background: isSelected ? 'var(--primary-lt)' : 'white',
+        border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid #f0f0f0',
+        transition: 'background 0.15s, border-color 0.15s',
       }}>
-      <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
-        <span style={{ fontSize: 22 }}>{categoryEmoji(s.category)}</span>
-        <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-          {chapterNum ? `Ch.${chapterNum}: ` : ''}{chapterLabel || s.title}
+      <span style={{ fontSize: 20, flexShrink: 0 }}>{categoryEmoji(s.category)}</span>
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: isSelected ? 'var(--primary)' : '#333',
+        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        {displayTitle}
+      </span>
+      {(tag || lang) && (
+        <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)',
+          padding: '2px 7px', borderRadius: 50, flexShrink: 0, whiteSpace: 'nowrap' }}>
+          {tag || lang}
         </span>
-        <span onClick={e => { e.stopPropagation(); onToggleFav(s.id) }} style={{ fontSize: 16, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
-          {s.favorite ? '⭐' : '☆'}
-        </span>
-      </div>
-      <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>
-          {fmtDate(s.createdAt)}
-        </span>
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          {s.keywords && !s.title.includes(' · ') && <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>{s.keywords.split(',')[0]}</span>}
-          {s.language && s.language !== 'english' && (
-            <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>
-              {s.language}
-            </span>
-          )}
-        </div>
-      </div>
+      )}
+      <span onClick={e => { e.stopPropagation(); onToggleFav(s.id) }}
+        style={{ fontSize: 14, cursor: 'pointer', color: s.favorite ? '#f59e0b' : '#ccc', flexShrink: 0 }}>
+        {s.favorite ? '⭐' : '☆'}
+      </span>
     </div>
   )
 }
@@ -142,6 +141,8 @@ function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
 export default function Stories({ child, quota }) {
   const { track } = useTracker()
   useFeatureDuration('stories', track)
+  const navigate = useNavigate()
+  const location = useLocation()
   const offline = useOffline()
   const [stories, setStories] = useState([])
   const [storiesPage, setStoriesPage]               = useState(0)
@@ -167,6 +168,24 @@ export default function Stories({ child, quota }) {
     return saved ? parseInt(saved, 10) : null  // null = default Google TTS
   })
   const [similarStories, setSimilarStories] = useState([])
+
+  // Glumbi guide state
+  const [glumbiPhase, setGlumbiPhase]           = useState('idle') // idle | intro | reading1 | mid | reading2 | post | epilogue
+  const [glumbiMidPicked, setGlumbiMidPicked]   = useState(null)   // index of chosen prediction
+  const [glumbiEpilogueOpen, setGlumbiEpilogueOpen] = useState(false)
+
+  const loadGlumbiState = (story) => {
+    setGlumbiPhase(story?.glumbiIntro ? 'intro' : 'idle')
+    setGlumbiMidPicked(null)
+    setGlumbiEpilogueOpen(false)
+  }
+  const saveGlumbiState = () => {}
+  const updateGlumbiPhase = (phase, midPicked2, epilogueOpen2) => {
+    setGlumbiPhase(phase)
+    if (midPicked2 !== undefined) setGlumbiMidPicked(midPicked2)
+    if (epilogueOpen2 !== undefined) setGlumbiEpilogueOpen(epilogueOpen2)
+  }
+
   const [error, setError]               = useState('')
   const [audioError, setAudioError]     = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null) // storyId to delete
@@ -218,6 +237,8 @@ export default function Stories({ child, quota }) {
   useEffect(() => {
     fetchStories(0, true)
     voiceApi.list().then(setFamilyVoices).catch(() => {})
+    const prefill = location.state?.glumbiPrefill
+    if (prefill) setKeywords(prefill)
   }, [child.id])
 
   async function fetchStories(page, replace) {
@@ -245,6 +266,10 @@ export default function Stories({ child, quota }) {
       const similar = res.similar ?? []
       setStories(prev => [story, ...prev])
       setSelected(story)
+      setGlumbiPhase(story.glumbiIntro ? 'intro' : 'idle')
+      setGlumbiMidPicked(null)
+      setGlumbiEpilogueOpen(false)
+      try { localStorage.removeItem(`glm_glumbi_${story.id}`) } catch {}
       if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'generate' } })
       setSimilarStories(similar)
       setKeywords('')
@@ -319,6 +344,7 @@ export default function Stories({ child, quota }) {
   function handleFlipEnd() {
     if (!flipState) return
     setSelected(flipState.to)
+    loadGlumbiState(flipState.to)
     setSimilarStories([])
     storyApi.getSimilar(flipState.to.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
     setFlipState(null)
@@ -397,6 +423,10 @@ export default function Stories({ child, quota }) {
   async function handleListen(story, lang, voice) {
     if (speaking && speakingStoryId === story.id && speakingLang === lang) { stopSpeaking(); return }
     track('stories', 'listen', { metadata: { language: lang } })
+    // advance Glumbi from intro → reading1 when user taps Listen
+    if (story.glumbiIntro && (glumbiPhase === 'intro' || glumbiPhase === 'idle')) {
+      updateGlumbiPhase('reading1')
+    }
     stopSpeaking()
     if (offline && !storyHasCachedAudio(story, lang)) {
       setAudioError('Audio not available in practice mode. Turn AI on to listen for the first time.')
@@ -411,10 +441,20 @@ export default function Stories({ child, quota }) {
           ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
           : (VOICE_MAP[lang]?.[selectedGender] || null)
       )
-      const url = storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId)
+      const glumbiPart = glumbiPhase === 'reading1' ? 1 : glumbiPhase === 'reading2' ? 2 : null
+      const url = storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId, glumbiPart, glumbiPhase === 'reading2' ? glumbiMidPicked : null)
       const audio = new Audio(url)
       audioRef.current = audio
       // play() must be called here — in the click handler — to satisfy browser autoplay policy
+      audio.onended = () => {
+        setSpeaking(false); setSpeakingLang(null); setSpeakingStoryId(null); setAudioSrc(null)
+        // advance Glumbi phase when full-story TTS finishes
+        setGlumbiPhase(prev => {
+          const next = prev === 'reading1' ? 'mid' : prev === 'reading2' ? 'post' : prev
+          if (next !== prev) saveGlumbiState(story.id, next, glumbiMidPicked, glumbiEpilogueOpen)
+          return next
+        })
+      }
       await audio.play()
       setSpeaking(true)
       setSpeakingLang(lang)
@@ -857,6 +897,113 @@ export default function Stories({ child, quota }) {
               )
             })()}
 
+            {/* ── Glumbi guide ── */}
+            {selected?.glumbiIntro && glumbiPhase !== 'idle' && (() => {
+              const gbtn = (label, onClick, solid = true) => (
+                <button onClick={onClick} style={{
+                  padding: '10px 22px', borderRadius: 50, fontSize: 15, fontWeight: 800, cursor: 'pointer',
+                  border: solid ? 'none' : '2.5px solid var(--primary)',
+                  background: solid ? 'var(--primary)' : 'transparent',
+                  color: solid ? '#fff' : 'var(--primary)',
+                  fontFamily: 'Nunito, sans-serif',
+                }}>
+                  {label}
+                </button>
+              )
+              const GlumbiBubble = ({ text, children }) => (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, margin: '14px 0', padding: '16px 18px', background: 'var(--primary-lt, #fff8f0)', border: '2px solid var(--primary)', borderRadius: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+                  <div style={{ fontSize: 32, flexShrink: 0, lineHeight: 1 }}>🌟</div>
+                  <div style={{ flex: 1 }}>
+                    {text && <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--primary)', lineHeight: 1.55, marginBottom: children ? 12 : 0, fontFamily: 'Nunito, sans-serif' }}><strong>Glumbi:</strong> {text}</div>}
+                    {children}
+                  </div>
+                </div>
+              )
+              // Sticky progress bar shown while reading part 1 or part 2
+              const ReadingBar = ({ part, onDone }) => (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '10px 0', padding: '12px 16px', background: 'var(--primary-lt, #fff8f0)', border: '2px solid var(--primary)', borderRadius: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 22 }}>🌟</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', fontFamily: 'Nunito, sans-serif' }}>
+                      {part === 1 ? 'Read part 1 — what do you think happens next?' : 'Almost there — finish the story!'}
+                    </span>
+                  </div>
+                  {gbtn(part === 1 ? "I'm ready! →" : 'Finished! →', onDone)}
+                </div>
+              )
+
+              if (glumbiPhase === 'intro') return (
+                <GlumbiBubble text={selected.glumbiIntro}>
+                  {gbtn("Let's go! 🚀", () => updateGlumbiPhase('reading1'))}
+                </GlumbiBubble>
+              )
+
+              if (glumbiPhase === 'reading1') return (
+                <ReadingBar part={1} onDone={() => updateGlumbiPhase('mid')} />
+              )
+
+              if (glumbiPhase === 'mid' && selected.glumbiMidQuestion) {
+                let choices = []
+                try { choices = JSON.parse(selected.glumbiMidChoices || '[]') } catch {}
+                return (
+                  <GlumbiBubble text={selected.glumbiMidQuestion}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {choices.map((c, i) => (
+                        <button key={i}
+                          onClick={() => {
+                            if (glumbiMidPicked !== null) return
+                            setGlumbiMidPicked(i)
+                            saveGlumbiState(selected.id, 'mid', i, glumbiEpilogueOpen)
+                            track('stories', 'glumbi_mid_choice', { metadata: { choice: i, choiceText: choices[i], storyTitle: selected?.title } })
+                            setTimeout(() => updateGlumbiPhase('reading2', i), 1000)
+                          }}
+                          style={{ padding: '10px 22px', borderRadius: 50, border: '2.5px solid var(--primary)', fontSize: 15, fontWeight: 800, cursor: glumbiMidPicked !== null ? 'default' : 'pointer', transition: 'all 0.2s', fontFamily: 'Nunito, sans-serif',
+                            background: glumbiMidPicked === i ? 'var(--primary)' : 'transparent',
+                            color: glumbiMidPicked === i ? '#fff' : 'var(--primary)',
+                            opacity: glumbiMidPicked !== null && glumbiMidPicked !== i ? 0.35 : 1 }}>
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                    {glumbiMidPicked !== null && <div style={{ marginTop: 10, fontSize: 14, color: 'var(--primary)', fontWeight: 700 }}>Great pick! Let's find out... ✨</div>}
+                  </GlumbiBubble>
+                )
+              }
+
+              if (glumbiPhase === 'reading2') return (
+                <ReadingBar part={2} onDone={() => updateGlumbiPhase('post')} />
+              )
+
+              if (glumbiPhase === 'post' && selected.glumbiPostQuestion) return (
+                <GlumbiBubble text={selected.glumbiPostQuestion}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {gbtn('Tell me more! 🔮', () => {
+                      track('stories', 'glumbi_epilogue_requested')
+                      setGlumbiEpilogueOpen(true)
+                      updateGlumbiPhase('epilogue', glumbiMidPicked, true)
+                    })}
+                    {gbtn('Quiz time! 📚', () => {
+                      navigate(`/child/${child.id}/readquiz`, { state: { glumbiPrefill: selected.keywords || selected.category } })
+                    }, false)}
+                    {gbtn('Bye Glumbi! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
+                  </div>
+                </GlumbiBubble>
+              )
+
+              if (glumbiPhase === 'epilogue' && selected.glumbiEpilogue) return (
+                <GlumbiBubble text={`Here's what happened next... ${selected.glumbiEpilogue}`}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {gbtn('Quiz time! 📚', () => {
+                      navigate(`/child/${child.id}/readquiz`, { state: { glumbiPrefill: selected.keywords || selected.category } })
+                    }, false)}
+                    {gbtn('The end! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
+                  </div>
+                </GlumbiBubble>
+              )
+
+              return null
+            })()}
+
             {/* Story text — with page-turn when navigating chapters */}
             {(() => {
               const textStyle = {
@@ -865,14 +1012,27 @@ export default function Stories({ child, quota }) {
                 background:'#fffdf9', borderRadius:14,
                 padding:'20px 24px', border:'1.5px solid #f5ede4',
               }
-              const renderText = (story) => story.content.slice(0,1) ? (
-                <div style={textStyle}>
-                  <span style={{ float:'left', fontSize:64, lineHeight:0.8, marginRight:8, marginTop:8, color:'var(--primary)', fontFamily:'Nunito, sans-serif' }}>
-                    {story.content[0]}
-                  </span>
-                  {story.content.slice(1)}
-                </div>
-              ) : <div style={textStyle}>{story.content}</div>
+              const getDisplayContent = (story) => {
+                if (story.id === selected?.id) {
+                  if (glumbiPhase === 'reading1' && story.storyPart1) return story.storyPart1
+                  if (glumbiPhase === 'reading2') {
+                    const branch = glumbiMidPicked === 1 ? story.storyPart2B : story.storyPart2A
+                    return branch || story.storyPart2 || null // fallback for old stories
+                  }
+                }
+                return story.content
+              }
+              const renderText = (story) => {
+                const displayContent = getDisplayContent(story)
+                return displayContent.slice(0,1) ? (
+                  <div style={textStyle}>
+                    <span style={{ float:'left', fontSize:64, lineHeight:0.8, marginRight:8, marginTop:8, color:'var(--primary)', fontFamily:'Nunito, sans-serif' }}>
+                      {displayContent[0]}
+                    </span>
+                    {displayContent.slice(1)}
+                  </div>
+                ) : <div style={textStyle}>{displayContent}</div>
+              }
 
               if (!flipState) return renderText(selected)
 
@@ -936,7 +1096,7 @@ export default function Stories({ child, quota }) {
                   {similarStories.map(s => (
                     <button key={s.id} onClick={() => {
                       const target = s.seriesId ? (stories.find(r => r.id === s.seriesId) ?? s) : s
-                      setSelected(target); setSimilarStories([]); track('stories', 'similar_clicked'); storyApi.getSimilar(target.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'similar_nav' } }) }).catch(() => {})
+                      setSelected(target); loadGlumbiState(target); setSimilarStories([]); track('stories', 'similar_clicked'); storyApi.getSimilar(target.id).then(s => { setSimilarStories(s); if (s.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'similar_nav' } }) }).catch(() => {})
                     }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 8,
@@ -982,7 +1142,7 @@ export default function Stories({ child, quota }) {
       function handleSelect(s) {
         if (selected?.id === s.id) return
         if (speaking) stopSpeaking()
-        setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([])
+        setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([]); loadGlumbiState(s)
         storyApi.getSimilar(s.id).then(r => { setSimilarStories(r); if (r.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
         if (isMobile) setShowList(false)
         track('stories', 'read', { metadata: { category: s.category } })

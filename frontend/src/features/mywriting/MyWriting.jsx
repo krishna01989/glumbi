@@ -38,30 +38,28 @@ function wordCount(text) {
 
 function StoryCard({ e, chapterNum, selected, onOpen }) {
   const isSelected = selected?.id === e.id
+  const displayTitle = `${chapterNum ? `Ch.${chapterNum}: ` : ''}${e.title}`
   return (
     <div onClick={() => onOpen(e)}
       style={{
-        borderRadius: 16, overflow: 'hidden', cursor: 'pointer', flexShrink: 0,
-        boxShadow: isSelected ? '0 0 0 3px var(--primary), 0 4px 20px rgba(0,0,0,0.15)' : 'var(--shadow)',
-        transition: 'box-shadow 0.2s',
+        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+        borderRadius: 12, cursor: 'pointer', flexShrink: 0,
+        background: isSelected ? 'var(--primary-lt)' : 'white',
+        border: isSelected ? '1.5px solid var(--primary)' : '1.5px solid #f0f0f0',
+        transition: 'background 0.15s, border-color 0.15s',
       }}>
-      <div style={{ background: 'var(--primary)', height: 56, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10 }}>
-        <span style={{ fontSize: 22 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
-        <span style={{ color: 'white', fontWeight: 700, fontSize: 13, flex: 1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-          {chapterNum ? `Ch.${chapterNum}: ` : ''}{e.title}
-        </span>
-        {e.badge && <span style={{ fontSize: 18 }}>{e.badge}</span>}
-      </div>
-      <div style={{ background: 'white', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{wordCount(e.content)} words</span>
-          <span style={{ fontSize: 11, color: '#bbb', fontWeight: 600 }}>{fmtDate(e.createdAt)}</span>
-        </div>
-        {e.feedbackReceived
-          ? <span style={{ fontSize: 10, fontWeight: 800, background: 'var(--primary-lt)', color: 'var(--primary)', padding: '3px 8px', borderRadius: 50 }}>Feedback received</span>
-          : <span style={{ fontSize: 10, fontWeight: 800, background: '#f5f5f5', color: '#aaa', padding: '3px 8px', borderRadius: 50 }}>Saved</span>
-        }
-      </div>
+      <span style={{ fontSize: 20, flexShrink: 0 }}>{e.feedbackReceived ? '✨' : '✍️'}</span>
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 700, color: isSelected ? 'var(--primary)' : '#333',
+        overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+        {displayTitle}
+      </span>
+      {e.badge && <span style={{ fontSize: 16, flexShrink: 0 }}>{e.badge}</span>}
+      <span style={{ fontSize: 10, fontWeight: 800, flexShrink: 0, whiteSpace: 'nowrap',
+        background: e.feedbackReceived ? 'var(--primary-lt)' : '#f5f5f5',
+        color: e.feedbackReceived ? 'var(--primary)' : '#aaa',
+        padding: '2px 7px', borderRadius: 50 }}>
+        {e.feedbackReceived ? 'Feedback ✓' : `${wordCount(e.content)}w`}
+      </span>
     </div>
   )
 }

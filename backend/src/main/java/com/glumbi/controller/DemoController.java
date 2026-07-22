@@ -48,7 +48,7 @@ public class DemoController {
 
         try {
             String gender = (childName.hashCode() % 2 == 0) ? "girl" : "boy";
-            StoryAgent.StoryResult result = storyAgent.generateStory(childName, 5, gender, keywords, category);
+            StoryAgent.StoryResult result = storyAgent.generateStory(childName, 5, gender, keywords, category, "");
             return ResponseEntity.ok(Map.of(
                 "title",   result.title(),
                 "content", result.content()

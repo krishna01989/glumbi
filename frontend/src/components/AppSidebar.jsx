@@ -17,6 +17,7 @@ export default function AppSidebar({
       transition: 'width 0.25s ease',
       boxShadow: '4px 0 24px rgba(0,0,0,0.1)',
       position: 'relative', zIndex: 10,
+      height: '100vh',
     }}>
       {/* Logo */}
       <div style={{ padding: collapsed ? '20px 0' : '24px 20px', display: 'flex', alignItems: 'center', gap: 10, justifyContent: collapsed ? 'center' : 'flex-start' }}>
@@ -59,7 +60,7 @@ export default function AppSidebar({
       })()}
 
       {/* Nav links */}
-      <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: collapsed ? '0 8px' : '0 10px', overflowY: 'auto' }}>
+      <nav style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 2, padding: collapsed ? '0 8px' : '0 10px', overflowY: 'auto' }}>
         {GROUPS.map((group, gi) => {
           const isOpen = openGroupId === group.id
           const groupActive = group.items.some(i => i.path === currentSegment)

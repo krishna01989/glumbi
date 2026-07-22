@@ -2599,7 +2599,7 @@ export default function AdminPage({ onBack, onLogout }) {
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, padding: sidebarCollapsed && !isMobile ? '16px 6px' : '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: sidebarCollapsed && !isMobile ? '16px 6px' : '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {NAV.map(item => (
             <button key={item.id} onClick={() => { navigate(`/admin/${item.id}`); setSidebarOpen(false) }}
               title={sidebarCollapsed && !isMobile ? item.label : undefined}

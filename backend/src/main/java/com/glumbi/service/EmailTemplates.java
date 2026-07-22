@@ -37,15 +37,17 @@ public class EmailTemplates {
         this.templateEngine = templateEngine;
     }
 
-    public String passwordReset(String resetUrl) {
+    public String passwordReset(String resetUrl, boolean isAdmin) {
         Context ctx = new Context();
         ctx.setVariable("resetUrl", resetUrl);
+        ctx.setVariable("salutation", isAdmin ? "Dear Glumbi Admin," : "Dear Glumbi User,");
         return templateEngine.process("email/password-reset", ctx);
     }
 
-    public String passwordChanged(String context) {
+    public String passwordChanged(String context, boolean isAdmin) {
         Context ctx = new Context();
         ctx.setVariable("context", context);
+        ctx.setVariable("salutation", isAdmin ? "Dear Glumbi Admin," : "Dear Glumbi User,");
         return templateEngine.process("email/password-changed", ctx);
     }
 

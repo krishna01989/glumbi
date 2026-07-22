@@ -403,8 +403,9 @@ public class AdminController {
                 return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can delete another admin."));
 
             String email = u.getEmail();
+            boolean isAppUser = !u.isAdminOrAbove();
             accountDeletionService.deleteUser(id);
-            resendClient.send(email, "Your Glumbi account has been removed", emailTemplates.accountDeletedByAdmin());
+            if (isAppUser) resendClient.send(email, "Your Glumbi account has been removed", emailTemplates.accountDeletedByAdmin());
             return ResponseEntity.noContent().build();
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -431,7 +432,7 @@ public class AdminController {
             resendClient.send(
                 u.getEmail(),
                 "Your Glumbi password was changed",
-                emailTemplates.passwordChanged("by an administrator")
+                emailTemplates.passwordChanged("by an administrator", u.isAdminOrAbove())
             );
             return ResponseEntity.ok(Map.of("message", "Password updated"));
         }).orElse(ResponseEntity.notFound().build());

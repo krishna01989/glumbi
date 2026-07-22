@@ -120,6 +120,7 @@ public class NotificationScheduler {
         try {
             List<AppUser> users = userRepository.findAll();
             for (AppUser user : users) {
+                if (user.isAdminOrAbove()) continue;
                 List<Child> children = childRepository.findByOwnerId(user.getId());
                 if (children.isEmpty()) {
                     if (runWeeklyEmail) {

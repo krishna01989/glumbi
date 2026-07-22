@@ -29,6 +29,9 @@ server:
 resend:
   api-key: ${RESEND_API_KEY:}
   from: ${RESEND_FROM:Glumbi <noreply@glumbi.com>}
+  send-url: ${RESEND_SEND_URL:https://api.resend.com/emails}
+  batch-url: ${RESEND_BATCH_URL:https://api.resend.com/emails/batch}
+  enabled: ${RESEND_ENABLED:true}
 
 elevenlabs:
   api-key: ${ELEVENLABS_API_KEY:}

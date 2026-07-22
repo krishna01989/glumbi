@@ -16,11 +16,12 @@ function useIsMobile() {
 
 // ─── Sidebar nav items ───────────────────────────────────────────────────────
 const NAV = [
-  { id: 'dashboard',  icon: '📊', label: 'Dashboard'      },
-  { id: 'users',      icon: '👥', label: 'Users'          },
-  { id: 'credits',    icon: '💰', label: 'Feature Credits' },
-  { id: 'agents',     icon: '🤖', label: 'AI Agents'      },
-  { id: 'schedulers', icon: '⏰', label: 'Schedulers'     },
+  { id: 'dashboard',     icon: '📊', label: 'Dashboard'      },
+  { id: 'users',         icon: '👥', label: 'Users'          },
+  { id: 'credits',       icon: '💰', label: 'Feature Credits' },
+  { id: 'agents',        icon: '🤖', label: 'AI Agents'      },
+  { id: 'schedulers',    icon: '⏰', label: 'Schedulers'     },
+  { id: 'announcements', icon: '📣', label: 'Announcements'  },
 ]
 
 // ─── Password reset modal ─────────────────────────────────────────────────────
@@ -2265,6 +2266,196 @@ function Schedulers() {
   )
 }
 
+// ─── Announcements ───────────────────────────────────────────────────────────
+function Announcements() {
+  const [subject,      setSubject]      = useState('')
+  const [headline,     setHeadline]     = useState('')
+  const [status,       setStatus]       = useState(null) // null | 'sending' | { sent: N } | 'error'
+  const [showPreview,  setShowPreview]  = useState(false)
+  const editorRef = useRef(null)
+  const previewRef = useRef(null)
+  const isMobile = useIsMobile()
+
+  const TOOLBAR = [
+    { cmd: 'bold',        icon: <strong>B</strong>,  title: 'Bold' },
+    { cmd: 'italic',      icon: <em>I</em>,          title: 'Italic' },
+    { cmd: 'underline',   icon: <u>U</u>,            title: 'Underline' },
+    { cmd: 'insertUnorderedList', icon: '☰',         title: 'Bullet list' },
+    { cmd: 'insertOrderedList',   icon: '1.',         title: 'Numbered list' },
+  ]
+
+  function execCmd(cmd, value) {
+    editorRef.current.focus()
+    document.execCommand(cmd, false, value ?? null)
+    syncPreview()
+  }
+
+  function insertHeading() {
+    editorRef.current.focus()
+    document.execCommand('formatBlock', false, 'h3')
+    syncPreview()
+  }
+
+  function insertDivider() {
+    editorRef.current.focus()
+    document.execCommand('insertHTML', false, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0">')
+    syncPreview()
+  }
+
+  function insertLink() {
+    const url = window.prompt('Enter URL:')
+    if (url) execCmd('createLink', url)
+  }
+
+  function syncPreview() {
+    if (previewRef.current && editorRef.current) {
+      previewRef.current.innerHTML = editorRef.current.innerHTML
+    }
+  }
+
+  async function handleSend() {
+    if (!subject.trim() || !headline.trim() || !editorRef.current?.innerHTML?.trim()) return
+    setStatus('sending')
+    try {
+      const result = await adminApi.sendAnnouncement({
+        subject:  subject.trim(),
+        headline: headline.trim(),
+        bodyHtml: editorRef.current.innerHTML,
+        audience: 'app_users',
+      })
+      setStatus({ sent: result.queued })
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  function handleReset() {
+    setSubject(''); setHeadline(''); setStatus(null)
+    if (editorRef.current) editorRef.current.innerHTML = ''
+    if (previewRef.current) previewRef.current.innerHTML = ''
+  }
+
+  const btnStyle = (active) => ({
+    padding: '5px 10px', borderRadius: 6, border: '1.5px solid #e0e0e0',
+    background: active ? '#f1f5f9' : '#fff', cursor: 'pointer',
+    fontSize: 13, fontWeight: 700, color: '#1a1a2e', lineHeight: 1.2,
+  })
+
+  return (
+    <div>
+      <div style={{ fontWeight: 900, fontSize: 20, color: '#1a1a2e', marginBottom: 4 }}>📣 Announcements</div>
+      <div style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>Send a rich-text email to your users. Delivered in batches of 100 in the background.</div>
+
+      {status?.sent != null ? (
+        <div style={{ background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 12, padding: '28px 32px', textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: '#166534', marginBottom: 6 }}>Queued for {status.sent} recipient{status.sent !== 1 ? 's' : ''}</div>
+          <div style={{ fontSize: 14, color: '#555', marginBottom: 20 }}>Emails are being sent in batches of 100 in the background.</div>
+          <button onClick={handleReset} style={{ background: '#ff6b6b', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            Send Another
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 24, alignItems: 'flex-start' }}>
+
+          {/* ── Editor panel ── */}
+          <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
+            {/* Subject */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Subject</label>
+              <input value={subject} onChange={e => setSubject(e.target.value)}
+                placeholder="e.g. What's new on Glumbi this month 🎉"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none' }} />
+            </div>
+
+            {/* Headline */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Headline</label>
+              <input value={headline} onChange={e => setHeadline(e.target.value)}
+                placeholder="e.g. We've doubled your credits & added new features!"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none' }} />
+            </div>
+
+            {/* Toolbar */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6, padding: '8px 10px', background: '#f8fafc', borderRadius: '8px 8px 0 0', border: '1.5px solid #e0e0e0', borderBottom: 'none' }}>
+              {TOOLBAR.map(t => (
+                <button key={t.cmd} onMouseDown={e => { e.preventDefault(); execCmd(t.cmd) }} title={t.title} style={btnStyle(false)}>{t.icon}</button>
+              ))}
+              <button onMouseDown={e => { e.preventDefault(); insertHeading() }} title="Heading" style={btnStyle(false)}>H3</button>
+              <button onMouseDown={e => { e.preventDefault(); insertLink() }} title="Link" style={btnStyle(false)}>🔗</button>
+              <button onMouseDown={e => { e.preventDefault(); insertDivider() }} title="Divider" style={btnStyle(false)}>—</button>
+            </div>
+
+            {/* Editable body */}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={syncPreview}
+              style={{ minHeight: 220, padding: '14px 16px', border: '1.5px solid #e0e0e0', borderRadius: '0 0 8px 8px', fontSize: 14, lineHeight: 1.8, fontFamily: 'Nunito, sans-serif', color: '#333', outline: 'none', background: '#fff' }}
+            />
+
+            {/* Send row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+              {isMobile && (
+                <button onClick={() => setShowPreview(v => !v)}
+                  style={{ background: '#f1f5f9', color: '#1a1a2e', border: '1.5px solid #e0e0e0', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                  {showPreview ? 'Hide Preview' : '👁 Preview'}
+                </button>
+              )}
+              <button
+                onClick={handleSend}
+                disabled={status === 'sending' || !subject.trim() || !headline.trim()}
+                style={{ marginLeft: 'auto', background: status === 'sending' ? '#ccc' : 'linear-gradient(135deg,#ff6b6b,#ff8e53)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 28px', fontWeight: 800, fontSize: 14, cursor: status === 'sending' ? 'not-allowed' : 'pointer' }}>
+                {status === 'sending' ? 'Sending…' : '📣 Send Announcement'}
+              </button>
+            </div>
+
+            {status === 'error' && (
+              <div style={{ marginTop: 12, color: '#dc2626', fontSize: 13, fontWeight: 700 }}>Failed to queue announcement. Please try again.</div>
+            )}
+          </div>
+
+          {/* ── Preview panel ── */}
+          {(!isMobile || showPreview) && <div style={{ width: isMobile ? '100%' : 360, flexShrink: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Email Preview</div>
+            {/* Outer bg matches template body background */}
+            <div style={{ background: '#f5f5f5', borderRadius: 12, padding: '20px 16px', border: '1.5px solid #e0e0e0' }}>
+              {/* Inner card matches the 560px table */}
+              <div style={{ background: '#fff', borderRadius: 2, overflow: 'hidden', fontFamily: "'Nunito', Arial, Helvetica, sans-serif" }}>
+                {/* Header: padding:24px 32px, border-bottom:3px solid #ff6b6b */}
+                <div style={{ background: '#fff', padding: '24px 32px', textAlign: 'center', borderBottom: '3px solid #ff6b6b' }}>
+                  <img src="https://glumbi.com/logo.svg" alt="Glumbi" width="140" style={{ display: 'block', margin: '0 auto' }}
+                    onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                  <div style={{ display: 'none', fontWeight: 900, fontSize: 20, color: '#ff6b6b', letterSpacing: 1 }}>Glumbi</div>
+                </div>
+                {/* Body: padding:36px 32px */}
+                <div style={{ padding: '36px 32px' }}>
+                  <p style={{ margin: '0 0 20px', fontSize: 15, color: '#555555', lineHeight: 1.6 }}>Dear Glumbi User,</p>
+                  <h2 style={{ margin: '0 0 24px', fontSize: 22, fontWeight: 800, color: '#1a1a2e' }}>
+                    {headline || <span style={{ color: '#ccc', fontWeight: 400 }}>Headline will appear here</span>}
+                  </h2>
+                  <div ref={previewRef} style={{ fontSize: 15, color: '#333333', lineHeight: 1.8, minHeight: 40 }} />
+                  <p style={{ margin: '28px 0 0', fontSize: 14, color: '#555555', lineHeight: 1.8 }}>
+                    Warm regards,<br /><strong>The Glumbi Team</strong>
+                  </p>
+                </div>
+                {/* Footer: padding:20px */}
+                <div style={{ padding: '20px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 12, color: '#aaaaaa' }}>
+                    © Glumbi &nbsp;·&nbsp; <a href="https://glumbi.com/privacy" style={{ color: '#aaaaaa' }}>Privacy</a> &nbsp;·&nbsp; <a href="https://glumbi.com/contact" style={{ color: '#aaaaaa' }}>Contact</a>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>}
+
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
 export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
@@ -2278,7 +2469,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
   const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
-  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers /> }
+  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements /> }
   const current = NAV.find(n => n.id === active)
 
   return (

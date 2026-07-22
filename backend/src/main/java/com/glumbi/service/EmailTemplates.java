@@ -73,6 +73,13 @@ public class EmailTemplates {
         return templateEngine.process("email/quota-warning", ctx);
     }
 
+    public String announcement(String headline, String bodyHtml) {
+        Context ctx = new Context();
+        ctx.setVariable("headline", headline);
+        ctx.setVariable("bodyHtml", bodyHtml);
+        return templateEngine.process("email/announcement", ctx);
+    }
+
     public String onboarding() {
         return templateEngine.process("email/onboarding", new Context());
     }

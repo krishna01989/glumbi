@@ -288,4 +288,5 @@ export const adminApi = {
   resetUserFeatureOverride:  (userId, featureName)       => api.put(`/admin/users/${userId}/feature-overrides/${featureName}`, {}).then(r => r.data),
   listAgents:                ()                          => api.get('/admin/agents').then(r => r.data),
   setAgentEnabled:           (id, enabled)               => api.put(`/admin/agents/${id}/enabled`, { enabled }).then(r => r.data),
+  sendAnnouncement:          (payload)                   => api.post('/admin/announcements/send', payload).then(r => r.data),
 }

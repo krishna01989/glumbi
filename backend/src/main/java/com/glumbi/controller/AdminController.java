@@ -19,6 +19,8 @@ import java.time.temporal.ChronoUnit;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -502,6 +504,33 @@ public class AdminController {
             .toList();
 
         return ResponseEntity.ok(Map.of("schedulerId", id, "history", history));
+    }
+
+    // ── Announcements ─────────────────────────────────────────────────────────
+
+    @PostMapping("/announcements/send")
+    public ResponseEntity<?> sendAnnouncement(@RequestBody Map<String, String> body) {
+        String subject  = body.get("subject");
+        String headline = body.get("headline");
+        String bodyHtml = body.get("bodyHtml");
+        String audience = body.getOrDefault("audience", "app_users");
+
+        if (subject == null || subject.isBlank() || headline == null || headline.isBlank() || bodyHtml == null || bodyHtml.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "subject, headline and bodyHtml are required"));
+
+        List<AppUser> allUsers = userRepo.findAll();
+        List<String> recipients = allUsers.stream()
+            .filter(u -> "all".equals(audience) || !u.isAdminOrAbove())
+            .map(AppUser::getEmail)
+            .filter(e -> e != null && !e.isBlank())
+            .collect(Collectors.toList());
+
+        int total = recipients.size();
+        String html = emailTemplates.announcement(headline, bodyHtml);
+
+        CompletableFuture.runAsync(() -> resendClient.sendBatch(recipients, subject, html));
+
+        return ResponseEntity.ok(Map.of("queued", total));
     }
 
     private Object parseJson(String json) {

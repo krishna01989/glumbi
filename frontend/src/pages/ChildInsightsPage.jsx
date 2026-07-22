@@ -202,6 +202,8 @@ function ActivityTab({ childName, t }) {
                   extraChips.push({ key: 'g-quiz', icon: '🌟', text: `Used Glumbi in ${data.glumbiQuizReady} quiz${data.glumbiQuizReady !== 1 ? 'zes' : ''}`, color: '#f97316', bg: '#fff7ed' })
                 if (feature === 'curiosity' && data?.glumbiFollowupChoices > 0)
                   extraChips.push({ key: 'g-cur', icon: '🌟', text: `Dug deeper ${data.glumbiFollowupChoices} time${data.glumbiFollowupChoices !== 1 ? 's' : ''} with Glumbi`, color: '#8b5cf6', bg: '#faf5ff' })
+                if (feature === 'stories' && data?.glumbiCrossNav > 0)
+                  extraChips.push({ key: 'g-nav', icon: '🚀', text: `${data.glumbiCrossNav} cross-feature journey${data.glumbiCrossNav !== 1 ? 's' : ''}`, color: '#06b6d4', bg: '#ecfeff' })
                 if (feature === 'maze' && (data?.mazeGaveUpCount > 0 || data?.mazeAvgWallHits > 0))
                   extraChips.push({ key: 'maze', icon: '🧱', text: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, color: '#f97316', bg: '#fff7ed' })
                 if (feature === 'riddle' && data?.riddleHints > 0)

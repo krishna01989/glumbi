@@ -165,6 +165,7 @@ function CuriosityCard({ entry }) {
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {gbtn('Turn into a story! 📖', () => {
+                      track('curiosity', 'glumbi_cross_nav', { metadata: { from: 'curiosity', to: 'stories' } })
                       navigate(`/child/${child.id}/stories`, { state: { glumbiPrefill: entry.question } })
                     })}
                     {gbtn('Bye Glumbi! 🌙', () => setGlumbiDone(true), false)}

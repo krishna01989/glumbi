@@ -983,6 +983,7 @@ export default function Stories({ child, quota }) {
                       updateGlumbiPhase('epilogue', glumbiMidPicked, true)
                     })}
                     {gbtn('Quiz time! 📚', () => {
+                      track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
                       navigate(`/child/${child.id}/readquiz`, { state: { glumbiPrefill: selected.keywords || selected.category } })
                     }, false)}
                     {gbtn('Bye Glumbi! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
@@ -994,6 +995,7 @@ export default function Stories({ child, quota }) {
                 <GlumbiBubble text={`Here's what happened next... ${selected.glumbiEpilogue}`}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {gbtn('Quiz time! 📚', () => {
+                      track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
                       navigate(`/child/${child.id}/readquiz`, { state: { glumbiPrefill: selected.keywords || selected.category } })
                     }, false)}
                     {gbtn('The end! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}

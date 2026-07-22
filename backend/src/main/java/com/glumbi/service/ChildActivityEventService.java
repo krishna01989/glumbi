@@ -265,6 +265,9 @@ public class ChildActivityEventService {
         // Glumbi Guide: readquiz + curiosity
         long glumbiQuizReady       = repo.countByChildFeatureEventType(childId, "readquiz",  "glumbi_ready",              from);
         long glumbiFollowupChoices = repo.countByChildFeatureEventType(childId, "curiosity", "glumbi_followup_choice",    from);
+        long glumbiCrossNavStories = repo.countByChildFeatureEventType(childId, "stories",   "glumbi_cross_nav",          from);
+        long glumbiCrossNavReadquiz = repo.countByChildFeatureEventType(childId, "readquiz", "glumbi_cross_nav",          from);
+        long glumbiCrossNavCuriosity = repo.countByChildFeatureEventType(childId, "curiosity","glumbi_cross_nav",         from);
 
         result.put("accuracyByFeature",      accuracyByFeature);
         result.put("completionsByFeature",   completionsByFeature);
@@ -286,6 +289,7 @@ public class ChildActivityEventService {
         result.put("glumbiPostResponses",      glumbiPostResponses);
         result.put("glumbiQuizReady",          glumbiQuizReady);
         result.put("glumbiFollowupChoices",    glumbiFollowupChoices);
+        result.put("glumbiCrossNav",           glumbiCrossNavStories + glumbiCrossNavReadquiz + glumbiCrossNavCuriosity);
         result.put("totalEvents",            total);
         result.put("totalSessions",          totalSessions);
         result.put("onlineCount",            online);
@@ -451,11 +455,15 @@ public class ChildActivityEventService {
         long adminGlumbiPostResponses = repo.countByFeatureEventTypeSince("stories",   "glumbi_post_response",      from);
         long adminGlumbiQuizReady     = repo.countByFeatureEventTypeSince("readquiz",  "glumbi_ready",              from);
         long adminGlumbiFollowups     = repo.countByFeatureEventTypeSince("curiosity", "glumbi_followup_choice",    from);
+        long adminGlumbiCrossNav      = repo.countByFeatureEventTypeSince("stories",   "glumbi_cross_nav",          from)
+                                      + repo.countByFeatureEventTypeSince("readquiz",  "glumbi_cross_nav",          from)
+                                      + repo.countByFeatureEventTypeSince("curiosity", "glumbi_cross_nav",          from);
         result.put("glumbiMidChoices",       adminGlumbiMidChoices);
         result.put("glumbiEpilogues",        adminGlumbiEpilogues);
         result.put("glumbiPostResponses",    adminGlumbiPostResponses);
         result.put("glumbiQuizReady",        adminGlumbiQuizReady);
         result.put("glumbiFollowupChoices",  adminGlumbiFollowups);
+        result.put("glumbiCrossNav",         adminGlumbiCrossNav);
         result.put("totalCreditsUsed",       totalCreditsUsed);
         return result;
     }

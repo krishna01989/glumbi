@@ -344,7 +344,7 @@ export default function App() {
 
   return (
     <ThemeContext.Provider value={theme}>
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
       {screenTimeAlert === true && (
         <ScreenTimeModal

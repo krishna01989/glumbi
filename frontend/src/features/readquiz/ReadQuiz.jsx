@@ -405,6 +405,7 @@ export default function ReadQuiz({ child, quota }) {
                     <GlumbiBubble text={comment}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         {gbtn('Read a story! 📖', () => {
+                          track('readquiz', 'glumbi_cross_nav', { metadata: { from: 'readquiz', to: 'stories' } })
                           navigate(`/child/${child.id}/stories`, { state: { glumbiPrefill: selected.topic } })
                         })}
                         {gbtn('Bye Glumbi! 🌙', () => setGlumbiPhase('idle'), false)}

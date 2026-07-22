@@ -303,10 +303,15 @@ public class StoryController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (r2Service.isConfigured()) {
             try {
-                Story story = service.getById(id);
-                if (story.getAudioUrls() != null) {
-                    Map<String, String> urlMap = objectMapper.readValue(story.getAudioUrls(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
-                    urlMap.keySet().forEach(r2Service::delete);
+                // Collect audio URLs from root story and all chapters before any DB delete
+                List<Story> toClean = new java.util.ArrayList<>();
+                toClean.add(service.getById(id));
+                toClean.addAll(storyRepository.findBySeriesId(id));
+                for (Story s : toClean) {
+                    if (s.getAudioUrls() != null) {
+                        Map<String, String> urlMap = objectMapper.readValue(s.getAudioUrls(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+                        urlMap.keySet().forEach(r2Service::delete);
+                    }
                 }
             } catch (Exception e) {
                 System.err.println("[delete] R2 cleanup failed (non-fatal): " + e.getMessage());

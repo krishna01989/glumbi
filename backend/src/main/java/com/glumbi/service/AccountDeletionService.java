@@ -50,8 +50,15 @@ public class AccountDeletionService {
         });
         familyVoiceRepository.deleteByUserId(userId);
 
-        // 2. Delete all child data
+        // 2. Delete all child data — clean up all R2 audio (including default TTS) before DB delete
         childRepository.findByOwnerId(userId).forEach(child -> {
+            storyRepository.findByChildIdOrderByCreatedAtDesc(child.getId()).forEach(story -> {
+                if (story.getAudioUrls() == null) return;
+                try {
+                    Map<String, String> urls = objectMapper.readValue(story.getAudioUrls(), new TypeReference<>() {});
+                    urls.forEach((key, url) -> { try { r2Service.delete(key); } catch (Exception ignored) {} });
+                } catch (Exception ignored) {}
+            });
             storyRepository.deleteByChildId(child.getId());
             activityRepository.deleteByChildId(child.getId());
             journalRepository.deleteByChildId(child.getId());

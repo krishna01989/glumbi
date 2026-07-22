@@ -446,7 +446,7 @@ Password policy regex: `^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{}|;':",
 
 ### Transactional Emails
 
-All emails sent via `ResendClient` (fire-and-forget WebClient, 5s timeout). Templates rendered by `EmailTemplates` using Thymeleaf. All use email-safe HTML (table layout, no CSS gradients/border-radius), coral theme (`#ff6b6b`), Nunito font, Glumbi logo from `https://glumbi.com/logo.svg`.
+All emails sent via `ResendClient` (fire-and-forget WebClient). `send()` uses 5s timeout; `sendBatch()` uses Resend's `/emails/batch` endpoint (100 per call, 30s timeout) for bulk sends. Templates rendered by `EmailTemplates` using Thymeleaf. All use email-safe HTML (table layout, no CSS gradients/border-radius), coral theme (`#ff6b6b`), Nunito font, Glumbi logo from `https://glumbi.com/logo.svg`. Global kill switch: `resend.enabled=false` (env: `RESEND_ENABLED=false`). Endpoints configurable via `resend.send-url` / `resend.batch-url`.
 
 | Template | Trigger | Fired from |
 |---|---|---|
@@ -461,6 +461,7 @@ All emails sent via `ResendClient` (fire-and-forget WebClient, 5s timeout). Temp
 | `account-released.html` | Admin reinstates account | `AdminController.releaseUser` |
 | `account-deleted-by-admin.html` | Admin deletes a user | `AdminController.deleteUser` — email captured before deletion |
 | `account-deleted-self.html` | User deletes own account | `UserController.deleteAccount` — email captured before deletion |
+| `announcement.html` | Admin broadcast to all app users | `AdminController.POST /api/admin/announcements/send` — batched via `sendBatch()` in `CompletableFuture.runAsync()`; returns `{ queued: N }` immediately |
 
 ---
 

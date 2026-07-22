@@ -327,6 +327,7 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 - **AI Agents**: toggle individual weekly-notification agents on/off.
 - **Feature Credits**: enable/disable features globally, set per-feature credit costs. `FEATURE_META` map at the bottom of `AdminPage.jsx` drives the credits tab — new features must be added here as well as `FEATURE_DISPLAY_MAP` (used by the user feature override modal).
 - **Scheduler History**: live run history — RUNNING ⏳ / SUCCESS ✅ / FAILED ❌, timestamps, duration, agents ran/skipped, errors.
+- **Announcements**: compose and broadcast a rich-text email to all app users. Rich-text editor (`contenteditable`) with a floating selection toolbar (B / I / U / H2 / H3 / link / strikethrough) that appears on text selection — horizontal on wide screens, vertical on narrow. Bottom insert bar for bullet list, numbered list, and divider rule (no selection needed). Live preview panel mirrors `announcement.html` exactly (same padding, font sizes, logo, footer). On mobile the preview is hidden behind a toggle button. Calls `POST /api/admin/announcements/send`; returns `{ queued: N }` immediately while batches send in the background.
 - **Admin profile** (`/admin/profile` → `AdminProfilePage.jsx`): separate page with dark indigo theme, no voice/theming features. Email fetched from `GET /api/users/profile` (not localStorage). Change password + two-step delete account. Super admins see a note that another super admin must exist before self-delete.
 
 ### Analytics — Activity Tracking

@@ -31,7 +31,8 @@ Live at **[glumbi.com](https://glumbi.com)**
 | ▶ **Story Continuation & Series** | Any AI-generated story can be continued as a new chapter. Glumbi generates a follow-on chapter using the same characters and world, links it under the root via `seriesId`/`parentStoryId`, and groups the series in the list with chapter labels (Ch.1, Ch.2…). Deleting the root warns the parent and cascades to all chapters. |
 | ✨ **"What happens next?" (My Writing)** | After reading a child's own written story, tap **What happens next?** to get an AI-suggested next chapter as inspiration. The child can adopt the suggestion into the editor and keep writing, or request a fresh idea. The suggestion is not saved automatically. |
 | 🔐 **Password Reset** | Forgot-password flow with expirable UUID tokens (1 hour, UTC). Email sent via Resend. Token is validated on page load before showing the reset form — invalid or expired tokens get an error screen, not a blank form. No user enumeration: the API always returns 200 regardless of whether the email exists. |
-| 📧 **Transactional Emails** | Full lifecycle email coverage via Resend API and Thymeleaf templates: onboarding welcome on signup, password reset link, password-changed notification (self / admin / reset link), weekly recap, quiet-week nudge (8 rotating messages), no-child-added nudge (7 rotating messages), credit quota warnings at 80% and 100% (once per month each), account suspended / reinstated / deleted confirmations. All templates use email-safe HTML (table-based layout, no CSS gradients), coral theme, Nunito font, Glumbi logo. |
+| 📧 **Transactional Emails** | Full lifecycle email coverage via Resend API and Thymeleaf templates: onboarding welcome on signup, password reset link, password-changed notification (self / admin / reset link), weekly recap, quiet-week nudge (8 rotating messages), no-child-added nudge (7 rotating messages), credit quota warnings at 80% and 100% (once per month each), account suspended / reinstated / deleted confirmations. All templates use email-safe HTML (table-based layout, no CSS gradients), coral theme, Nunito font, Glumbi logo. Global kill switch via `RESEND_ENABLED` env var. |
+| 📣 **Announcements** | Admin-triggered broadcast email to all app users. Rich-text editor with floating selection toolbar (bold, italic, underline, H2, H3, link, strikethrough) and insert bar (bullet list, numbered list, divider). Live email preview mirrors the exact template layout. Sent in batches of 100 via Resend batch API in a background thread — returns queued count immediately. |
 
 ---
 
@@ -169,6 +170,7 @@ Guards: admins cannot touch other admin or super admin accounts. Super admins ca
 | 🤖 **AI Agents** | Toggle individual weekly-notification agents on/off per agent type (Progress Report, Milestone, Story Recommendation, Learning Insight, Learn to Write). |
 | ⚙️ **Feature Credits** | Enable/disable features globally and set per-feature credit costs. Budget simulator shows how a usage mix maps to credits. |
 | 🕒 **Schedulers** | Manually trigger background jobs. Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
+| 📣 **Announcements** | Compose and broadcast a rich-text email to all app users. Rich-text editor with floating selection toolbar and live email preview. Sent in background batches of 100 via Resend. |
 
 ---
 

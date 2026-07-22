@@ -121,7 +121,16 @@ public class NotificationScheduler {
             List<AppUser> users = userRepository.findAll();
             for (AppUser user : users) {
                 List<Child> children = childRepository.findByOwnerId(user.getId());
-                if (children.isEmpty()) continue;
+                if (children.isEmpty()) {
+                    if (runWeeklyEmail) {
+                        resendClient.send(
+                            user.getEmail(),
+                            "👋 Your Glumbi adventure hasn't started yet",
+                            emailTemplates.noChildAdded()
+                        );
+                    }
+                    continue;
+                }
 
                 for (Child child : children) {
                     try {
@@ -189,7 +198,16 @@ public class NotificationScheduler {
         boolean anyActivity = !weekStories.isEmpty() || !weekQuizzes.isEmpty()
                 || !weekWritings.isEmpty() || !weekLearn.isEmpty()
                 || !weekCuriosities.isEmpty() || !weekJournals.isEmpty();
-        if (!anyActivity) return false;
+        if (!anyActivity) {
+            if (runWeeklyEmail) {
+                resendClient.send(
+                    user.getEmail(),
+                    "A quiet week for " + child.getName() + " 😴",
+                    emailTemplates.quietWeek(child.getName())
+                );
+            }
+            return false;
+        }
 
         int flashcardSets = flashcardSetRepo.findByChildIdAndCreatedAtBetween(childId, weekAgo, now).size();
         long wordsLearned = wordOfDayRepo.countByChildIdAndDateBetween(childId, weekAgo.toLocalDate(), LocalDate.now());

@@ -54,6 +54,7 @@ public class AuthController {
         user.setPasswordHash(encoder.encode(req.getPassword()));
         user.setQuotaLimit(quotaService.getDefaultMonthlyCredits());
         userRepo.save(user);
+        resendClient.send(user.getEmail(), "Welcome to Glumbi! 🎉", emailTemplates.onboarding());
         return ResponseEntity.ok(Map.of("token", jwtUtil.generate(user), "role", user.getRole().name()));
     }
 
@@ -100,7 +101,8 @@ public class AuthController {
             AppUser user = userRepo.findByGoogleSub(sub)
                     .orElseGet(() -> userRepo.findByEmail(email).orElse(null));
 
-            if (user == null) {
+            boolean isNewUser = (user == null);
+            if (isNewUser) {
                 user = new AppUser();
                 user.setEmail(email);
                 user.setDisplayName(name);
@@ -112,6 +114,9 @@ public class AuthController {
                 user.setDisplayName(name);
             }
             userRepo.save(user);
+            if (isNewUser) {
+                resendClient.send(user.getEmail(), "Welcome to Glumbi! 🎉", emailTemplates.onboarding());
+            }
 
             if (user.isOnHold()) return ResponseEntity.status(403).body(Map.of(
                 "error", "account_on_hold",

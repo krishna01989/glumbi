@@ -49,6 +49,28 @@ public class EmailTemplates {
         return templateEngine.process("email/password-changed", ctx);
     }
 
+    public String accountOnHold() {
+        return templateEngine.process("email/account-on-hold", new Context());
+    }
+
+    public String accountReleased() {
+        return templateEngine.process("email/account-released", new Context());
+    }
+
+    public String accountDeletedByAdmin() {
+        return templateEngine.process("email/account-deleted-by-admin", new Context());
+    }
+
+    public String accountDeletedBySelf() {
+        return templateEngine.process("email/account-deleted-self", new Context());
+    }
+
+    public String quotaWarning(int usedPercent) {
+        Context ctx = new Context();
+        ctx.setVariable("usedPercent", usedPercent);
+        return templateEngine.process("email/quota-warning", ctx);
+    }
+
     public String onboarding() {
         return templateEngine.process("email/onboarding", new Context());
     }

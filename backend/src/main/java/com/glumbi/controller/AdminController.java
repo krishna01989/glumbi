@@ -402,7 +402,9 @@ public class AdminController {
             if (u.isAdminOrAbove() && !callerIsSuperAdmin(caller))
                 return ResponseEntity.status(403).body(Map.of("error", "Only a super admin can delete another admin."));
 
+            String email = u.getEmail();
             accountDeletionService.deleteUser(id);
+            resendClient.send(email, "Your Glumbi account has been removed", emailTemplates.accountDeletedByAdmin());
             return ResponseEntity.noContent().build();
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -565,8 +567,10 @@ public class AdminController {
             if (u.isAdminOrAbove())
                 return ResponseEntity.status(403).body(Map.of("error", "Admin and super admin accounts cannot be put on hold. Delete the account instead."));
             u.setOnHold(true);
-            u.setHoldReason(body.getOrDefault("reason", "Account suspended by admin."));
+            String reason = body.getOrDefault("reason", "Account suspended by admin.");
+            u.setHoldReason(reason);
             userRepo.save(u);
+            resendClient.send(u.getEmail(), "Your Glumbi account has been suspended", emailTemplates.accountOnHold());
             return ResponseEntity.ok(Map.of("email", u.getEmail(), "onHold", true));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -580,6 +584,7 @@ public class AdminController {
             u.setOnHold(false);
             u.setHoldReason(null);
             userRepo.save(u);
+            resendClient.send(u.getEmail(), "Your Glumbi account has been reinstated", emailTemplates.accountReleased());
             return ResponseEntity.ok(Map.of("email", u.getEmail(), "onHold", false));
         }).orElse(ResponseEntity.notFound().build());
     }

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Nunito',Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#ffffff;padding:24px 32px;text-align:center;border-bottom:3px solid #ff6b6b;">
+              <img src="https://glumbi.com/logo.svg" alt="Glumbi" width="140" style="display:block;margin:0 auto;">
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background:#ffffff;padding:36px 32px;">
+              <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+                Dear Glumbi User,
+              </p>
+
+              <!-- 100% exhausted -->
+              <th:block th:if="${usedPercent >= 100}">
+                <h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#1a1a2e;">You've used all your credits for this month 🚫</h2>
+                <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+                  Your monthly AI credits have been fully used up. AI-powered features like story generation, curiosity questions, and drawing animations are paused until your credits reset at the start of next month.
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+                  <tr>
+                    <td style="background:#fff8f8;padding:16px 20px;border-left:4px solid #ff6b6b;">
+                      <p style="margin:0 0 6px;font-size:14px;font-weight:800;color:#1a1a2e;">Keep learning in Practice Mode</p>
+                      <p style="margin:0;font-size:13px;color:#555555;line-height:1.6;">
+                        Practice Mode lets your child keep tracing letters, reading saved stories, and playing memory games — all without using any credits. No interruption to their routine.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </th:block>
+
+              <!-- 80%+ warning -->
+              <th:block th:if="${usedPercent < 100}">
+                <h2 style="margin:0 0 12px;font-size:20px;font-weight:800;color:#1a1a2e;">You've used <span th:text="${usedPercent}">80</span>% of your credits ⚠️</h2>
+                <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+                  Just a heads-up — your child has been busy on Glumbi this month! You've used <strong th:text="${usedPercent} + '%'">80%</strong> of your monthly AI credits. Once they run out, AI features will pause until next month.
+                </p>
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+                  <tr>
+                    <td style="background:#f8f8f8;padding:16px 20px;border-left:4px solid #ff6b6b;">
+                      <p style="margin:0 0 6px;font-size:14px;font-weight:800;color:#1a1a2e;">Tip: Practice Mode uses zero credits</p>
+                      <p style="margin:0;font-size:13px;color:#555555;line-height:1.6;">
+                        Switch to Practice Mode to keep your child learning — tracing letters, reading saved stories, and playing memory games all work without spending any credits.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </th:block>
+
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px auto;">
+                <tr>
+                  <td style="background:#ff6b6b;padding:12px 32px;text-align:center;">
+                    <a href="https://glumbi.com/auth" style="color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Open Glumbi</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:14px;color:#555555;line-height:1.8;">
+                Warm regards,<br>
+                <strong>The Glumbi Team</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#aaaaaa;">
+                &copy; Glumbi &nbsp;&middot;&nbsp;
+                <a href="https://glumbi.com/privacy" style="color:#aaaaaa;">Privacy</a>
+                &nbsp;&middot;&nbsp;
+                <a href="https://glumbi.com/contact" style="color:#aaaaaa;">Contact</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

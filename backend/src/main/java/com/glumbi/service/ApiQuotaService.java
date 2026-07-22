@@ -12,6 +12,8 @@ import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.repository.UserRepository;
 import com.glumbi.entity.SchedulerRun;
 import com.glumbi.repository.SchedulerRunRepository;
+import com.glumbi.service.ResendClient;
+import com.glumbi.service.EmailTemplates;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -36,6 +38,8 @@ public class ApiQuotaService {
     private final UserFeatureOverrideRepository overrideRepo;
     private final SchedulerRunRepository        schedulerRunRepo;
     private final AiUsageLogRepository          usageLogRepo;
+    private final ResendClient                  resendClient;
+    private final EmailTemplates                emailTemplates;
 
     @Value("${app.quota.default-monthly-credits:200}")
     private int defaultMonthlyCreditsYaml;
@@ -103,7 +107,9 @@ public class ApiQuotaService {
 
         int used = user.getMonthlyApiCalls();
 
-        boolean crossed80      = used >= (int) Math.ceil(limit * 0.8);
+        int usedPercent = (int) Math.round((used * 100.0) / limit);
+
+        boolean crossed80      = usedPercent >= 80;
         boolean warnNotSentYet = !thisMonth.equals(user.getQuotaWarnMonth());
         if (crossed80 && warnNotSentYet) {
             user.setQuotaWarnMonth(thisMonth);
@@ -113,6 +119,8 @@ public class ApiQuotaService {
                 "⚠️ You've used over 80% of your monthly AI credits. " +
                 "Consider switching to Practice Mode to keep learning without using credits."
             );
+            resendClient.send(user.getEmail(), "You've used " + usedPercent + "% of your Glumbi credits ⚠️",
+                emailTemplates.quotaWarning(usedPercent));
         }
 
         boolean crossed100          = used >= limit;
@@ -125,6 +133,8 @@ public class ApiQuotaService {
                 "🚫 You've used all your monthly AI credits. AI features are paused until next month. " +
                 "Switch to Practice Mode to keep learning without credits."
             );
+            resendClient.send(user.getEmail(), "You've used all your Glumbi credits for this month 🚫",
+                emailTemplates.quotaWarning(100));
         }
 
         return true;

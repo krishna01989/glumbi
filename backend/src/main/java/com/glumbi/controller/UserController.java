@@ -217,7 +217,11 @@ public class UserController {
                 return ResponseEntity.status(400).body(Map.of("error",
                     "You are the only super admin. Promote another admin first before deleting your account."));
         }
+        String email = userRepository.findById(authUser.id()).map(u -> u.getEmail()).orElse(null);
         accountDeletionService.deleteUser(authUser.id());
+        if (email != null) {
+            resendClient.send(email, "Your Glumbi account has been deleted", emailTemplates.accountDeletedBySelf());
+        }
         return ResponseEntity.noContent().build();
     }
 }

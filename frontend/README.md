@@ -67,15 +67,15 @@ src/
 │   ├── ErrorPage.jsx           # 404 / error fallback
 │   └── legal/                  # Privacy, Terms, Contact pages
 ├── features/
-│   ├── stories/Stories.jsx     # AI story generation + TTS + voice/accent picker
+│   ├── stories/Stories.jsx     # AI story generation + TTS + voice/accent picker + Glumbi Guide (phase state machine)
 │   ├── draw/Draw.jsx           # Free-draw canvas + AI drawing guide + "Bring to Life" animation + fullscreen
 │   ├── draw/FlipbookStudio.jsx # Frame-by-frame animation studio (tab inside Draw)
 │   ├── draw/animationEngine.js # Canvas animation engine: cutout extraction, 100+ object animators, particle system
 │   ├── draw/animationLibrary.js # Object → animation mapping (1000+ label definitions)
 │   ├── journal/Journal.jsx     # Private kid journal
-│   ├── curiosity/Curiosity.jsx # Daily curiosity questions + semantic similar
+│   ├── curiosity/Curiosity.jsx # Daily curiosity questions + semantic similar + Glumbi follow-up
 │   ├── learn/LearnPage.jsx     # Letter/word tracing with AI validation + fullscreen
-│   ├── readquiz/ReadQuiz.jsx   # Read-along + comprehension quiz
+│   ├── readquiz/ReadQuiz.jsx   # Read-along + comprehension quiz + Glumbi intro/score reaction
 │   ├── mywriting/MyWriting.jsx # Kids writing + AI coach + "What happens next?"
 │   ├── memory/MemoryPlay.jsx   # Memory card-matching game + Word of Day
 │   ├── activities/Activities.jsx # Activity suggestions + semantic similar
@@ -219,6 +219,41 @@ activityApi.getSimilar(id)  // GET /api/activities/{id}/similar
 **How it works (no Voyage AI at read time):**
 The backend uses a pgvector `<->` cosine distance JOIN on the stored embedding column — zero external API calls on navigation. Voyage AI was already called (async, fire-and-forget) when the record was first saved.
 
+### Glumbi Guide
+
+An interactive companion layer woven into Stories, Read & Quiz, and Curiosity. All Glumbi content is generated alongside the main content — zero extra API calls at interaction time.
+
+**Stories (`Stories.jsx`)**
+- Phase machine: `idle → intro → reading1 → mid → reading2 → post → epilogue`
+- `glumbiPhase` always resets on story navigation (no localStorage persistence)
+- **True branching**: `storyPart2A` (choice 0) and `storyPart2B` (choice 1) generated in one Claude call. `glumbiMidPicked` (0 or 1) determines which branch plays in `reading2` and which audio part is requested (`?part=2&branch=a|b`). Cache keys: `:p1`, `:p2a`, `:p2b`
+- TTS `onended` auto-advances `reading1→mid` and `reading2→post`; manual buttons always available
+- Post/epilogue end: **"Quiz time! 📚"** navigates to Read & Quiz with story keywords pre-filled
+- Analytics: `glumbi_mid_choice` (metadata: `{ choice, choiceText, storyTitle }`), `glumbi_epilogue_requested`, `glumbi_post_response`
+
+**Read & Quiz (`ReadQuiz.jsx`)**
+- Phase machine: `idle → intro → reading → idle → post`
+- Intro bubble before reading; "I'm ready! 🧠" sets phase to `idle` and scrolls to quiz
+- Post-submit: Glumbi reacts with a score-aware comment (`glumbiScoreComment` is pipe-delimited, 4 variants, indexed 0–3 by score)
+- Post end: **"Read a story! 📖"** navigates to Stories with quiz topic pre-filled
+- Analytics: `glumbi_ready` (metadata: `{ topic, title }`)
+
+**Curiosity (`Curiosity.jsx`)**
+- No phase machine — per-entry `glumbiPicked` / `glumbiDone` boolean
+- Glumbi poses a follow-up question with 2 choices; picking one shows `glumbiReaction`
+- End: **"Turn into a story! 📖"** navigates to Stories with curiosity question pre-filled as keyword
+- Analytics: `glumbi_followup_choice` (metadata: `{ choice, choiceText, question }`)
+
+**Cross-feature continuity**
+- Navigation via `navigate(path, { state: { glumbiPrefill: topic } })` — no sessionStorage or context
+- Receiving feature reads `location.state?.glumbiPrefill` on mount and pre-fills its input; child always submits manually
+
+**History drawer pattern (all three)**
+- `HistoryDrawer` with compact single-row items: emoji + title + tag badge + status icon
+- Selecting a row swaps the inline content card; drawer auto-closes. Delete on row (not inside card) for Curiosity
+
+**Nav order**: Stories → Read & Quiz → My Writing (sidebar + hamburger)
+
 ### Story Continuation
 
 - **Stories page** — any story has a **▶ Continue** button in the action row; calls `POST /api/stories/generate` with `previousStoryId` set; the backend passes the last 600 chars of the original as context to `StoryAgent.continueStory()`. Result is saved as a new story and appears at the top of the list.
@@ -298,6 +333,7 @@ The listen button opens a language picker popup that includes:
 - **Language buttons** — English + 6 international + 5 Indian regional
 - Selections persist in `localStorage` (`glumbi_accent`, `glumbi_gender`)
 - When a custom voice is selected, `?familyVoiceId=<id>` is passed to the backend listen URL instead of a WaveNet voice name
+- **Glumbi Guide part audio**: when `glumbiPhase` is `reading1` or `reading2`, the listen URL includes `?part=1` or `?part=2` — the backend serves only the corresponding story half and caches it under a separate key (`:p1`/`:p2` suffix)
 - **Practice mode (AI off) + listen**: allowed only if the story already has a cached R2 URL (free redirect). First-time listens are blocked with a friendly message — they would cost a TTS call. The check uses `story.audioUrls` (returned in the story JSON) to decide before making any API call.
 
 ### Email Notification Preference (`ProfilePage.jsx`)

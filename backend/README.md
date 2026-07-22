@@ -77,10 +77,11 @@ Voyage AI embeddings are normalized to unit vectors, so L2 distance and cosine s
 
 | Agent | Purpose |
 |---|---|
-| `StoryAgent` | Generates personalised stories; also has `continueStory()` which takes the last 600 chars of a previous story as context and generates a next chapter |
+| `StoryAgent` | Generates personalised stories with **true branching**: `storyPart1` + `storyPart2A` (choice 0) + `storyPart2B` (choice 1) in one Claude call. Also has `continueStory()`. Accepts `glumbiMemory` string (from `GlumbiMemoryService`) appended to the prompt. Glumbi fields: `glumbiIntro`, `glumbiMidQuestion`, `glumbiMidChoices` (JSON array of 2), `glumbiPostQuestion`, `glumbiEpilogue`. `StoryResult` record has 10 fields. |
 | `ActivityAgent` | Generates activity suggestions from a story |
-| `CuriosityAgent` | Generates daily curiosity / wonder questions |
-| `ReadQuizAgent` | Generates comprehension quiz questions |
+| `CuriosityAgent` | Generates curiosity answers. Accepts `glumbiMemory`. Glumbi fields: `glumbiFollowUp`, `glumbiFollowUpChoices` (JSON array of 2), `glumbiReaction`. |
+| `ReadQuizAgent` | Generates comprehension quizzes. Accepts `glumbiMemory`. Glumbi fields: `glumbiIntro`, `glumbiScoreComment` (pipe-delimited, 4 score-specific comments). |
+| `GlumbiMemoryService` | Queries last 5 `glumbi_mid_choice`, `glumbi_followup_choice`, `glumbi_ready` events for a child and formats them as a context paragraph. Injected into all three services. Only structured event data (choice text, topic) — never user-generated content. |
 | `WritingCoachAgent` | Reviews a child's writing and gives feedback |
 | `TranslationAgent` | Translates story title + content to a target language |
 | `TraceAgent` | Generates a maze theme (start/end emoji, completion story, background colour) for a given child age and difficulty level. Used by the Maze feature. |
@@ -102,7 +103,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 | Controller | Base Path | Notes |
 |---|---|---|
 | `AuthController` | `/api/auth` | Register, login, Google OAuth, health check, password reset flow (`forgot-password`, `validate-reset-token`, `reset-password`). Sets `quotaLimit` to current global default on new user creation. |
-| `StoryController` | `/api/stories` | CRUD + `/listen` audio endpoint with HTTP Range support and optional `?voice=` param |
+| `StoryController` | `/api/stories` | CRUD + `/listen` endpoint with HTTP Range, `?part=1|2` and `?branch=a|b` for Glumbi branched audio. Cache key suffixes: `:p1`, `:p2a`, `:p2b`. R2 cleanup on delete covers all branch keys via `audioUrls` JSON column. |
 | `ActivityController` | `/api/activities` | Generate and list activities; `GET /{id}/similar` returns semantically similar completed activities via pgvector |
 | `CuriosityController` | `/api/curiosity` | Daily curiosity questions; `GET /{id}/similar` returns semantically related questions via pgvector |
 | `ReadQuizController` | `/api/readquiz` | Quiz generation and history |
@@ -229,7 +230,7 @@ docker run -p 8080:8080 --env-file backend/.env glumbi-backend
 | **In-memory** (`ConcurrentHashMap`) | Server lifetime only | Used as fallback when R2 upload fails — bytes kept in memory so the same server session doesn't re-call TTS. Evicted on restart. |
 | **R2 miss + offline mode** | Frontend guard | If `story.audioUrls` has no entry for the requested language/voice combo and the user is in practice mode (AI off), the frontend blocks the listen request before hitting the backend — avoids a TTS charge. |
 
-Cache key format: `{storyId}:{language}` or `{storyId}:{language}:{voiceName}` or `{storyId}:{language}:el:{elevenLabsVoiceId}`
+Cache key format: `{storyId}:{language}`, `{storyId}:{language}:{voiceName}`, `{storyId}:{language}:el:{elevenLabsVoiceId}`, or any of the above with `:p1` / `:p2a` / `:p2b` for Glumbi branched audio
 
 **On story delete**: all R2 objects for that story are deleted first (`R2Service.delete()` per cache key in `audio_urls`), then the DB row is removed. R2 cleanup failure is non-fatal.
 
@@ -267,6 +268,9 @@ CORS policy on the R2 bucket must expose `Content-Length`, `Content-Range`, and 
 |---|---|---|
 | `countByFeatureForChild` | `event_type = 'session'` | Per-feature session count for parent popup |
 | `countByFeatureSince` | `event_type = 'session'` | Per-feature session count for admin dashboard |
+| `countByChildFeatureEventType` | feature + eventType filter | Per-child Glumbi interaction counts (`glumbi_mid_choice`, `glumbi_epilogue_requested`, `glumbi_post_response`, `glumbi_ready`, `glumbi_followup_choice`) |
+| `countByFeatureEventTypeSince` | feature + eventType filter | Platform-wide Glumbi counts for admin dashboard |
+| `findRecentGlumbiEvents` | childId + limit | Last N Glumbi events with metadata — used by `GlumbiMemoryService` to build per-child memory context |
 | `countByDateForChild` | — | Daily activity chart (all events) |
 | `countByHourForChild` | — | Hourly distribution (all events) |
 | `sumDurationByFeatureForChild` | `event_type = 'session'` | Total engagement seconds per feature |

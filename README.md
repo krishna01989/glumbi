@@ -11,6 +11,7 @@ Live at **[glumbi.com](https://glumbi.com)**
 | Feature | Description |
 |---|---|
 | 📖 **Stories** | AI-generated stories personalised to the child's interests. Listen with Google TTS narration in 12 languages. "More like this" surfaces semantically similar past stories via pgvector. Stories can be continued as a multi-chapter series — chapters are grouped in the list and cascade-delete with the root. Similar stories exclude same-series chapters to avoid duplicate suggestions. |
+| 🌟 **Glumbi Guide** | An interactive companion layer woven into Stories, Read & Quiz, and Curiosity. Stories: true branching — Glumbi splits the story, the child picks a path at the midpoint, the branch chosen plays as part 2, and Glumbi offers an epilogue at the end. Read & Quiz: Glumbi introduces the passage and reacts to the score. Curiosity: Glumbi poses a follow-up question and reacts to the child's pick. **Glumbi memory**: recent choices are queried and passed to the AI agent so Glumbi can reference past interactions. **Cross-feature continuity**: Curiosity → Stories, Stories → Read & Quiz, Read & Quiz → Stories — each pre-fills the destination's topic/keyword field via React Router navigation state. |
 | 🎯 **Activities** | Age-appropriate activity suggestions. ✦ button surfaces similar completed activities ranked by semantic similarity. |
 | 🔭 **Curiosity** | Daily "wonder" questions to spark curiosity and critical thinking. 🔗 button shows related questions via semantic search. |
 | 📝 **Read & Quiz** | Generate comprehension quizzes from any story topic. Track scores over time. |
@@ -96,7 +97,7 @@ Railway — Spring Boot (port 8080)
 
 - Authentication: email+password (JWT) or Sign in with Google (OAuth 2.0)
 - All JWT tokens are stateless and stored in `localStorage` (`glm_token`, `glm_role`)
-- Audio is cached in three layers: **Cloudflare R2** (permanent CDN — backend returns a 302 redirect, browser fetches directly from Cloudflare), **in-memory fallback** (if R2 upload fails), and a **frontend guard** that blocks first-time TTS calls in practice mode (AI off). Cache key includes language and voice name so different voice selections each get their own entry. Story deletion cleans up R2 objects automatically.
+- Audio is cached in three layers: **Cloudflare R2** (permanent CDN — backend returns a 302 redirect, browser fetches directly from Cloudflare), **in-memory fallback** (if R2 upload fails), and a **frontend guard** that blocks first-time TTS calls in practice mode (AI off). Cache key includes language, voice name, and a part suffix: `:p1` (part 1), `:p2a` (branch A), `:p2b` (branch B) — used by Glumbi's true branching to cache each story segment separately. Story deletion cleans up all R2 objects (including branch keys) automatically via the `audioUrls` JSON column.
 - Scheduled jobs run weekly (notifications) and monthly (quota reset); each run is recorded in the `scheduler_runs` DB table with a RUNNING → SUCCESS/FAILED status pattern so admins can see live job state
 
 ---

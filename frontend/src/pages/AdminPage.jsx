@@ -2289,7 +2289,7 @@ export default function AdminPage({ onBack, onLogout }) {
         width: isMobile ? (sidebarOpen ? 220 : 0) : (sidebarCollapsed ? 52 : 220),
         minWidth: isMobile ? (sidebarOpen ? 220 : 0) : (sidebarCollapsed ? 52 : 220),
         background: '#0f172a', display: 'flex', flexDirection: 'column',
-        transition: 'width 0.22s ease, min-width 0.22s ease', overflow: 'visible',
+        transition: 'width 0.22s ease, min-width 0.22s ease', overflow: isMobile ? 'hidden' : 'visible',
         position: isMobile ? 'fixed' : 'relative',
         zIndex: isMobile ? 1000 : 1,
         height: '100vh', top: 0, left: 0,

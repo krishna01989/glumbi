@@ -820,8 +820,12 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
             const signals = []
             if ((data.mazeGaveUpCount ?? 0) > 0 || (data.mazeAvgWallHits ?? 0) > 0)
               signals.push({ key: 'maze', icon: '🧱', label: 'Maze', primary: `${data.mazeGaveUpCount ?? 0} gave up`, sub: `avg ${data.mazeAvgWallHits ?? 0} wall hits on completed runs`, color: '#f97316', bg: '#fff7ed' })
-            if ((data.riddleHints ?? 0) > 0)
-              signals.push({ key: 'hints', icon: '💡', label: 'Riddles', primary: `${data.riddleHints} hints used`, sub: 'platform total', color: '#f59e0b', bg: '#fffbeb' })
+            if ((data.riddleHints ?? 0) > 0 || (data.riddleGlumbi ?? 0) > 0) {
+              const riddleParts = []
+              if ((data.riddleHints ?? 0) > 0) riddleParts.push(`${data.riddleHints} hints used`)
+              if ((data.riddleGlumbi ?? 0) > 0) riddleParts.push(`${data.riddleGlumbi} Glumbi moments`)
+              signals.push({ key: 'riddle', icon: '🎯', label: 'Riddles', primary: riddleParts[0], sub: riddleParts.slice(1).join(' · ') || 'platform total', color: '#f59e0b', bg: '#fffbeb' })
+            }
             if ((data.storiesSimilarViewed ?? 0) > 0)
               signals.push({ key: 'sim', icon: '🔗', label: 'Stories', primary: `${data.storiesSimilarViewed} similar explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
             if ((data.glumbiMidChoices ?? 0) > 0 || (data.glumbiQuizReady ?? 0) > 0 || (data.glumbiFollowupChoices ?? 0) > 0 || (data.glumbiEpilogues ?? 0) > 0 || (data.glumbiCrossNav ?? 0) > 0) {

@@ -1,14 +1,12 @@
 Generate 5 riddles for a child named %s who is %d years old.
 
 Age guide:
-- Age 3-4: ultra-simple, concrete everyday objects (spoon, ball, sun). One-line questions. Very obvious hints.
-- Age 5-6: simple riddles about familiar things (clock, sponge, shadow). Short playful questions.
-- Age 7-8: slightly tricky wordplay, two-step thinking (footsteps, echo, mirror). Fun but fair.
-- Age 9-10: clever riddles with mild misdirection, broader vocabulary. Can involve concepts like time, dreams, silence.
-- Age 11+: proper brain-teasers with wordplay and abstract concepts.
+- Age 1-3: ultra-simple, concrete everyday objects (spoon, ball, sun). One-line questions. Very obvious hints.
+- Age 4-6: simple riddles about familiar things (clock, sponge, shadow). Short playful questions.
+- Age 7-10: clever riddles with mild misdirection, wordplay, broader vocabulary. Can involve concepts like time, dreams, silence.
 
 Return ONLY a valid JSON array (no markdown, no code block):
-[{"question":"I have hands but cannot clap. What am I?","hint":"You look at me to know the time","answer":"clock","emoji":"🕐"}]
+[{"question":"I have hands but cannot clap. What am I?","hint":"You look at me to know the time","answer":"clock","emoji":"🕐","glumbiReaction":"A clock has hands but they can only point — no high-fiving a clock! ⏰ Those hands help us know if it's snack time or bedtime!","glumbiTeaser":"Ooh, this next one is sneaky… think carefully! 🤫"}]
 
 Rules:
 - answers must be single common English words (easy to type)
@@ -16,3 +14,6 @@ Rules:
 - vary topics across animals, objects, nature, everyday life
 - hints must genuinely help without giving it away
 - make all 5 feel different from each other
+- glumbiReaction: 1-2 fun sentences explaining WHY the answer is correct in a way that delights a child. End with an emoji. Age-appropriate language.
+- glumbiTeaser: a short exciting 1-liner Glumbi uses to introduce the NEXT riddle. Keep it mysterious and fun. Omit for the last riddle (use empty string).
+- All 5 riddles must be in the array, all fields present on every object

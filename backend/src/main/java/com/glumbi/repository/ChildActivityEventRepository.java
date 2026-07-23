@@ -202,7 +202,7 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
         SELECT feature, event_type, metadata, occurred_at
         FROM child_activity_events
         WHERE child_id = :childId
-          AND event_type IN ('glumbi_mid_choice','glumbi_followup_choice','glumbi_ready')
+          AND event_type IN ('glumbi_mid_choice','glumbi_followup_choice','glumbi_ready','glumbi_riddle')
           AND metadata IS NOT NULL
         ORDER BY occurred_at DESC
         LIMIT :limit

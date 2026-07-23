@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.glumbi.entity.Child;
 import com.glumbi.entity.JournalEntry;
+import com.glumbi.repository.ChildActivityEventRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,6 +22,7 @@ public class JournalInsightAgent {
 
     private final AnthropicClient anthropicClient;
     private final SafetyGuard safety;
+    private final ChildActivityEventRepository activityEventRepo;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${anthropic.model}") private String model;
@@ -27,6 +31,7 @@ public class JournalInsightAgent {
         if (entries.isEmpty()) return null;
 
         int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
+        LocalDateTime weekAgo = LocalDateTime.now(ZoneOffset.UTC).minusDays(7);
 
         // Find dominant mood this week
         String dominantMood = entries.stream()
@@ -37,17 +42,21 @@ public class JournalInsightAgent {
                 .map(Map.Entry::getKey)
                 .orElse(null);
 
-        // Collect moods list for colour
         String moodSummary = dominantMood != null
                 ? "The most frequent mood was: " + dominantMood + "."
                 : "No mood was recorded.";
 
+        long riddleGlumbi = activityEventRepo.countByChildFeatureEventType(child.getId(), "riddle", "glumbi_riddle", weekAgo);
+        String riddleNote = riddleGlumbi > 0
+                ? String.format(" The child also had %d Glumbi riddle moment(s) this week.", riddleGlumbi)
+                : "";
+
         String prompt = String.format(
             "Write a warm 1-2 sentence weekly summary for a parent about their child %s (age %d) " +
-            "who wrote %d journal entr(ies) this week. %s " +
+            "who wrote %d journal entr(ies) this week. %s%s " +
             "Acknowledge the journaling habit positively and mention the mood if available. " +
             "No markdown. Refer to the child by name only, no pronouns.",
-            child.getName(), age, entries.size(), moodSummary);
+            child.getName(), age, entries.size(), moodSummary, riddleNote);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);

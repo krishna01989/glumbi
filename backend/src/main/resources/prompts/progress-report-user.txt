@@ -11,6 +11,8 @@
   <memory_flashcard_sets>%d</memory_flashcard_sets>
   <words_of_day_learned>%d</words_of_day_learned>
   <memory_match_games>%d</memory_match_games>
+  <riddle_sessions>%d</riddle_sessions>
+  <glumbi_interactions>%d</glumbi_interactions>
 </activity_this_week>
 
 <rules>

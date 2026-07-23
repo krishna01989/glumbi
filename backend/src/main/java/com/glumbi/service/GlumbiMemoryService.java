@@ -64,6 +64,13 @@ public class GlumbiMemoryService {
                     String title = m.path("title").asText(null);
                     yield "- In Read & Quiz, they engaged with Glumbi on: " + (title != null ? title : (topic != null ? topic : "a quiz"));
                 }
+                case "glumbi_riddle" -> {
+                    String result = m.path("result").asText(null);
+                    String riddle = m.path("riddle").asText(null);
+                    if (riddle == null) yield "- They played a riddle with Glumbi";
+                    String outcome = "correct".equals(result) ? "got it right" : "needed a hint";
+                    yield "- In Riddles, Glumbi asked: \"" + riddle + "\" — they " + outcome;
+                }
                 default -> null;
             };
         } catch (Exception e) {

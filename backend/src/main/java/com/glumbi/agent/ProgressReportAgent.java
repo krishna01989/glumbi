@@ -37,7 +37,9 @@ public class ProgressReportAgent {
                            List<JournalEntry> journals,
                            int flashcardSets,
                            int wordsLearned,
-                           int matchGames) {
+                           int matchGames,
+                           int riddleSessions,
+                           int glumbiInteractions) {
 
         int storyCount     = stories.size();
         int quizCount      = (int) quizzes.stream().filter(ReadQuizEntry::isCompleted).count();
@@ -66,7 +68,7 @@ public class ProgressReportAgent {
                 child.getName(), com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear()),
                 storyCount, quizCount, scoreSummary, writingCount,
                 curiosityCount, journalCount, dominantMood,
-                flashcardSets, wordsLearned, matchGames);
+                flashcardSets, wordsLearned, matchGames, riddleSessions, glumbiInteractions);
 
         return callClaude(prompt);
     }

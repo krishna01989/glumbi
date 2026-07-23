@@ -208,6 +208,8 @@ function ActivityTab({ childName, t }) {
                   extraChips.push({ key: 'maze', icon: '🧱', text: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, color: '#f97316', bg: '#fff7ed' })
                 if (feature === 'riddle' && data?.riddleHints > 0)
                   extraChips.push({ key: 'hints', icon: '💡', text: `Used ${data.riddleHints} hint${data.riddleHints !== 1 ? 's' : ''}`, color: '#f59e0b', bg: '#fffbeb' })
+                if (feature === 'riddle' && data?.riddleGlumbi > 0)
+                  extraChips.push({ key: 'g-riddle', icon: '🌟', text: `${data.riddleGlumbi} Glumbi moment${data.riddleGlumbi !== 1 ? 's' : ''}`, color: '#f97316', bg: '#fff7ed' })
                 if (feature === 'mywriting' && data?.mywritingAvgWordCount > 0)
                   extraChips.push({ key: 'words', icon: '✍️', text: `avg ${data.mywritingAvgWordCount} words/submission`, color: '#10b981', bg: '#f0fdf4' })
                 if (feature === 'memorymatch' && data?.topMemoryMatchTheme)

@@ -20,7 +20,7 @@ public class RiddleAgent {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${anthropic.model}")                        private String model;
-    @Value("${anthropic.max-tokens.riddle:600}")        private int maxTokens;
+    @Value("${anthropic.max-tokens.riddle:1200}")       private int maxTokens;
 
     public List<RiddleItem> generate(String childName, int childAge) {
         String prompt = String.format(promptLoader.load("riddle-user"), childName, childAge);
@@ -50,7 +50,9 @@ public class RiddleAgent {
                         node.path("question").asText(),
                         node.path("hint").asText(),
                         node.path("answer").asText(),
-                        node.path("emoji").asText("❓")
+                        node.path("emoji").asText("❓"),
+                        node.path("glumbiReaction").asText(""),
+                        node.path("glumbiTeaser").asText("")
                 ));
             }
             return items;
@@ -62,11 +64,17 @@ public class RiddleAgent {
     private List<RiddleItem> safeDefaults() {
         return List.of(
                 new RiddleItem("I have hands but cannot clap. What am I?",
-                        "You look at me to know the time", "clock", "🕐"),
+                        "You look at me to know the time", "clock", "🕐",
+                        "A clock has hands but they can only point at numbers — no high-fiving a clock! ⏰",
+                        "Ooh, this next one is sneaky… think carefully! 🤫"),
                 new RiddleItem("I have colours but no paint. What am I?",
-                        "You see me after it rains", "rainbow", "🌈"),
+                        "You see me after it rains", "rainbow", "🌈",
+                        "A rainbow is like nature's own painting in the sky — made of sunlight and raindrops! 🌦️",
+                        "Ready for a tricky one? This next riddle has a twist! 🌀"),
                 new RiddleItem("I show your face but I'm not a photo. What am I?",
-                        "You look into me when you get dressed", "mirror", "🪞")
+                        "You look into me when you get dressed", "mirror", "🪞",
+                        "A mirror bounces light back at you so perfectly it shows exactly what you look like! ✨",
+                        "")
         );
     }
 
@@ -74,6 +82,8 @@ public class RiddleAgent {
             String question,
             String hint,
             String answer,
-            String emoji
+            String emoji,
+            String glumbiReaction,
+            String glumbiTeaser
     ) {}
 }

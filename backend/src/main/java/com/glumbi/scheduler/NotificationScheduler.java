@@ -59,9 +59,10 @@ public class NotificationScheduler {
     private final CuriosityInsightAgent    curiosityInsightAgent;
     private final JournalInsightAgent      journalInsightAgent;
 
-    private final FlashcardSetRepository   flashcardSetRepo;
-    private final WordOfDayRepository      wordOfDayRepo;
-    private final MemoryMatchRepository    memoryMatchRepo;
+    private final FlashcardSetRepository          flashcardSetRepo;
+    private final WordOfDayRepository             wordOfDayRepo;
+    private final MemoryMatchRepository           memoryMatchRepo;
+    private final ChildActivityEventRepository    activityEventRepo;
     private final ResendClient             resendClient;
     private final EmailTemplates           emailTemplates;
 
@@ -195,10 +196,20 @@ public class NotificationScheduler {
         List<CuriosityEntry> weekCuriosities = curiosityRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
         List<JournalEntry>   weekJournals    = journalRepository.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, weekAgo, now);
 
+        int flashcardSets    = flashcardSetRepo.findByChildIdAndCreatedAtBetween(childId, weekAgo, now).size();
+        long wordsLearned    = wordOfDayRepo.countByChildIdAndDateBetween(childId, weekAgo.toLocalDate(), LocalDate.now());
+        long matchGames      = memoryMatchRepo.countByChildIdAndCreatedAtBetween(childId, weekAgo, now);
+        long riddleSessions  = activityEventRepo.countByChildFeatureEventType(childId, "riddle", "session", weekAgo);
+        long glumbiRiddle    = activityEventRepo.countByChildFeatureEventType(childId, "riddle", "glumbi_riddle", weekAgo);
+        long glumbiStory     = activityEventRepo.countByChildFeatureEventType(childId, "story", "glumbi_mid_choice", weekAgo);
+        long glumbiCuriosity = activityEventRepo.countByChildFeatureEventType(childId, "curiosity", "glumbi_followup_choice", weekAgo);
+        int totalGlumbi      = (int)(glumbiRiddle + glumbiStory + glumbiCuriosity);
+
         // Skip child if there was no activity at all this week
         boolean anyActivity = !weekStories.isEmpty() || !weekQuizzes.isEmpty()
                 || !weekWritings.isEmpty() || !weekLearn.isEmpty()
-                || !weekCuriosities.isEmpty() || !weekJournals.isEmpty();
+                || !weekCuriosities.isEmpty() || !weekJournals.isEmpty()
+                || riddleSessions > 0;
         if (!anyActivity) {
             if (runWeeklyEmail && user.isMarketingEmailsEnabled()) {
                 resendClient.send(
@@ -210,10 +221,6 @@ public class NotificationScheduler {
             return false;
         }
 
-        int flashcardSets = flashcardSetRepo.findByChildIdAndCreatedAtBetween(childId, weekAgo, now).size();
-        long wordsLearned = wordOfDayRepo.countByChildIdAndDateBetween(childId, weekAgo.toLocalDate(), LocalDate.now());
-        long matchGames   = memoryMatchRepo.countByChildIdAndCreatedAtBetween(childId, weekAgo, now);
-
         List<Story>         allStories  = null;
         List<ReadQuizEntry> allQuizzes  = null;
         List<WritingEntry>  allWritings = null;
@@ -223,7 +230,7 @@ public class NotificationScheduler {
             progressText = progressReportAgent.generate(
                 child, weekStories, weekQuizzes, weekWritings,
                 weekCuriosities, weekJournals,
-                flashcardSets, (int) wordsLearned, (int) matchGames);
+                flashcardSets, (int) wordsLearned, (int) matchGames, (int) riddleSessions, totalGlumbi);
             if (runProgress) {
                 notificationService.save(user, child, NotificationType.PROGRESS_REPORT, progressText);
             }

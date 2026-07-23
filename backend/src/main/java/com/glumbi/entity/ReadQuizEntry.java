@@ -43,6 +43,8 @@ public class ReadQuizEntry {
     private Integer score;          // 0-3, null until submitted
     private boolean completed = false;
 
+    private Long sourceStoryId;     // set when quiz was generated from a story (nullable)
+
     // Glumbi guide fields
     @Column(columnDefinition = "TEXT")
     private String glumbiIntro;         // pre-reading teaser line

@@ -53,6 +53,32 @@ public class ReadQuizController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/from-story")
+    public ResponseEntity<?> generateFromStory(@RequestBody Map<String, Long> body,
+                                               @AuthenticationPrincipal AuthUser user) {
+        Long childId = body.get("childId");
+        Long storyId = body.get("storyId");
+        if (childId == null || storyId == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "childId and storyId are required"));
+        // Return existing quiz without touching quota or rate limit
+        ReadQuizEntry existing = service.findByStory(childId, storyId);
+        if (existing != null) return ResponseEntity.ok(existing);
+
+        if (!quotaService.isFeatureEnabled(user.id(), "read-quiz"))
+            return ResponseEntity.status(403).body(Map.of("error", "Read & Quiz is currently unavailable."));
+        if (!rateLimiter.tryConsume(user.id(), Endpoint.READ_QUIZ))
+            return ResponseEntity.status(429).body(Map.of("error", "Too many requests this hour. Try again later!"));
+        Object result;
+        try {
+            result = service.generateFromStory(childId, storyId);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate quiz"));
+        }
+        if (!quotaService.tryConsume(user.id(), "read-quiz", childId))
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping("/{id}/submit")
     public ResponseEntity<?> submit(@PathVariable Long id,
                                     @RequestBody Map<String, int[]> body) {

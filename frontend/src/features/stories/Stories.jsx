@@ -340,7 +340,7 @@ export default function Stories({ child, quota }) {
 
   function navigateChapter(dir) {
     const next = dir === 'right' ? seriesChapters[chapterIndex + 1] : seriesChapters[chapterIndex - 1]
-    if (!next || flipState) return
+    if (!next || flipState || (glumbiPhase !== 'idle' && glumbiPhase !== 'epilogue')) return
     setFlipState({ dir: dir === 'right' ? 'forward' : 'back', to: next })
   }
 
@@ -368,8 +368,8 @@ export default function Stories({ child, quota }) {
     function onKey(e) {
       if (!selected || seriesChapters.length < 2) return
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
-      if (e.key === 'ArrowRight' && hasNext && !flipState) navigateChapter('right')
-      if (e.key === 'ArrowLeft' && hasPrev && !flipState) navigateChapter('left')
+      if (e.key === 'ArrowRight' && hasNext && !flipState && (glumbiPhase === 'idle' || glumbiPhase === 'epilogue')) navigateChapter('right')
+      if (e.key === 'ArrowLeft' && hasPrev && !flipState && (glumbiPhase === 'idle' || glumbiPhase === 'epilogue')) navigateChapter('left')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -444,8 +444,10 @@ export default function Stories({ child, quota }) {
           ? (voice || ENGLISH_VOICES[selectedAccent]?.[selectedGender] || 'en-US-Wavenet-F')
           : (VOICE_MAP[lang]?.[selectedGender] || null)
       )
-      const glumbiPart = glumbiPhase === 'reading1' ? 1 : glumbiPhase === 'reading2' ? 2 : null
-      const url = storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId, glumbiPart, glumbiPhase === 'reading2' ? glumbiMidPicked : null)
+      const isPart1Phase = glumbiPhase === 'reading1' || glumbiPhase === 'mid'
+      const isPart2Phase = glumbiPhase === 'reading2' || glumbiPhase === 'post' || glumbiPhase === 'epilogue'
+      const glumbiPart = isPart1Phase ? 1 : isPart2Phase ? 2 : null
+      const url = storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId, glumbiPart, isPart2Phase ? glumbiMidPicked : null)
       const audio = new Audio(url)
       audioRef.current = audio
       // play() must be called here — in the click handler — to satisfy browser autoplay policy
@@ -577,7 +579,7 @@ export default function Stories({ child, quota }) {
         }}>
 
           {/* Chapter navigation arrows + dots */}
-          {seriesChapters.length > 1 && (
+          {seriesChapters.length > 1 && (glumbiPhase === 'idle' || glumbiPhase === 'epilogue') && (
             <>
               <button className="chapter-nav-btn" onClick={() => navigateChapter('left')} disabled={!hasPrev || !!flipState}
                 style={{
@@ -987,9 +989,15 @@ export default function Stories({ child, quota }) {
                       setGlumbiEpilogueOpen(true)
                       updateGlumbiPhase('epilogue', glumbiMidPicked, true)
                     })}
-                    {gbtn('Quiz time! 📚', () => {
+                    {(selected.storyPart2A && selected.storyPart2B) && gbtn('Try other ending 🔀', () => {
+                      const otherBranch = glumbiMidPicked === 1 ? 0 : 1
+                      track('stories', 'glumbi_other_ending', { metadata: { branch: otherBranch === 1 ? 'b' : 'a' } })
+                      updateGlumbiPhase('reading2', otherBranch)
+                      stopSpeaking()
+                    }, false)}
+                    {!offline && gbtn('Quiz time! 📚', () => {
                       track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
-                      navigate(`/child/${child.id}/readquiz`, { state: { glumbiPrefill: selected.keywords || selected.category } })
+                      navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
                     }, false)}
                     {gbtn('Bye Glumbi! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
                   </div>
@@ -999,9 +1007,9 @@ export default function Stories({ child, quota }) {
               if (glumbiPhase === 'epilogue' && selected.glumbiEpilogue) return (
                 <GlumbiBubble text={`Here's what happened next... ${selected.glumbiEpilogue}`}>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {gbtn('Quiz time! 📚', () => {
+                    {!offline && gbtn('Quiz time! 📚', () => {
                       track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
-                      navigate(`/child/${child.id}/readquiz`, { state: { glumbiPrefill: selected.keywords || selected.category } })
+                      navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
                     }, false)}
                     {gbtn('The end! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
                   </div>
@@ -1021,8 +1029,8 @@ export default function Stories({ child, quota }) {
               }
               const getDisplayContent = (story) => {
                 if (story.id === selected?.id) {
-                  if (glumbiPhase === 'reading1' && story.storyPart1) return story.storyPart1
-                  if (glumbiPhase === 'reading2') {
+                  if ((glumbiPhase === 'reading1' || glumbiPhase === 'mid') && story.storyPart1) return story.storyPart1
+                  if (glumbiPhase === 'reading2' || glumbiPhase === 'post' || glumbiPhase === 'epilogue') {
                     const branch = glumbiMidPicked === 1 ? story.storyPart2B : story.storyPart2A
                     return branch || story.storyPart2 || null // fallback for old stories
                   }

@@ -5,7 +5,9 @@ import com.glumbi.agent.ReadQuizAgent;
 import com.glumbi.dto.ReadQuizRequest;
 import com.glumbi.entity.Child;
 import com.glumbi.entity.ReadQuizEntry;
+import com.glumbi.entity.Story;
 import com.glumbi.repository.ReadQuizRepository;
+import com.glumbi.repository.StoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,7 @@ public class ReadQuizService {
     private final ChildService childService;
     private final ReadQuizAgent agent;
     private final GlumbiMemoryService glumbiMemory;
+    private final StoryRepository storyRepo;
     private final ObjectMapper mapper = new ObjectMapper();
 
     public ReadQuizEntry generate(ReadQuizRequest req) {
@@ -46,6 +49,38 @@ public class ReadQuizService {
         }
         entry.setGlumbiIntro(result.glumbiIntro());
         entry.setGlumbiScoreComment(result.glumbiScoreComment());
+        return repo.save(entry);
+    }
+
+    public ReadQuizEntry findByStory(Long childId, Long storyId) {
+        return repo.findFirstByChildIdAndSourceStoryIdOrderByCreatedAtDesc(childId, storyId).orElse(null);
+    }
+
+    public ReadQuizEntry generateFromStory(Long childId, Long storyId) {
+        Child child = childService.getByIdUnchecked(childId);
+        int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
+        Story story = storyRepo.findById(storyId)
+                .orElseThrow(() -> new RuntimeException("Story not found"));
+
+        String memory = glumbiMemory.getMemoryContext(child.getId());
+        ReadQuizAgent.ReadQuizResult result = agent.generateFromStory(
+                child.getName(), age, story.getTitle(), story.getContent(), memory);
+
+        ReadQuizEntry entry = new ReadQuizEntry();
+        entry.setChild(child);
+        entry.setTitle(result.title());
+        entry.setStory(result.story());
+        entry.setTopic(story.getTitle());
+        entry.setReadingTime(result.readingTime());
+        entry.setLesson(result.lesson());
+        try {
+            entry.setQuestionsJson(mapper.writeValueAsString(result.questions()));
+        } catch (Exception e) {
+            entry.setQuestionsJson("[]");
+        }
+        entry.setGlumbiIntro(result.glumbiIntro());
+        entry.setGlumbiScoreComment(result.glumbiScoreComment());
+        entry.setSourceStoryId(storyId);
         return repo.save(entry);
     }
 

@@ -182,6 +182,7 @@ export const demoApi = {
 
 export const readQuizApi = {
   generate:       (childId, topic)    => api.post('/readquiz/generate', { childId, topic }).then(r => r.data),
+  fromStory:      (childId, storyId)  => api.post('/readquiz/from-story', { childId, storyId }).then(r => r.data),
   submit:         (id, answers)       => api.post(`/readquiz/${id}/submit`, { answers }).then(r => r.data),
   getByChild:     (childId, params)   => api.get(`/readquiz/child/${childId}`, { params }).then(r => r.data),
   getByChildPaged:(childId, page = 0) => api.get(`/readquiz/child/${childId}/paged`, { params: { page } }).then(r => r.data),

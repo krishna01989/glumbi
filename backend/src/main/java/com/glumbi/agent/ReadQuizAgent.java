@@ -50,6 +50,49 @@ public class ReadQuizAgent {
         return parseResponse(response, topic);
     }
 
+    public ReadQuizResult generateFromStory(String childName, int childAge, String storyTitle, String storyContent, String glumbiMemory) {
+        String agentPrompt = String.format(
+                promptLoader.load("read-quiz-system"), childAge, readingGuidance(childAge));
+
+        String glumbiInstructions = """
+            Also return these Glumbi guide fields in the same JSON:
+            - "glumbiIntro": one short enthusiastic line Glumbi says before the child reads (max 12 words, no spoilers, builds excitement)
+            - "glumbiScoreComment0": Glumbi's warm comment if score is 0 (encouraging, not sad, max 15 words)
+            - "glumbiScoreComment1": Glumbi's comment if score is 1 (encouraging, max 15 words)
+            - "glumbiScoreComment2": Glumbi's comment if score is 2 (positive, max 15 words)
+            - "glumbiScoreComment3": Glumbi's comment if score is 3 (celebrate!, max 15 words)
+            """;
+
+        String memorySection = (glumbiMemory != null && !glumbiMemory.isBlank()) ? "\n\n" + glumbiMemory : "";
+
+        String storyContentJson = mapper.createObjectNode().put("x", storyContent).get("x").toString();
+        String storyTitleJson   = mapper.createObjectNode().put("x", storyTitle).get("x").toString();
+        String prompt = "<task>Generate comprehension questions for <child_name>" + childName
+                + "</child_name> who is <age>" + childAge + "</age> years old, based on the story they just read.</task>\n\n"
+                + "<story>\n  <title>" + storyTitle + "</title>\n  <content>" + storyContent + "</content>\n</story>\n\n"
+                + "<rules>\n"
+                + "  <rule>Questions must be based ONLY on the story provided above — do not invent new events</rule>\n"
+                + "  <rule>Q1: Factual (what happened in the story?)</rule>\n"
+                + "  <rule>Q2: Inferential (why did a character do or feel something?)</rule>\n"
+                + "  <rule>Q3: Reflective (what would YOU do / what did you learn?)</rule>\n"
+                + "  <rule>Each question must have exactly 3 answer options, with one clearly correct</rule>\n"
+                + "  <rule>Vocabulary appropriate for a " + childAge + " year old</rule>\n"
+                + "  <rule>Always refer to the child by name only — never use he/she/his/her pronouns</rule>\n"
+                + "</rules>\n\n"
+                + "<output>\nReturn ONLY this JSON — no extra text:\n"
+                + "{\n  \"title\": " + storyTitleJson + ",\n  \"story\": " + storyContentJson + ",\n"
+                + "  \"readingTime\": \"5 mins\",\n  \"lesson\": \"one-word theme e.g. Courage\",\n"
+                + "  \"questions\": [{ \"question\": \"...\", \"options\": [\"...\", \"...\", \"...\"], \"correctIndex\": 0 }]\n}\n</output>";
+
+        ObjectNode body = mapper.createObjectNode();
+        body.put("model", model);
+        body.put("max_tokens", maxTokens);
+        body.putArray("messages").addObject().put("role", "user").put("content", prompt + "\n\n" + glumbiInstructions + memorySection);
+
+        String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
+        return parseResponse(response, storyTitle);
+    }
+
     private String readingGuidance(int age) {
         if (age <= 5) return "Use very simple words and very short sentences (grade K–1). Focus on one clear idea with fun, repetitive language. Story length: 100–150 words.";
         if (age <= 7) return "Use simple but slightly varied vocabulary (grade 1–2). Clear cause-and-effect. Story length: 150–250 words.";

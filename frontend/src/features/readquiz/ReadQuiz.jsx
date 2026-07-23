@@ -64,7 +64,8 @@ export default function ReadQuiz({ child, quota }) {
   const [glumbiPicked, setGlumbiPicked] = useState(null)
 
   function initGlumbi(entry) {
-    setGlumbiPhase(entry.glumbiIntro ? 'intro' : 'idle')
+    // Already completed — jump straight to post so Glumbi score comment + cross-nav buttons show
+    setGlumbiPhase(entry.glumbiIntro ? (entry.completed ? 'post' : 'intro') : 'idle')
     setGlumbiPicked(null)
   }
 
@@ -79,11 +80,38 @@ export default function ReadQuiz({ child, quota }) {
     else document.exitFullscreen?.()
   }
 
+  const fromStoryFired = useRef(false)
   useEffect(() => {
     fetchEntries(0, true)
     const prefill = location.state?.glumbiPrefill
     if (prefill) setTopic(prefill)
+    const storyId = location.state?.storyId
+    if (storyId && !fromStoryFired.current) {
+      fromStoryFired.current = true
+      handleGenerateFromStory(storyId)
+    }
   }, [child.id])
+
+  async function handleGenerateFromStory(storyId) {
+    setLoading(true); setError('')
+    try {
+      const entry = await readQuizApi.fromStory(child.id, storyId)
+      const isNew = !entry.completed && entry.createdAt
+        && (Date.now() - new Date(entry.createdAt).getTime()) < 10000
+      const questions = JSON.parse(entry.questionsJson || '[]')
+      setEntries(prev => {
+        const exists = prev.some(e => e.id === entry.id)
+        return exists ? prev : [{ ...entry, questions }, ...prev]
+      })
+      openEntry({ ...entry, questions })
+      initGlumbi(entry)
+      if (isNew) {
+        track('readquiz', 'generate', { metadata: { topic: entry.topic, fromStory: true } })
+        window.__glumbiRefreshQuota?.('read-quiz')
+      }
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
+  }
 
   async function fetchEntries(page, replace) {
     setEntriesLoading(true)

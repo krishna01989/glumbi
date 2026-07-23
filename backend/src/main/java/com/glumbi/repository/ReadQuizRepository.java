@@ -24,6 +24,7 @@ public interface ReadQuizRepository extends JpaRepository<ReadQuizEntry, Long> {
 
     @Query("SELECT q.child.id, COUNT(q) FROM ReadQuizEntry q GROUP BY q.child.id")
     List<Object[]> countStoriesPerChild();
+    java.util.Optional<ReadQuizEntry> findFirstByChildIdAndSourceStoryIdOrderByCreatedAtDesc(Long childId, Long sourceStoryId);
     List<ReadQuizEntry> findTop5ByCompletedTrueOrderByCreatedAtDesc();
     void deleteByChildId(Long childId);
 }

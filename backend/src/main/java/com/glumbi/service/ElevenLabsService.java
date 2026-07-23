@@ -20,6 +20,7 @@ public class ElevenLabsService {
     @Value("${elevenlabs.api-key:}")
     private String apiKey;
 
+    @org.springframework.beans.factory.annotation.Autowired
     private VendorConfigService vendorConfig;
 
     private final HttpClient http = HttpClient.newHttpClient();

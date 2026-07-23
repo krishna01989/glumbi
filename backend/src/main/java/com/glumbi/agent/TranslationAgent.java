@@ -8,12 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * TranslationAgent — translates English story text to Tamil or Hindi on demand.
+ * TranslationAgent — translates an English story to a target language on demand.
  *
- * Translation is ephemeral — never stored. The English original is the source
- * of truth. This agent is called only when the user clicks "Listen in Tamil/Hindi".
- *
- * Agentic concept: single-purpose, stateless transformation agent.
+ * Translations are persisted on the Story entity (translationsJson) so the same
+ * text is never re-translated. The English original is always the source of truth.
  */
 @Component
 @RequiredArgsConstructor
@@ -26,36 +24,81 @@ public class TranslationAgent {
     @Value("${anthropic.model}")                    private String model;
     @Value("${anthropic.max-tokens.translation}")   private int maxTokens;
 
+    // Languages where the output must contain zero Latin/ASCII characters
+    private static final java.util.Set<String> SCRIPT_PURE_LANGUAGES = java.util.Set.of(
+            "tamil", "hindi", "malayalam", "telugu", "kannada",
+            "chinese", "japanese", "korean"
+    );
+
+    public TranslationResult translate(String title, String content, String targetLanguage, int childAge, String childName) {
+        String langName = resolveLangName(targetLanguage);
+
+        String childNameNote = (childName != null && !childName.isBlank())
+                ? "IMPORTANT: The child's name is \"" + childName + "\". This is a PROPER NAME — write it phonetically in "
+                  + langName + " script. Do NOT translate its meaning — a name is how someone is called, not what it means.\n\n"
+                : "";
+
+        String prompt = childNameNote + String.format(promptLoader.load("translation-user"),
+                langName, langName, childAge, langName, langName, langName, langName, langName,
+                title, content);
+
+        TranslationResult result = callClaude(prompt, title, content);
+
+        // Post-translation validation: if any Latin letters leaked through for script-pure languages,
+        // ask Claude to fix them rather than silently serving broken text to TTS.
+        if (SCRIPT_PURE_LANGUAGES.contains(targetLanguage.toLowerCase())
+                && containsLatin(result.title() + result.content())) {
+            result = fixLatinLeakage(result, langName, targetLanguage, childAge);
+        }
+
+        return result;
+    }
+
+    public TranslationResult translate(String title, String content, String targetLanguage, int childAge) {
+        return translate(title, content, targetLanguage, childAge, null);
+    }
+
     public TranslationResult translate(String title, String content, String targetLanguage) {
-        String langName = switch (targetLanguage.toLowerCase()) {
-            // Regional India
-            case "tamil"     -> "Tamil (தமிழ்)";
-            case "hindi"     -> "Hindi (हिंदी)";
-            case "malayalam" -> "Malayalam (മലയാളം)";
-            case "telugu"    -> "Telugu (తెలుగు)";
-            case "kannada"   -> "Kannada (ಕನ್ನಡ)";
-            // International
-            case "spanish"   -> "Spanish (Español)";
-            case "french"    -> "French (Français)";
-            case "italian"   -> "Italian (Italiano)";
-            case "chinese"   -> "Chinese (普通话)";
-            case "japanese"  -> "Japanese (日本語)";
-            case "korean"    -> "Korean (한국어)";
-            default -> throw new IllegalArgumentException("Unsupported language: " + targetLanguage);
-        };
+        return translate(title, content, targetLanguage, 6, null);
+    }
 
-        String prompt = String.format(promptLoader.load("translation-user"),
-                langName, langName, langName, title, content);
+    private TranslationResult fixLatinLeakage(TranslationResult prev, String langName,
+                                               String targetLanguage, int childAge) {
+        String fixPrompt = String.format(
+            "The following %s text for a %d-year-old child still contains Latin/English characters " +
+            "which will break text-to-speech. Replace every Latin/English word or letter with its " +
+            "phonetic equivalent written entirely in %s script. Return ONLY the corrected JSON: " +
+            "{ \"title\": \"...\", \"content\": \"...\" }\n\n" +
+            "{ \"title\": \"%s\", \"content\": \"%s\" }",
+            langName, childAge, langName,
+            escapeJson(prev.title()), escapeJson(prev.content())
+        );
 
-        ObjectNode body = mapper.createObjectNode();
-        body.put("model", model);
-        body.put("max_tokens", maxTokens);
-        body.putArray("messages").addObject()
-                .put("role", "user").put("content", prompt);
+        System.out.println("[TranslationAgent] Latin leakage detected for " + targetLanguage + " — running fix-up");
+        TranslationResult fixed = callClaude(fixPrompt, prev.title(), prev.content());
 
-        String response = anthropicClient.call(body);
+        // If the fix-up itself still has Latin (unlikely), log and return original rather than loop
+        if (containsLatin(fixed.title() + fixed.content())) {
+            System.err.println("[TranslationAgent] Fix-up still contains Latin for " + targetLanguage + " — using pre-fix result");
+            return prev;
+        }
+        return fixed;
+    }
 
-        return parseResponse(response, title, content);
+    private TranslationResult callClaude(String prompt, String fallbackTitle, String fallbackContent) {
+        try {
+            ObjectNode body = mapper.createObjectNode();
+            body.put("model", model);
+            body.put("max_tokens", maxTokens);
+            body.putArray("messages").addObject()
+                    .put("role", "user").put("content", prompt);
+
+            String response = anthropicClient.call(body);
+            return parseResponse(response, fallbackTitle, fallbackContent);
+        } catch (Exception e) {
+            System.err.println("[TranslationAgent] Claude call failed: " + e.getMessage());
+            return new TranslationResult(fallbackTitle, fallbackContent);
+        }
     }
 
     private TranslationResult parseResponse(String raw, String fallbackTitle, String fallbackContent) {
@@ -71,6 +114,32 @@ public class TranslationAgent {
         } catch (Exception e) {
             return new TranslationResult(fallbackTitle, fallbackContent);
         }
+    }
+
+    private boolean containsLatin(String text) {
+        return text != null && text.chars().anyMatch(c -> (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'));
+    }
+
+    private String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    }
+
+    private String resolveLangName(String lang) {
+        return switch (lang.toLowerCase()) {
+            case "tamil"     -> "Tamil (தமிழ்)";
+            case "hindi"     -> "Hindi (हिंदी)";
+            case "malayalam" -> "Malayalam (മലയാളം)";
+            case "telugu"    -> "Telugu (తెలుగు)";
+            case "kannada"   -> "Kannada (ಕನ್ನಡ)";
+            case "spanish"   -> "Spanish (Español)";
+            case "french"    -> "French (Français)";
+            case "italian"   -> "Italian (Italiano)";
+            case "chinese"   -> "Chinese (普通话)";
+            case "japanese"  -> "Japanese (日本語)";
+            case "korean"    -> "Korean (한국어)";
+            default -> throw new IllegalArgumentException("Unsupported language: " + lang);
+        };
     }
 
     public record TranslationResult(String title, String content) {}

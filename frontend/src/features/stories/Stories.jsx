@@ -309,10 +309,13 @@ export default function Stories({ child, quota }) {
   async function confirmDeleteStory() {
     const result = await storyApi.delete(confirmDelete)
     const seriesDeleted = result?.seriesDeleted
-    setStories(prev => seriesDeleted
-      ? prev.filter(s => s.id !== confirmDelete && s.seriesId !== confirmDelete)
-      : prev.filter(s => s.id !== confirmDelete)
-    )
+    setStories(prev => {
+      const next = seriesDeleted
+        ? prev.filter(s => s.id !== confirmDelete && s.seriesId !== confirmDelete)
+        : prev.filter(s => s.id !== confirmDelete)
+      setStoriesTotalCount(c => Math.max(0, c - (prev.length - next.length)))
+      return next
+    })
     if (selected?.id === confirmDelete || (seriesDeleted && selected?.seriesId === confirmDelete)) setSelected(null)
     setConfirmDelete(null)
   }
@@ -481,10 +484,12 @@ export default function Stories({ child, quota }) {
     <>
     <ConfirmDialog
       open={!!confirmDelete}
-      title={deletingHasSeries ? "Delete Whole Series?" : "Delete Story?"}
+      title={deletingHasSeries ? "Delete Whole Series?" : deletingStory?.parentStoryId ? "Delete Chapter?" : "Delete Story?"}
       message={deletingHasSeries
         ? "This is the first chapter of a series. Deleting it will permanently delete all chapters in the series."
-        : "This story will be permanently deleted."}
+        : deletingStory?.parentStoryId
+          ? "This chapter will be permanently deleted."
+          : "This story will be permanently deleted."}
       confirmLabel="Delete"
       onConfirm={confirmDeleteStory}
       onCancel={() => setConfirmDelete(null)}

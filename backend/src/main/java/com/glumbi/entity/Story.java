@@ -43,6 +43,10 @@ public class Story {
     @Column(columnDefinition = "TEXT")
     private String audioUrls;
 
+    // JSON map of "{language}:{cacheKeySuffix}" → {title, content} — avoids re-translating on cache miss
+    @Column(columnDefinition = "TEXT")
+    private String translationsJson;
+
     // Glumbi guide fields — generated alongside the story in one Claude call
     @Column(columnDefinition = "TEXT")
     private String storyPart1;        // first half of story, ends at natural cliffhanger

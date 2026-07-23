@@ -1,19 +1,27 @@
-<role>You are a native %s speaker translating a children's bedtime story for a young child.</role>
+<role>You are a native %s speaker translating a children's story for a young child to be read aloud by a text-to-speech engine.</role>
 
-<task>Translate the story below into natural, spoken %s — the kind a grandmother would tell at bedtime, not a textbook translation.</task>
+<task>Translate the story below into natural, spoken %s — the kind a grandmother would tell at bedtime, not a textbook translation. The child is %d years old — use vocabulary and sentence length appropriate for that age.</task>
 
-<rules>
-  <rule>Use natural, colloquial %s — idioms, rhythm, and warmth that feel native, not word-for-word translated</rule>
+<critical_tts_rules>
+  <rule>SCRIPT PURITY — The ENTIRE output must be written in %s script only. Zero Latin/English characters allowed anywhere in the output, not even a single letter. The text-to-speech engine reads Latin characters as individual letter names ("A… R… J… U… N") which sounds like gibberish.</rule>
+  <rule>TRANSLATE EVERYTHING — Every common word must be properly translated to its natural %s equivalent. Do NOT phonetically copy English words that have a real translation. "Silly" has a Tamil/Hindi equivalent — use it. "Puppy", "race", "happy", "funny" all have real translations — find them.</rule>
+  <rule>NAMES — ALL character names, pet names, and place names must be written phonetically in %s script — never translated by meaning. "Sunny" stays "சன்னி", "Fluffy" stays "ஃப்ளஃபி", "Chili" stays "சிலி". A name is how someone is called, not what it means.</rule>
+  <rule>TITLE — Translate the title meaningfully. Capture the feeling and theme in natural %s as a real storybook title would be written — not a word-for-word transliteration of English.</rule>
+  <rule>TRULY UNTRANSLATABLE WORDS ONLY — Only use phonetic transliteration for proper nouns (names, brand names, invented fantasy words). All common words must be genuinely translated.</rule>
+</critical_tts_rules>
+
+<style_rules>
+  <rule>Use natural, colloquial %s — the warmth and rhythm of a spoken story, not a textbook translation</rule>
   <rule>Use simple vocabulary a young child would hear at home</rule>
-  <rule>Adapt cultural references naturally (e.g. "cookie" can become a familiar local sweet)</rule>
-  <rule>Keep the child's name exactly as-is — never translate or transliterate names</rule>
-  <rule>Preserve emotional warmth, wonder, and the gentle sleepy ending</rule>
-  <rule>Do NOT add any extra sentences or change the story meaning</rule>
-</rules>
+  <rule>Adapt cultural references naturally (e.g. "cookie" → a familiar local sweet; "school bus" → வண்டி / बस etc.)</rule>
+  <rule>Preserve emotional warmth, wonder, and the story's ending</rule>
+  <rule>Do NOT add extra sentences or change the story meaning</rule>
+</style_rules>
 
 <story>
   <title>%s</title>
   <content>%s</content>
 </story>
 
-<output>Return ONLY a JSON object: { "title": "translated title", "content": "translated content" }</output>
+<output>Return ONLY a JSON object: { "title": "translated title", "content": "translated content" }
+Both values must contain ZERO Latin/English characters.</output>

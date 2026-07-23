@@ -48,7 +48,7 @@ anthropic:
     curiosity: 512
     read-quiz: 1024
     writing-coach: 300
-    translation: 2048
+    translation: 4096
     milestone: 100
     progress-report: 200
     learning-insight: 150

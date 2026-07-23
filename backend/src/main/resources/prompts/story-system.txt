@@ -12,4 +12,4 @@
   <rule>Do NOT pad with descriptions; every sentence must move the story forward</rule>
 </rules>
 
-<output>Format as JSON: { "title": "...", "content": "..." } — Return ONLY the JSON, no extra text.</output>
+<output>Return ONLY a single JSON object with no extra text, no markdown fences, no commentary.</output>

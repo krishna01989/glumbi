@@ -18,15 +18,16 @@ public class TextToSpeechService {
     public byte[] synthesize(String text, String language, String voiceName) throws Exception {
         if (!vendorConfig.isEnabled(VendorConfigService.GOOGLE_TTS))
             throw new IllegalStateException("Google TTS is currently disabled by the administrator.");
+
         SynthesisInput input = SynthesisInput.newBuilder()
-                .setSsml("<speak>" + text + "</speak>")
+                .setSsml("<speak>" + toSsml(text) + "</speak>")
                 .build();
 
         VoiceSelectionParams voice = buildVoice(language, voiceName);
 
         AudioConfig audioConfig = AudioConfig.newBuilder()
                 .setAudioEncoding(AudioEncoding.MP3)
-                .setSpeakingRate(0.90)
+                .setSpeakingRate(speakingRate(language))
                 .setPitch(1.0)
                 .build();
 
@@ -34,10 +35,30 @@ public class TextToSpeechService {
         return response.getAudioContent().toByteArray();
     }
 
+    // Insert a 400ms pause at paragraph breaks so narration breathes naturally
+    private String toSsml(String text) {
+        if (text == null) return "";
+        // NFC normalization ensures Tamil/Devanagari combining characters are
+        // properly composed — without it, TTS reads combining marks as "dot dot curve" etc.
+        String normalized = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFC);
+        return normalized
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replaceAll("\n\n+", "<break time=\"400ms\"/>");
+    }
+
+    // Indian languages benefit from a slightly slower pace for clarity
+    private double speakingRate(String language) {
+        return switch (language == null ? "" : language.toLowerCase()) {
+            case "tamil", "telugu", "malayalam", "kannada" -> 0.85;
+            case "hindi"  -> 0.87;
+            default       -> 0.90;
+        };
+    }
+
     private VoiceSelectionParams buildVoice(String language, String voiceName) {
-        // If a specific voice name is provided, use it directly
         if (voiceName != null && !voiceName.isBlank() && voiceName.contains("-")) {
-            // Derive language code from voice name (e.g. "en-IN-Wavenet-A" -> "en-IN")
             String[] parts = voiceName.split("-");
             String langCode = parts.length >= 2 ? parts[0] + "-" + parts[1] : "en-US";
             SsmlVoiceGender gender = voiceName.endsWith("-B") || voiceName.endsWith("-D")
@@ -49,14 +70,15 @@ public class TextToSpeechService {
                     .build();
         }
 
-        // Fall back to language-based defaults
         record V(String code, String name, SsmlVoiceGender gender) {}
-        V v = switch (language.toLowerCase()) {
-            case "tamil"     -> new V("ta-IN", "ta-IN-Wavenet-A",  SsmlVoiceGender.FEMALE);
-            case "hindi"     -> new V("hi-IN", "hi-IN-Wavenet-A",  SsmlVoiceGender.FEMALE);
+        V v = switch (language == null ? "" : language.toLowerCase()) {
+            // Indian — Neural2 where available, Standard fallback for others
+            case "tamil"     -> new V("ta-IN", "ta-IN-Neural2-A",  SsmlVoiceGender.FEMALE);
+            case "hindi"     -> new V("hi-IN", "hi-IN-Neural2-B",  SsmlVoiceGender.FEMALE);
             case "malayalam" -> new V("ml-IN", "ml-IN-Wavenet-A",  SsmlVoiceGender.FEMALE);
             case "telugu"    -> new V("te-IN", "te-IN-Standard-A", SsmlVoiceGender.FEMALE);
             case "kannada"   -> new V("kn-IN", "kn-IN-Standard-A", SsmlVoiceGender.FEMALE);
+            // International
             case "spanish"   -> new V("es-ES", "es-ES-Wavenet-C",  SsmlVoiceGender.FEMALE);
             case "french"    -> new V("fr-FR", "fr-FR-Wavenet-E",  SsmlVoiceGender.FEMALE);
             case "italian"   -> new V("it-IT", "it-IT-Wavenet-A",  SsmlVoiceGender.FEMALE);

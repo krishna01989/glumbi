@@ -35,8 +35,7 @@ public class StoryAgent {
                 ? "\n\n" + glumbiMemory : "";
         String userContent = "Create a " + cp[2] + " using these elements: " + keywords
                 + "\n\n" + glumbiGuideInstructions(childAge)
-                + memorySection
-                + "\n\nReturn the result as a single JSON object.";
+                + memorySection;
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
@@ -69,8 +68,7 @@ public class StoryAgent {
                 "Write the NEXT chapter. Keep the same characters and world. " +
                 "Give it a short new chapter title (just the chapter name, NOT the series title or any prefix)." +
                 "\n\n" + glumbiGuideInstructions(childAge) +
-                memorySection +
-                "\n\nReturn the result as a single JSON object.",
+                memorySection,
                 childName, previousTitle, snippet);
 
         ObjectNode body = mapper.createObjectNode();
@@ -129,7 +127,9 @@ public class StoryAgent {
 
     private String glumbiGuideInstructions(int childAge) {
         return """
-        Also include these Glumbi Guide fields in the JSON:
+        Return a single JSON object with these fields:
+        - "title": a short, imaginative story title (max 6 words)
+        - "content": the full story text (complete narrative, all paragraphs)
         - "part1": the first half of the story, ending at a natural cliffhanger or tension point (NOT mid-sentence)
         - "glumbiIntro": one short enthusiastic line Glumbi says before the story starts. Age-appropriate, max 15 words. No spoilers.
         - "glumbiMidQuestion": one prediction question Glumbi asks after part1. Simple for age %d. No "I" statements.
@@ -148,7 +148,7 @@ public class StoryAgent {
             String text = root.path("content").get(0).path("text").asText();
             text = text.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();
             JsonNode story = mapper.readTree(text);
-            String content = story.path("content").asText(text)
+            String content = story.path("content").asText("")
                     .replace("\\n", "\n").replace("\\\"", "\"");
 
             String part1  = story.path("part1").asText("").replace("\\n", "\n");

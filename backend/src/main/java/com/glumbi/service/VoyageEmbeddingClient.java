@@ -18,16 +18,18 @@ public class VoyageEmbeddingClient {
 
     private final ObjectMapper objectMapper;
     private final WebClient    webClient;
-    private VendorConfigService vendorConfig;
+    private final VendorConfigService vendorConfig;
 
     @Value("${voyage.api-key:}")      public  String apiKey;
     @Value("${voyage.embed-url}")     private String embedUrl;
     @Value("${voyage.model}")         private String model;
     @Value("${voyage.similar-limit}") public  int    similarLimit;
 
-    public VoyageEmbeddingClient(ObjectMapper objectMapper, WebClient.Builder builder) {
-        this.objectMapper = objectMapper;
-        this.webClient    = builder.build();
+    public VoyageEmbeddingClient(ObjectMapper objectMapper, WebClient.Builder builder,
+                                  VendorConfigService vendorConfig) {
+        this.objectMapper  = objectMapper;
+        this.webClient     = builder.build();
+        this.vendorConfig  = vendorConfig;
     }
 
     public boolean isConfigured() {

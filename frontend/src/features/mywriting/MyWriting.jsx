@@ -261,10 +261,13 @@ export default function MyWriting({ child, quota }) {
   async function confirmDeleteEntry() {
     const result = await writingApi.delete(confirmDelete)
     const seriesDeleted = result?.seriesDeleted
-    setEntries(prev => seriesDeleted
-      ? prev.filter(e => e.id !== confirmDelete && e.seriesId !== confirmDelete)
-      : prev.filter(e => e.id !== confirmDelete)
-    )
+    setEntries(prev => {
+      const next = seriesDeleted
+        ? prev.filter(e => e.id !== confirmDelete && e.seriesId !== confirmDelete)
+        : prev.filter(e => e.id !== confirmDelete)
+      setEntriesTotalCount(c => Math.max(0, c - (prev.length - next.length)))
+      return next
+    })
     if (selected?.id === confirmDelete || (seriesDeleted && selected?.seriesId === confirmDelete)) setSelected(null)
     if (savedId.current === confirmDelete) { savedId.current = null; setEditing(false) }
     setConfirmDelete(null)
@@ -330,10 +333,12 @@ export default function MyWriting({ child, quota }) {
     {(fbLoading || contLoading) && <ThemeLoader theme={child.theme} label={contLoading ? 'Imagining what happens next…' : 'Reading your story…'} />}
     <ConfirmDialog
       open={!!confirmDelete}
-      title={deletingHasSeries ? "Delete Whole Series?" : "Delete Story?"}
+      title={deletingHasSeries ? "Delete Whole Series?" : deletingEntry?.parentStoryId ? "Delete Chapter?" : "Delete Story?"}
       message={deletingHasSeries
         ? `This is the first chapter of a series. Deleting it will permanently delete all chapters in the series.`
-        : "This story will be permanently deleted."}
+        : deletingEntry?.parentStoryId
+          ? "This chapter will be permanently deleted."
+          : "This story will be permanently deleted."}
       confirmLabel="Delete"
       onConfirm={confirmDeleteEntry}
       onCancel={() => setConfirmDelete(null)}

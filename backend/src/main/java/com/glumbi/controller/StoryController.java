@@ -127,10 +127,17 @@ public class StoryController {
             @RequestParam String language,
             @AuthenticationPrincipal AuthUser user) {
         Story story = service.getById(id);
-        TranslationAgent.TranslationResult translated =
-                translationAgent.translate(story.getTitle(), story.getContent(), language);
-        if (user != null) {
-            quotaService.tryConsume(user.id(), "translation", story.getChild().getId());
+        String translationKey = language.toLowerCase();
+        TranslationAgent.TranslationResult translated = getStoredTranslation(story, translationKey);
+        if (translated == null) {
+            int childAge = story.getChild() != null && story.getChild().getBirthYear() != null
+                    ? java.time.LocalDate.now().getYear() - story.getChild().getBirthYear() : 6;
+            String childName = story.getChild() != null ? story.getChild().getName() : null;
+            translated = translationAgent.translate(story.getTitle(), story.getContent(), language, childAge, childName);
+            storeTranslation(story, translationKey, translated);
+            if (user != null) {
+                quotaService.tryConsume(user.id(), "translation", story.getChild().getId());
+            }
         }
         return translated;
     }
@@ -204,11 +211,19 @@ public class StoryController {
                     title   = story.getTitle();
                     content = rawContent;
                 } else {
-                    // Translation credit charged after the Anthropic call completes (cache miss only)
-                    TranslationAgent.TranslationResult translated =
-                            translationAgent.translate(story.getTitle(), rawContent, language);
-                    if (authUser != null) {
-                        quotaService.tryConsume(authUser.id(), "translation", listenChildId);
+                    // Translation key scopes to language + part so each Glumbi slice is stored separately
+                    String translationKey = language.toLowerCase() + partSuffix;
+                    TranslationAgent.TranslationResult translated = getStoredTranslation(story, translationKey);
+                    if (translated == null) {
+                        // Cache miss — call Claude, then persist so future misses skip the API call
+                        int childAge = story.getChild() != null && story.getChild().getBirthYear() != null
+                                ? java.time.LocalDate.now().getYear() - story.getChild().getBirthYear() : 6;
+                        String childName = story.getChild() != null ? story.getChild().getName() : null;
+                        translated = translationAgent.translate(story.getTitle(), rawContent, language, childAge, childName);
+                        storeTranslation(story, translationKey, translated);
+                        if (authUser != null) {
+                            quotaService.tryConsume(authUser.id(), "translation", listenChildId);
+                        }
                     }
                     title   = translated.title();
                     content = translated.content();
@@ -273,6 +288,32 @@ public class StoryController {
             System.err.println("[listen] ERROR: " + e.getClass().getName() + ": " + e.getMessage());
             if (e.getCause() != null) System.err.println("[listen] CAUSE: " + e.getCause().getMessage());
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    private TranslationAgent.TranslationResult getStoredTranslation(Story story, String key) {
+        if (story.getTranslationsJson() == null) return null;
+        try {
+            Map<String, Map<String, String>> map = objectMapper.readValue(
+                    story.getTranslationsJson(), new TypeReference<>() {});
+            Map<String, String> entry = map.get(key);
+            if (entry == null) return null;
+            return new TranslationAgent.TranslationResult(entry.get("title"), entry.get("content"));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void storeTranslation(Story story, String key, TranslationAgent.TranslationResult result) {
+        try {
+            Map<String, Map<String, String>> map = story.getTranslationsJson() != null
+                    ? objectMapper.readValue(story.getTranslationsJson(), new TypeReference<>() {})
+                    : new HashMap<>();
+            map.put(key, Map.of("title", result.title(), "content", result.content()));
+            story.setTranslationsJson(objectMapper.writeValueAsString(map));
+            storyRepository.save(story);
+        } catch (Exception e) {
+            System.err.println("[listen] Failed to persist translation: " + e.getMessage());
         }
     }
 

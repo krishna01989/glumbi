@@ -13,6 +13,7 @@ import java.time.ZoneOffset;
     @Index(name = "idx_cae_user_time",   columnList = "user_id, occurred_at"),
     @Index(name = "idx_cae_feature",     columnList = "feature, occurred_at"),
     @Index(name = "idx_cae_client_key",  columnList = "client_key", unique = true),
+    @Index(name = "idx_cae_child_feature_type", columnList = "child_id, feature, event_type"),
 })
 @Data
 @NoArgsConstructor

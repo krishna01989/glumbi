@@ -9,7 +9,9 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 @Entity
-@Table(name = "read_quiz_entries")
+@Table(name = "read_quiz_entries", indexes = {
+    @Index(name = "idx_rqe_child_source_story", columnList = "child_id, source_story_id")
+})
 @Data
 @NoArgsConstructor
 public class ReadQuizEntry {

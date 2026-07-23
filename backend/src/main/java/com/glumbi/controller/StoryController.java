@@ -18,6 +18,7 @@ import com.glumbi.service.StoryService;
 import com.glumbi.service.TextToSpeechService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Value;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/stories")
 @RequiredArgsConstructor
@@ -236,7 +238,7 @@ public class StoryController {
                     try {
                         audio = elevenLabsService.synthesize(title + ". " + content, elVoiceId);
                     } catch (Exception e) {
-                        System.err.println("[listen] ElevenLabs TTS failed, falling back to Google TTS: " + e.getMessage());
+                        log.warn("ElevenLabs TTS failed, falling back to Google TTS: {}", e.getMessage());
                         audio = ttsService.synthesize(title + ". " + content, language, voice);
                     }
                 } else {
@@ -255,7 +257,7 @@ public class StoryController {
                         storeAudioUrl(story, cacheKey, r2Url);
                         // don't cache in memory — future requests will redirect to R2
                     } catch (Exception e) {
-                        System.err.println("[listen] R2 upload failed (non-fatal): " + e.getMessage());
+                        log.warn("R2 upload failed (non-fatal): {}", e.getMessage());
                         audioCache.put(cacheKey, audio); // fallback: keep in memory if R2 failed
                     }
                 } else {
@@ -287,8 +289,7 @@ public class StoryController {
                     .contentType(MediaType.parseMediaType("audio/mpeg"))
                     .body(audio);
         } catch (Exception e) {
-            System.err.println("[listen] ERROR: " + e.getClass().getName() + ": " + e.getMessage());
-            if (e.getCause() != null) System.err.println("[listen] CAUSE: " + e.getCause().getMessage());
+            log.error("Story listen failed: {} — {}", e.getClass().getSimpleName(), e.getMessage());
             return ResponseEntity.internalServerError().build();
         }
     }
@@ -315,7 +316,7 @@ public class StoryController {
             story.setTranslationsJson(objectMapper.writeValueAsString(map));
             storyRepository.save(story);
         } catch (Exception e) {
-            System.err.println("[listen] Failed to persist translation: " + e.getMessage());
+            log.warn("Failed to persist translation: {}", e.getMessage());
         }
     }
 
@@ -338,7 +339,7 @@ public class StoryController {
             story.setAudioUrls(objectMapper.writeValueAsString(map));
             storyRepository.save(story);
         } catch (Exception e) {
-            System.err.println("[listen] Failed to persist R2 URL: " + e.getMessage());
+            log.warn("Failed to persist R2 URL: {}", e.getMessage());
         }
     }
 
@@ -357,7 +358,7 @@ public class StoryController {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("[delete] R2 cleanup failed (non-fatal): " + e.getMessage());
+                log.warn("R2 audio cleanup failed (non-fatal): {}", e.getMessage());
             }
         }
         boolean seriesDeleted = service.delete(id);

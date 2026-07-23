@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
  * Translations are persisted on the Story entity (translationsJson) so the same
  * text is never re-translated. The English original is always the source of truth.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TranslationAgent {
@@ -74,12 +76,12 @@ public class TranslationAgent {
             escapeJson(prev.title()), escapeJson(prev.content())
         );
 
-        System.out.println("[TranslationAgent] Latin leakage detected for " + targetLanguage + " — running fix-up");
+        log.warn("Latin leakage detected for {} — running fix-up", targetLanguage);
         TranslationResult fixed = callClaude(fixPrompt, prev.title(), prev.content());
 
         // If the fix-up itself still has Latin (unlikely), log and return original rather than loop
         if (containsLatin(fixed.title() + fixed.content())) {
-            System.err.println("[TranslationAgent] Fix-up still contains Latin for " + targetLanguage + " — using pre-fix result");
+            log.warn("Fix-up still contains Latin for {} — using pre-fix result", targetLanguage);
             return prev;
         }
         return fixed;
@@ -96,7 +98,7 @@ public class TranslationAgent {
             String response = anthropicClient.call(body);
             return parseResponse(response, fallbackTitle, fallbackContent);
         } catch (Exception e) {
-            System.err.println("[TranslationAgent] Claude call failed: " + e.getMessage());
+            log.error("Translation Claude call failed: {}", e.getMessage());
             return new TranslationResult(fallbackTitle, fallbackContent);
         }
     }

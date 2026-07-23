@@ -1,6 +1,7 @@
 package com.glumbi.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
  * Patches check constraints that Hibernate's ddl-auto:update won't touch.
  * Safe to run on every startup — each patch is idempotent.
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 @Order(1)
@@ -41,6 +43,6 @@ public class SchemaConstraintPatcher implements ApplicationRunner {
         jdbc.execute("ALTER TABLE notifications ADD CONSTRAINT " + NOTIFICATIONS_CONSTRAINT +
             " CHECK (type::text = ANY (" + NOTIFICATIONS_ALLOWED + "::text[]))");
 
-        System.out.println("[SchemaConstraintPatcher] Patched " + NOTIFICATIONS_CONSTRAINT + " to include MEMORY_PLAY");
+        log.info("Patched {} to include MEMORY_PLAY", NOTIFICATIONS_CONSTRAINT);
     }
 }

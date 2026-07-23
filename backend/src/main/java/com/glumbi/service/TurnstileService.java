@@ -1,5 +1,6 @@
 package com.glumbi.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -8,6 +9,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
+@Slf4j
 @Service
 public class TurnstileService {
 
@@ -22,7 +24,7 @@ public class TurnstileService {
     public boolean verify(String token, String remoteIp) {
             // If no secret configured (local dev), skip verification
         if (secret == null || secret.isBlank()) {
-            System.out.println("[Turnstile] No secret configured — skipping verification");
+            log.warn("No Turnstile secret configured — skipping verification");
             return true;
         }
         if (token == null || token.isBlank()) return false;

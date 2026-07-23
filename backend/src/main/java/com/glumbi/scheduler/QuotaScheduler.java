@@ -8,6 +8,7 @@ import com.glumbi.repository.AppSettingRepository;
 import com.glumbi.repository.SchedulerRunRepository;
 import com.glumbi.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class QuotaScheduler {
@@ -59,7 +61,7 @@ public class QuotaScheduler {
             }
         } catch (Exception e) {
             error = e.getMessage();
-            System.err.println("[QuotaScheduler] Credit reset failed: " + error);
+            log.error("Credit reset failed: {}", error);
         }
 
         run.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -87,7 +89,7 @@ public class QuotaScheduler {
             appSettingRepo.save(s);
             SchedulerHistoryHelper.append(appSettingRepo, objectMapper, HISTORY_KEY, log);
         } catch (Exception e) {
-            System.err.println("[QuotaScheduler] Failed to save last-run AppSetting: " + e.getMessage());
+            log.warn("Failed to save last-run AppSetting: {}", e.getMessage());
         }
     }
 }

@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class JournalAgent {
@@ -56,7 +58,7 @@ public class JournalAgent {
 
             return new JournalResult(content, mood, milestone);
         } catch (Exception e) {
-            System.err.println("[JournalAgent] Failed to generate entry: " + e.getMessage());
+            log.error("Failed to generate journal entry: {}", e.getMessage());
             return null;
         }
     }

@@ -1,6 +1,7 @@
 package com.glumbi.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ResendClient {
@@ -46,7 +48,7 @@ public class ResendClient {
                 .timeout(Duration.ofSeconds(30))
                 .subscribe(
                     ok  -> {},
-                    err -> System.err.println("[ResendClient] Batch send failed (chunk starting at " + chunkStart + "): " + err.getMessage())
+                    err -> log.error("Batch email send failed (chunk at {}): {}", chunkStart, err.getMessage())
                 );
         }
     }
@@ -69,7 +71,7 @@ public class ResendClient {
             .timeout(Duration.ofSeconds(5))
             .subscribe(
                 ok  -> {},
-                err -> System.err.println("[ResendClient] Failed to send email to " + to + ": " + err.getMessage())
+                err -> log.error("Email send failed to {}: {}", to, err.getMessage())
             );
     }
 }

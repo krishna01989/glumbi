@@ -3,6 +3,8 @@ package com.glumbi.scheduler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.entity.AppSetting;
 import com.glumbi.repository.AppSettingRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -12,6 +14,7 @@ import java.util.*;
  */
 public class SchedulerHistoryHelper {
 
+    private static final Logger log = LoggerFactory.getLogger(SchedulerHistoryHelper.class);
     private static final int MAX_HISTORY = 50;
 
     public static void append(AppSettingRepository repo,
@@ -37,7 +40,7 @@ public class SchedulerHistoryHelper {
             s.setValue(json);
             repo.save(s);
         } catch (Exception e) {
-            System.err.println("[Scheduler] Failed to save history for " + historyKey + ": " + e.getMessage());
+            log.warn("Failed to save scheduler history for {}: {}", historyKey, e.getMessage());
         }
     }
 

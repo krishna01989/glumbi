@@ -9,6 +9,7 @@ import com.glumbi.service.EmailTemplates;
 import com.glumbi.service.NotificationService;
 import com.glumbi.service.ResendClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class NotificationScheduler {
@@ -104,15 +106,15 @@ public class NotificationScheduler {
         boolean runJournal     = isAgentEnabled(AGENT_JOURNAL);
         boolean runWeeklyEmail = isAgentEnabled(AGENT_WEEKLY_EMAIL);
 
-        if (!runProgress)    { skipped.add("Progress Report");      System.out.println("[Scheduler] SKIP Progress Report — disabled by admin"); }
-        if (!runMilestone)   { skipped.add("Milestone");            System.out.println("[Scheduler] SKIP Milestone — disabled by admin"); }
-        if (!runStoryRec)    { skipped.add("Story Recommendation"); System.out.println("[Scheduler] SKIP Story Recommendation — disabled by admin"); }
-        if (!runLearning)    { skipped.add("Learning Insight");     System.out.println("[Scheduler] SKIP Learning Insight — disabled by admin"); }
-        if (!runLearnWrite)  { skipped.add("Learn to Write");       System.out.println("[Scheduler] SKIP Learn to Write — disabled by admin"); }
-        if (!runMemory)      { skipped.add("Memory Play");          System.out.println("[Scheduler] SKIP Memory Play — disabled by admin"); }
-        if (!runCuriosity)   { skipped.add("Curiosity Insight");    System.out.println("[Scheduler] SKIP Curiosity Insight — disabled by admin"); }
-        if (!runJournal)     { skipped.add("Journal Insight");      System.out.println("[Scheduler] SKIP Journal Insight — disabled by admin"); }
-        if (!runWeeklyEmail) { skipped.add("Weekly Recap Email");   System.out.println("[Scheduler] SKIP Weekly Recap Email — disabled by admin"); }
+        if (!runProgress)    { skipped.add("Progress Report");      log.info("SKIP Progress Report — disabled by admin"); }
+        if (!runMilestone)   { skipped.add("Milestone");            log.info("SKIP Milestone — disabled by admin"); }
+        if (!runStoryRec)    { skipped.add("Story Recommendation"); log.info("SKIP Story Recommendation — disabled by admin"); }
+        if (!runLearning)    { skipped.add("Learning Insight");     log.info("SKIP Learning Insight — disabled by admin"); }
+        if (!runLearnWrite)  { skipped.add("Learn to Write");       log.info("SKIP Learn to Write — disabled by admin"); }
+        if (!runMemory)      { skipped.add("Memory Play");          log.info("SKIP Memory Play — disabled by admin"); }
+        if (!runCuriosity)   { skipped.add("Curiosity Insight");    log.info("SKIP Curiosity Insight — disabled by admin"); }
+        if (!runJournal)     { skipped.add("Journal Insight");      log.info("SKIP Journal Insight — disabled by admin"); }
+        if (!runWeeklyEmail) { skipped.add("Weekly Recap Email");   log.info("SKIP Weekly Recap Email — disabled by admin"); }
 
         LocalDateTime weekAgo     = LocalDateTime.now(ZoneOffset.UTC).minusDays(7);
         LocalDateTime twoWeeksAgo = LocalDateTime.now(ZoneOffset.UTC).minusDays(14);
@@ -146,7 +148,7 @@ public class NotificationScheduler {
                     } catch (Exception e) {
                         String err = "Child " + child.getId() + " (" + child.getName() + "): " + e.getMessage();
                         errors.add(err);
-                        System.err.println("[Scheduler] ERROR " + err);
+                        log.error("Child {}: {}", child.getId(), e.getMessage());
                     }
                 }
             }
@@ -163,7 +165,7 @@ public class NotificationScheduler {
 
         } catch (Exception e) {
             errors.add("Fatal: " + e.getMessage());
-            System.err.println("[Scheduler] FATAL " + e.getMessage());
+            log.error("Weekly scheduler fatal error: {}", e.getMessage());
         }
 
         run.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -176,7 +178,7 @@ public class NotificationScheduler {
 
         saveLastRunAppSetting(run);
 
-        System.out.println("[Scheduler] Weekly notifications done. Ran: " + ran + " Skipped: " + skipped + " Errors: " + errors.size());
+        log.info("Weekly notifications done — ran: {}, skipped: {}, errors: {}", ran, skipped, errors.size());
     }
 
     private boolean runAgentsForChild(AppUser user, Child child,
@@ -312,7 +314,7 @@ public class NotificationScheduler {
             s.setValue(json);
             appSettingRepo.save(s);
         } catch (Exception e) {
-            System.err.println("[Scheduler] Failed to save last-run AppSetting: " + e.getMessage());
+            log.warn("Failed to save last-run AppSetting: {}", e.getMessage());
         }
     }
 

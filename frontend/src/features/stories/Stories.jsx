@@ -549,13 +549,6 @@ export default function Stories({ child, quota }) {
 
         {loading && <ThemeLoader theme={child.theme} />}
 
-        {stories.length === 0 && !loading && (
-          <div style={{ textAlign: 'center', padding: 32, color: 'var(--muted)' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🌟</div>
-            <div style={{ fontWeight: 700 }}>No stories yet!</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Generate your first magical story above</div>
-          </div>
-        )}
       </div>
 
       {/* ── Story Reader ── */}

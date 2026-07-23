@@ -210,11 +210,6 @@ export default function Journal({ child, featureConfig, quota }) {
         </form>
       </div>
 
-      {entries.length === 0 && (
-        <div style={{ textAlign: 'center', color: '#bbb', padding: 40, fontSize: 14 }}>
-          No entries yet — start capturing memories! 🌸
-        </div>
-      )}
 
       <HistoryDrawer icon="📝" title="Past Entries" count={entries.length}>
         {() => (<>

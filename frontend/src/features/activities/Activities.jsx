@@ -305,13 +305,14 @@ export default function Activities({ child, quota }) {
         ))}
       </HistoryDrawer>
 
-      {activities.length === 0 && !loading && (
+      {activities.filter(a => !a.completed).length === 0 && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>🎈</div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>No activities yet!</div>
-          <div style={{ fontSize: 14, marginTop: 8 }}>Hit the button above to get ideas for {child.name} 🎉</div>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🌟</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>What will {child.name} explore today?</div>
+          <div style={{ fontSize: 14, marginTop: 8 }}>Hit the button above to discover exciting activities! 🌟</div>
         </div>
       )}
+
     </div>
   )
 }

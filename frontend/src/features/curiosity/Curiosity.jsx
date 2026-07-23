@@ -336,10 +336,9 @@ export default function Curiosity({ child, quota }) {
 
       {loading && <ThemeLoader theme={child.theme} />}
 
-      {entries.length === 0 && !loading && (
+      {!selected && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🔭</div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>No questions yet!</div>
           <div style={{ fontSize: 14, marginTop: 8 }}>Kids ask the best questions — let's answer them! 🌍</div>
         </div>
       )}

@@ -372,12 +372,6 @@ export default function MyWriting({ child, quota }) {
           </button>
         )}
 
-        {entries.length === 0 && !editing && (
-          <div style={{ textAlign: 'center', padding: '32px 12px', color: '#ccc' }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>✍️</div>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>No stories yet — start writing!</div>
-          </div>
-        )}
 
       </div>
 

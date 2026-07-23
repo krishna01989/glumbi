@@ -221,7 +221,10 @@ export default function MyWriting({ child, quota }) {
       track('mywriting', 'save')
       setEntries(prev => {
         const exists = prev.find(e => e.id === saved.id)
-        if (!exists) return [saved, ...prev]
+        if (!exists) {
+          fetchEntries(0, true)
+          return [saved, ...prev]
+        }
         // preserve feedbackReceived — backend clears it on update but UI shouldn't reflect that until reload
         return prev.map(e => e.id === saved.id ? { ...saved, feedbackReceived: e.feedbackReceived } : e)
       })
@@ -261,16 +264,10 @@ export default function MyWriting({ child, quota }) {
   async function confirmDeleteEntry() {
     const result = await writingApi.delete(confirmDelete)
     const seriesDeleted = result?.seriesDeleted
-    setEntries(prev => {
-      const next = seriesDeleted
-        ? prev.filter(e => e.id !== confirmDelete && e.seriesId !== confirmDelete)
-        : prev.filter(e => e.id !== confirmDelete)
-      setEntriesTotalCount(c => Math.max(0, c - (prev.length - next.length)))
-      return next
-    })
     if (selected?.id === confirmDelete || (seriesDeleted && selected?.seriesId === confirmDelete)) setSelected(null)
     if (savedId.current === confirmDelete) { savedId.current = null; setEditing(false) }
     setConfirmDelete(null)
+    fetchEntries(0, true)
   }
 
   const [confirmDelete, setConfirmDelete] = useState(null)

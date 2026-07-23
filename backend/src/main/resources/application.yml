@@ -34,6 +34,10 @@ resend:
 
 elevenlabs:
   api-key: ${ELEVENLABS_API_KEY:}
+  base-url: https://api.elevenlabs.io/v1
+
+r2:
+  endpoint-template: https://%s.r2.cloudflarestorage.com
 
 anthropic:
   api-key: ${ANTHROPIC_API_KEY}

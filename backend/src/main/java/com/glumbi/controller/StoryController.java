@@ -83,6 +83,8 @@ public class StoryController {
         StoryService.StoryGenerateResult result;
         try {
             result = service.generate(req);
+        } catch (com.glumbi.agent.RelevanceGuard.RelevanceException | com.glumbi.agent.SafetyGuard.SafetyException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate story"));
         }

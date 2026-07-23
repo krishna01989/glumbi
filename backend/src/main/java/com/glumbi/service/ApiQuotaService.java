@@ -10,18 +10,11 @@ import com.glumbi.repository.AppSettingRepository;
 import com.glumbi.repository.FeatureConfigRepository;
 import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.repository.UserRepository;
-import com.glumbi.entity.SchedulerRun;
-import com.glumbi.repository.SchedulerRunRepository;
-import com.glumbi.service.ResendClient;
-import com.glumbi.service.EmailTemplates;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.YearMonth;
 
 @Service
@@ -29,14 +22,12 @@ import java.time.YearMonth;
 public class ApiQuotaService {
 
     private static final String SETTING_KEY          = "default-monthly-credits";
-    public  static final String RESET_HISTORY_KEY    = "scheduler.reset-credits.history";
     
     private final UserRepository                userRepository;
     private final NotificationService           notificationService;
     private final FeatureConfigRepository       featureConfigRepo;
     private final AppSettingRepository          appSettingRepo;
     private final UserFeatureOverrideRepository overrideRepo;
-    private final SchedulerRunRepository        schedulerRunRepo;
     private final AiUsageLogRepository          usageLogRepo;
     private final ResendClient                  resendClient;
     private final EmailTemplates                emailTemplates;
@@ -138,45 +129,6 @@ public class ApiQuotaService {
         }
 
         return true;
-    }
-
-    /** Safety net: reset all counters on the 1st of each month at midnight. */
-    @Scheduled(cron = "0 0 0 1 * *")
-    @Transactional
-    public void resetAllMonthlyCounters() {
-        // Insert RUNNING row immediately
-        SchedulerRun run = new SchedulerRun();
-        run.setSchedulerId("reset-credits");
-        run.setStartedAt(LocalDateTime.now(ZoneOffset.UTC));
-        run.setStatus("RUNNING");
-        run = schedulerRunRepo.save(run);
-
-        String error = null;
-        int usersReset = 0;
-        try {
-            String thisMonth = YearMonth.now().toString();
-            for (var user : userRepository.findAll()) {
-                if (user.isAdminOrAbove()) continue;
-                // Skip users already on this month — self-heal or prior run handled them
-                if (thisMonth.equals(user.getApiCallMonth())) continue;
-                user.setMonthlyApiCalls(0);
-                user.setApiCallMonth(thisMonth);
-                user.setQuotaWarnMonth(null);
-                user.setQuotaExhaustedMonth(null);
-                userRepository.save(user);
-                usersReset++;
-            }
-        } catch (Exception e) {
-            error = e.getMessage();
-            System.err.println("[Scheduler] Credit reset failed: " + error);
-        }
-
-        // Update row with result
-        run.setFinishedAt(LocalDateTime.now(ZoneOffset.UTC));
-        run.setStatus(error == null ? "SUCCESS" : "FAILED");
-        run.setChildrenProcessed(usersReset);
-        run.setErrors(error != null ? "[\"" + error + "\"]" : "[]");
-        schedulerRunRepo.save(run);
     }
 
     public int getDefaultMonthlyCredits() {

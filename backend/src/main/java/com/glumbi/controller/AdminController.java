@@ -4,6 +4,7 @@ import com.glumbi.entity.AppUser;
 import com.glumbi.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.scheduler.NotificationScheduler;
+import com.glumbi.scheduler.QuotaScheduler;
 import com.glumbi.service.ApiQuotaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,7 @@ public class AdminController {
     private final NotificationScheduler   notificationScheduler;
     private final FeatureConfigRepository       featureConfigRepo;
     private final ApiQuotaService               quotaService;
+    private final QuotaScheduler                quotaScheduler;
     private final UserFeatureOverrideRepository overrideRepo;
     private final AppSettingRepository          appSettingRepo;
     private final SchedulerRunRepository        schedulerRunRepo;
@@ -279,8 +281,12 @@ public class AdminController {
     @Transactional
     public ResponseEntity<?> resetQuota(@PathVariable Long id) {
         return userRepo.findById(id).map(u -> {
+            String thisMonth = YearMonth.now().toString();
             u.setMonthlyApiCalls(0);
-            u.setApiCallMonth(YearMonth.now().toString());
+            u.setApiCallMonth(thisMonth);
+            u.setQuotaWarnMonth(null);
+            u.setQuotaExhaustedMonth(null);
+            u.setLastResetMonth(thisMonth);
             userRepo.save(u);
             int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
             return ResponseEntity.ok(Map.of("quotaUsed", 0, "quotaLimit", limit));
@@ -453,13 +459,14 @@ public class AdminController {
 
     @PostMapping("/scheduler/reset-credits")
     public ResponseEntity<Map<String, String>> runCreditReset() {
-        new Thread(quotaService::resetAllMonthlyCounters).start();
+        new Thread(quotaScheduler::resetAllMonthlyCounters).start();
         return ResponseEntity.accepted().body(Map.of("message", "Credit reset triggered — running in background"));
     }
 
     @GetMapping("/scheduler/status")
     public ResponseEntity<Map<String, Object>> schedulerStatus() {
-        Map<String, Object> weeklyLastRun = parseLastRunLog(NotificationScheduler.LAST_RUN_KEY);
+        Map<String, Object> weeklyLastRun      = parseLastRunLog(NotificationScheduler.LAST_RUN_KEY);
+        Map<String, Object> creditResetLastRun = parseLastRunLog(QuotaScheduler.LAST_RUN_KEY);
         return ResponseEntity.ok(Map.of(
             "schedulers", List.of(
                 Map.of(
@@ -468,7 +475,7 @@ public class AdminController {
                     "description", "Resets all users' monthly AI credit usage to 0. Normally runs automatically on the 1st of every month at midnight.",
                     "schedule",    "1st of every month, 00:00 UTC",
                     "endpoint",    "/api/admin/scheduler/reset-credits",
-                    "lastRun",     Map.of()
+                    "lastRun",     creditResetLastRun
                 ),
                 Map.of(
                     "id",          "weekly-notifications",

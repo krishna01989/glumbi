@@ -14,16 +14,21 @@ import java.util.UUID;
 @Service
 public class ElevenLabsService {
 
-    private static final String BASE_URL = "https://api.elevenlabs.io/v1";
-    private static final String BOUNDARY  = "----GlumbiBoundary";
+    private static final String BOUNDARY = "----GlumbiBoundary";
 
-    @Value("${elevenlabs.api-key:}")
-    private String apiKey;
-
-    @org.springframework.beans.factory.annotation.Autowired
-    private VendorConfigService vendorConfig;
-
+    private final String apiKey;
+    private final String baseUrl;
+    private final VendorConfigService vendorConfig;
     private final HttpClient http = HttpClient.newHttpClient();
+
+    public ElevenLabsService(
+            @Value("${elevenlabs.api-key:}") String apiKey,
+            @Value("${elevenlabs.base-url}") String baseUrl,
+            VendorConfigService vendorConfig) {
+        this.apiKey       = apiKey;
+        this.baseUrl      = baseUrl;
+        this.vendorConfig = vendorConfig;
+    }
 
     public boolean isConfigured() {
         return apiKey != null && !apiKey.isBlank();
@@ -43,7 +48,7 @@ public class ElevenLabsService {
         byte[] body = buildMultipartBody(boundary, audioBytes, fileName, voiceName);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/voices/add"))
+                .uri(URI.create(baseUrl + "/voices/add"))
                 .header("xi-api-key", apiKey)
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .POST(HttpRequest.BodyPublishers.ofByteArray(body))
@@ -76,7 +81,7 @@ public class ElevenLabsService {
         );
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/text-to-speech/" + voiceId + "?output_format=mp3_44100_128"))
+                .uri(URI.create(baseUrl + "/text-to-speech/" + voiceId + "?output_format=mp3_44100_128"))
                 .header("xi-api-key", apiKey)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
@@ -95,7 +100,7 @@ public class ElevenLabsService {
      */
     public void deleteVoice(String voiceId) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(BASE_URL + "/voices/" + voiceId))
+                .uri(URI.create(baseUrl + "/voices/" + voiceId))
                 .header("xi-api-key", apiKey)
                 .DELETE()
                 .build();

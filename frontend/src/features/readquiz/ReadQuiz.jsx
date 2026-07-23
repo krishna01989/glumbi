@@ -47,6 +47,7 @@ export default function ReadQuiz({ child, quota }) {
   const [entries,  setEntries]  = useState([])
   const [entriesPage, setEntriesPage]           = useState(0)
   const [entriesTotalPages, setEntriesTotalPages] = useState(1)
+  const [entriesTotalCount, setEntriesTotalCount] = useState(0)
   const [entriesLoading, setEntriesLoading]     = useState(false)
   const [selected, setSelected] = useState(null)
   const [topic,    setTopic]    = useState('')
@@ -103,6 +104,7 @@ export default function ReadQuiz({ child, quota }) {
         const exists = prev.some(e => e.id === entry.id)
         return exists ? prev : [{ ...entry, questions }, ...prev]
       })
+      fetchEntries(0, true)
       openEntry({ ...entry, questions })
       initGlumbi(entry)
       if (isNew) {
@@ -120,6 +122,7 @@ export default function ReadQuiz({ child, quota }) {
       setEntries(prev => replace ? data.content : [...prev, ...data.content])
       setEntriesPage(data.number)
       setEntriesTotalPages(data.totalPages)
+      setEntriesTotalCount(data.totalElements)
     } catch {} finally { setEntriesLoading(false) }
   }
 
@@ -133,6 +136,7 @@ export default function ReadQuiz({ child, quota }) {
       quizStartTime.current = Date.now()
       const questions = JSON.parse(entry.questionsJson || '[]')
       setEntries(prev => [{ ...entry, questions }, ...prev])
+      fetchEntries(0, true)
       openEntry({ ...entry, questions })
       initGlumbi(entry)
       setTopic('')
@@ -177,9 +181,9 @@ export default function ReadQuiz({ child, quota }) {
 
   async function confirmDeleteEntry() {
     await readQuizApi.delete(confirmDelete)
-    setEntries(prev => prev.filter(e => e.id !== confirmDelete))
     if (selected?.id === confirmDelete) setSelected(null)
     setConfirmDelete(null)
+    fetchEntries(0, true)
   }
 
   const lessonColor = 'var(--primary)'
@@ -254,7 +258,7 @@ export default function ReadQuiz({ child, quota }) {
 
       </div>
 
-      <HistoryDrawer icon="📚" title="My Reads" count={entries.length}>
+      <HistoryDrawer icon="📚" title="My Reads" count={entriesTotalCount}>
         {close => (<>
         {entries.map(e => {
           const isSelected = selected?.id === e.id

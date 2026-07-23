@@ -1,6 +1,5 @@
 package com.glumbi.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -22,21 +21,26 @@ public class R2Service {
     private final String bucket;
     private final String publicUrl;
     private final boolean configured;
+    private final VendorConfigService vendorConfig;
 
     public R2Service(
             @Value("${R2_ACCESS_KEY_ID:}") String accessKey,
             @Value("${R2_SECRET_ACCESS_KEY:}") String secretKey,
             @Value("${R2_ACCOUNT_ID:}") String accountId,
             @Value("${R2_BUCKET_NAME:glumbi-audio}") String bucket,
-            @Value("${R2_PUBLIC_URL:}") String publicUrl) {
+            @Value("${R2_PUBLIC_URL:}") String publicUrl,
+            @Value("${r2.endpoint-template:https://%s.r2.cloudflarestorage.com}") String endpointTemplate,
+            VendorConfigService vendorConfig) {
 
-        this.bucket    = bucket;
-        this.publicUrl = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
-        this.configured = !accessKey.isBlank() && !secretKey.isBlank() && !accountId.isBlank() && !publicUrl.isBlank();
+        this.bucket       = bucket;
+        this.publicUrl    = publicUrl.endsWith("/") ? publicUrl.substring(0, publicUrl.length() - 1) : publicUrl;
+        this.vendorConfig = vendorConfig;
+        this.configured   = !accessKey.isBlank() && !secretKey.isBlank() && !accountId.isBlank() && !publicUrl.isBlank();
 
         if (configured) {
+            String endpointUrl = String.format(endpointTemplate, accountId);
             this.s3 = S3Client.builder()
-                    .endpointOverride(URI.create("https://" + accountId + ".r2.cloudflarestorage.com"))
+                    .endpointOverride(URI.create(endpointUrl))
                     .credentialsProvider(StaticCredentialsProvider.create(
                             AwsBasicCredentials.create(accessKey, secretKey)))
                     .region(Region.of("auto"))
@@ -50,9 +54,6 @@ public class R2Service {
             this.s3 = null;
         }
     }
-
-    @Autowired
-    private VendorConfigService vendorConfig;
 
     public boolean isConfigured() {
         return configured;

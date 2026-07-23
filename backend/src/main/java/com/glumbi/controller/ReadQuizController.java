@@ -71,6 +71,8 @@ public class ReadQuizController {
         Object result;
         try {
             result = service.generateFromStory(childId, storyId);
+        } catch (SafetyGuard.SafetyException | RelevanceGuard.RelevanceException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate quiz"));
         }

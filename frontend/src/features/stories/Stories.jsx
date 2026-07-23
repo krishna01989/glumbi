@@ -264,8 +264,8 @@ export default function Stories({ child, quota }) {
       track('stories', 'generate', { metadata: { category } })
       const story = res.story ?? res   // fallback if backend not yet updated
       const similar = res.similar ?? []
-      setStories(prev => [story, ...prev])
       setSelected(story)
+      fetchStories(0, true)
       setGlumbiPhase(story.glumbiIntro ? 'intro' : 'idle')
       setGlumbiMidPicked(null)
       setGlumbiEpilogueOpen(false)
@@ -292,8 +292,8 @@ export default function Stories({ child, quota }) {
         seriesId: (res.story ?? res).seriesId ?? (story.seriesId || story.id),
       }
       const similar = res.similar ?? []
-      setStories(prev => [continued, ...prev])
       setSelected(continued)
+      fetchStories(0, true)
       if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'continue' } })
       setSimilarStories(similar)
       window.__glumbiRefreshQuota?.('story')
@@ -309,15 +309,9 @@ export default function Stories({ child, quota }) {
   async function confirmDeleteStory() {
     const result = await storyApi.delete(confirmDelete)
     const seriesDeleted = result?.seriesDeleted
-    setStories(prev => {
-      const next = seriesDeleted
-        ? prev.filter(s => s.id !== confirmDelete && s.seriesId !== confirmDelete)
-        : prev.filter(s => s.id !== confirmDelete)
-      setStoriesTotalCount(c => Math.max(0, c - (prev.length - next.length)))
-      return next
-    })
     if (selected?.id === confirmDelete || (seriesDeleted && selected?.seriesId === confirmDelete)) setSelected(null)
     setConfirmDelete(null)
+    fetchStories(0, true)
   }
 
   const deletingStory = stories.find(s => s.id === confirmDelete)

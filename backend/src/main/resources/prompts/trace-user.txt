@@ -1,12 +1,20 @@
-Generate a maze game theme for a child named %s who is %d years old. Difficulty: %s.
+Generate a unique AI maze adventure for %s, age %d, difficulty: %s.
+Performance context: %s
 
-Difficulty guide:
-- easy (age 3-4): very familiar animals and objects, simple destinations, short warm story (e.g. bunny to carrot, duck to pond)
-- medium (age 5-7): slightly more imaginative themes, mild adventure (e.g. astronaut to planet, pirate to treasure)
-- hard (age 8+): creative or surprising themes with richer vocabulary in the completion story (e.g. wizard to spellbook, explorer to ancient ruins)
+Pick a CREATIVE theme — NOT a bunny. Choose from: space, ocean, jungle, fantasy, food, seasons, vehicles, dinosaurs, pirates, fairies, robots, or any other exciting world.
 
-Return ONLY valid JSON (no markdown, no code block):
-{"theme":"a bunny hopping home to its burrow","startEmoji":"🐰","endEmoji":"🕳️","startLabel":"Bunny","endLabel":"Burrow","completionStory":"The bunny made it home just in time for dinner! What a great helper you are! 🌙","bgColor":"#f3e5f5"}
+Return ONLY valid JSON (no markdown, no code block). Follow this structure exactly:
+{"theme":"DESCRIBE_THE_ADVENTURE","startEmoji":"START_EMOJI","endEmoji":"END_EMOJI","startLabel":"START_NAME","endLabel":"END_NAME","bgColor":"PASTEL_HEX","wallColor":"DARKER_HEX","riddle":"RIDDLE_QUESTION_ABOUT_START_CHARACTER","riddleChoices":["CORRECT_ANSWER","WRONG_ANSWER_1","WRONG_ANSWER_2"],"riddleAnswer":0,"recommendedCols":COLS,"recommendedRows":ROWS,"storyGreat":"GREAT_STORY_WITH_CHILD_NAME_%s","storyOkay":"OKAY_STORY_WITH_CHILD_NAME_%s","storyStruggled":"STRUGGLED_STORY_WITH_CHILD_NAME_%s"}
 
-Fields: theme, startEmoji, endEmoji, startLabel (1-2 words), endLabel (1-2 words), completionStory (2 warm fun sentences matching the child's age), bgColor (soft pastel hex).
-Vary themes creatively — animals, space, ocean, fantasy, seasons. Make it feel personal and exciting for %s.
+Rules:
+- theme: be creative and varied — pick something different every time
+- riddle difficulty must match the child's age (%d years old):
+  * age 3–4: single obvious clue, answer is something every toddler knows (e.g. "I say moo, what am I?")
+  * age 5–6: 1–2 simple clues about the character's traits or what it does
+  * age 7–8: 2 clues, slightly more indirect, requires thinking
+  * age 9+: wordplay or a 2-step inference riddle (not too hard, still fun)
+- riddle: exactly 3 riddleChoices; riddleAnswer is the index (0-2) of the correct choice; wrong choices must be plausible but clearly wrong once you think about it
+- recommendedCols x recommendedRows: stay within %d–%d cols and %d–%d rows; go smaller if recent wall hits are high, larger if low or no data
+- storyGreat for ≤2 wall hits, storyOkay for 3–6, storyStruggled for >6 — all warm, personal, end with an emoji
+- All three stories must include the child's name (%s) and feel genuinely personal
+- bgColor: soft pastel hex matching the theme; wallColor: darker complementary hex

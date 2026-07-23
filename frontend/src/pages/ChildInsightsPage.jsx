@@ -17,7 +17,7 @@ const SCRIPT_META = {
 const ACTIVITY_FEATURES = {
   stories:     { label: 'Stories',        emoji: '📖' },
   draw:        { label: 'Draw',           emoji: '🎨' },
-  flipbook:    { label: 'Flipbook Studio',emoji: '🎬' },
+  flipbook:    { label: 'Flipbook Studio', emoji: '🖼️' },
   journal:     { label: 'Journal',        emoji: '📓' },
   curiosity:   { label: 'Curiosity',      emoji: '🔍' },
   readquiz:    { label: 'Read & Quiz',    emoji: '📚' },
@@ -206,6 +206,11 @@ function ActivityTab({ childName, t }) {
                   extraChips.push({ key: 'g-nav', icon: '🚀', text: `${data.glumbiCrossNav} cross-feature journey${data.glumbiCrossNav !== 1 ? 's' : ''}`, color: '#06b6d4', bg: '#ecfeff' })
                 if (feature === 'maze' && (data?.mazeGaveUpCount > 0 || data?.mazeAvgWallHits > 0))
                   extraChips.push({ key: 'maze', icon: '🧱', text: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, color: '#f97316', bg: '#fff7ed' })
+                if (feature === 'maze' && ((data?.mazeRiddleCorrect ?? 0) > 0 || (data?.mazeRiddleWrong ?? 0) > 0)) {
+                  const total = (data.mazeRiddleCorrect ?? 0) + (data.mazeRiddleWrong ?? 0)
+                  const pct = Math.round(((data.mazeRiddleCorrect ?? 0) / total) * 100)
+                  extraChips.push({ key: 'maze-riddle', icon: '🤔', text: `${pct}% riddle accuracy`, color: '#7c3aed', bg: '#f5f3ff' })
+                }
                 if (feature === 'riddle' && data?.riddleHints > 0)
                   extraChips.push({ key: 'hints', icon: '💡', text: `Used ${data.riddleHints} hint${data.riddleHints !== 1 ? 's' : ''}`, color: '#f59e0b', bg: '#fffbeb' })
                 if (feature === 'riddle' && data?.riddleGlumbi > 0)
@@ -245,7 +250,7 @@ function ActivityTab({ childName, t }) {
                 if (feature === 'flipbook' && data?.flipbookPlayCount > 0)
                   extraChips.push({ key: 'fb-play', icon: '▶️', text: `played ${data.flipbookPlayCount} time${data.flipbookPlayCount !== 1 ? 's' : ''}`, color: '#6366f1', bg: '#eef2ff' })
                 if (feature === 'flipbook' && data?.flipbookSaveCount > 0)
-                  extraChips.push({ key: 'fb-save', icon: '🎬', text: `saved ${data.flipbookSaveCount} movie${data.flipbookSaveCount !== 1 ? 's' : ''}`, color: '#00c853', bg: '#f0fdf4' })
+                  extraChips.push({ key: 'fb-save', icon: '🖼️', text: `saved ${data.flipbookSaveCount} movie${data.flipbookSaveCount !== 1 ? 's' : ''}`, color: '#00c853', bg: '#f0fdf4' })
                 return (
                   <div key={feature} style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5 }}>

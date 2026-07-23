@@ -100,7 +100,6 @@ function svgPoint(svg, clientX, clientY) {
 
 // ── Wall collision ───────────────────────────────────────────────────────────
 
-// Returns parameter t ∈ (0,1] along AB where it crosses CD, or null
 function segIntersect(ax, ay, bx, by, cx, cy, dx, dy) {
   const dxAB = bx - ax, dyAB = by - ay
   const dxCD = dx - cx, dyCD = dy - cy
@@ -136,17 +135,21 @@ export default function Maze({ child, quota, featureConfig }) {
   const { track } = useTracker()
   const offline = useOffline()
   const childAge = child?.birthYear ? new Date().getFullYear() - child.birthYear : 6
-  const { cols, rows } = gridSize(childAge)
+  const defaultSize = gridSize(childAge)
 
   const [seed, setSeed]         = useState(() => (Math.random() * 1e8) | 0)
   const [themeIdx, setThemeIdx] = useState(0)
   const [aiSkin, setAiSkin]     = useState(null)
-  const [pathPts, setPathPts]   = useState([])   // [[x,y], ...] SVG coordinates
+  const [pathPts, setPathPts]   = useState([])
   const [phase, setPhase]       = useState('idle')
   const [wallMsg, setWallMsg]   = useState('')
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
+
+  // Riddle state
+  const [riddlePhase, setRiddlePhase] = useState(null) // null | 'pending' | 'correct' | 'wrong'
+  const [riddleChosen, setRiddleChosen] = useState(null)
 
   const svgRef       = useRef(null)
   const containerRef = useRef(null)
@@ -168,9 +171,12 @@ export default function Maze({ child, quota, featureConfig }) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Adaptive cols/rows: use AI recommendation when available
+  const cols = (aiSkin?.recommendedCols > 0 && riddlePhase === null) ? aiSkin.recommendedCols : defaultSize.cols
+  const rows = (aiSkin?.recommendedRows > 0 && riddlePhase === null) ? aiSkin.recommendedRows : defaultSize.rows
+
   const grid = useMemo(() => generateMaze(cols, rows, seed), [cols, rows, seed])
 
-  // Build wall segments from the grid for collision detection
   const wallSegs = useMemo(() => {
     const { cw, ch } = cellGeom(cols, rows)
     const segs = []
@@ -190,11 +196,22 @@ export default function Maze({ child, quota, featureConfig }) {
 
   const baseTheme = BASE_THEMES[themeIdx % BASE_THEMES.length]
   const theme = aiSkin
-    ? { ...baseTheme, startEmoji: aiSkin.startEmoji || baseTheme.startEmoji,
-        endEmoji: aiSkin.endEmoji || baseTheme.endEmoji,
-        story: aiSkin.completionStory || baseTheme.story,
-        bg: aiSkin.bgColor || baseTheme.bg }
+    ? { ...baseTheme,
+        startEmoji: aiSkin.startEmoji || baseTheme.startEmoji,
+        endEmoji:   aiSkin.endEmoji   || baseTheme.endEmoji,
+        bg:         aiSkin.bgColor    || baseTheme.bg,
+        wall:       aiSkin.wallColor  || baseTheme.wall,
+      }
     : baseTheme
+
+  // Pick story variant based on actual wall hits at completion time
+  function completionStory() {
+    if (!aiSkin) return baseTheme.story
+    const hits = wallHitsRef.current
+    if (hits <= 2) return aiSkin.storyGreat
+    if (hits <= 6) return aiSkin.storyOkay
+    return aiSkin.storyStruggled
+  }
 
   const mazeEnabled = !featureConfig || (() => {
     const fc = featureConfig.find(f => f.featureName === 'maze')
@@ -210,12 +227,17 @@ export default function Maze({ child, quota, featureConfig }) {
     drawingRef.current = false
     phaseRef.current = 'idle'
     setPhase('idle')
+    mazeStartTime.current = Date.now()
+    wallHitsRef.current = 0
+    completedRef.current = false
   }
 
   function newMaze() {
     setSeed((Math.random() * 1e8) | 0)
     setThemeIdx(i => (i + 1) % BASE_THEMES.length)
     setAiSkin(null)
+    setRiddlePhase(null)
+    setRiddleChosen(null)
     resetDraw()
   }
 
@@ -225,18 +247,16 @@ export default function Maze({ child, quota, featureConfig }) {
   const { cw, ch } = cellGeom(cols, rows)
   const resumeRadius = Math.min(cw, ch) * 0.7
   const startRadius  = Math.min(cw, ch) * 0.85
-  const endRadius    = Math.min(cw, ch) * 0.42   // kept inside cell — never bleeds past the border wall
+  const endRadius    = Math.min(cw, ch) * 0.42
   const strokeW      = Math.min(cw, ch) * 0.13
 
   function handleAt(clientX, clientY) {
     if (phaseRef.current === 'success') return
-    // Block all input while the wall-hit message is showing — let the timer clear it
     if (phaseRef.current === 'wall') return
     const [sx, sy] = svgPoint(svgRef.current, clientX, clientY)
     const pts = pathRef.current
 
     if (!drawingRef.current) {
-      // Resume if near the tip of the existing path
       if (pts.length > 0) {
         const [lx, ly] = pts[pts.length - 1]
         if (Math.hypot(sx - lx, sy - ly) < resumeRadius) {
@@ -244,7 +264,6 @@ export default function Maze({ child, quota, featureConfig }) {
           return
         }
       }
-      // Start fresh from the start cell
       const [sx0, sy0] = cellCenter(0, 0, cols, rows)
       if (Math.hypot(sx - sx0, sy - sy0) < startRadius) {
         drawingRef.current = true
@@ -260,7 +279,6 @@ export default function Maze({ child, quota, featureConfig }) {
     const [lx, ly] = pts[pts.length - 1]
     if (Math.hypot(sx - lx, sy - ly) < 3) return
 
-    // Out-of-bounds check — reject points outside the outer border
     if (sx < MARGIN || sy < MARGIN || sx > SVG_W - MARGIN || sy > SVG_H - MARGIN) {
       const moveDist = Math.hypot(sx - lx, sy - ly)
       const tipT = moveDist > 0 ? Math.max(0, (Math.min(
@@ -285,11 +303,8 @@ export default function Maze({ child, quota, featureConfig }) {
       return
     }
 
-    // Wall collision check
     const t = firstWallHit(lx, ly, sx, sy, wallSegs)
     if (t !== null) {
-      // Nudge tip 5 SVG units back from the wall so the next
-      // collision check starts with t well above the 0.01 threshold
       const moveDist = Math.hypot(sx - lx, sy - ly)
       const tipT = Math.max(0, t - 5 / moveDist)
       const ix = lx + (sx - lx) * tipT
@@ -315,7 +330,6 @@ export default function Maze({ child, quota, featureConfig }) {
     pathRef.current = newPts
     setPathPts([...newPts])
 
-    // Success — reached end cell (must be inside maze bounds)
     const [ex, ey] = cellCenter(rows - 1, cols - 1, cols, rows)
     const inBounds = sx > MARGIN && sy > MARGIN && sx < SVG_W - MARGIN && sy < SVG_H - MARGIN
     if (inBounds && Math.hypot(sx - ex, sy - ey) < endRadius) {
@@ -353,7 +367,7 @@ export default function Maze({ child, quota, featureConfig }) {
     return () => document.removeEventListener('fullscreenchange', h)
   }, [])
 
-  // ── AI Theme ───────────────────────────────────────────────────────────────
+  // ── AI Theme + Riddle ──────────────────────────────────────────────────────
   async function handleAiTheme() {
     if (!canGenerate) return
     setLoading(true); setError('')
@@ -365,12 +379,32 @@ export default function Maze({ child, quota, featureConfig }) {
       setSeed((Math.random() * 1e8) | 0)
       setThemeIdx(i => (i + 1) % BASE_THEMES.length)
       setAiSkin(result)
+      setRiddlePhase('pending')
+      setRiddleChosen(null)
       resetDraw()
     } catch (err) {
-      setError(err.message || 'Could not load AI theme.')
+      setError(err.message || 'Could not load AI maze.')
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleRiddleAnswer(choiceIdx) {
+    if (riddlePhase !== 'pending') return
+    const correct = choiceIdx === aiSkin.riddleAnswer
+    setRiddleChosen(choiceIdx)
+    setRiddlePhase(correct ? 'correct' : 'wrong')
+    track('maze', correct ? 'riddle_correct' : 'riddle_wrong', {
+      metadata: { theme: aiSkin.theme, riddleAnswer: choiceIdx }
+    })
+    setTimeout(() => {
+      setRiddlePhase(null)
+    }, 1800)
+  }
+
+  function handleRiddleSkip() {
+    track('maze', 'riddle_skipped', { metadata: { theme: aiSkin?.theme } })
+    setRiddlePhase(null)
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -392,159 +426,221 @@ export default function Maze({ child, quota, featureConfig }) {
     <div ref={containerRef} style={{ padding: fullscreen ? 0 : '12px 12px 40px', fontFamily: 'Nunito, sans-serif', ...fsStyle }}>
       {!fullscreen && <FeatureBanner feature="maze" child={child} isMobile={false} />}
       {!fullscreen && <QuotaBanner quota={quota} isMobile={false} />}
-      {loading && <ThemeLoader theme={child?.theme} label="Generating maze theme..." />}
+      {loading && <ThemeLoader theme={child?.theme} label="Cooking up your maze adventure..." />}
       {error && (
         <div style={{ background:'#fff0f0', border:'1.5px solid #ffb3b3', borderRadius:12, padding:'10px 16px', color:'#c0392b', fontSize:14, marginBottom:12 }}>
           {error}
         </div>
       )}
 
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom: fullscreen ? 6 : 12, padding: fullscreen ? '10px 16px 0' : 0 }}>
-        <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.startEmoji}</span>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontWeight:900, fontSize: fullscreen ? 20 : 17, color: fullscreen ? '#333' : 'var(--primary)' }}>
-            Guide {theme.startEmoji} to {theme.endEmoji}!
+      {/* ── Riddle screen ───────────────────────────────────────────────── */}
+      {riddlePhase && aiSkin && (
+        <div style={{
+          background: aiSkin.bgColor || '#f3e5f5',
+          borderRadius: 20, padding: '24px 20px', marginBottom: 12,
+          border: `2px solid ${aiSkin.wallColor || '#7b1fa2'}30`,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>🤔</div>
+          <div style={{ fontWeight: 900, fontSize: 17, color: '#333', marginBottom: 6 }}>
+            Unlock your maze!
           </div>
-          <div style={{ fontSize:12, color: fullscreen ? '#888' : '#888', marginTop:2 }}>
-            {cols}×{rows} maze · draw from {theme.startEmoji} to {theme.endEmoji}
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#555', marginBottom: 20, lineHeight: 1.5 }}>
+            {aiSkin.riddle}
           </div>
-        </div>
-        <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.endEmoji}</span>
-      </div>
 
-      <div style={{ position:'relative', width:'100%' }}>
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-          style={{
-            width: '100%',
-            height: fullscreen ? 'calc(100dvh - 164px)' : 'auto',
-            display: 'block', cursor: 'crosshair',
-            background: theme.bg,
-            borderRadius: fullscreen ? 0 : 16,
-            touchAction: 'none', userSelect: 'none',
-          }}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
-        >
-          {/* Freehand path */}
-          {pathPts.length > 1 && (
-            <polyline
-              points={pathStr}
-              fill="none"
-              stroke={isWall ? '#ff6b6b' : isSuccess ? '#6bcb77' : 'var(--primary,#ff6b6b)'}
-              strokeWidth={strokeW}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={0.8}
-            />
+          {(riddlePhase === 'pending') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {aiSkin.riddleChoices?.map((choice, i) => (
+                <button key={i} onClick={() => handleRiddleAnswer(i)}
+                  style={{
+                    padding: '12px 20px', borderRadius: 50, border: `2px solid ${aiSkin.wallColor || '#7b1fa2'}60`,
+                    background: 'white', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                    fontFamily: 'Nunito, sans-serif', color: '#333',
+                    transition: 'transform 0.1s', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  {choice}
+                </button>
+              ))}
+              <button onClick={handleRiddleSkip}
+                style={{ marginTop: 4, padding: '8px', border: 'none', background: 'transparent', color: '#999', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
+                Skip riddle →
+              </button>
+            </div>
           )}
 
-          {/* Walls */}
-          {grid.flat().map(({ r, c, walls }) => {
-            const x = MARGIN + c * cw
-            const y = MARGIN + r * ch
-            return (
-              <g key={`w-${r}-${c}`}>
-                {walls.N && <line x1={x}    y1={y}    x2={x+cw} y2={y}    stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
-                {walls.S && <line x1={x}    y1={y+ch} x2={x+cw} y2={y+ch} stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
-                {walls.W && <line x1={x}    y1={y}    x2={x}    y2={y+ch} stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
-                {walls.E && <line x1={x+cw} y1={y}    x2={x+cw} y2={y+ch} stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
-              </g>
-            )
-          })}
-
-          {/* Outer border */}
-          <rect x={MARGIN} y={MARGIN} width={SVG_W - MARGIN * 2} height={SVG_H - MARGIN * 2}
-            fill="none" stroke={theme.wall} strokeWidth={WALL_W + 1} />
-
-          {/* Start */}
-          <circle cx={startX} cy={startY} r={Math.min(cw, ch) * 0.38}
-            fill="var(--primary,#ff6b6b)" opacity={0.85} />
-          <text x={startX} y={startY + iconSize * 0.38} textAnchor="middle" fontSize={iconSize}>
-            {theme.startEmoji}
-          </text>
-
-          {/* End */}
-          <circle cx={endX} cy={endY} r={Math.min(cw, ch) * 0.38}
-            fill={isSuccess ? '#6bcb77' : 'var(--accent,#ffa502)'} opacity={0.85} />
-          <text x={endX} y={endY + iconSize * 0.38} textAnchor="middle" fontSize={iconSize}>
-            {theme.endEmoji}
-          </text>
-
-          {/* Status overlay in SVG */}
-          {isSuccess && (
-            <>
-              <circle cx={endX} cy={endY} r={Math.min(cw, ch) * 0.6} fill="#6bcb77" opacity={0.2} />
-              <text x={SVG_W / 2} y={MARGIN - 8} textAnchor="middle" fontSize={22} fontWeight="900" fill="#2d8a3e">
-                🎉 You made it!
-              </text>
-            </>
+          {(riddlePhase === 'correct') && (
+            <div style={{ fontSize: 48, animation: 'none' }}>
+              🎉
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#2d8a3e', marginTop: 8 }}>
+                Correct! Let's go! 🚀
+              </div>
+            </div>
           )}
-          {isWall && (
-            <text x={SVG_W / 2} y={MARGIN - 8} textAnchor="middle" fontSize={20} fontWeight="900" fill="#e53935">
-              {wallMsg}
-            </text>
+
+          {(riddlePhase === 'wrong') && (
+            <div>
+              <div style={{ fontSize: 48 }}>😅</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#e53935', marginTop: 8 }}>
+                Almost! The answer was: {aiSkin.riddleChoices?.[aiSkin.riddleAnswer]}
+              </div>
+              <div style={{ fontSize: 13, color: '#888', marginTop: 4, fontWeight: 700 }}>
+                You can still do the maze! 💪
+              </div>
+            </div>
           )}
-        </svg>
-
-        {/* Success story (fullscreen overlay) */}
-        {isSuccess && fullscreen && (
-          <div style={{
-            position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)',
-            background: 'linear-gradient(135deg,#6bcb77,#4caf50)',
-            borderRadius: 16, padding: '14px 24px',
-            color: 'white', textAlign: 'center', fontWeight: 800, fontSize: 15,
-            pointerEvents: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-            maxWidth: '90%',
-          }}>
-            {theme.story}
-          </div>
-        )}
-
-        {!fullscreen && (
-          <button onClick={() => containerRef.current?.requestFullscreen()} title="Fullscreen"
-            style={{ position:'absolute', top:10, right:10, zIndex:10, width:32, height:32, minWidth:32, minHeight:32, borderRadius:8, border:'1.5px solid rgba(0,0,0,0.1)', background:'rgba(255,255,255,0.9)', color:'#888', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
-            </svg>
-          </button>
-        )}
-        {fullscreen && (
-          <button onClick={() => document.exitFullscreen()} title="Exit fullscreen"
-            style={{ position:'absolute', top:10, right:10, zIndex:20, width:36, height:36, minWidth:36, minHeight:36, borderRadius:10, border:'none', background:'rgba(255,255,255,0.95)', color:'#555', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0, boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
-            </svg>
-          </button>
-        )}
-      </div>
-
-      {/* Success story (normal mode) */}
-      {isSuccess && !fullscreen && (
-        <div style={{ background:'linear-gradient(135deg,#6bcb77,#4caf50)', borderRadius:16, padding:'16px 20px', margin:'16px 0', color:'white', textAlign:'center', fontWeight:800, fontSize:16 }}>
-          {theme.story}
         </div>
       )}
 
-      <div style={{ display:'flex', gap:8, marginTop:12 }}>
-        <button onClick={resetDraw}
-          style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background:'var(--primary-lt)', color:'var(--primary,#ff6b6b)', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>
-          🔄 Replay
-        </button>
-        <button onClick={newMaze}
-          style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background:'linear-gradient(135deg,var(--primary,#ff6b6b),var(--accent,#ffa502))', color:'white', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>
-          🆕 New Maze
-        </button>
-        {canGenerate && (
-          <button onClick={handleAiTheme} disabled={loading}
-            style={{ flex:1, padding:'10px 0', borderRadius:50, border:'2px solid var(--accent,#ffa502)', background: loading ? '#eee' : 'var(--accent,#ffa502)', color: loading ? '#aaa' : 'white', fontWeight:800, fontSize:13, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, fontFamily:'Nunito,sans-serif' }}>
-            ✨ AI Theme
-          </button>
-        )}
-      </div>
+      {/* ── Maze ────────────────────────────────────────────────────────── */}
+      {!riddlePhase && (
+        <>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom: fullscreen ? 6 : 12, padding: fullscreen ? '10px 16px 0' : 0 }}>
+            <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.startEmoji}</span>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontWeight:900, fontSize: fullscreen ? 20 : 17, color: fullscreen ? '#333' : 'var(--primary)' }}>
+                Guide {theme.startEmoji} to {theme.endEmoji}!
+              </div>
+              <div style={{ fontSize:12, color:'#888', marginTop:2 }}>
+                {cols}×{rows} maze · draw from {theme.startEmoji} to {theme.endEmoji}
+              </div>
+            </div>
+            <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.endEmoji}</span>
+          </div>
+
+          <div style={{ position:'relative', width:'100%' }}>
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+              style={{
+                width: '100%',
+                height: fullscreen ? 'calc(100dvh - 164px)' : 'auto',
+                display: 'block', cursor: 'crosshair',
+                background: theme.bg,
+                borderRadius: fullscreen ? 0 : 16,
+                touchAction: 'none', userSelect: 'none',
+              }}
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseUp}
+            >
+              {pathPts.length > 1 && (
+                <polyline
+                  points={pathStr}
+                  fill="none"
+                  stroke={isWall ? '#ff6b6b' : isSuccess ? '#6bcb77' : 'var(--primary,#ff6b6b)'}
+                  strokeWidth={strokeW}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity={0.8}
+                />
+              )}
+
+              {grid.flat().map(({ r, c, walls }) => {
+                const x = MARGIN + c * cw
+                const y = MARGIN + r * ch
+                return (
+                  <g key={`w-${r}-${c}`}>
+                    {walls.N && <line x1={x}    y1={y}    x2={x+cw} y2={y}    stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
+                    {walls.S && <line x1={x}    y1={y+ch} x2={x+cw} y2={y+ch} stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
+                    {walls.W && <line x1={x}    y1={y}    x2={x}    y2={y+ch} stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
+                    {walls.E && <line x1={x+cw} y1={y}    x2={x+cw} y2={y+ch} stroke={theme.wall} strokeWidth={WALL_W} strokeLinecap="square" />}
+                  </g>
+                )
+              })}
+
+              <rect x={MARGIN} y={MARGIN} width={SVG_W - MARGIN * 2} height={SVG_H - MARGIN * 2}
+                fill="none" stroke={theme.wall} strokeWidth={WALL_W + 1} />
+
+              <circle cx={startX} cy={startY} r={Math.min(cw, ch) * 0.38}
+                fill="var(--primary,#ff6b6b)" opacity={0.85} />
+              <text x={startX} y={startY + iconSize * 0.38} textAnchor="middle" fontSize={iconSize}>
+                {theme.startEmoji}
+              </text>
+
+              <circle cx={endX} cy={endY} r={Math.min(cw, ch) * 0.38}
+                fill={isSuccess ? '#6bcb77' : 'var(--accent,#ffa502)'} opacity={0.85} />
+              <text x={endX} y={endY + iconSize * 0.38} textAnchor="middle" fontSize={iconSize}>
+                {theme.endEmoji}
+              </text>
+
+              {isSuccess && (
+                <>
+                  <circle cx={endX} cy={endY} r={Math.min(cw, ch) * 0.6} fill="#6bcb77" opacity={0.2} />
+                  <text x={SVG_W / 2} y={MARGIN - 8} textAnchor="middle" fontSize={22} fontWeight="900" fill="#2d8a3e">
+                    🎉 You made it!
+                  </text>
+                </>
+              )}
+              {isWall && (
+                <text x={SVG_W / 2} y={MARGIN - 8} textAnchor="middle" fontSize={20} fontWeight="900" fill="#e53935">
+                  {wallMsg}
+                </text>
+              )}
+            </svg>
+
+            {/* Success story overlay (fullscreen) */}
+            {isSuccess && fullscreen && (
+              <div style={{
+                position: 'absolute', bottom: 70, left: '50%', transform: 'translateX(-50%)',
+                background: 'linear-gradient(135deg,#6bcb77,#4caf50)',
+                borderRadius: 16, padding: '14px 24px',
+                color: 'white', textAlign: 'center', fontWeight: 800, fontSize: 15,
+                pointerEvents: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                maxWidth: '90%',
+              }}>
+                {completionStory()}
+              </div>
+            )}
+
+            {!fullscreen && (
+              <button onClick={() => containerRef.current?.requestFullscreen()} title="Fullscreen"
+                style={{ position:'absolute', top:10, right:10, zIndex:10, width:32, height:32, minWidth:32, minHeight:32, borderRadius:8, border:'1.5px solid rgba(0,0,0,0.1)', background:'rgba(255,255,255,0.9)', color:'#888', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+                </svg>
+              </button>
+            )}
+            {fullscreen && (
+              <button onClick={() => document.exitFullscreen()} title="Exit fullscreen"
+                style={{ position:'absolute', top:10, right:10, zIndex:20, width:36, height:36, minWidth:36, minHeight:36, borderRadius:10, border:'none', background:'rgba(255,255,255,0.95)', color:'#555', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0, boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Success story (normal mode) */}
+          {isSuccess && !fullscreen && (
+            <div style={{ background:'linear-gradient(135deg,#6bcb77,#4caf50)', borderRadius:16, padding:'16px 20px', margin:'16px 0', color:'white', textAlign:'center', fontWeight:800, fontSize:16 }}>
+              {completionStory()}
+            </div>
+          )}
+
+          <div style={{ display:'flex', gap:8, marginTop:12 }}>
+            <button onClick={resetDraw}
+              style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background:'var(--primary-lt)', color:'var(--primary,#ff6b6b)', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>
+              🔄 Replay
+            </button>
+            <button onClick={newMaze}
+              style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background:'linear-gradient(135deg,var(--primary,#ff6b6b),var(--accent,#ffa502))', color:'white', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>
+              🆕 New Maze
+            </button>
+            {canGenerate && (
+              <button onClick={handleAiTheme} disabled={loading}
+                style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background: loading ? '#eee' : 'linear-gradient(135deg,var(--primary,#ff6b6b),var(--accent,#ffa502))', color: loading ? '#aaa' : 'white', fontWeight:800, fontSize:13, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, fontFamily:'Nunito,sans-serif', boxShadow: loading ? 'none' : '0 2px 10px rgba(0,0,0,0.18)' }}>
+                ✨ AI Adventure
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }

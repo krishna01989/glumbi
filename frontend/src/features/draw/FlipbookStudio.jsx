@@ -1,7 +1,10 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { flipbookSaveApi } from '../../api/client'
 import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
+import FeatureBanner from '../../components/FeatureBanner'
+import QuotaBanner from '../../components/QuotaBanner'
 import { SHAPES, drawShape, ShapeIcon } from './shapeUtils'
 
 function makeEmojiCursor(emoji, size = 32, hotspotX, hotspotY) {
@@ -96,7 +99,8 @@ function useBreakpoint() {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function FlipbookStudio({ track = () => {}, child }) {
+export default function FlipbookStudio({ child, quota }) {
+  const { track } = useTracker()
   const fbSessionTracked = useRef(false)
   useFeatureDuration('flipbook', track, { condition: fbSessionTracked })
   // Frame storage — ref is source of truth, state drives rendering
@@ -1344,6 +1348,8 @@ export default function FlipbookStudio({ track = () => {}, child }) {
 
   return (
     <>
+    <FeatureBanner feature="flipbook" child={child} isMobile={isCompact} />
+    <QuotaBanner quota={quota} />
     <div ref={fsRef} style={{
       display: 'flex', flexDirection: 'column',
       height: isFullscreen ? '100dvh' : isCompact ? 'auto' : '100%',

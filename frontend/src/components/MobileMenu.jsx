@@ -8,14 +8,7 @@ const NAV_GROUPS = [
       { path: 'stories',   label: 'Stories',     emoji: '📖' },
       { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚' },
       { path: 'mywriting', label: 'My Writing',  emoji: '✍️' },
-    ]
-  },
-  {
-    id: 'play', label: 'Play', emoji: '🎮',
-    items: [
-      { path: 'memory',     label: 'Memory',     emoji: '🧠' },
-      { path: 'activities', label: 'Activities', emoji: '🎯' },
-      { path: 'maze',       label: 'Maze',       emoji: '🌀' },
+      { path: 'journal',   label: 'Journal',     emoji: '📝' },
     ]
   },
   {
@@ -26,11 +19,19 @@ const NAV_GROUPS = [
     ]
   },
   {
-    id: 'create', label: 'Create', emoji: '🎨',
+    id: 'play', label: 'Play', emoji: '🎮',
     items: [
-      { path: 'draw',    label: 'Draw',           emoji: '🎨' },
-      { path: 'learn',   label: 'Learn to Write', emoji: '✏️' },
-      { path: 'journal', label: 'Journal',        emoji: '📝' },
+      { path: 'memory',     label: 'Memory',         emoji: '🧠' },
+      { path: 'maze',       label: 'Maze',           emoji: '🌀' },
+      { path: 'learn',      label: 'Learn to Write', emoji: '✏️' },
+      { path: 'activities', label: 'Activities',     emoji: '🎯' },
+    ]
+  },
+  {
+    id: 'studio', label: 'Studio', emoji: '🎬',
+    items: [
+      { path: 'draw',     label: 'Draw',     emoji: '🎨' },
+      { path: 'flipbook', label: 'Flipbook', emoji: '🖼️' },
     ]
   },
 ]

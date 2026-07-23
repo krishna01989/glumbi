@@ -227,9 +227,11 @@ public class ChildActivityEventService {
             m.put("rate",   Math.round((passed * 100.0) / tot));
             wordAccuracy.add(m);
         }
-        // Maze: gave_up count + avg wall hits on complete
-        long   mazeGaveUp  = repo.countByChildFeatureEventType(childId, "maze",    "gave_up",      from);
-        Double mazeAvgWalls = repo.avgMazeWallHitsForChild(childId, from);
+        // Maze: gave_up count + avg wall hits on complete + riddle accuracy
+        long   mazeGaveUp        = repo.countByChildFeatureEventType(childId, "maze", "gave_up",        from);
+        Double mazeAvgWalls       = repo.avgMazeWallHitsForChild(childId, from);
+        long   mazeRiddleCorrect  = repo.countByChildFeatureEventType(childId, "maze", "riddle_correct", from);
+        long   mazeRiddleWrong    = repo.countByChildFeatureEventType(childId, "maze", "riddle_wrong",   from);
         // Riddle: hint count + glumbi reactions
         long riddleHints   = repo.countByChildFeatureEventType(childId, "riddle", "hint_used",     from);
         long riddleGlumbi  = repo.countByChildFeatureEventType(childId, "riddle", "glumbi_riddle", from);
@@ -277,6 +279,8 @@ public class ChildActivityEventService {
         result.put("wordAccuracy",           wordAccuracy);
         result.put("mazeGaveUpCount",        mazeGaveUp);
         result.put("mazeAvgWallHits",        mazeAvgWalls != null ? mazeAvgWalls : 0);
+        result.put("mazeRiddleCorrect",      mazeRiddleCorrect);
+        result.put("mazeRiddleWrong",        mazeRiddleWrong);
         result.put("riddleHints",            riddleHints);
         result.put("riddleGlumbi",           riddleGlumbi);
         result.put("storiesSimilarViewed",   storiesSimilar);
@@ -421,8 +425,10 @@ public class ChildActivityEventService {
         result.put("offlineCount",           total - online);
         result.put("activeChildren",         activeChildren);
         // Platform-wide engagement signals
-        long   adminMazeGaveUp   = repo.countByFeatureEventTypeSince("maze",    "gave_up",       from);
-        Double adminMazeAvgWalls = repo.avgMazeWallHitsSince(from);
+        long   adminMazeGaveUp       = repo.countByFeatureEventTypeSince("maze", "gave_up",        from);
+        Double adminMazeAvgWalls     = repo.avgMazeWallHitsSince(from);
+        long   adminMazeRiddleCorrect = repo.countByFeatureEventTypeSince("maze", "riddle_correct", from);
+        long   adminMazeRiddleWrong   = repo.countByFeatureEventTypeSince("maze", "riddle_wrong",   from);
         long   adminRiddleHints  = repo.countByFeatureEventTypeSince("riddle",  "hint_used",     from);
         long   adminRiddleGlumbi = repo.countByFeatureEventTypeSince("riddle",  "glumbi_riddle", from);
         long   adminSimilarViewed    = repo.countByFeatureEventTypeSince("stories", "similar_viewed",from);
@@ -447,6 +453,8 @@ public class ChildActivityEventService {
         result.put("flipEfficiency",         adminFlipEfficiency);
         result.put("mazeGaveUpCount",        adminMazeGaveUp);
         result.put("mazeAvgWallHits",        adminMazeAvgWalls != null ? adminMazeAvgWalls : 0);
+        result.put("mazeRiddleCorrect",      adminMazeRiddleCorrect);
+        result.put("mazeRiddleWrong",        adminMazeRiddleWrong);
         result.put("riddleHints",            adminRiddleHints);
         result.put("riddleGlumbi",           adminRiddleGlumbi);
         result.put("storiesSimilarViewed",   adminSimilarViewed);

@@ -35,14 +35,7 @@ const NAV_GROUPS = [
       { path: 'stories',   label: 'Stories',     emoji: '📖', id: 'tour-stories-tab'  },
       { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚', id: 'tour-readquiz-tab' },
       { path: 'mywriting', label: 'My Writing',  emoji: '✍️', id: 'tour-writing-tab'  },
-    ]
-  },
-  {
-    id: 'play', label: 'Play', emoji: '🎮',
-    items: [
-      { path: 'memory',     label: 'Memory',     emoji: '🧠', id: 'tour-memory-tab'     },
-      { path: 'activities', label: 'Activities', emoji: '🎯', id: 'tour-activities-tab' },
-      { path: 'maze',       label: 'Maze',       emoji: '🌀', id: 'tour-maze-tab'       },
+      { path: 'journal',   label: 'Journal',     emoji: '📝', id: 'tour-journal-tab'  },
     ]
   },
   {
@@ -53,11 +46,19 @@ const NAV_GROUPS = [
     ]
   },
   {
-    id: 'create', label: 'Create', emoji: '🎨',
+    id: 'play', label: 'Play', emoji: '🎮',
     items: [
-      { path: 'draw',    label: 'Draw',           emoji: '🎨', id: 'tour-draw-tab'    },
-      { path: 'learn',   label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab'   },
-      { path: 'journal', label: 'Journal',        emoji: '📝', id: 'tour-journal-tab' },
+      { path: 'memory',     label: 'Memory',        emoji: '🧠', id: 'tour-memory-tab'     },
+      { path: 'maze',       label: 'Maze',          emoji: '🌀', id: 'tour-maze-tab'       },
+      { path: 'learn',      label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab'    },
+      { path: 'activities', label: 'Activities',    emoji: '🎯', id: 'tour-activities-tab' },
+    ]
+  },
+  {
+    id: 'studio', label: 'Studio', emoji: '🎬',
+    items: [
+      { path: 'draw',     label: 'Draw',     emoji: '🎨', id: 'tour-draw-tab'     },
+      { path: 'flipbook', label: 'Flipbook', emoji: '🖼️', id: 'tour-flipbook-tab' },
     ]
   },
 ]

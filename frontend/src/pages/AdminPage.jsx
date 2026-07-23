@@ -174,7 +174,7 @@ const FEATURE_DISPLAY_MAP = {
   'writing-coach':  { label: 'Writing Coach',  icon: '✍️'  },
   'translation':    { label: 'Translation',    icon: '🌐' },
   'draw':           { label: 'Drawing',        icon: '🎨' },
-  'flipbook':       { label: 'Flipbook Studio', icon: '🎬' },
+  'flipbook':       { label: 'Flipbook Studio', icon: '🖼️' },
   'learn-validate': { label: 'Letter Validate',icon: '🔤' },
   'learn-word':     { label: 'Learn Word',     icon: '✏️'  },
   'story-listen':        { label: 'Story Audio',    icon: '🔊' },
@@ -558,7 +558,7 @@ const AUTO_REFRESH_OPTIONS = [
 const ACTIVITY_FEATURE_NAMES = {
   stories:     '📖 Stories',
   draw:        '🎨 Draw',
-  flipbook:    '🎬 Flipbook Studio',
+  flipbook:    '🖼️ Flipbook Studio',
   journal:     '📓 Journal',
   curiosity:   '🔍 Curiosity',
   readquiz:    '📚 Read & Quiz',
@@ -818,8 +818,11 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
           {/* Engagement signals */}
           {(() => {
             const signals = []
-            if ((data.mazeGaveUpCount ?? 0) > 0 || (data.mazeAvgWallHits ?? 0) > 0)
-              signals.push({ key: 'maze', icon: '🧱', label: 'Maze', primary: `${data.mazeGaveUpCount ?? 0} gave up`, sub: `avg ${data.mazeAvgWallHits ?? 0} wall hits on completed runs`, color: '#f97316', bg: '#fff7ed' })
+            if ((data.mazeGaveUpCount ?? 0) > 0 || (data.mazeAvgWallHits ?? 0) > 0 || (data.adminMazeRiddleCorrect ?? 0) > 0 || (data.adminMazeRiddleWrong ?? 0) > 0) {
+              const riddleTotal = (data.adminMazeRiddleCorrect ?? 0) + (data.adminMazeRiddleWrong ?? 0)
+              const riddlePct = riddleTotal > 0 ? Math.round(((data.adminMazeRiddleCorrect ?? 0) / riddleTotal) * 100) : null
+              signals.push({ key: 'maze', icon: '🧱', label: 'Maze', primary: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, sub: riddlePct !== null ? `🤔 ${riddlePct}% riddle accuracy (${riddleTotal} attempts)` : 'no riddle data yet', color: '#f97316', bg: '#fff7ed' })
+            }
             if ((data.riddleHints ?? 0) > 0 || (data.riddleGlumbi ?? 0) > 0) {
               const riddleParts = []
               if ((data.riddleHints ?? 0) > 0) riddleParts.push(`${data.riddleHints} hints used`)

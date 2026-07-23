@@ -23,6 +23,7 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"writing-coach", 1, "Writing coach feedback"},
         new Object[]{"translation",   5, "Translate a passage"},
         new Object[]{"draw",          1, "React to a child's drawing with AI praise"},
+        new Object[]{"flipbook",      0, "Flipbook Studio — frame-by-frame animation (no AI credits)"},
         new Object[]{"learn-validate",1, "Validate a letter drawing"},
         new Object[]{"learn-word",    2, "Identify a written word"},
         new Object[]{"story-listen",    1, "First listen of a story (TTS synthesis)"},

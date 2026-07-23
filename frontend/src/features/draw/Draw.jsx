@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { drawApi, drawSaveApi } from '../../api/client'
 import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
@@ -10,7 +9,6 @@ import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import { safetyCheck } from './animationMatcher'
 import { bringToLife } from './animationEngine'
-import FlipbookStudio from './FlipbookStudio'
 import { SHAPES, drawShape, ShapeIcon } from './shapeUtils'
 
 function useBreakpoint() {
@@ -80,11 +78,6 @@ function Divider() {
   return <div style={{ width: '80%', height: 1, background: '#f0f0f0' }} />
 }
 
-const DRAW_TABS = [
-  { key: 'draw',     label: '✏️ Draw' },
-  { key: 'flipbook', label: '🎬 Flipbook' },
-]
-
 export default function Draw({ child, quota, featureConfig }) {
   const { track } = useTracker()
   const offline = useOffline()
@@ -118,8 +111,6 @@ export default function Draw({ child, quota, featureConfig }) {
   // ── Animation state ──
   const [animLoading, setAnimLoading] = useState(false)
   const [drawnAfterAnim, setDrawnAfterAnim] = useState(true)
-  const [searchParams, setSearchParams] = useSearchParams()
-  const drawTab = searchParams.get('tab') === 'flipbook' ? 'flipbook' : 'draw'
   const [animCooldown, setAnimCooldown] = useState(0)
   const cooldownRef = useRef(null)
   const [animResult, setAnimResult]   = useState(null)   // resolved animation config
@@ -1162,36 +1153,13 @@ export default function Draw({ child, quota, featureConfig }) {
       minHeight: isMobile ? undefined : isCompact ? '80vh' : undefined,
       fontFamily: 'Nunito, sans-serif',
     }}>
-    {drawTab === 'draw' && (loading || guideLoading || animLoading) && (
+    {(loading || guideLoading || animLoading) && (
       <ThemeLoader theme={child.theme} label={loading ? 'Guessing your drawing…' : guideLoading ? 'Building your drawing guide…' : 'Bringing your drawing to life… 🎬'} />
     )}
     <FeatureBanner feature="draw" child={child} isMobile={isMobile} />
     <QuotaBanner quota={quota} />
 
-    {/* ── Tabs: Draw / Flipbook ── */}
-    <div style={{ display: 'flex', gap: isMobile ? 6 : 10, background: '#f5f5f5',
-      padding: isMobile ? 6 : 8, borderRadius: 16, flexShrink: 0 }}>
-      {DRAW_TABS.map(t => (
-        <button key={t.key} onClick={() => { setSearchParams({ tab: t.key }, { replace: true }); if (t.key !== drawTab) track('draw', 'tab_switch', { metadata: { tab: t.key } }) }}
-          style={{ flex: 1, padding: isMobile ? '10px 6px' : '12px 16px', borderRadius: 12,
-            border: 'none', fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 12 : 14,
-            fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
-            background: drawTab === t.key ? 'white' : 'transparent',
-            color: drawTab === t.key ? 'var(--primary)' : '#888',
-            boxShadow: drawTab === t.key ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-            transition: 'all 0.2s' }}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-
-    {/* Flipbook — always mounted, hidden when not active so frames are never lost */}
-    <div style={{ display: drawTab === 'flipbook' ? 'flex' : 'none', flex: 1, minHeight: 0, flexDirection: 'column' }}>
-      <FlipbookStudio track={track} child={child} />
-    </div>
-
-    {/* Draw — always mounted, hidden when not active so canvas content is never lost */}
-    <div style={{ display: drawTab === 'draw' ? 'contents' : 'none' }}><>
+    <>
 
       {/* ── Guide prompt (top, full width) ── */}
       {!isCompact && guideEnabled && (
@@ -2123,9 +2091,9 @@ export default function Draw({ child, quota, featureConfig }) {
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       `}</style>
-    </></div>
+    </>
 
-    {drawTab === 'draw' && <HistoryDrawer icon="🎨" title="My Drawings" count={drawSaves.length}>
+    <HistoryDrawer icon="🎨" title="My Drawings" count={drawSaves.length}>
       {close => <>
         {drawSaves.map(s => (
           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
@@ -2169,7 +2137,7 @@ export default function Draw({ child, quota, featureConfig }) {
           </button>
         )}
       </>}
-    </HistoryDrawer>}
+    </HistoryDrawer>
   </div>
   )
 }

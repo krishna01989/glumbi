@@ -61,17 +61,17 @@ function FlipCard({ q, a, index, onFirstFlip }) {
           position: 'absolute', inset: 0,
           backfaceVisibility: 'hidden',
           transform: 'rotateY(180deg)',
-          background: 'var(--accent)',
+          background: 'linear-gradient(135deg, var(--primary), var(--accent))',
           borderRadius: 16, padding: 20,
           display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
           boxShadow: 'var(--shadow)',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'white', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, opacity: 0.75 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.85)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>
             Answer
           </div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 700, color: 'white' }}>{a}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 10 }}>← Tap to flip back</div>
+          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: 'white' }}>{a}</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 10 }}>← Tap to flip back</div>
         </div>
       </div>
     </div>
@@ -80,7 +80,7 @@ function FlipCard({ q, a, index, onFirstFlip }) {
 
 // ── Flashcards tab ────────────────────────────────────────────────────────────
 
-function FlashcardsTab({ child, quota }) {
+function FlashcardsTab({ child, quota, isMobile }) {
   const { track } = useTracker()
   const offline = useOffline()
   const [topic, setTopic] = useState('')
@@ -207,7 +207,7 @@ function FlashcardsTab({ child, quota }) {
 
 // ── Word of Day tab ────────────────────────────────────────────────────────────
 
-function WordOfDayTab({ child }) {
+function WordOfDayTab({ child, quota }) {
   const { track } = useTracker()
   useFeatureDuration('wordofday', track)
   const offline = useOffline()
@@ -556,7 +556,7 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   )
 }
 
-function MemoryMatchTab({ child, quota, isActive }) {
+function MemoryMatchTab({ child, quota, isActive, isMobile }) {
   const { track } = useTracker()
   const offline = useOffline()
   const matchStartRef = useRef(null)
@@ -723,20 +723,22 @@ function MemoryMatchTab({ child, quota, isActive }) {
   )
 }
 
+const MODE_BUBBLES = [
+  { key: 'flashcards', emoji: '📇', label: 'Flashcards',   desc: 'Flip & learn',    color: 'var(--primary,#ff6b6b)',                              delay: '0s',   dur: '3.2s' },
+  { key: 'match',      emoji: '🎴', label: 'Memory Match', desc: 'Find the pairs',  color: 'linear-gradient(135deg,var(--primary),var(--accent))', delay: '0.4s', dur: '2.8s' },
+  { key: 'wordofday',  emoji: '💬', label: 'Word of Day',  desc: 'Grow your words', color: 'linear-gradient(315deg,var(--primary),var(--accent))', delay: '0.8s', dur: '3.6s' },
+]
+
 // ── Main MemoryPlay page ────────────────────────────────────────────────────────
 
 export default function MemoryPlay({ child, quota }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const VALID_TABS = ['flashcards', 'wordofday', 'match']
-  const DEFAULT_TAB = 'flashcards'
-  const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : DEFAULT_TAB
+  const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : null
 
-  // Ensure URL always reflects the active tab (including on first load)
-  useEffect(() => {
-    if (!VALID_TABS.includes(searchParams.get('tab'))) {
-      setSearchParams({ tab: DEFAULT_TAB }, { replace: true })
-    }
-  }, [])
+  // Lazy-mount MemoryMatchTab only after user first visits it (preserves mid-game state on subsequent tab switches)
+  const [matchMounted, setMatchMounted] = useState(false)
+  useEffect(() => { if (tab === 'match') setMatchMounted(true) }, [tab])
 
   const isMobile = window.innerWidth < 600
 
@@ -744,35 +746,100 @@ export default function MemoryPlay({ child, quota }) {
     setSearchParams({ tab: key }, { replace: true })
   }
 
+  function goBack() {
+    setSearchParams({}, { replace: true })
+  }
+
+  const bannerFeature = tab ? `memory-${tab}` : 'memory'
+
   return (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
-      <FeatureBanner feature="memory" child={child} isMobile={isMobile} />
+      <style>{`
+        @keyframes memBounceIn {
+          0%   { opacity: 0; transform: scale(0.55) translateY(28px); }
+          60%  { opacity: 1; transform: scale(1.08) translateY(-6px); }
+          80%  { transform: scale(0.96) translateY(2px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes memFloat {
+          0%,100% { transform: translateY(0px) rotate(-1deg); }
+          50%     { transform: translateY(-14px) rotate(1deg); }
+        }
+        .mem-bubble {
+          animation: memBounceIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both, memFloat var(--float-dur) ease-in-out infinite;
+          animation-delay: var(--bounce-delay), calc(var(--bounce-delay) + 0.6s);
+        }
+        .mem-bubble:hover { transform: scale(1.07) !important; }
+        .mem-bubble:active { transform: scale(0.95) !important; }
+      `}</style>
+
+      <FeatureBanner feature={bannerFeature} child={child} isMobile={isMobile} />
       <QuotaBanner quota={quota} />
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: isMobile ? 6 : 10, background: '#f5f5f5', padding: isMobile ? 6 : 8, borderRadius: 16 }}>
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => selectTab(t.key)}
-            style={{
-              flex: 1, padding: isMobile ? '10px 6px' : '12px 16px', borderRadius: 12, border: 'none',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 12 : 14, fontWeight: 700, cursor: 'pointer',
-              background: tab === t.key ? 'white' : 'transparent',
-              color: tab === t.key ? 'var(--primary)' : '#888',
-              boxShadow: tab === t.key ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.2s',
-            }}>
-            {t.label}
+      {/* Back button — shown when a tab is active */}
+      {tab && (
+        <div>
+          <button onClick={goBack} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--primary-lt,#ffe5e5)', border: 'none',
+            borderRadius: 50, padding: '8px 16px 8px 12px', cursor: 'pointer',
+            fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13, color: 'var(--primary,#ff6b6b)',
+            transition: 'opacity 0.15s',
+          }}>
+            ← Back
           </button>
-        ))}
-      </div>
+        </div>
+      )}
 
-      {/* FlashcardsTab and WordOfDayTab mount on demand; MemoryMatchTab stays mounted to preserve mid-game state */}
-      <div style={{ flex: 1, minHeight: 400 }}>
-        {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} />}
-        {tab === 'wordofday'  && <WordOfDayTab  child={child} />}
-        <div style={{ display: tab === 'match' ? 'block' : 'none' }}><MemoryMatchTab child={child} quota={quota} isActive={tab === 'match'} /></div>
-      </div>
+      {/* Mode selector — shown when no tab is active */}
+      {!tab && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28, padding: isMobile ? '24px 8px 40px' : '32px 16px 56px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 900, color: 'var(--primary,#ff6b6b)', fontFamily: 'Nunito, sans-serif' }}>
+              What do you want to play? 🧠
+            </div>
+            <div style={{ fontSize: 14, color: '#aaa', fontFamily: 'Nunito, sans-serif', marginTop: 4 }}>Pick a mode to begin</div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 20 : 28, alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+            {MODE_BUBBLES.map(b => (
+              <button
+                key={b.key}
+                className="mem-bubble"
+                onClick={() => selectTab(b.key)}
+                style={{
+                  '--bounce-delay': b.delay,
+                  '--float-dur': b.dur,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 10, cursor: 'pointer', border: 'none',
+                  width: isMobile ? 220 : 160, height: isMobile ? 100 : 160,
+                  borderRadius: isMobile ? 24 : '50%',
+                  background: b.color,
+                  boxShadow: '0 10px 36px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)',
+                  transition: 'transform 0.18s cubic-bezier(0.34,1.56,0.64,1)',
+                  flexDirection: isMobile ? 'row' : 'column',
+                  padding: isMobile ? '0 24px' : 0,
+                }}>
+                <span style={{ fontSize: isMobile ? 36 : 44, lineHeight: 1 }}>{b.emoji}</span>
+                <div style={{ textAlign: isMobile ? 'left' : 'center' }}>
+                  <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: isMobile ? 16 : 15, color: 'white', lineHeight: 1.2 }}>{b.label}</div>
+                  <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 600, fontSize: 12, color: 'rgba(255,255,255,0.78)', marginTop: 2 }}>{b.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tab content */}
+      {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} isMobile={isMobile} />}
+      {tab === 'wordofday'  && <WordOfDayTab  child={child} quota={quota} />}
+
+      {/* MemoryMatchTab lazy-mounted on first visit, then kept alive for mid-game state */}
+      {matchMounted && (
+        <div style={{ display: tab === 'match' ? 'block' : 'none' }}>
+          <MemoryMatchTab child={child} quota={quota} isActive={tab === 'match'} isMobile={isMobile} />
+        </div>
+      )}
     </div>
   )
 }

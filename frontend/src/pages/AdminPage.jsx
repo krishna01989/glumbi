@@ -2410,7 +2410,7 @@ function Announcements() {
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email Subject</label>
               <input value={subject} onChange={e => setSubject(e.target.value)}
-                placeholder="e.g. What's new on Glumbi this month 🎉"
+                placeholder="e.g. What's new on Glumbi 🎉"
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #e0e0e0', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none' }} />
             </div>
 

@@ -46,8 +46,9 @@ public class AdminController {
     private final MemoryMatchRepository         memoryMatchRepo;
     private final AiUsageLogRepository          usageLogRepo;
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
-    private final com.glumbi.service.ResendClient  resendClient;
-    private final com.glumbi.service.EmailTemplates emailTemplates;
+    private final com.glumbi.service.ResendClient     resendClient;
+    private final com.glumbi.service.EmailTemplates   emailTemplates;
+    private final com.glumbi.service.VendorConfigService vendorConfigService;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(
@@ -587,6 +588,24 @@ public class AdminController {
         boolean enabled = body.getOrDefault("enabled", true);
         notificationScheduler.setAgentEnabled(id, enabled);
         return ResponseEntity.ok(Map.of("id", id, "enabled", enabled));
+    }
+
+    // ── Vendor kill switches ─────────────────────────────────────────────────
+
+    @GetMapping("/vendors")
+    public List<Map<String, Object>> getVendors() {
+        return vendorConfigService.getAll();
+    }
+
+    @PatchMapping("/vendors/{vendor}")
+    public ResponseEntity<?> setVendor(@PathVariable String vendor,
+                                       @RequestBody Map<String, Boolean> body) {
+        Boolean enabled = body.get("enabled");
+        if (enabled == null) return ResponseEntity.badRequest().body(Map.of("error", "enabled field required"));
+        List<String> known = List.of("anthropic", "google_tts", "elevenlabs", "resend", "voyage", "r2");
+        if (!known.contains(vendor)) return ResponseEntity.badRequest().body(Map.of("error", "Unknown vendor: " + vendor));
+        vendorConfigService.setEnabled(vendor, enabled);
+        return ResponseEntity.ok(Map.of("vendor", vendor, "enabled", enabled));
     }
 
     @PatchMapping("/users/{id}/hold")

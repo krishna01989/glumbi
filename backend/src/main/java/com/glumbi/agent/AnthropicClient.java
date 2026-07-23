@@ -3,6 +3,7 @@ package com.glumbi.agent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.glumbi.service.VendorConfigService;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,13 +28,16 @@ public class AnthropicClient {
     private final WebClient webClient;
     private final String messagesPath;
     private final ObjectMapper mapper = new ObjectMapper();
+    private final VendorConfigService vendorConfig;
 
     public AnthropicClient(
             WebClient.Builder builder,
+            VendorConfigService vendorConfig,
             @Value("${anthropic.api-key}")       String apiKey,
             @Value("${anthropic.base-url}")      String baseUrl,
             @Value("${anthropic.version}")       String version,
             @Value("${anthropic.messages-path}") String messagesPath) {
+        this.vendorConfig = vendorConfig;
 
         this.messagesPath = messagesPath;
 
@@ -63,8 +67,14 @@ public class AnthropicClient {
                 .build();
     }
 
+    private void checkEnabled() {
+        if (!vendorConfig.isEnabled(VendorConfigService.ANTHROPIC))
+            throw new IllegalStateException("Anthropic AI is currently disabled by the administrator.");
+    }
+
     /** Plain call — system passed as a string (legacy, no caching). */
     public String call(ObjectNode body) {
+        checkEnabled();
         return webClient.post()
                 .uri(messagesPath)
                 .bodyValue(body)
@@ -81,6 +91,7 @@ public class AnthropicClient {
      * The body must NOT have a "system" key already set.
      */
     public String callWithCachedSystem(ObjectNode body, String preamble, String agentPrompt) {
+        checkEnabled();
         ArrayNode systemArray = mapper.createArrayNode();
 
         ObjectNode preambleBlock = mapper.createObjectNode();
@@ -108,6 +119,7 @@ public class AnthropicClient {
      * Call with a single cached system block (no preamble split needed).
      */
     public String callWithCachedSystem(ObjectNode body, String systemPrompt) {
+        checkEnabled();
         ArrayNode systemArray = mapper.createArrayNode();
 
         ObjectNode block = mapper.createObjectNode();

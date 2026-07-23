@@ -2091,8 +2091,8 @@ export default function FlipbookStudio({ track = () => {}, child }) {
           <button onClick={() => setLoop(v => !v)} title={loop ? 'Loop on' : 'Loop off'}
             style={{ width: 38, height: 38, minWidth: 38, borderRadius: 12, border: 'none',
               cursor: 'pointer', flexShrink: 0, fontSize: 20,
-              background: loop ? '#fff3e0' : 'white',
-              outline: loop ? '2px solid #ffa502' : 'none',
+              background: loop ? 'var(--primary-lt)' : 'white',
+              outline: loop ? '2px solid var(--primary)' : 'none',
               boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
               display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔁</button>
 
@@ -2108,8 +2108,8 @@ export default function FlipbookStudio({ track = () => {}, child }) {
                   title={`${s.label} — ${s.fps} fps`}
                   style={{ padding: '4px 10px', borderRadius: 20, border: 'none',
                     cursor: isPlaying ? 'not-allowed' : 'pointer', flexShrink: 0,
-                    background: active ? 'linear-gradient(135deg,#9c6ef8,#c084fc)' : 'white',
-                    boxShadow: active ? '0 3px 10px rgba(156,110,248,0.4)' : '0 2px 6px rgba(0,0,0,0.08)',
+                    background: active ? 'var(--primary)' : 'white',
+                    boxShadow: active ? '0 3px 10px rgba(0,0,0,0.18)' : '0 2px 6px rgba(0,0,0,0.08)',
                     fontFamily: 'Nunito, sans-serif', fontWeight: 800,
                     color: active ? 'white' : '#888',
                     opacity: isPlaying ? 0.45 : 1, transition: 'all 0.15s',
@@ -2179,7 +2179,7 @@ export default function FlipbookStudio({ track = () => {}, child }) {
             style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
               fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
               cursor: (isPlaying || total >= MAX_FRAMES) ? 'not-allowed' : 'pointer',
-              background: 'white', color: '#9c6ef8',
+              background: 'var(--primary-lt)', color: 'var(--primary)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               opacity: (isPlaying || total >= MAX_FRAMES) ? 0.4 : 1,
               display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>

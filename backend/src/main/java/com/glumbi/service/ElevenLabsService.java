@@ -20,6 +20,8 @@ public class ElevenLabsService {
     @Value("${elevenlabs.api-key:}")
     private String apiKey;
 
+    private VendorConfigService vendorConfig;
+
     private final HttpClient http = HttpClient.newHttpClient();
 
     public boolean isConfigured() {
@@ -33,6 +35,8 @@ public class ElevenLabsService {
      * @param voiceName   display name for the voice in ElevenLabs dashboard
      */
     public String cloneVoice(byte[] audioBytes, String fileName, String voiceName) throws IOException, InterruptedException {
+        if (!vendorConfig.isEnabled(VendorConfigService.ELEVENLABS))
+            throw new IllegalStateException("ElevenLabs is currently disabled by the administrator.");
         String boundary = BOUNDARY + UUID.randomUUID().toString().replace("-", "");
 
         byte[] body = buildMultipartBody(boundary, audioBytes, fileName, voiceName);
@@ -63,6 +67,8 @@ public class ElevenLabsService {
      * Synthesizes speech using a cloned voice.
      */
     public byte[] synthesize(String text, String voiceId) throws IOException, InterruptedException {
+        if (!vendorConfig.isEnabled(VendorConfigService.ELEVENLABS))
+            throw new IllegalStateException("ElevenLabs is currently disabled by the administrator.");
         String jsonBody = String.format(
             "{\"text\":\"%s\",\"model_id\":\"eleven_multilingual_v2\",\"voice_settings\":{\"stability\":0.5,\"similarity_boost\":0.8}}",
             escapeJson(text)

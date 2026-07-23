@@ -292,4 +292,6 @@ export const adminApi = {
   listAgents:                ()                          => api.get('/admin/agents').then(r => r.data),
   setAgentEnabled:           (id, enabled)               => api.put(`/admin/agents/${id}/enabled`, { enabled }).then(r => r.data),
   sendAnnouncement:          (payload)                   => api.post('/admin/announcements/send', payload).then(r => r.data),
+  getVendors:                ()                          => api.get('/admin/vendors').then(r => r.data),
+  setVendorEnabled:          (vendor, enabled)           => api.patch(`/admin/vendors/${vendor}`, { enabled }).then(r => r.data),
 }

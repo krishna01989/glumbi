@@ -1,5 +1,6 @@
 package com.glumbi.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
@@ -50,8 +51,15 @@ public class R2Service {
         }
     }
 
+    @Autowired
+    private VendorConfigService vendorConfig;
+
     public boolean isConfigured() {
         return configured;
+    }
+
+    public boolean isAvailable() {
+        return configured && vendorConfig.isEnabled(VendorConfigService.R2);
     }
 
     /**

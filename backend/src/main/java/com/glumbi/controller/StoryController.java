@@ -167,7 +167,7 @@ public class StoryController {
             byte[] audio = audioCache.getIfPresent(cacheKey);
 
             // 2. R2 persistent cache hit — redirect to CDN URL, Cloudflare handles Range requests natively
-            if (audio == null && r2Service.isConfigured()) {
+            if (audio == null && r2Service.isAvailable()) {
                 String r2Url = getStoredAudioUrl(service.getById(id), cacheKey);
                 if (r2Url != null) {
                     return ResponseEntity.status(HttpStatus.FOUND)
@@ -232,7 +232,7 @@ public class StoryController {
                 }
 
                 // Upload to R2 — if successful, evict from memory and redirect going forward
-                if (r2Service.isConfigured()) {
+                if (r2Service.isAvailable()) {
                     try {
                         String r2Url = r2Service.upload(cacheKey, audio);
                         storeAudioUrl(story, cacheKey, r2Url);
@@ -301,7 +301,7 @@ public class StoryController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
-        if (r2Service.isConfigured()) {
+        if (r2Service.isAvailable()) {
             try {
                 // Collect audio URLs from root story and all chapters before any DB delete
                 List<Story> toClean = new java.util.ArrayList<>();

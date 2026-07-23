@@ -20,7 +20,7 @@ public class StoryEmbeddingService {
 
     @Transactional
     public void embedAndSave(Story story) {
-        if (!voyage.isConfigured()) {
+        if (!voyage.isAvailable()) {
             log.warn("[RAG] voyage.api-key not configured — skipping embedding for story {}", story.getId());
             return;
         }
@@ -35,7 +35,7 @@ public class StoryEmbeddingService {
 
     /** Similarity using query text — calls Voyage AI. Use only at generate time. */
     public List<Story> findSimilar(Long childId, String queryText, Long excludeStoryId) {
-        if (!voyage.isConfigured()) return List.of();
+        if (!voyage.isAvailable()) return List.of();
         try {
             String vector = voyage.embed(queryText);
             return storyRepository.findSimilarStories(childId, vector, excludeStoryId, voyage.similarLimit);

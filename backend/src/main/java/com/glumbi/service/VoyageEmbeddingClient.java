@@ -18,6 +18,7 @@ public class VoyageEmbeddingClient {
 
     private final ObjectMapper objectMapper;
     private final WebClient    webClient;
+    private VendorConfigService vendorConfig;
 
     @Value("${voyage.api-key:}")      public  String apiKey;
     @Value("${voyage.embed-url}")     private String embedUrl;
@@ -33,8 +34,14 @@ public class VoyageEmbeddingClient {
         return apiKey != null && !apiKey.isBlank();
     }
 
+    public boolean isAvailable() {
+        return isConfigured() && vendorConfig.isEnabled(VendorConfigService.VOYAGE);
+    }
+
     /** Calls Voyage AI and returns a pgvector-compatible string "[0.1,0.2,...]". */
     public String embed(String text) throws Exception {
+        if (!vendorConfig.isEnabled(VendorConfigService.VOYAGE))
+            throw new IllegalStateException("Voyage AI is currently disabled by the administrator.");
         String body = objectMapper.writeValueAsString(Map.of(
             "model", model,
             "input", List.of(text)

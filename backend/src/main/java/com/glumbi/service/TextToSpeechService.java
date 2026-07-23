@@ -9,12 +9,15 @@ import org.springframework.stereotype.Service;
 public class TextToSpeechService {
 
     private final TextToSpeechClient ttsClient;
+    private final VendorConfigService vendorConfig;
 
     public byte[] synthesize(String text, String language) throws Exception {
         return synthesize(text, language, null);
     }
 
     public byte[] synthesize(String text, String language, String voiceName) throws Exception {
+        if (!vendorConfig.isEnabled(VendorConfigService.GOOGLE_TTS))
+            throw new IllegalStateException("Google TTS is currently disabled by the administrator.");
         SynthesisInput input = SynthesisInput.newBuilder()
                 .setSsml("<speak>" + text + "</speak>")
                 .build();

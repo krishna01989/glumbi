@@ -17,16 +17,16 @@ import java.util.Map;
 public class ResendClient {
 
     private final WebClient.Builder webClientBuilder;
+    private final VendorConfigService vendorConfig;
 
     @Value("${resend.api-key}")   private String apiKey;
     @Value("${resend.from}")      private String from;
     @Value("${resend.send-url}")  private String sendUrl;
     @Value("${resend.batch-url}") private String batchUrl;
-    @Value("${resend.enabled}")   private boolean enabled;
 
     /** Send to a list of recipients in chunks of 100 via Resend batch API. Fire-and-forget. */
     public void sendBatch(List<String> recipients, String subject, String html) {
-        if (!enabled || apiKey == null || apiKey.isBlank() || recipients.isEmpty()) return;
+        if (!vendorConfig.isEnabled(VendorConfigService.RESEND) || apiKey == null || apiKey.isBlank() || recipients.isEmpty()) return;
         int chunkSize = 100;
         for (int i = 0; i < recipients.size(); i += chunkSize) {
             final int chunkStart = i;
@@ -52,7 +52,7 @@ public class ResendClient {
     }
 
     public void send(String to, String subject, String html) {
-        if (!enabled || apiKey == null || apiKey.isBlank()) return;
+        if (!vendorConfig.isEnabled(VendorConfigService.RESEND) || apiKey == null || apiKey.isBlank()) return;
         webClientBuilder.build()
             .post()
             .uri(sendUrl)

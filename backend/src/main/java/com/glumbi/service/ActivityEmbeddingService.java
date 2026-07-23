@@ -20,7 +20,7 @@ public class ActivityEmbeddingService {
 
     @Transactional
     public void embedAndSave(Activity activity) {
-        if (!voyage.isConfigured()) {
+        if (!voyage.isAvailable()) {
             log.warn("[RAG] voyage.api-key not configured — skipping embedding for activity {}", activity.getId());
             return;
         }

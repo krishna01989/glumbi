@@ -20,7 +20,7 @@ public class CuriosityEmbeddingService {
 
     @Transactional
     public void embedAndSave(CuriosityEntry entry) {
-        if (!voyage.isConfigured()) {
+        if (!voyage.isAvailable()) {
             log.warn("[RAG] voyage.api-key not configured — skipping embedding for curiosity {}", entry.getId());
             return;
         }

@@ -1947,16 +1947,16 @@ export default function Draw({ child, quota, featureConfig }) {
                 disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || quota?.used >= quota?.limit || offline}
                 style={{ padding:'10px 20px', borderRadius:50, border:'none', fontWeight:800,
                   fontSize:14, cursor:(isEmpty||offline||animLoading||!drawnAfterAnim||animCooldown>0)?'not-allowed':'pointer',
-                  background:'linear-gradient(135deg,#9c6ef8,#ff69b4)',
+                  background:'var(--primary)',
                   color:'white', opacity:(isEmpty||offline||!drawnAfterAnim||animCooldown>0)?0.45:1, flexShrink:0,
-                  whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(156,110,248,0.35)' }}>
+                  whiteSpace:'nowrap', boxShadow:'0 3px 12px rgba(0,0,0,0.18)' }}>
                 {animLoading ? '✨ Animating…' : animCooldown > 0 ? `⏳ ${animCooldown}s` : offline ? '✈️ 🎬 Bring to Life!' : '🎬 Bring to Life!'}
               </button>
             )}
             {animResult && !animPlaying && !animLoading && (
               <button onClick={handleReplay}
                 style={{ padding:'10px 16px', borderRadius:50, border:'none', fontWeight:800,
-                  fontSize:14, cursor:'pointer', background:'#f0f0f0', color:'#666',
+                  fontSize:14, cursor:'pointer', background:'var(--primary-lt)', color:'var(--primary)',
                   flexShrink:0, whiteSpace:'nowrap' }}>
                 🔁 Replay
               </button>
@@ -2018,11 +2018,11 @@ export default function Draw({ child, quota, featureConfig }) {
             disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || quota?.used >= quota?.limit || offline}
             style={{
               padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
-              background: 'linear-gradient(135deg,#9c6ef8,#ff69b4)',
+              background: 'var(--primary)',
               color: 'white', border: 'none',
               cursor: (isEmpty || offline || animLoading || !drawnAfterAnim || animCooldown > 0) ? 'not-allowed' : 'pointer',
               opacity: (isEmpty || offline || !drawnAfterAnim || animCooldown > 0) ? 0.5 : 1,
-              boxShadow: '0 4px 16px rgba(156,110,248,0.35)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
               whiteSpace: 'nowrap', alignSelf: 'center',
               transition: 'transform 0.15s',
             }}>
@@ -2034,7 +2034,7 @@ export default function Draw({ child, quota, featureConfig }) {
         {animResult && !animPlaying && !animLoading && (
           <button onClick={handleReplay}
             style={{ padding: '14px 20px', borderRadius: 50, fontSize: 15, fontWeight: 800,
-              background: '#f0f0f0', color: '#666', border: 'none', cursor: 'pointer',
+              background: 'var(--primary-lt)', color: 'var(--primary)', border: 'none', cursor: 'pointer',
               whiteSpace: 'nowrap', alignSelf: 'center' }}>
             🔁 Replay
           </button>

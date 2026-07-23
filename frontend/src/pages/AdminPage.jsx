@@ -22,6 +22,7 @@ const NAV = [
   { id: 'agents',        icon: '🤖', label: 'AI Agents'      },
   { id: 'schedulers',    icon: '⏰', label: 'Schedulers'     },
   { id: 'announcements', icon: '📣', label: 'Announcements'  },
+  { id: 'vendors',       icon: '🔌', label: 'Vendors'         },
 ]
 
 // ─── Password reset modal ─────────────────────────────────────────────────────
@@ -2546,6 +2547,118 @@ function Announcements() {
   )
 }
 
+// ─── Vendor Kill Switches ────────────────────────────────────────────────────
+const VENDOR_META = {
+  anthropic:  { icon: '🧠', label: 'Anthropic (Claude AI)',     impact: 'All AI features — stories, curiosity, quiz, safety guard' },
+  google_tts: { icon: '🔊', label: 'Google Text-to-Speech',     impact: 'Story audio, read-along, handwriting word pronunciation' },
+  elevenlabs: { icon: '🎙️', label: 'ElevenLabs',               impact: 'Family voice cloning and synthesis' },
+  resend:     { icon: '📧', label: 'Resend (Email)',             impact: 'All email — password reset, weekly recap, announcements' },
+  voyage:     { icon: '🧭', label: 'Voyage AI (Embeddings)',    impact: 'Semantic search and RAG — curiosity & activity suggestions' },
+  r2:         { icon: '🪣', label: 'Cloudflare R2 (Storage)',   impact: 'Audio file storage — story TTS, read-along; falls back to in-memory serving' },
+}
+
+function Vendors() {
+  const [vendors, setVendors]   = useState([])   // committed state from server
+  const [draft, setDraft]       = useState({})    // { vendor: bool } — pending local changes
+  const [saving, setSaving]     = useState(false)
+  const [msg, setMsg]           = useState('')
+
+  useEffect(() => {
+    adminApi.getVendors().then(setVendors).catch(() => {})
+  }, [])
+
+  const toggleDraft = (vendor) => {
+    setDraft(prev => {
+      const current = vendor in prev ? prev[vendor] : vendors.find(v => v.vendor === vendor)?.enabled
+      return { ...prev, [vendor]: !current }
+    })
+  }
+
+  const hasPendingChanges = vendors.some(v => v.vendor in draft && draft[v.vendor] !== v.enabled)
+
+  const handleDiscard = () => setDraft({})
+
+  const handleSave = async () => {
+    const changed = vendors.filter(v => v.vendor in draft && draft[v.vendor] !== v.enabled)
+    if (!changed.length) return
+    setSaving(true)
+    try {
+      await Promise.all(changed.map(v => adminApi.setVendorEnabled(v.vendor, draft[v.vendor])))
+      setVendors(prev => prev.map(v => v.vendor in draft ? { ...v, enabled: draft[v.vendor] } : v))
+      setDraft({})
+      setMsg('✅ Vendor settings saved')
+    } catch { setMsg('❌ Failed to save — check console') }
+    setSaving(false)
+    setTimeout(() => setMsg(''), 4000)
+  }
+
+  const effectiveEnabled = (vendor) => vendor in draft ? draft[vendor] : vendors.find(v => v.vendor === vendor)?.enabled
+  const enabledCount = vendors.filter(v => effectiveEnabled(v.vendor)).length
+
+  return (
+    <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 4 }}>Vendor Controls</div>
+      <div style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>
+        Kill switches for external service vendors. Changes take effect within 30 seconds — no restart needed.
+      </div>
+
+      {msg && <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: msg.startsWith('✅') ? '#f0fdf4' : '#fff3f3', color: msg.startsWith('✅') ? '#166534' : '#7f1d1d', fontWeight: 600, fontSize: 13 }}>{msg}</div>}
+
+      <div style={{ background: 'white', borderRadius: 12, border: '1px solid #eee', overflow: 'hidden' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #f0f0f0', background: '#fafafa', fontSize: 12, fontWeight: 700, color: '#888' }}>
+          {enabledCount} of {vendors.length} vendors active
+        </div>
+        {vendors.map((v, i) => {
+          const meta    = VENDOR_META[v.vendor] || {}
+          const enabled = effectiveEnabled(v.vendor)
+          const changed = v.vendor in draft && draft[v.vendor] !== v.enabled
+          return (
+            <div key={v.vendor} style={{
+              padding: '16px',
+              borderBottom: i < vendors.length - 1 ? '1px solid #f5f5f5' : 'none',
+              background: enabled ? 'white' : '#fff8f8',
+              display: 'flex', alignItems: 'center', gap: 14
+            }}>
+              <div style={{ fontSize: 22, flexShrink: 0 }}>{meta.icon}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, borderLeft: `3px solid ${enabled ? '#27ae60' : '#e74c3c'}`, paddingLeft: 8 }}>
+                    {meta.label}
+                  </div>
+                  {changed && <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 6px' }}>UNSAVED</span>}
+                </div>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 3, paddingLeft: 8 }}>{meta.impact}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <button onClick={() => toggleDraft(v.vendor)}
+                  style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative', background: enabled ? '#27ae60' : '#e0e0e0', transition: 'background 0.2s' }}>
+                  <span style={{ position: 'absolute', top: 3, width: 18, height: 18, borderRadius: 9, background: 'white', transition: 'left 0.2s', left: enabled ? 23 : 3, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </button>
+                <div style={{ fontSize: 10, color: enabled ? '#27ae60' : '#e74c3c', fontWeight: 700 }}>{enabled ? 'ON' : 'OFF'}</div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {hasPendingChanges && (
+        <div style={{ marginTop: 16, padding: '14px 16px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, fontSize: 13, color: '#92400e', fontWeight: 600 }}>⚠️ You have unsaved changes. Review carefully before saving.</div>
+          <button onClick={handleDiscard} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid #d1d5db', background: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#374151' }}>Discard</button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ padding: '7px 18px', borderRadius: 8, border: 'none', background: saving ? '#aaa' : '#e74c3c', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, color: 'white' }}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      )}
+
+      <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 8, background: '#f8f8f8', border: '1px solid #eee', fontSize: 12, color: '#666' }}>
+        ⚠️ <strong>Resend off</strong> blocks password reset emails — users cannot recover their accounts. Only disable temporarily.
+      </div>
+    </div>
+  )
+}
+
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
 export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
@@ -2559,7 +2672,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
   const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
-  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements /> }
+  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors /> }
   const current = NAV.find(n => n.id === active)
 
   return (

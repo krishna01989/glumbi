@@ -529,6 +529,7 @@ export default function FlipbookStudio({ child, quota }) {
     img.onload = () => {
       fillWhite(canvasRef.current)
       canvasRef.current.getContext('2d').drawImage(img, 0, 0)
+      saveCurrentFrame()
     }
     img.src = snap
   }
@@ -609,12 +610,14 @@ export default function FlipbookStudio({ child, quota }) {
     }
     saveSnapshot()
     fillWhite(canvasRef.current)
+    saveCurrentFrame()
   }
 
   // ── Frame drag-to-reorder ──────────────────────────────────────────────────
   const [dropIdx, setDropIdx] = useState(null)
   const dragIdxRef = useRef(null)
   const touchDragRef = useRef({ active: false, startIdx: null, startX: 0, startY: 0, ghostEl: null, dropIdx: null })
+  const previewThrottleRef = useRef(null)
 
   function reorderFrames(fromIdx, toIdx) {
     if (fromIdx === toIdx) { setDropIdx(null); return }
@@ -948,9 +951,21 @@ export default function FlipbookStudio({ child, quota }) {
     ctx.lineJoin    = 'round'
     ctx.stroke()
     lastPos.current = pos
+
+    if (!previewThrottleRef.current) {
+      previewThrottleRef.current = requestAnimationFrame(() => {
+        previewThrottleRef.current = null
+        const url = canvasRef.current.toDataURL('image/png')
+        const idx = currentIdxRef.current
+        framesRef.current = [...framesRef.current]
+        framesRef.current[idx] = url
+        setFrames([...framesRef.current])
+      })
+    }
   }
 
   function stopDraw() {
+    if (previewThrottleRef.current) { cancelAnimationFrame(previewThrottleRef.current); previewThrottleRef.current = null }
     if (touchIndicatorRef.current) touchIndicatorRef.current.style.opacity = '0'
     if (pendingDragRef.current) {
       pendingDragRef.current = null
@@ -2258,7 +2273,9 @@ export default function FlipbookStudio({ child, quota }) {
                 color: 'rgba(0,0,0,0.35)', background: 'rgba(255,255,255,0.75)',
                 borderRadius: 3, padding: '0 3px', lineHeight: '14px' }}>{i + 1}</div>
               {frames.length > 1 && !isPlaying && (
-                <button onClick={e => { e.stopPropagation(); deleteFrame(i) }}
+                <button
+                  onClick={e => { e.stopPropagation(); deleteFrame(i) }}
+                  onTouchEnd={e => { e.stopPropagation(); e.preventDefault(); deleteFrame(i) }}
                   style={{ position: 'absolute', top: 2, right: 2, width: 16, height: 16,
                     minWidth: 16, minHeight: 16, borderRadius: '50%', border: 'none', padding: 0,
                     background: 'rgba(0,0,0,0.35)', color: 'white', cursor: 'pointer',

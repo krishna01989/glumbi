@@ -194,11 +194,10 @@ function FlashcardsTab({ child, quota, isMobile }) {
         </>)}
       </HistoryDrawer>
 
-      {sets.length === 0 && !loading && (
+      {!activeSet && !loading && (
         <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>📇</div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>No flashcard sets yet!</div>
-          <div style={{ fontSize: 14, marginTop: 8 }}>Pick a topic and generate your first set above.</div>
+          <div style={{ fontSize: 14, marginTop: 8 }}>Pick a topic and flip your way to learning! 🌟</div>
         </div>
       )}
     </div>
@@ -556,26 +555,14 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   )
 }
 
-function MemoryMatchTab({ child, quota, isActive, isMobile }) {
+function MemoryMatchTab({ child, quota, isMobile }) {
   const { track } = useTracker()
   const offline = useOffline()
-  const matchStartRef = useRef(null)
+  const matchStartRef = useRef(Date.now())
   const matchElapsedRef = useRef(0)
   const activeThemeRef = useRef(null)
 
-  useEffect(() => {
-    if (isActive) {
-      matchStartRef.current = Date.now()
-      matchElapsedRef.current = 0
-    } else if (matchStartRef.current !== null) {
-      const seconds = Math.round((matchElapsedRef.current + Date.now() - matchStartRef.current) / 1000)
-      if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds, metadata: activeThemeRef.current ? { theme: activeThemeRef.current } : undefined })
-      matchStartRef.current = null
-      matchElapsedRef.current = 0
-    }
-  }, [isActive]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Fire session on page navigation (unmount while active)
+  // Fire session on unmount (navigating back to selector or away from memory)
   useEffect(() => {
     return () => {
       if (matchStartRef.current === null) return
@@ -667,6 +654,13 @@ function MemoryMatchTab({ child, quota, isActive, isMobile }) {
 
       {loading && <ThemeLoader theme={child.theme} />}
 
+      {!activeMatch && !loading && (
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>🎴</div>
+          <div style={{ fontSize: 14, marginTop: 8 }}>Pick a theme and find all the pairs! 🌟</div>
+        </div>
+      )}
+
       {activePairs && activeMatch && (
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--primary)' }}>
@@ -736,9 +730,6 @@ export default function MemoryPlay({ child, quota }) {
   const VALID_TABS = ['flashcards', 'wordofday', 'match']
   const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : null
 
-  // Lazy-mount MemoryMatchTab only after user first visits it (preserves mid-game state on subsequent tab switches)
-  const [matchMounted, setMatchMounted] = useState(false)
-  useEffect(() => { if (tab === 'match') setMatchMounted(true) }, [tab])
 
   const isMobile = window.innerWidth < 600
 
@@ -834,12 +825,7 @@ export default function MemoryPlay({ child, quota }) {
       {tab === 'flashcards' && <FlashcardsTab child={child} quota={quota} isMobile={isMobile} />}
       {tab === 'wordofday'  && <WordOfDayTab  child={child} quota={quota} />}
 
-      {/* MemoryMatchTab lazy-mounted on first visit, then kept alive for mid-game state */}
-      {matchMounted && (
-        <div style={{ display: tab === 'match' ? 'block' : 'none' }}>
-          <MemoryMatchTab child={child} quota={quota} isActive={tab === 'match'} isMobile={isMobile} />
-        </div>
-      )}
+      {tab === 'match' && <MemoryMatchTab child={child} quota={quota} isMobile={isMobile} />}
     </div>
   )
 }

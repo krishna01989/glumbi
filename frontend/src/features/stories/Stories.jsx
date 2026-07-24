@@ -172,11 +172,13 @@ export default function Stories({ child, quota }) {
   // Glumbi guide state
   const [glumbiPhase, setGlumbiPhase]           = useState('idle') // idle | intro | reading1 | mid | reading2 | post | epilogue
   const [glumbiMidPicked, setGlumbiMidPicked]   = useState(null)   // index of chosen prediction
+  const [glumbiPrevPicked, setGlumbiPrevPicked] = useState(null)   // last pick before "try other ending"
   const [glumbiEpilogueOpen, setGlumbiEpilogueOpen] = useState(false)
 
   const loadGlumbiState = (story) => {
     setGlumbiPhase(story?.glumbiIntro ? 'intro' : 'idle')
     setGlumbiMidPicked(null)
+    setGlumbiPrevPicked(null)
     setGlumbiEpilogueOpen(false)
   }
   const saveGlumbiState = () => {}
@@ -268,6 +270,7 @@ export default function Stories({ child, quota }) {
       fetchStories(0, true)
       setGlumbiPhase(story.glumbiIntro ? 'intro' : 'idle')
       setGlumbiMidPicked(null)
+      setGlumbiPrevPicked(null)
       setGlumbiEpilogueOpen(false)
 if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'generate' } })
       setSimilarStories(similar)
@@ -939,23 +942,29 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                 let choices = []
                 try { choices = JSON.parse(selected.glumbiMidChoices || '[]') } catch {}
                 return (
-                  <GlumbiBubble text={selected.glumbiMidQuestion}>
+                  <GlumbiBubble text={glumbiPrevPicked !== null ? `You chose "${choices[glumbiPrevPicked]}" last time — Ooh, what if we chose differently? 🔀` : selected.glumbiMidQuestion}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {choices.map((c, i) => (
-                        <button key={i}
-                          onClick={() => {
-                            if (glumbiMidPicked !== null) return
-                            setGlumbiMidPicked(i)
-                            saveGlumbiState(selected.id, 'mid', i, glumbiEpilogueOpen)
-                            track('stories', 'glumbi_mid_choice', { metadata: { choice: i, choiceText: choices[i], storyTitle: selected?.title } })
-                            setTimeout(() => updateGlumbiPhase('reading2', i), 1000)
-                          }}
-                          style={{ padding: '10px 22px', borderRadius: 50, border: '2.5px solid var(--primary)', fontSize: 15, fontWeight: 800, cursor: glumbiMidPicked !== null ? 'default' : 'pointer', transition: 'all 0.2s', fontFamily: 'Nunito, sans-serif',
-                            background: glumbiMidPicked === i ? 'var(--primary)' : 'transparent',
-                            color: glumbiMidPicked === i ? '#fff' : 'var(--primary)',
-                            opacity: glumbiMidPicked !== null && glumbiMidPicked !== i ? 0.35 : 1 }}>
-                          {c}
-                        </button>
+                        <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <button
+                            onClick={() => {
+                              if (glumbiMidPicked !== null) return
+                              setGlumbiMidPicked(i)
+                              setGlumbiPrevPicked(null)
+                              saveGlumbiState(selected.id, 'mid', i, glumbiEpilogueOpen)
+                              track('stories', 'glumbi_mid_choice', { metadata: { choice: i, choiceText: choices[i], storyTitle: selected?.title } })
+                              setTimeout(() => updateGlumbiPhase('reading2', i), 1000)
+                            }}
+                            style={{ padding: '10px 22px', borderRadius: 50, border: '2.5px solid var(--primary)', fontSize: 15, fontWeight: 800, cursor: glumbiMidPicked !== null ? 'default' : 'pointer', transition: 'all 0.2s', fontFamily: 'Nunito, sans-serif',
+                              background: glumbiMidPicked === i ? 'var(--primary)' : 'transparent',
+                              color: glumbiMidPicked === i ? '#fff' : 'var(--primary)',
+                              opacity: glumbiMidPicked !== null && glumbiMidPicked !== i ? 0.35 : 1 }}>
+                            {c}
+                          </button>
+                          {glumbiPrevPicked === i && glumbiMidPicked === null && (
+                            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--primary)', opacity: 0.7 }}>✨ you picked this last time</span>
+                          )}
+                        </div>
                       ))}
                     </div>
                     {glumbiMidPicked !== null && <div style={{ marginTop: 10, fontSize: 14, color: 'var(--primary)', fontWeight: 700 }}>Great pick! Let's find out... ✨</div>}
@@ -975,10 +984,11 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                       setGlumbiEpilogueOpen(true)
                       updateGlumbiPhase('epilogue', glumbiMidPicked, true)
                     })}
-                    {(selected.storyPart2A && selected.storyPart2B) && gbtn('Try other ending 🔀', () => {
+                    {(selected.storyPart2A && selected.storyPart2B) && gbtn('Other ending ✨', () => {
                       const otherBranch = glumbiMidPicked === 1 ? 0 : 1
                       track('stories', 'glumbi_other_ending', { metadata: { branch: otherBranch === 1 ? 'b' : 'a' } })
-                      updateGlumbiPhase('reading2', otherBranch)
+                      setGlumbiPrevPicked(glumbiMidPicked)
+                      updateGlumbiPhase('mid', null)
                       stopSpeaking()
                     }, false)}
                     {!offline && gbtn('Quiz time! 📚', () => {

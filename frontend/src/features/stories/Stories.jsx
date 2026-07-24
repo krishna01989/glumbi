@@ -269,8 +269,7 @@ export default function Stories({ child, quota }) {
       setGlumbiPhase(story.glumbiIntro ? 'intro' : 'idle')
       setGlumbiMidPicked(null)
       setGlumbiEpilogueOpen(false)
-      try { localStorage.removeItem(`glm_glumbi_${story.id}`) } catch {}
-      if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'generate' } })
+if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'generate' } })
       setSimilarStories(similar)
       setKeywords('')
       window.__glumbiRefreshQuota?.('story')

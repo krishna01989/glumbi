@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { childApi, userApi } from '../api/client'
 import { THEMES } from '../themes'
 import QuotaBadge from '../components/QuotaBadge'
+import ParentGuideModal from '../components/ParentGuideModal'
 
 const CORAL = THEMES.coral
 
@@ -506,6 +507,7 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
   const [showCreditInfo, setShowCreditInfo] = useState(false)
+  const [showParentGuide, setShowParentGuide] = useState(() => !localStorage.getItem('glm_parent_guide_seen'))
   // Carousel state
   const [activeIdx, setActiveIdx] = useState(0)
   const [animDir, setAnimDir]     = useState(1)
@@ -818,6 +820,9 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
       {/* Modals */}
       {showCreditInfo && (
         <CreditInfoModal featureConfig={featureConfig} onClose={() => setShowCreditInfo(false)} />
+      )}
+      {showParentGuide && (
+        <ParentGuideModal onClose={() => { setShowParentGuide(false); localStorage.setItem('glm_parent_guide_seen', '1') }} />
       )}
       {pendingChild && (
         <UnlockModal

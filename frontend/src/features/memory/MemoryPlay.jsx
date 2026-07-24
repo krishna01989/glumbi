@@ -706,13 +706,6 @@ function MemoryMatchTab({ child, quota, isMobile }) {
         </>)}
       </HistoryDrawer>
 
-      {matches.length === 0 && !loading && (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--muted)' }}>
-          <div style={{ fontSize: 64, marginBottom: 16 }}>🎴</div>
-          <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 16, fontWeight: 800 }}>No games yet!</div>
-          <div style={{ fontSize: 14, marginTop: 8 }}>Choose a theme and start matching!</div>
-        </div>
-      )}
     </div>
   )
 }

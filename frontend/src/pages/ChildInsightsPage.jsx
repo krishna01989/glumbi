@@ -342,21 +342,23 @@ function ActivityTab({ childName, t }) {
    CREDITS TAB
 ══════════════════════════════════════════════ */
 function CreditsTab({ t }) {
-  const [stats, setStats]     = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [month, setMonth]     = useState('')
+  const [stats, setStats]           = useState(null)
+  const [featureConfig, setFeatureConfig] = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [month, setMonth]           = useState('')
   const { id } = useParams()
 
   useEffect(() => {
     setLoading(true)
-    userApi.creditBreakdown()
-      .then(data => {
+    Promise.all([userApi.creditBreakdown(), userApi.featureCredits()])
+      .then(([data, config]) => {
         const childRow = data?.children?.find(c => String(c.childId) === String(id))
         setStats(childRow || { features: [], totalCredits: 0 })
         if (data?.month) {
           const [y, m] = data.month.split('-')
           setMonth(new Date(+y, +m - 1).toLocaleString(undefined, { month: 'long', year: 'numeric' }))
         }
+        setFeatureConfig(config || [])
       })
       .catch(() => setStats(null))
       .finally(() => setLoading(false))
@@ -367,33 +369,41 @@ function CreditsTab({ t }) {
   if (loading) return <div style={{ textAlign: 'center', padding: '48px 0', color: '#aaa', fontSize: 14 }}>Loading…</div>
 
   return (
-    <div style={{ background: 'white', borderRadius: 20, padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#555' }}>AI usage by feature</div>
-        {month && <div style={{ fontSize: 11, color: '#bbb', fontWeight: 700 }}>{month}</div>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+      {/* Total used — prominent at top */}
+      <div style={{ background: t.primary, borderRadius: 20, padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: 1 }}>Credits used</div>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{month || 'This month'}</div>
+        </div>
+        <div style={{ fontSize: 36, fontWeight: 900, color: 'white' }}>{stats?.totalCredits ?? 0} <span style={{ fontSize: 16, fontWeight: 700, opacity: 0.8 }}>cr</span></div>
       </div>
 
-      {activeCredits.length === 0 ? (
-        <div style={{ textAlign: 'center', color: '#bbb', fontSize: 14, padding: '16px 0' }}>✨ No AI usage this month</div>
-      ) : (
-        <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-            {activeCredits.map(f => (
-              <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: t.primaryLt }}>
-                <span style={{ fontSize: 18 }}>{f.icon}</span>
-                <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: '#444' }}>{f.label}</span>
-                <span style={{ fontSize: 12, color: '#bbb' }}>×{f.count}</span>
-                <span style={{ fontWeight: 900, fontSize: 14, color: t.primary }}>{f.credits} cr</span>
-              </div>
-            ))}
+      {/* Usage by feature */}
+      <div style={{ background: 'white', borderRadius: 20, padding: '18px 20px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>This month's usage</div>
+        {activeCredits.length === 0 ? (
+          <div style={{ textAlign: 'center', color: '#bbb', fontSize: 14, padding: '12px 0' }}>✨ No AI usage this month</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {activeCredits.map(f => {
+              const config = featureConfig.find(c => c.featureName === f.feature)
+              return (
+                <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 18 }}>{f.icon}</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#444' }}>{f.label}</span>
+                  {config?.creditCost > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#999', background: '#f0f0f0', borderRadius: 50, padding: '2px 8px' }}>{config.creditCost} cr</span>}
+                  <span style={{ flex: 1 }} />
+                  <span style={{ fontSize: 12, color: '#bbb', fontWeight: 600 }}>×{f.count}</span>
+                  <span style={{ fontWeight: 900, fontSize: 14, color: t.primary, minWidth: 40, textAlign: 'right' }}>{f.credits} cr</span>
+                </div>
+              )
+            })}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #f0f0f0' }}>
-            <span style={{ fontSize: 13, color: '#888', fontWeight: 700 }}>Total this month</span>
-            <span style={{ fontSize: 14, fontWeight: 900, color: t.primary }}>{stats.totalCredits} cr</span>
-          </div>
-        </>
-      )}
-      <div style={{ fontSize: 11, color: '#ccc', textAlign: 'center', marginTop: 14 }}>Resets on the 1st of each month</div>
+        )}
+      </div>
+
     </div>
   )
 }

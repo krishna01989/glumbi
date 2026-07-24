@@ -165,6 +165,7 @@ public class UserController {
         meta.put("read-quiz",         new FeatMeta("Read & Quiz",  "📚"));
         meta.put("writing-coach",     new FeatMeta("My Writing",   "✍️"));
         meta.put("draw",              new FeatMeta("Drawing",      "🎨"));
+        meta.put("draw-animate",      new FeatMeta("Bring to Life","✨"));
         meta.put("memory-flashcards", new FeatMeta("Flashcards",   "🧠"));
         meta.put("memory-match",      new FeatMeta("Memory Match", "🃏"));
         meta.put("word-of-day",       new FeatMeta("Word of Day",  "✏️"));

@@ -276,33 +276,14 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
             </div>
 
             {childRows.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {childRows.map(({ childId, name, avatarEmoji, theme, totalCredits, features }) => {
-                  const THEMES_MAP = { coral: '#ff6b6b', sky: '#4fc3f7', mint: '#43c98a', lavender: '#9b59b6', sunshine: '#f5a623' }
-                  const childAccent = THEMES_MAP[theme] || accent
-                  const childAccentLt = childAccent + '18'
-                  return (
-                    <div key={childId} style={{ background: '#fafafa', borderRadius: 14, padding: '14px 16px', border: '1.5px solid #f0f0f0' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: childAccentLt, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                          {avatarEmoji}
-                        </div>
-                        <span style={{ fontWeight: 900, fontSize: 15, color: '#333', flex: 1 }}>{name}</span>
-                        <span style={{ fontWeight: 900, fontSize: 14, color: childAccent, background: childAccentLt, padding: '3px 10px', borderRadius: 50 }}>{totalCredits} cr</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {features.filter(f => f.credits > 0).map(f => (
-                          <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 15 }}>{f.icon || '🤖'}</span>
-                            <span style={{ flex: 1, fontSize: 13, color: '#666', fontWeight: 600 }}>{f.label}</span>
-                            <span style={{ fontSize: 11, color: '#bbb' }}>×{f.count}</span>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#888', minWidth: 40, textAlign: 'right' }}>{f.credits} cr</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {childRows.map(({ childId, name, avatarEmoji, totalCredits }) => (
+                  <div key={childId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#fafafa', borderRadius: 12, border: '1.5px solid #f0f0f0' }}>
+                    <span style={{ fontSize: 20 }}>{avatarEmoji}</span>
+                    <span style={{ flex: 1, fontWeight: 800, fontSize: 14, color: '#333' }}>{name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#888' }}>{totalCredits} cr</span>
+                  </div>
+                ))}
               </div>
             )}
             {breakdown && childRows.length === 0 && (

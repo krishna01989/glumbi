@@ -9,7 +9,9 @@ import com.glumbi.repository.UserRepository;
 import com.glumbi.security.JwtUtil;
 import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.EmailTemplates;
+import com.glumbi.service.RateLimitService;
 import com.glumbi.service.ResendClient;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -37,6 +39,7 @@ public class AuthController {
     private final JwtUtil                     jwtUtil;
     private final WebClient.Builder           webClientBuilder;
     private final ApiQuotaService             quotaService;
+    private final RateLimitService            rateLimitService;
     private final ResendClient                resendClient;
     private final EmailTemplates              emailTemplates;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -59,7 +62,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req, HttpServletRequest http) {
+        if (!rateLimitService.tryConsumeAuth(resolveIp(http))) {
+            return ResponseEntity.status(429).body(Map.of("error", "Too many login attempts. Please try again in 15 minutes."));
+        }
         return userRepo.findByEmail(req.getEmail().toLowerCase().trim())
                 .filter(u -> u.getPasswordHash() != null && encoder.matches(req.getPassword(), u.getPasswordHash()))
                 .map(u -> {
@@ -155,7 +161,10 @@ public class AuthController {
 
     // Always return 200 regardless of whether email exists — prevents user enumeration
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body, HttpServletRequest http) {
+        if (!rateLimitService.tryConsumeAuth(resolveIp(http))) {
+            return ResponseEntity.status(429).body(Map.of("error", "Too many requests. Please try again in 15 minutes."));
+        }
         String email = body.getOrDefault("email", "").toLowerCase().trim();
         var userOpt = userRepo.findByEmail(email);
 
@@ -239,5 +248,14 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("ok");
+    }
+
+    // Railway sits behind a proxy — prefer X-Forwarded-For, fall back to remoteAddr
+    private String resolveIp(HttpServletRequest req) {
+        String forwarded = req.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return req.getRemoteAddr();
     }
 }

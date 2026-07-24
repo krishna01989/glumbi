@@ -17,16 +17,31 @@ public class RateLimitService {
 
     // Evict buckets for users inactive for longer than the TTL — prevents unbounded growth
     private final Cache<String, Bucket> buckets;
+    // Separate cache for auth attempts — shorter TTL, keyed by IP
+    private final Cache<String, Bucket> authBuckets;
 
     public RateLimitService(@Value("${app.cache.rate-limit-ttl-hours:2}") int ttlHours) {
         this.buckets = Caffeine.newBuilder()
                 .expireAfterAccess(ttlHours, TimeUnit.HOURS)
+                .build();
+        this.authBuckets = Caffeine.newBuilder()
+                .expireAfterAccess(20, TimeUnit.MINUTES)
                 .build();
     }
 
     public boolean tryConsume(Long userId, Endpoint endpoint) {
         String key = userId + ":" + endpoint.name();
         Bucket bucket = buckets.get(key, k -> newBucket(endpoint));
+        return bucket.tryConsume(1);
+    }
+
+    // 5 attempts per 15 minutes per IP for auth endpoints
+    public boolean tryConsumeAuth(String ip) {
+        Bucket bucket = authBuckets.get(ip, k ->
+            Bucket.builder()
+                .addLimit(Bandwidth.builder().capacity(5).refillGreedy(5, Duration.ofMinutes(15)).build())
+                .build()
+        );
         return bucket.tryConsume(1);
     }
 

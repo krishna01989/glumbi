@@ -20,7 +20,7 @@ function ErrorPageRoute() {
 export default function PublicRoutes({ onAuth }) {
   return (
     <Routes>
-      <Route path="/"           element={<Navigate to="/login" replace />} />
+      <Route path="/"           element={<Navigate to="/about" replace />} />
       <Route path="/about"      element={<LandingPage />} />
       <Route path="/demo"       element={<DemoPage />} />
       <Route path="/login"           element={<AuthPage onAuth={onAuth} />} />

@@ -110,6 +110,25 @@ function FeatureCarousel() {
         }
         .fc-peek-btn { transition: opacity 0.2s, transform 0.2s; }
         .fc-peek-btn:hover { opacity: 1 !important; transform: scale(1.04) !important; }
+        @media (max-width: 600px) {
+          .fc-peek { display: none !important; }
+          .fc-card-inner { flex-direction: column !important; }
+          .fc-left-panel {
+            flex: unset !important;
+            border-right: none !important;
+            border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+            flex-direction: row !important;
+            padding: 16px 20px !important;
+            gap: 16px !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+          }
+          .fc-left-panel > div:first-child {
+            width: 56px !important; height: 56px !important;
+            font-size: 28px !important;
+          }
+          .fc-right-panel { padding: 16px 20px !important; }
+        }
       `}</style>
 
       {/* ── 3-card peek row ── */}
@@ -117,7 +136,7 @@ function FeatureCarousel() {
 
         {/* Left peek */}
         <div
-          className="fc-peek-btn"
+          className="fc-peek-btn fc-peek"
           onClick={prev}
           style={{
             flex: '0 0 clamp(80px, 10vw, 120px)',
@@ -155,7 +174,7 @@ function FeatureCarousel() {
           <div style={{ position: 'absolute', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.12)', bottom: 40, right: 40, pointerEvents: 'none' }} />
 
           {/* Main content — split layout on wide, stack on narrow */}
-          <div style={{
+          <div className="fc-card-inner" style={{
             flex: 1,
             display: 'flex',
             flexDirection: 'row',
@@ -163,7 +182,7 @@ function FeatureCarousel() {
             position: 'relative', zIndex: 1,
           }}>
             {/* LEFT — illustration area */}
-            <div style={{
+            <div className="fc-left-panel" style={{
               flex: '0 0 clamp(120px, 30%, 200px)',
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
@@ -197,7 +216,7 @@ function FeatureCarousel() {
             </div>
 
             {/* RIGHT — text content */}
-            <div style={{
+            <div className="fc-right-panel" style={{
               flex: 1, minWidth: 180,
               display: 'flex', flexDirection: 'column', justifyContent: 'center',
               padding: 'clamp(24px,4vw,40px) clamp(20px,3vw,36px)',
@@ -244,7 +263,7 @@ function FeatureCarousel() {
 
         {/* Right peek */}
         <div
-          className="fc-peek-btn"
+          className="fc-peek-btn fc-peek"
           onClick={next}
           style={{
             flex: '0 0 clamp(80px, 10vw, 120px)',
@@ -262,19 +281,27 @@ function FeatureCarousel() {
       </div>
 
       {/* ── Dot navigation ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
         {FEATURES.map((feat, i) => (
           <button
             key={i}
             onClick={() => goTo(i, i > active ? 1 : -1)}
-            title={feat.title}
+            aria-label={feat.title}
             style={{
-              width: i === active ? 28 : 8, height: 8,
-              borderRadius: 50, border: 'none', cursor: 'pointer',
-              background: i === active ? '#ff6b6b' : '#ddd',
-              transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)', padding: 0,
+              padding: '10px 6px',
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              WebkitTapHighlightColor: 'transparent',
             }}
-          />
+          >
+            <span style={{
+              display: 'block',
+              width: i === active ? 28 : 8, height: 8,
+              borderRadius: 50,
+              background: i === active ? '#ff6b6b' : '#ddd',
+              transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+            }} />
+          </button>
         ))}
       </div>
     </div>
@@ -300,7 +327,7 @@ export default function LandingPage() {
       {/* ══════════ HERO ══════════ */}
       <section style={{
         background: 'linear-gradient(135deg,#ff6b6b 0%,#ff8e53 40%,#a855f7 80%,#6366f1 100%)',
-        padding: 'clamp(80px,10vw,120px) 40px clamp(100px,12vw,140px)',
+        padding: `clamp(80px,10vw,120px) clamp(20px,6vw,40px) clamp(100px,12vw,140px)`,
         textAlign: 'center',
         position: 'relative', overflow: 'hidden',
       }}>

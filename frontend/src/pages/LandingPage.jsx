@@ -47,7 +47,7 @@ const FEATURES = [
   { emoji: '🌍', title: '12 Languages', desc: 'Stories narrated in English, Spanish, French, Hindi, Tamil, and more — in warm, natural WaveNet voices.', grad: 'linear-gradient(135deg,#f7971e,#ffd200)', tag: 'Multilingual', highlights: ['12 languages', '4 English accents', 'Male & female voices'] },
   { emoji: '🎙️', title: 'Your Voice', desc: "Record your own voice — or a grandparent's. Every story narrated by someone your child loves.", grad: 'linear-gradient(135deg,#11998e,#38ef7d)', tag: 'Custom voices', highlights: ['Record in browser', 'Up to 5 voices', 'All languages'] },
   { emoji: '🌀', title: 'Maze Adventure', desc: 'Navigate winding corridors with dead ends and wrong turns — only one path leads to the goal! Mazes grow more complex as your child gets older.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Problem solving', highlights: ['Dead-end detection', 'Age-adaptive', 'AI themes'] },
-  { emoji: '🧩', title: 'Riddles', desc: 'Claude crafts age-perfect riddles and your child types the answer. With hints, celebrations, and 5 new riddles every round — the fun never runs out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Brain teasers', highlights: ['Age-adaptive', 'Hints system', 'AI-generated'] },
+  { emoji: '🧩', title: 'Riddles', desc: 'Glumbi AI crafts age-perfect riddles and your child types the answer. With hints, celebrations, and 5 new riddles every round — the fun never runs out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Brain teasers', highlights: ['Age-adaptive', 'Hints system', 'AI-generated'] },
 ]
 
 /* ── Feature Carousel ── */
@@ -531,7 +531,7 @@ export default function LandingPage() {
             },
             {
               q: "What happens to my child's data?",
-              a: "Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Anthropic's Claude AI to generate responses but is not used for model training. See our Privacy Policy for full details.",
+              a: "Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Glumbi AI to generate responses but is not used for model training. See our Privacy Policy for full details.",
             },
           ].map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
         </div>

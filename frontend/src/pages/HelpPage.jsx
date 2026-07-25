@@ -284,7 +284,7 @@ const SECTIONS = [
       },
       {
         q: 'Is my child\'s data private?',
-        a: 'Journal entries are never sent to any AI. All other content is processed by Anthropic\'s Claude AI to generate responses but is not used for model training. Custom voice recordings are processed by a third-party voice synthesis service and stored securely — they are never shared or used for any other purpose. See our Privacy Policy for full details.',
+        a: 'Journal entries are never sent to any AI. All other content is processed by Glumbi AI to generate responses but is not used for model training. Custom voice recordings are processed by a third-party voice synthesis service and stored securely — they are never shared or used for any other purpose. See our Privacy Policy for full details.',
       },
       {
         q: 'Can I delete my account and all data?',

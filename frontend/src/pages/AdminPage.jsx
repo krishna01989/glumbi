@@ -496,7 +496,7 @@ function BarChart({ data, color = '#6366f1' }) {
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 96, padding: '0 4px' }}>
         {entries.map(([label, value], i) => (
           <div key={label} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ fontSize: 9, color: '#888', fontWeight: 700 }}>{i === maxIdx && value ? value : ''}</div>
+            <div style={{ fontSize: 9, color: i === maxIdx ? color : '#aaa', fontWeight: 700 }}>{value > 0 ? value : ''}</div>
             <div style={{
               width: '100%', background: value > 0 ? color : '#f0f0f0',
               borderRadius: '4px 4px 0 0',
@@ -1013,7 +1013,7 @@ function Dashboard() {
             </span>
           </div>
           <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>
-            Credits deducted vary by feature (1–5 per use) · per-user overrides apply · resets on the 1st · not affected by date filter
+            Credits deducted vary by feature (1–5 per use) · per-user overrides apply · resets on the 1st
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 140px', background: '#f8f9fa', borderRadius: 12, padding: '14px 18px', textAlign: 'center' }}>
@@ -1035,12 +1035,6 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Divider before filter-controlled section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#bbb', letterSpacing: 0.5 }}>FILTERED BY DATE RANGE</span>
-        <div style={{ flex: 1, height: 1, background: '#f0f0f0' }} />
-      </div>
 
       {/* Range selector + refresh controls */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', rowGap: 8 }}>
@@ -1146,31 +1140,9 @@ function Dashboard() {
         </div>
       </div>}
 
-      {/* Engagement depth + Age distribution — always all-time */}
-      {stats && <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', flex: '1 1 280px' }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 2 }}>📊 Engagement Depth</div>
-          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>All-time stories per child</div>
-          {engageEntries.map(([label, value], i) => (
-            <HBar key={label} label={label} value={value} max={engageMax} color={engageColors[i % engageColors.length]} total={null} />
-          ))}
-          {stats.totalChildren > 0 && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: '#f8f9fa', borderRadius: 8, fontSize: 12, color: '#777' }}>
-              <span style={{ color: '#4facfe', fontWeight: 700 }}>
-                {Math.round(((stats.engagementBuckets['6–15'] || 0) + (stats.engagementBuckets['15+'] || 0)) / stats.totalChildren * 100)}%
-              </span> of children are regular users (6+ stories)
-            </div>
-          )}
-        </div>
-        <div style={{ background: 'white', borderRadius: 16, padding: '20px 24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', flex: '1 1 280px' }}>
-          <div style={{ fontWeight: 800, fontSize: 13, color: '#333', marginBottom: 2 }}>🧒 Children Age Distribution</div>
-          <div style={{ fontSize: 11, color: '#aaa', marginBottom: 16 }}>{stats.totalChildren} total children · all-time</div>
-          <BarChart data={stats.ageDistribution} color={ageColor} />
-        </div>
-      </div>}
-
       {/* Activity analytics */}
       {!loading && analyticsData && <ActivityAnalytics rangeLabel={RANGES.find(r => r.value === range)?.label} data={analyticsData} loading={loading} onRefresh={() => fetchAll(range)} />}
+
 
     </div>
   )

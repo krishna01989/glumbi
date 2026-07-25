@@ -378,7 +378,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ MEET GLUMBI ══════════ */}
-      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: 'white' }}>
+      <section style={{ padding: `clamp(56px,8vw,90px) clamp(16px,5vw,40px)`, background: 'white' }}>
         <div style={{ maxWidth: 820, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 48, flexWrap: 'wrap' }}>
           {/* Avatar */}
           <div style={{ flex: '0 0 auto', textAlign: 'center', margin: '0 auto' }}>
@@ -428,7 +428,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ FEATURE CAROUSEL ══════════ */}
-      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: '#fafafa' }}>
+      <section style={{ padding: `clamp(56px,8vw,90px) clamp(16px,5vw,40px)`, background: '#fafafa' }}>
         <div style={{ maxWidth: 780, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '4px 16px', fontSize: 11, fontWeight: 800, marginBottom: 14, letterSpacing: 0.5 }}>
@@ -446,7 +446,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ HOW IT WORKS ══════════ */}
-      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: 'white' }}>
+      <section style={{ padding: `clamp(56px,8vw,90px) clamp(16px,5vw,40px)`, background: 'white' }}>
         <div style={{ maxWidth: 840, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(24px,4vw,38px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
@@ -458,9 +458,9 @@ export default function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 28 }}>
             {STEPS.map((s, i) => (
               <div key={s.step} style={{ textAlign: 'center', position: 'relative' }}>
-                {/* Connector line */}
+                {/* Connector line — hidden on mobile where grid is single-column */}
                 {i < STEPS.length - 1 && (
-                  <div style={{ position: 'absolute', top: 32, left: '60%', width: '80%', height: 2, background: 'linear-gradient(to right,#ffcdb8,transparent)', display: 'block' }} />
+                  <div className="fc-step-connector" style={{ position: 'absolute', top: 32, left: '60%', width: '80%', height: 2, background: 'linear-gradient(to right,#ffcdb8,transparent)' }} />
                 )}
                 <div style={{
                   width: 64, height: 64, borderRadius: '50%',
@@ -479,7 +479,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ TRUST BAR ══════════ */}
-      <section style={{ background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)', padding: '32px 40px' }}>
+      <section style={{ background: 'linear-gradient(135deg,#f8f0ff,#fff0f8)', padding: `32px clamp(16px,5vw,40px)` }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center', alignItems: 'center' }}>
           {[
             { icon: '🔒', text: 'Safety-first — 3-layer AI content guard' },
@@ -496,7 +496,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════ FAQ ══════════ */}
-      <section style={{ padding: 'clamp(56px,8vw,90px) 40px', background: 'white' }}>
+      <section style={{ padding: `clamp(56px,8vw,90px) clamp(16px,5vw,40px)`, background: 'white' }}>
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 44 }}>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(22px,4vw,36px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
@@ -539,7 +539,7 @@ export default function LandingPage() {
 
       {/* ══════════ CTA ══════════ */}
       <section style={{
-        padding: 'clamp(80px,10vw,120px) 40px',
+        padding: `clamp(80px,10vw,120px) clamp(16px,5vw,40px)`,
         background: 'linear-gradient(135deg,#ff6b6b 0%,#ff8e53 40%,#a855f7 80%,#6366f1 100%)',
         textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
@@ -568,6 +568,9 @@ export default function LandingPage() {
         @keyframes hero-float {
           from { transform: translateY(0px) rotate(0deg); }
           to   { transform: translateY(-18px) rotate(8deg); }
+        }
+        @media (max-width: 600px) {
+          .fc-step-connector { display: none !important; }
         }
       `}</style>
     </div>

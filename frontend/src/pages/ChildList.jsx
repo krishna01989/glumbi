@@ -21,7 +21,9 @@ const FEATURE_META = {
   'draw-guide':     { label: 'Drawing Guide',  emoji: '🖌️' },
   'read-quiz':      { label: 'Read & Quiz',    emoji: '📚' },
   'writing-coach':  { label: 'My Writing',     emoji: '✍️' },
-  'memory':         { label: 'Memory Play',    emoji: '🧠' },
+  'memory-flashcards': { label: 'Flashcards',    emoji: '🧠' },
+  'memory-match':      { label: 'Memory Match',  emoji: '🃏' },
+  'word-of-day':       { label: 'Word of Day',   emoji: '✏️' },
 }
 
 /* ── Credit info modal ── */

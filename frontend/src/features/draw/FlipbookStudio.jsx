@@ -621,6 +621,21 @@ export default function FlipbookStudio({ child, quota }) {
     loadFrameToCanvas(next[newIdx])
   }
 
+  async function newFlipbook() {
+    if (hasContent && child?.id) await saveFlipbook()
+    if (selStateRef.current.phase === 'floating') {
+      selStateRef.current.phase = null; selTmpRef.current = null
+      setSelPanelOpen(false); setSelTick(t => t + 1)
+      selOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
+    }
+    framesRef.current = [null]
+    setFrames([null])
+    currentIdxRef.current = 0
+    setCurrentIdx(0)
+    fillWhite(canvasRef.current)
+    setCurrentSaveId(null)
+  }
+
   function clearCurrentFrame() {
     if (selStateRef.current.phase === 'floating') {
       selStateRef.current.phase = null; selTmpRef.current = null
@@ -1609,7 +1624,7 @@ export default function FlipbookStudio({ child, quota }) {
                       </button>
                     </div>
 
-                    {/* Row 3: ↩️ 🗑️ 👁️ 💾 🎬 */}
+                    {/* Row 3: ↩️ 🗑️ 🆕 👁️ 💾 🎬 */}
                     <div style={col2Row}>
                       {[
                         { key: 'undo',   emoji: '↩️',  disabled: !canUndo,                                      active: false,         onClick: handleUndo },
@@ -1617,6 +1632,7 @@ export default function FlipbookStudio({ child, quota }) {
                         { key: 'onion',  emoji: '👁️',  disabled: false,                                         active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
                         { key: 'save',   emoji: isSaving ? '⏳' : '💾',       disabled: isSaving || isPlaying || !hasContent || !child?.id, active: false, onClick: saveFlipbook },
                         { key: 'export', emoji: isDownloading ? '⏳' : '🎬', disabled: isDownloading || isPlaying || total < 2,            active: false, onClick: downloadAnimation },
+                        { key: 'new',    emoji: '🆕',  disabled: isSaving,                                      active: false,         onClick: newFlipbook },
                       ].map(({ key, emoji, active, disabled, onClick }) => (
                         <button key={key} onClick={onClick} disabled={disabled}
                           style={col2Btn(active, { opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' })}>
@@ -1704,6 +1720,7 @@ export default function FlipbookStudio({ child, quota }) {
                     { key: 'onion',  emoji: '👁️',  disabled: false,                                         active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
                     { key: 'save',   emoji: isSaving ? '⏳' : '💾',       disabled: isSaving || isPlaying || !hasContent || !child?.id, active: false, onClick: saveFlipbook },
                     { key: 'export', emoji: isDownloading ? '⏳' : '🎬', disabled: isDownloading || isPlaying || total < 2,            active: false, onClick: downloadAnimation },
+                    { key: 'new',    emoji: '🆕',  disabled: isSaving,                                      active: false,         onClick: newFlipbook },
                   ].map(({ key, emoji, active, disabled, onClick }) => (
                     <button key={key} onClick={onClick} disabled={disabled}
                       style={{ ...btnStyle(active), opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
@@ -1779,6 +1796,7 @@ export default function FlipbookStudio({ child, quota }) {
                   { key: 'onion',  emoji: '👁️', active: showOnionSkin, title: 'Onion skin', onClick: () => setShowOnionSkin(v => !v) },
                   { key: 'save',   emoji: isSaving ? '⏳' : '💾', active: false, disabled: isSaving || isPlaying || !hasContent || !child?.id, title: isSaving ? 'Saving…' : 'Save', onClick: saveFlipbook },
                   { key: 'export', emoji: isDownloading ? '⏳' : '🎬', active: false, disabled: isDownloading || isPlaying || total < 2, title: isDownloading ? 'Exporting…' : 'Export video', onClick: downloadAnimation },
+                  { key: 'new',    emoji: '🆕',  active: false, disabled: isSaving, title: 'New flipbook', onClick: newFlipbook },
                 ].map(({ key, emoji, active, disabled, onClick, title }) => (
                   <button key={key} onClick={onClick} disabled={disabled} title={title}
                     style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,

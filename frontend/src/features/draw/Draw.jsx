@@ -710,6 +710,11 @@ export default function Draw({ child, quota, featureConfig }) {
     lastPos.current = null
   }
 
+  async function newDrawing() {
+    if (!isEmpty && child?.id) await saveDrawing()
+    clearCanvas()
+  }
+
   function clearCanvas() {
     cancelPendingShape()
     if (selStateRef.current.phase === 'floating') {
@@ -1425,13 +1430,14 @@ export default function Draw({ child, quota, featureConfig }) {
                     </button>
                   </div>
 
-                  {/* Row 3: ↩️ 🗑️ 💾 ⬇️ */}
+                  {/* Row 3: ↩️ 🗑️ 🆕 💾 ⬇️ */}
                   <div style={col2Row}>
                     {[
                       { key: 'undo',     emoji: '↩️',  disabled: !canUndo,          onClick: handleUndo },
                       { key: 'clear',    emoji: '🗑️', disabled: false,              onClick: clearCanvas },
                       { key: 'save',     emoji: isSaving ? '⏳' : '💾', disabled: isEmpty || isSaving, onClick: saveDrawing },
                       { key: 'download', emoji: '⬇️',  disabled: isEmpty,            onClick: downloadDrawing },
+                      { key: 'new',      emoji: '🆕',  disabled: isSaving,           onClick: newDrawing },
                     ].map(({ key, emoji, disabled, onClick }) => (
                       <button key={key} onClick={onClick} disabled={disabled}
                         style={col2Btn(false, { opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' })}>
@@ -1518,6 +1524,7 @@ export default function Draw({ child, quota, featureConfig }) {
                   { key: 'clear',    emoji: '🗑️', disabled: false,              onClick: clearCanvas },
                   { key: 'save',     emoji: isSaving ? '⏳' : '💾', disabled: isEmpty || isSaving, onClick: saveDrawing },
                   { key: 'download', emoji: '⬇️',  disabled: isEmpty,            onClick: downloadDrawing },
+                  { key: 'new',      emoji: '🆕',  disabled: isSaving,           onClick: newDrawing },
                 ].map(({ key, emoji, disabled, onClick }) => (
                   <button key={key} onClick={onClick} disabled={disabled}
                     style={{ ...btnStyle(false), opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
@@ -1606,9 +1613,10 @@ export default function Draw({ child, quota, featureConfig }) {
                 { key: 'eraser', title: 'Eraser',        emoji: '🧽',  active: eraser,     onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false); setShapeTool(null) } },
                 { key: 'select', title: 'Select & Move', emoji: '⬚',   active: selectTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setShapeTool(null); setSelectTool(true) } } },
                 { key: 'undo',   title: 'Undo',          emoji: '↩️',  active: false, disabled: !canUndo, onClick: handleUndo },
-                { key: 'clear',  title: 'Clear',         emoji: '🗑️', active: false, onClick: clearCanvas },
-                { key: 'save',   title: isSaving ? 'Saving…' : 'Save', emoji: isSaving ? '⏳' : '💾', active: false, disabled: isEmpty || isSaving, onClick: saveDrawing },
+                { key: 'clear',    title: 'Clear',         emoji: '🗑️', active: false, onClick: clearCanvas },
+                { key: 'save',     title: isSaving ? 'Saving…' : 'Save', emoji: isSaving ? '⏳' : '💾', active: false, disabled: isEmpty || isSaving, onClick: saveDrawing },
                 { key: 'download', title: 'Download PNG', emoji: '⬇️', active: false, disabled: isEmpty, onClick: downloadDrawing },
+                { key: 'new',      title: 'New Drawing',  emoji: '🆕',  active: false, disabled: isSaving, onClick: newDrawing },
               ].map(({ key, title, emoji, active, disabled, onClick }) => (
                 <button key={key} onClick={onClick} title={title} disabled={disabled}
                   style={{

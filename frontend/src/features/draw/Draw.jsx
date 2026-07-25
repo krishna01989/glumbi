@@ -241,22 +241,37 @@ export default function Draw({ child, quota, featureConfig }) {
   const [selPanelSize, setSelPanelSize]   = useState({ w: null, h: null })
   const selPanelDragRef   = useRef(null)
   const selPanelResizeRef = useRef(null)
+  const selPanelElRef     = useRef(null)
 
-  function onSelPanelResizeStart(e) {
+  function onSelPanelResizeStart(corner, e) {
     e.stopPropagation(); e.preventDefault()
     const src = e.touches ? e.touches[0] : e
-    const panel = e.currentTarget.parentElement
-    const rect = panel.getBoundingClientRect()
-    selPanelResizeRef.current = { sx: src.clientX, sy: src.clientY, ow: rect.width, oh: rect.height }
+    const panel = selPanelElRef.current
+    const pr = panel ? panel.getBoundingClientRect() : { width: 220, height: 300 }
+    selPanelResizeRef.current = {
+      corner, sx: src.clientX, sy: src.clientY,
+      ow: pr.width, oh: pr.height,
+      ox: selPanelPos.x, oy: selPanelPos.y,
+    }
     function onMove(ev) {
       if (!selPanelResizeRef.current) return
+      ev.preventDefault()
       const s = ev.touches ? ev.touches[0] : ev
-      const canvas = canvasRef.current
-      const cr = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 }
-      setSelPanelSize({
-        w: Math.max(180, Math.min(selPanelResizeRef.current.ow + s.clientX - selPanelResizeRef.current.sx, cr.width - selPanelPos.x - 8)),
-        h: Math.max(64, selPanelResizeRef.current.oh + s.clientY - selPanelResizeRef.current.sy),
-      })
+      const cr = canvasRef.current ? canvasRef.current.getBoundingClientRect() : { width: 400, height: 300 }
+      const r = selPanelResizeRef.current
+      const dx = s.clientX - r.sx, dy = s.clientY - r.sy
+      const minW = 180, minH = 64
+      let nw = r.ow, nh = r.oh, nx = r.ox, ny = r.oy
+      if (r.corner === 'br') { nw = r.ow + dx; nh = r.oh + dy }
+      if (r.corner === 'bl') { nw = r.ow - dx; nx = r.ox + dx }
+      if (r.corner === 'tr') { nw = r.ow + dx; nh = r.oh - dy; ny = r.oy + dy }
+      if (r.corner === 'tl') { nw = r.ow - dx; nx = r.ox + dx; nh = r.oh - dy; ny = r.oy + dy }
+      nw = Math.max(minW, Math.min(nw, cr.width - 8))
+      nh = Math.max(minH, nh)
+      nx = Math.max(0, Math.min(nx, cr.width - nw))
+      ny = Math.max(0, Math.min(ny, cr.height - minH))
+      setSelPanelSize({ w: nw, h: nh })
+      if (r.corner === 'bl' || r.corner === 'tl' || r.corner === 'tr') setSelPanelPos({ x: nx, y: ny })
     }
     function onUp() {
       selPanelResizeRef.current = null
@@ -274,15 +289,19 @@ export default function Draw({ child, quota, featureConfig }) {
   function onSelPanelDragStart(e) {
     e.stopPropagation()
     const src = e.touches ? e.touches[0] : e
-    selPanelDragRef.current = { sx: src.clientX, sy: src.clientY, ox: selPanelPos.x, oy: selPanelPos.y }
+    const panel = selPanelElRef.current
+    const pw = panel ? panel.offsetWidth : 220
+    const ph = panel ? panel.offsetHeight : 300
+    selPanelDragRef.current = { sx: src.clientX, sy: src.clientY, ox: selPanelPos.x, oy: selPanelPos.y, pw, ph }
     function onMove(ev) {
       if (!selPanelDragRef.current) return
+      ev.preventDefault()
       const s = ev.touches ? ev.touches[0] : ev
-      const canvas = canvasRef.current
-      const rect = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 }
+      const cr = canvasRef.current ? canvasRef.current.getBoundingClientRect() : { width: 400, height: 300 }
+      const r = selPanelDragRef.current
       setSelPanelPos({
-        x: Math.max(0, Math.min(selPanelDragRef.current.ox + s.clientX - selPanelDragRef.current.sx, rect.width - 80)),
-        y: Math.max(0, Math.min(selPanelDragRef.current.oy + s.clientY - selPanelDragRef.current.sy, rect.height - 40)),
+        x: Math.max(0, Math.min(r.ox + s.clientX - r.sx, cr.width - r.pw)),
+        y: Math.max(0, Math.min(r.oy + s.clientY - r.sy, cr.height - r.ph)),
       })
     }
     function onUp() {
@@ -1039,7 +1058,17 @@ export default function Draw({ child, quota, featureConfig }) {
       selTmpRef.current.width = wi; selTmpRef.current.height = hi
       selTmpRef.current.getContext('2d').putImageData(sd.pixels, 0, 0)
       sd.posX = xi; sd.posY = yi; sd.phase = 'floating'; sd.dragging = false
-      setSelPanelOpen(true); setSelPanelPos({ x: 10, y: 10 }); setSelPanelSize({ w: null, h: null }); setSelTick(t => t + 1)
+      // Panel position is in CSS pixels (container space), canvas coords are logical pixels
+      const cRect = canvas.getBoundingClientRect()
+      const scaleX = cRect.width / canvas.width, scaleY = cRect.height / canvas.height
+      const initW = cRect.width < 500 ? Math.max(160, Math.round(cRect.width * 0.42)) : null
+      const initH = null // Draw panel has minimal content — let it shrink to fit
+      const panelW = initW ?? 230
+      const rightX = (xi + wi) * scaleX + 10
+      const leftX  = xi * scaleX - panelW - 10
+      const panelX = (rightX + panelW < cRect.width) ? rightX : Math.max(0, leftX)
+      const panelY = Math.min(yi * scaleY, cRect.height - 80)
+      setSelPanelOpen(true); setSelPanelPos({ x: panelX, y: panelY }); setSelPanelSize({ w: initW, h: initH }); setSelTick(t => t + 1)
       drawSelOverlay()
     } else if (sd.phase === 'floating') {
       sd.dragging = false
@@ -1749,8 +1778,9 @@ export default function Draw({ child, quota, featureConfig }) {
                 {label}
               </button>
             )
-            return (
-            <div style={{
+            return (<>
+            <div onClick={cancelSelection} style={{ position: 'absolute', inset: 0, zIndex: 19 }} />
+            <div ref={selPanelElRef} style={{
               position: 'absolute', top: selPanelPos.y, left: selPanelPos.x, zIndex: 20,
               background: 'white', borderRadius: 14,
               boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1.5px solid var(--primary-lt)',
@@ -1761,13 +1791,17 @@ export default function Draw({ child, quota, featureConfig }) {
               touchAction: 'none',
             }}>
               {/* Drag handle row */}
-              <div
-                onMouseDown={onSelPanelDragStart}
-                onTouchStart={onSelPanelDragStart}
-                style={{ display: 'flex', alignItems: 'center', gap: pp(7), cursor: 'grab',
-                  userSelect: 'none', padding: `${pp(8)}px ${pp(10)}px ${pp(6)}px`, flexShrink: 0 }}>
-                <span style={{ fontSize: pf(11), color: '#bbb', lineHeight: 1 }}>⠿</span>
-                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: pf(13), flex: 1 }}>✂️ Selection</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: pp(7),
+                padding: `${pp(8)}px ${pp(10)}px ${pp(6)}px`, flexShrink: 0,
+                position: 'relative', zIndex: 2 }}>
+                <span
+                  onMouseDown={onSelPanelDragStart}
+                  onTouchStart={onSelPanelDragStart}
+                  style={{ fontSize: pf(11), color: '#bbb', lineHeight: 1, cursor: 'grab', userSelect: 'none', touchAction: 'none' }}>⠿</span>
+                <span
+                  onMouseDown={onSelPanelDragStart}
+                  onTouchStart={onSelPanelDragStart}
+                  style={{ fontWeight: 800, color: 'var(--primary)', fontSize: pf(13), flex: 1, cursor: 'grab', userSelect: 'none', touchAction: 'none' }}>✂️ Selection</span>
                 <button onClick={commitSelection}
                   style={{ padding: `${pp(3)}px ${pp(10)}px`, borderRadius: pp(7), border: 'none',
                     background: 'var(--primary)', color: 'white',
@@ -1779,9 +1813,9 @@ export default function Draw({ child, quota, featureConfig }) {
                     background: '#ffe0e0', color: '#d00', fontWeight: 700, cursor: 'pointer', fontSize: pf(13) }}
                   title="Delete">🗑️</button>
                 <button onClick={cancelSelection}
-                  style={{ padding: `${pp(3)}px ${pp(7)}px`, borderRadius: pp(7), border: 'none',
+                  style={{ padding: `${pp(5)}px ${pp(9)}px`, borderRadius: pp(7), border: 'none',
                     background: 'var(--primary-lt)', color: 'var(--primary)',
-                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(11) }}>
+                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(13) }}>
                   ✕
                 </button>
               </div>
@@ -1790,34 +1824,47 @@ export default function Draw({ child, quota, featureConfig }) {
                 <div style={{ display: 'flex', gap: pp(5), flexWrap: 'wrap', alignItems: 'center', paddingBottom: 2 }}>
                   {btn('↔️', 'Flip horizontal', flipSelH)}
                   {btn('↕️', 'Flip vertical', flipSelV)}
-                  {btn('↺', 'Rotate left', () => rotateSel(-90))}
-                  {btn('↻', 'Rotate right', () => rotateSel(90))}
                   {btn('⊕', 'Scale up 25%', () => scaleSel(1.25))}
                   {btn('⊖', 'Scale down 25%', () => scaleSel(0.75))}
                   {btn('❐', 'Duplicate', duplicateSel)}
-                  <input type="number" min={1} max={359}
-                    placeholder="°" title="Custom angle — press Enter"
-                    style={{ width: pf(42), padding: `${pp(4)}px ${pp(5)}px`, borderRadius: pp(7),
-                      border: '1.5px solid var(--primary-lt)',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: pf(11),
-                      color: 'var(--primary)', outline: 'none', flexShrink: 0 }}
-                    onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(e.target.value); if (v) { rotateSel(v); e.target.value = '' } } }} />
-                  <span style={{ fontSize: pf(10), color: '#bbb', flexShrink: 0 }}>°↵</span>
+                </div>
+                <div style={{ display: 'flex', gap: pp(4), flexWrap: 'wrap', alignItems: 'center' }}>
+                  {[
+                    { label: '↺90°', deg: -90 }, { label: '↺45°', deg: -45 },
+                    { label: '↺15°', deg: -15 }, { label: '↺5°',  deg: -5  },
+                    { label: '↻5°',  deg:  5  }, { label: '↻15°', deg:  15 },
+                    { label: '↻45°', deg:  45 }, { label: '↻90°', deg:  90 },
+                  ].map(({ label, deg }) => (
+                    <button key={label} onClick={() => rotateSel(deg)}
+                      style={{ padding: `${pp(4)}px ${pp(6)}px`, borderRadius: pp(7), border: '1.5px solid var(--primary-lt)',
+                        background: 'white', color: 'var(--primary)', flexShrink: 0,
+                        fontFamily: 'Nunito, sans-serif', fontWeight: 800, cursor: 'pointer', fontSize: pf(10) }}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              {/* Resize handle */}
-              <div
-                onMouseDown={onSelPanelResizeStart}
-                onTouchStart={onSelPanelResizeStart}
-                style={{ position: 'absolute', bottom: 0, right: 0, width: 18, height: 18,
-                  cursor: 'nwse-resize', display: 'flex', alignItems: 'flex-end',
-                  justifyContent: 'flex-end', padding: '3px', userSelect: 'none', touchAction: 'none' }}>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M9 1L1 9M9 5L5 9M9 9" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
+              {/* Corner resize handles */}
+              {[
+                { corner: 'bl', style: { bottom: 0, left: 0, cursor: 'nesw-resize' } },
+                { corner: 'br', style: { bottom: 0, right: 0, cursor: 'nwse-resize' } },
+              ].map(({ corner, style }) => (
+                <div key={corner}
+                  onMouseDown={e => onSelPanelResizeStart(corner, e)}
+                  onTouchStart={e => onSelPanelResizeStart(corner, e)}
+                  style={{ position: 'absolute', width: 24, height: 24,
+                    userSelect: 'none', touchAction: 'none', zIndex: 3, ...style }}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+                    style={{ position: 'absolute',
+                      bottom: corner.startsWith('b') ? 3 : 'auto', top: corner.startsWith('t') ? 3 : 'auto',
+                      right: corner.endsWith('r') ? 3 : 'auto', left: corner.endsWith('l') ? 3 : 'auto',
+                      transform: corner === 'tl' ? 'rotate(180deg)' : corner === 'tr' ? 'rotate(90deg)' : corner === 'bl' ? 'rotate(-90deg)' : 'none' }}>
+                    <path d="M9 1L1 9M9 5L5 9M9 9" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+              ))}
             </div>
-            )
+            </>)
           })()}
           {hasPendingShape && (
             <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 20,

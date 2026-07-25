@@ -183,22 +183,37 @@ export default function FlipbookStudio({ child, quota }) {
   const [selPanelSize, setSelPanelSize]   = useState({ w: null, h: null })
   const selPanelDragRef   = useRef(null)
   const selPanelResizeRef = useRef(null)
+  const selPanelElRef     = useRef(null)
 
-  function onSelPanelResizeStart(e) {
+  function onSelPanelResizeStart(corner, e) {
     e.stopPropagation(); e.preventDefault()
     const src = e.touches ? e.touches[0] : e
-    const panel = e.currentTarget.parentElement
-    const rect = panel.getBoundingClientRect()
-    selPanelResizeRef.current = { sx: src.clientX, sy: src.clientY, ow: rect.width, oh: rect.height }
+    const panel = selPanelElRef.current
+    const pr = panel ? panel.getBoundingClientRect() : { width: 220, height: 300 }
+    selPanelResizeRef.current = {
+      corner, sx: src.clientX, sy: src.clientY,
+      ow: pr.width, oh: pr.height,
+      ox: selPanelPos.x, oy: selPanelPos.y,
+    }
     function onMove(ev) {
       if (!selPanelResizeRef.current) return
+      ev.preventDefault()
       const s = ev.touches ? ev.touches[0] : ev
-      const canvas = canvasRef.current
-      const cr = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 }
-      setSelPanelSize({
-        w: Math.max(180, Math.min(selPanelResizeRef.current.ow + s.clientX - selPanelResizeRef.current.sx, cr.width - selPanelPos.x - 8)),
-        h: Math.max(64, selPanelResizeRef.current.oh + s.clientY - selPanelResizeRef.current.sy),
-      })
+      const cr = canvasRef.current ? canvasRef.current.getBoundingClientRect() : { width: 400, height: 300 }
+      const r = selPanelResizeRef.current
+      const dx = s.clientX - r.sx, dy = s.clientY - r.sy
+      const minW = 180, minH = 64
+      let nw = r.ow, nh = r.oh, nx = r.ox, ny = r.oy
+      if (r.corner === 'br') { nw = r.ow + dx; nh = r.oh + dy }
+      if (r.corner === 'bl') { nw = r.ow - dx; nx = r.ox + dx }
+      if (r.corner === 'tr') { nw = r.ow + dx; nh = r.oh - dy; ny = r.oy + dy }
+      if (r.corner === 'tl') { nw = r.ow - dx; nx = r.ox + dx; nh = r.oh - dy; ny = r.oy + dy }
+      nw = Math.max(minW, Math.min(nw, cr.width - 8))
+      nh = Math.max(minH, nh)
+      nx = Math.max(0, Math.min(nx, cr.width - nw))
+      ny = Math.max(0, Math.min(ny, cr.height - minH))
+      setSelPanelSize({ w: nw, h: nh })
+      if (r.corner === 'bl' || r.corner === 'tl' || r.corner === 'tr') setSelPanelPos({ x: nx, y: ny })
     }
     function onUp() {
       selPanelResizeRef.current = null
@@ -216,15 +231,19 @@ export default function FlipbookStudio({ child, quota }) {
   function onSelPanelDragStart(e) {
     e.stopPropagation()
     const src = e.touches ? e.touches[0] : e
-    selPanelDragRef.current = { sx: src.clientX, sy: src.clientY, ox: selPanelPos.x, oy: selPanelPos.y }
+    const panel = selPanelElRef.current
+    const pw = panel ? panel.offsetWidth : 220
+    const ph = panel ? panel.offsetHeight : 300
+    selPanelDragRef.current = { sx: src.clientX, sy: src.clientY, ox: selPanelPos.x, oy: selPanelPos.y, pw, ph }
     function onMove(ev) {
       if (!selPanelDragRef.current) return
+      ev.preventDefault()
       const s = ev.touches ? ev.touches[0] : ev
-      const canvas = canvasRef.current
-      const rect = canvas ? canvas.getBoundingClientRect() : { width: 400, height: 300 }
+      const cr = canvasRef.current ? canvasRef.current.getBoundingClientRect() : { width: 400, height: 300 }
+      const r = selPanelDragRef.current
       setSelPanelPos({
-        x: Math.max(0, Math.min(selPanelDragRef.current.ox + s.clientX - selPanelDragRef.current.sx, rect.width - 80)),
-        y: Math.max(0, Math.min(selPanelDragRef.current.oy + s.clientY - selPanelDragRef.current.sy, rect.height - 40)),
+        x: Math.max(0, Math.min(r.ox + s.clientX - r.sx, cr.width - r.pw)),
+        y: Math.max(0, Math.min(r.oy + s.clientY - r.sy, cr.height - r.ph)),
       })
     }
     function onUp() {
@@ -1073,6 +1092,19 @@ export default function FlipbookStudio({ child, quota }) {
     saveCurrentFrame()
   }
 
+  function refreshSelPreview() {
+    const sd = selStateRef.current
+    if (sd.phase !== 'floating' || !selTmpRef.current || !canvasRef.current) return
+    const tmp = document.createElement('canvas')
+    tmp.width = W; tmp.height = H
+    const ctx = tmp.getContext('2d')
+    ctx.drawImage(canvasRef.current, 0, 0)
+    ctx.drawImage(selTmpRef.current, Math.round(sd.posX), Math.round(sd.posY), Math.round(sd.w), Math.round(sd.h))
+    const url = tmp.toDataURL('image/png')
+    const idx = currentIdxRef.current
+    setFrames(prev => { const next = [...prev]; next[idx] = url; return next })
+  }
+
   function applySelTransform(fn) {
     const src = selTmpRef.current
     if (!src || selStateRef.current.phase !== 'floating') return
@@ -1081,6 +1113,7 @@ export default function FlipbookStudio({ child, quota }) {
     selStateRef.current.w = nw
     selStateRef.current.h = nh
     drawSelOverlay()
+    refreshSelPreview()
   }
 
   function flipSelH() {
@@ -1195,9 +1228,8 @@ export default function FlipbookStudio({ child, quota }) {
       const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true })
       sd.pixels = ctx.getImageData(xi, yi, wi, hi)
       sd.w = wi; sd.h = hi; sd.x = xi; sd.y = yi
-      // Cut from canvas
+      // Cut from canvas (don't save yet — preview keeps showing original until commit/cancel/delete)
       ctx.fillStyle = '#ffffff'; ctx.fillRect(xi, yi, wi, hi)
-      saveCurrentFrame()
       // Cache the lifted pixels in a reusable canvas
       selTmpRef.current = document.createElement('canvas')
       selTmpRef.current.width = wi; selTmpRef.current.height = hi
@@ -1205,10 +1237,23 @@ export default function FlipbookStudio({ child, quota }) {
       sd.posX = xi; sd.posY = yi; sd.phase = 'floating'; sd.dragging = false
       setSlideEndFrame(Math.min(currentIdxRef.current + 1, framesRef.current.length - 1))
       setSlideStepX(0); setSlideStepY(0)
-      setSelPanelOpen(true); setSelPanelPos({ x: 10, y: 10 }); setSelPanelSize({ w: null, h: null }); setSelTick(t => t + 1)
+      // Panel position is in CSS pixels (container space), canvas coords are logical 1200×800
+      const cRect = canvasRef.current.getBoundingClientRect()
+      const scaleX = cRect.width / W, scaleY = cRect.height / H
+      // On small screens open at ~42% canvas width so it doesn't dominate; desktop auto-sizes
+      const initW = cRect.width < 500 ? Math.max(160, Math.round(cRect.width * 0.42)) : null
+      const initH = cRect.height < 400 ? Math.max(180, Math.round(cRect.height * 0.55)) : null
+      const panelW = initW ?? 230
+      const rightX = (xi + wi) * scaleX + 10
+      const leftX  = xi * scaleX - panelW - 10
+      const panelX = (rightX + panelW < cRect.width) ? rightX : Math.max(0, leftX)
+      const panelY = Math.min(yi * scaleY, cRect.height - 80)
+      setSelPanelOpen(true); setSelPanelPos({ x: panelX, y: panelY }); setSelPanelSize({ w: initW, h: initH }); setSelTick(t => t + 1)
       drawSelOverlay()
+      refreshSelPreview()
     } else if (sd.phase === 'floating') {
       sd.dragging = false
+      refreshSelPreview()
     }
   }
 
@@ -1564,12 +1609,14 @@ export default function FlipbookStudio({ child, quota }) {
                       </button>
                     </div>
 
-                    {/* Row 3: ↩️ 🗑️ 👁️ */}
+                    {/* Row 3: ↩️ 🗑️ 👁️ 💾 🎬 */}
                     <div style={col2Row}>
                       {[
-                        { key: 'undo',  emoji: '↩️',  disabled: !canUndo, active: false,         onClick: handleUndo },
-                        { key: 'clear', emoji: '🗑️', disabled: false,    active: false,         onClick: clearCurrentFrame },
-                        { key: 'onion', emoji: '👁️',  disabled: false,    active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
+                        { key: 'undo',   emoji: '↩️',  disabled: !canUndo,                                      active: false,         onClick: handleUndo },
+                        { key: 'clear',  emoji: '🗑️', disabled: false,                                         active: false,         onClick: clearCurrentFrame },
+                        { key: 'onion',  emoji: '👁️',  disabled: false,                                         active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
+                        { key: 'save',   emoji: isSaving ? '⏳' : '💾',       disabled: isSaving || isPlaying || !hasContent || !child?.id, active: false, onClick: saveFlipbook },
+                        { key: 'export', emoji: isDownloading ? '⏳' : '🎬', disabled: isDownloading || isPlaying || total < 2,            active: false, onClick: downloadAnimation },
                       ].map(({ key, emoji, active, disabled, onClick }) => (
                         <button key={key} onClick={onClick} disabled={disabled}
                           style={col2Btn(active, { opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' })}>
@@ -1652,9 +1699,11 @@ export default function FlipbookStudio({ child, quota }) {
                   </button>
                   <div style={{ width: 1, height: btnSz * 0.7, background: '#ccc', flexShrink: 0 }} />
                   {[
-                    { key: 'undo',  emoji: '↩️',  disabled: !canUndo, active: false,         onClick: handleUndo },
-                    { key: 'clear', emoji: '🗑️', disabled: false,    active: false,         onClick: clearCurrentFrame },
-                    { key: 'onion', emoji: '👁️',  disabled: false,    active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
+                    { key: 'undo',   emoji: '↩️',  disabled: !canUndo,                                      active: false,         onClick: handleUndo },
+                    { key: 'clear',  emoji: '🗑️', disabled: false,                                         active: false,         onClick: clearCurrentFrame },
+                    { key: 'onion',  emoji: '👁️',  disabled: false,                                         active: showOnionSkin, onClick: () => setShowOnionSkin(v => !v) },
+                    { key: 'save',   emoji: isSaving ? '⏳' : '💾',       disabled: isSaving || isPlaying || !hasContent || !child?.id, active: false, onClick: saveFlipbook },
+                    { key: 'export', emoji: isDownloading ? '⏳' : '🎬', disabled: isDownloading || isPlaying || total < 2,            active: false, onClick: downloadAnimation },
                   ].map(({ key, emoji, active, disabled, onClick }) => (
                     <button key={key} onClick={onClick} disabled={disabled}
                       style={{ ...btnStyle(active), opacity: disabled ? 0.32 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}>
@@ -1728,6 +1777,8 @@ export default function FlipbookStudio({ child, quota }) {
                   { key: 'undo',   emoji: '↩️', active: false, disabled: !canUndo, title: 'Undo', onClick: handleUndo },
                   { key: 'clear',  emoji: '🗑️', active: false, title: 'Clear frame', onClick: clearCurrentFrame },
                   { key: 'onion',  emoji: '👁️', active: showOnionSkin, title: 'Onion skin', onClick: () => setShowOnionSkin(v => !v) },
+                  { key: 'save',   emoji: isSaving ? '⏳' : '💾', active: false, disabled: isSaving || isPlaying || !hasContent || !child?.id, title: isSaving ? 'Saving…' : 'Save', onClick: saveFlipbook },
+                  { key: 'export', emoji: isDownloading ? '⏳' : '🎬', active: false, disabled: isDownloading || isPlaying || total < 2, title: isDownloading ? 'Exporting…' : 'Export video', onClick: downloadAnimation },
                 ].map(({ key, emoji, active, disabled, onClick, title }) => (
                   <button key={key} onClick={onClick} disabled={disabled} title={title}
                     style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
@@ -1825,8 +1876,10 @@ export default function FlipbookStudio({ child, quota }) {
                 {label}
               </button>
             )
-            return (
-            <div style={{
+            const framesLeft = total - currentIdxRef.current - 1
+            return (<>
+            <div onClick={cancelSelection} style={{ position: 'absolute', inset: 0, zIndex: 19 }} />
+            <div ref={selPanelElRef} style={{
               position: 'absolute', top: selPanelPos.y, left: selPanelPos.x, zIndex: 20,
               background: 'white', borderRadius: 14,
               boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1.5px solid #e8e0ff',
@@ -1837,13 +1890,17 @@ export default function FlipbookStudio({ child, quota }) {
               touchAction: 'none',
             }}>
               {/* Drag handle row */}
-              <div
-                onMouseDown={onSelPanelDragStart}
-                onTouchStart={onSelPanelDragStart}
-                style={{ display: 'flex', alignItems: 'center', gap: pp(7), cursor: 'grab',
-                  userSelect: 'none', padding: `${pp(8)}px ${pp(10)}px ${pp(6)}px`, flexShrink: 0 }}>
-                <span style={{ fontSize: pf(11), color: '#bbb', lineHeight: 1 }}>⠿</span>
-                <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: pf(13), flex: 1 }}>✂️ Selection</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: pp(7),
+                padding: `${pp(8)}px ${pp(10)}px ${pp(6)}px`, flexShrink: 0,
+                position: 'relative', zIndex: 2 }}>
+                <span
+                  onMouseDown={onSelPanelDragStart}
+                  onTouchStart={onSelPanelDragStart}
+                  style={{ fontSize: pf(11), color: '#bbb', lineHeight: 1, cursor: 'grab', userSelect: 'none', touchAction: 'none' }}>⠿</span>
+                <span
+                  onMouseDown={onSelPanelDragStart}
+                  onTouchStart={onSelPanelDragStart}
+                  style={{ fontWeight: 800, color: 'var(--primary)', fontSize: pf(13), flex: 1, cursor: 'grab', userSelect: 'none', touchAction: 'none' }}>✂️ Selection</span>
                 <button onClick={commitSelection}
                   style={{ padding: `${pp(3)}px ${pp(10)}px`, borderRadius: pp(7), border: 'none',
                     background: 'var(--primary)', color: 'white',
@@ -1855,9 +1912,9 @@ export default function FlipbookStudio({ child, quota }) {
                     background: '#ffe0e0', color: '#d00', fontWeight: 700, cursor: 'pointer', fontSize: pf(13) }}
                   title="Delete">🗑️</button>
                 <button onClick={cancelSelection}
-                  style={{ padding: `${pp(3)}px ${pp(7)}px`, borderRadius: pp(7), border: 'none',
+                  style={{ padding: `${pp(5)}px ${pp(9)}px`, borderRadius: pp(7), border: 'none',
                     background: 'var(--primary-lt)', color: 'var(--primary)',
-                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(11) }}>
+                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(13) }}>
                   ✕
                 </button>
               </div>
@@ -1868,36 +1925,44 @@ export default function FlipbookStudio({ child, quota }) {
                 <div style={{ display: 'flex', gap: pp(5), flexWrap: 'wrap', alignItems: 'center', paddingBottom: 2 }}>
                   {tBtn('↔️', 'Flip horizontal', flipSelH)}
                   {tBtn('↕️', 'Flip vertical', flipSelV)}
-                  {tBtn('↺', 'Rotate left', () => rotateSel(-90))}
-                  {tBtn('↻', 'Rotate right', () => rotateSel(90))}
                   {tBtn('⊕', 'Scale up 25%', () => scaleSel(1.25))}
                   {tBtn('⊖', 'Scale down 25%', () => scaleSel(0.75))}
                   {tBtn('❐', 'Duplicate', duplicateSel)}
-                  <input type="number" min={1} max={359}
-                    placeholder="°" title="Custom angle — press Enter"
-                    style={{ width: pf(42), padding: `${pp(4)}px ${pp(5)}px`, borderRadius: pp(7),
-                      border: '1.5px solid var(--primary-lt)',
-                      fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: pf(11),
-                      color: 'var(--primary)', outline: 'none', flexShrink: 0 }}
-                    onKeyDown={e => { if (e.key === 'Enter') { const v = parseInt(e.target.value); if (v) { rotateSel(v); e.target.value = '' } } }} />
-                  <span style={{ fontSize: pf(10), color: '#bbb', flexShrink: 0 }}>°↵</span>
+                </div>
+                <div style={{ display: 'flex', gap: pp(4), flexWrap: 'wrap', alignItems: 'center' }}>
+                  {[
+                    { label: '↺90°', deg: -90 }, { label: '↺45°', deg: -45 },
+                    { label: '↺15°', deg: -15 }, { label: '↺5°',  deg: -5  },
+                    { label: '↻5°',  deg:  5  }, { label: '↻15°', deg:  15 },
+                    { label: '↻45°', deg:  45 }, { label: '↻90°', deg:  90 },
+                  ].map(({ label, deg }) => (
+                    <button key={label} onClick={() => rotateSel(deg)}
+                      style={{ padding: `${pp(4)}px ${pp(6)}px`, borderRadius: pp(7), border: '1.5px solid var(--primary-lt)',
+                        background: 'white', color: 'var(--primary)', flexShrink: 0,
+                        fontFamily: 'Nunito, sans-serif', fontWeight: 800, cursor: 'pointer', fontSize: pf(10) }}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Stamp */}
-                <div style={{ background: 'var(--primary-lt)', borderRadius: pp(10), padding: `${pp(8)}px ${pp(10)}px` }}>
+                {framesLeft > 0 && <div style={{ background: 'var(--primary-lt)', borderRadius: pp(10), padding: `${pp(8)}px ${pp(10)}px` }}>
                   <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: pp(5), fontSize: pf(11) }}>
                     📌 Copy to next frames at same spot
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: pp(6), flexWrap: 'wrap' }}>
                     <span style={{ fontSize: pf(11), color: 'var(--primary)' }}>Next</span>
-                    {[1, 2, 3, 5].map(n => (
-                      <button key={n} onClick={() => setStampCount(n)}
-                        style={{ width: pp(26), height: pp(26), borderRadius: pp(6), border: 'none',
-                          background: stampCount === n ? 'var(--primary)' : 'white',
-                          color: stampCount === n ? 'white' : 'var(--primary)',
-                          fontWeight: 800, fontSize: pf(12), cursor: 'pointer', padding: 0,
-                          outline: stampCount === n ? 'none' : '1.5px solid var(--primary)' }}>{n}</button>
-                    ))}
+                    <button onClick={() => setStampCount(c => Math.max(1, c - 1))} disabled={stampCount <= 1}
+                      style={{ width: pp(28), height: pp(28), borderRadius: pp(6), border: 'none',
+                        background: 'white', color: 'var(--primary)', fontWeight: 900, fontSize: pf(16),
+                        cursor: stampCount <= 1 ? 'not-allowed' : 'pointer', opacity: stampCount <= 1 ? 0.35 : 1,
+                        outline: '1.5px solid var(--primary)', padding: 0, flexShrink: 0 }}>−</button>
+                    <span style={{ fontWeight: 900, fontSize: pf(14), color: 'var(--primary)', minWidth: pp(24), textAlign: 'center' }}>{Math.min(stampCount, framesLeft)}</span>
+                    <button onClick={() => setStampCount(c => Math.min(framesLeft, c + 1))} disabled={stampCount >= framesLeft}
+                      style={{ width: pp(28), height: pp(28), borderRadius: pp(6), border: 'none',
+                        background: 'white', color: 'var(--primary)', fontWeight: 900, fontSize: pf(16),
+                        cursor: stampCount >= framesLeft ? 'not-allowed' : 'pointer', opacity: stampCount >= framesLeft ? 0.35 : 1,
+                        outline: '1.5px solid var(--primary)', padding: 0, flexShrink: 0 }}>+</button>
                     <span style={{ fontSize: pf(11), color: 'var(--primary)' }}>frames</span>
                     <button onClick={() => stampSelectionToFrames(stampCount)} disabled={isStamping}
                       style={{ marginLeft: 'auto', padding: `${pp(4)}px ${pp(12)}px`, borderRadius: pp(8), border: 'none',
@@ -1908,7 +1973,7 @@ export default function FlipbookStudio({ child, quota }) {
                       {isStamping ? '⏳' : 'Stamp!'}
                     </button>
                   </div>
-                </div>
+                </div>}
 
                 {/* Slide */}
                 {total > 1 && currentIdxRef.current < total - 1 && (
@@ -1916,16 +1981,28 @@ export default function FlipbookStudio({ child, quota }) {
                     <div style={{ fontWeight: 700, color: 'var(--primary)', marginBottom: pp(6), fontSize: pf(11) }}>
                       🎬 Slide across frames
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: pp(6), marginBottom: pp(8) }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: pp(6), marginBottom: pp(8), flexWrap: 'wrap' }}>
                       <span style={{ fontSize: pf(11), color: 'var(--primary)' }}>Until frame</span>
+                      <button onClick={() => setSlideEndFrame(f => Math.max(currentIdxRef.current + 1, (f ?? currentIdxRef.current + 1) - 1))}
+                        disabled={(slideEndFrame ?? currentIdxRef.current + 1) <= currentIdxRef.current + 1}
+                        style={{ width: pp(28), height: pp(28), borderRadius: pp(6), border: 'none',
+                          background: 'white', color: 'var(--primary)', fontWeight: 900, fontSize: pf(14),
+                          cursor: 'pointer', outline: '1.5px solid var(--primary)', padding: 0, flexShrink: 0,
+                          opacity: (slideEndFrame ?? currentIdxRef.current + 1) <= currentIdxRef.current + 1 ? 0.35 : 1 }}>◀</button>
+                      <span style={{ fontWeight: 900, fontSize: pf(13), color: 'var(--primary)', minWidth: pp(20), textAlign: 'center' }}>
+                        {(slideEndFrame ?? currentIdxRef.current + 1) + 1}
+                      </span>
+                      <button onClick={() => setSlideEndFrame(f => Math.min(total - 1, (f ?? currentIdxRef.current + 1) + 1))}
+                        disabled={(slideEndFrame ?? currentIdxRef.current + 1) >= total - 1}
+                        style={{ width: pp(28), height: pp(28), borderRadius: pp(6), border: 'none',
+                          background: 'white', color: 'var(--primary)', fontWeight: 900, fontSize: pf(14),
+                          cursor: 'pointer', outline: '1.5px solid var(--primary)', padding: 0, flexShrink: 0,
+                          opacity: (slideEndFrame ?? currentIdxRef.current + 1) >= total - 1 ? 0.35 : 1 }}>▶</button>
                       <input type="range"
                         min={currentIdxRef.current + 1} max={total - 1}
                         value={slideEndFrame ?? currentIdxRef.current + 1}
                         onChange={e => setSlideEndFrame(Number(e.target.value))}
-                        style={{ width: pp(70) }} />
-                      <span style={{ fontSize: pf(12), fontWeight: 800, color: 'var(--primary)', minWidth: 16 }}>
-                        {(slideEndFrame ?? currentIdxRef.current + 1) + 1}
-                      </span>
+                        style={{ flex: 1, minWidth: pp(50) }} />
                     </div>
                     <div style={{ fontSize: pf(11), fontWeight: 700, color: 'var(--primary)', marginBottom: pp(5) }}>Which way does it move?</div>
                     <div style={{ display: 'flex', gap: pp(6), flexWrap: 'wrap', marginBottom: pp(8) }}>
@@ -1965,19 +2042,27 @@ export default function FlipbookStudio({ child, quota }) {
                   </div>
                 )}
               </div>{/* end scrollable content */}
-              {/* Resize handle */}
-              <div
-                onMouseDown={onSelPanelResizeStart}
-                onTouchStart={onSelPanelResizeStart}
-                style={{ position: 'absolute', bottom: 0, right: 0, width: 18, height: 18,
-                  cursor: 'nwse-resize', display: 'flex', alignItems: 'flex-end',
-                  justifyContent: 'flex-end', padding: '3px', userSelect: 'none', touchAction: 'none' }}>
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M9 1L1 9M9 5L5 9M9 9" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
+              {/* Corner resize handles */}
+              {[
+                { corner: 'bl', style: { bottom: 0, left: 0, cursor: 'nesw-resize' } },
+                { corner: 'br', style: { bottom: 0, right: 0, cursor: 'nwse-resize' } },
+              ].map(({ corner, style }) => (
+                <div key={corner}
+                  onMouseDown={e => onSelPanelResizeStart(corner, e)}
+                  onTouchStart={e => onSelPanelResizeStart(corner, e)}
+                  style={{ position: 'absolute', width: 24, height: 24,
+                    userSelect: 'none', touchAction: 'none', zIndex: 3, ...style }}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+                    style={{ position: 'absolute',
+                      bottom: corner.startsWith('b') ? 3 : 'auto', top: corner.startsWith('t') ? 3 : 'auto',
+                      right: corner.endsWith('r') ? 3 : 'auto', left: corner.endsWith('l') ? 3 : 'auto',
+                      transform: corner === 'tl' ? 'rotate(180deg)' : corner === 'tr' ? 'rotate(90deg)' : corner === 'bl' ? 'rotate(-90deg)' : 'none' }}>
+                    <path d="M9 1L1 9M9 5L5 9M9 9" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+              ))}
             </div>
-            )
+            </>)
           })()}
 
           {hasPendingShape && !showPlayback && (
@@ -2207,35 +2292,6 @@ export default function FlipbookStudio({ child, quota }) {
             <span style={{ fontSize: 16 }}>⧉</span> Copy Frame
           </button>
 
-          {/* Save to DB */}
-          <button onClick={saveFlipbook} disabled={isSaving || isPlaying || !hasContent || !child?.id}
-            title="Save flipbook to resume later"
-            style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
-              fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
-              cursor: (isSaving || isPlaying || !hasContent) ? 'not-allowed' : 'pointer',
-              background: (isSaving || isPlaying || !hasContent) ? '#e0e0e0' : 'var(--primary)',
-              color: (isSaving || isPlaying || !hasContent) ? '#aaa' : 'white',
-              boxShadow: (isSaving || isPlaying || !hasContent) ? 'none' : '0 3px 12px rgba(0,0,0,0.2)',
-              whiteSpace: 'nowrap', flexShrink: 0,
-              display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 16 }}>{isSaving ? '⏳' : '💾'}</span>
-            {isSaving ? 'Saving…' : 'Save'}
-          </button>
-
-          {/* Export video */}
-          <button onClick={downloadAnimation} disabled={isDownloading || isPlaying || total < 2}
-            title="Export as video file"
-            style={{ padding: '8px 14px', borderRadius: 20, border: '2px solid var(--primary)',
-              fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
-              cursor: (isDownloading || isPlaying || total < 2) ? 'not-allowed' : 'pointer',
-              background: 'white',
-              color: (isDownloading || isPlaying || total < 2) ? '#aaa' : 'var(--primary)',
-              borderColor: (isDownloading || isPlaying || total < 2) ? '#e0e0e0' : 'var(--primary)',
-              whiteSpace: 'nowrap', flexShrink: 0,
-              display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 16 }}>{isDownloading ? '⏳' : '🎬'}</span>
-            {isDownloading ? 'Exporting…' : 'Export'}
-          </button>
         </div>
 
         {/* Frames strip */}

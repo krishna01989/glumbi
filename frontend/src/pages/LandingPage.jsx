@@ -34,20 +34,28 @@ const STEPS = [
 
 /* ── Feature slides ── */
 const FEATURES = [
+  // ── Hook ──────────────────────────────────────────────────────────────────
   { emoji: '📖', title: 'Personalised Stories', desc: 'Every story is written for your child — their name, their interests, their age. No two stories are ever the same.', grad: 'linear-gradient(135deg,#ff6b6b,#ff8e53)', tag: 'Core feature', highlights: ['Age-adaptive', 'Interest-based', 'Continuations'] },
   { emoji: '🌟', title: 'Glumbi Guide', desc: 'Glumbi lives inside every feature — pick story paths, earn epilogues, follow up curious questions, and jump between stories and quizzes. One AI friend, every adventure.', grad: 'linear-gradient(135deg,#f7971e,#ffd200)', tag: 'Interactive', highlights: ['True branching stories', 'Cross-feature journeys', 'Remembers choices'] },
-  { emoji: '🎯', title: 'Story Activities', desc: 'Each story comes with age-appropriate activities, crafts, and ideas to turn reading into doing.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'After reading', highlights: ['Hands-on ideas', 'Tied to story', 'All ages'] },
-  { emoji: '🔭', title: 'Curiosity Questions', desc: '"Why is the sky blue?" Glumbi turns big questions into daily wonder moments that spark real thinking.', grad: 'linear-gradient(135deg,#4facfe,#00f2fe)', tag: 'Daily spark', highlights: ['New every day', 'Age-matched', 'Open-ended'] },
+  { emoji: '🔭', title: 'Curiosity Questions', desc: '"Why is the sky blue?" — your child asks anything, Glumbi explains it perfectly for their age and opens a door to even deeper wondering.', grad: 'linear-gradient(135deg,#4facfe,#00f2fe)', tag: 'Ask anything', highlights: ['Any question', 'Age-matched answers', 'Follow-up adventures'] },
+  // ── Learning ──────────────────────────────────────────────────────────────
   { emoji: '📝', title: 'Read & Quiz', desc: 'Generate a reading passage on any topic + comprehension questions. Scores tracked over time.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Learning', highlights: ['Any topic', 'Score tracking', 'Adjusts to age'] },
-  { emoji: '✍️', title: 'My Writing', desc: "Kids write their own stories. Glumbi reads them and gives kind, specific feedback — never harsh, always encouraging.", grad: 'linear-gradient(135deg,#fa709a,#fee140)', tag: 'Creative writing', highlights: ['AI coach', 'Kind feedback', '"What happens next?"'] },
-  { emoji: '🎨', title: 'Draw', desc: 'A free canvas to draw anything. Tap "Bring to Life" and AI animates your drawing — bees fly, flowers wiggle, rockets launch!', grad: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', tag: 'Creative play', highlights: ['Free canvas', 'AI animations', 'Fullscreen mode'] },
-  { emoji: '🎬', title: 'Flipbook Studio', desc: 'Draw frame by frame and watch your creation come alive as a real animation. Download your movie and share it!', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Animation', highlights: ['Frame-by-frame', 'Play & download', 'Drag to reorder'] },
   { emoji: '✏️', title: 'Learn to Write', desc: 'Guided letter and word tracing in English, Hindi, and Tamil. Canvas validated by AI — effort always counts.', grad: 'linear-gradient(135deg,#f6d365,#fda085)', tag: 'Letters & script', highlights: ['English, Hindi, Tamil', 'AI validation', 'Timeline progress'] },
+  { emoji: '✍️', title: 'My Writing', desc: "Kids write their own stories. Glumbi reads them and gives kind, specific feedback — never harsh, always encouraging.", grad: 'linear-gradient(135deg,#fa709a,#fee140)', tag: 'Creative writing', highlights: ['AI coach', 'Kind feedback', '"What happens next?"'] },
+  // ── Daily habits ──────────────────────────────────────────────────────────
+  { emoji: '📓', title: 'Journal', desc: "A private space for your child to write about their day — with mood tracking and an AI writing spark when they need inspiration. Journal entries are never sent to any AI.", grad: 'linear-gradient(135deg,#f6d365,#fda085)', tag: 'My thoughts', highlights: ['Mood tracking', 'AI writing spark', 'Always private'] },
+  // ── Creative play ─────────────────────────────────────────────────────────
+  { emoji: '🎨', title: 'Draw', desc: 'A free canvas to draw anything. Tap "Bring to Life" and Glumbi AI animates your drawing — bees fly, flowers wiggle, rockets launch! Save and resume any drawing anytime.', grad: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', tag: 'Creative play', highlights: ['Free canvas', 'AI animations', 'Save & resume'] },
+  { emoji: '🎬', title: 'Flipbook Studio', desc: 'Draw frame by frame and watch your creation come alive as a real animation. Save, resume, and download your movie anytime!', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Animation', highlights: ['Frame-by-frame', 'Save & resume', 'Download movie'] },
+  { emoji: '🎯', title: 'Activities', desc: '"What should we do right now?" Pick the time of day and weather, and Glumbi suggests 3 fun, personalised things for your child to do — indoors or out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'What to do now', highlights: ['Time & weather aware', 'Personalised ideas', 'Swap any suggestion'] },
+  // ── Games ─────────────────────────────────────────────────────────────────
+  { emoji: '🧠', title: 'Memory & Words', desc: 'Generate flashcard sets on any topic, match emoji pairs in a memory game, and discover a new word every day — all personalised to your child.', grad: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', tag: 'Brain games', highlights: ['Flashcards', 'Memory match', 'Word of the day'] },
+  { emoji: '🌀', title: 'Maze Adventure', desc: 'Solve a riddle to unlock an AI-themed adventure maze — fox through the forest, bee to the flower, rocket to the moon! Only one path leads to the goal.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Problem solving', highlights: ['Riddle unlock', 'Age-adaptive', 'AI adventure'] },
+  { emoji: '🧩', title: 'Riddles', desc: 'Glumbi AI crafts age-perfect riddles and your child types the answer. With hints, celebrations, and 5 new riddles every round — the fun never runs out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Brain teasers', highlights: ['Age-adaptive', 'Hints system', 'AI-generated'] },
+  // ── Platform & trust ──────────────────────────────────────────────────────
   { emoji: '🔐', title: 'Parental Lock', desc: 'Set a PIN and a time limit before handing over the device. Kids can snooze — but parents always stay in control.', grad: 'linear-gradient(135deg,#667eea,#764ba2)', tag: 'Screen time', highlights: ['PIN + timer', 'Snooze control', 'No app needed'] },
   { emoji: '🌍', title: '12 Languages', desc: 'Stories narrated in English, Spanish, French, Hindi, Tamil, and more — in warm, natural WaveNet voices.', grad: 'linear-gradient(135deg,#f7971e,#ffd200)', tag: 'Multilingual', highlights: ['12 languages', '4 English accents', 'Male & female voices'] },
   { emoji: '🎙️', title: 'Your Voice', desc: "Record your own voice — or a grandparent's. Every story narrated by someone your child loves.", grad: 'linear-gradient(135deg,#11998e,#38ef7d)', tag: 'Custom voices', highlights: ['Record in browser', 'Up to 5 voices', 'All languages'] },
-  { emoji: '🌀', title: 'Maze Adventure', desc: 'Navigate winding corridors with dead ends and wrong turns — only one path leads to the goal! Mazes grow more complex as your child gets older.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Problem solving', highlights: ['Dead-end detection', 'Age-adaptive', 'AI themes'] },
-  { emoji: '🧩', title: 'Riddles', desc: 'Glumbi AI crafts age-perfect riddles and your child types the answer. With hints, celebrations, and 5 new riddles every round — the fun never runs out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Brain teasers', highlights: ['Age-adaptive', 'Hints system', 'AI-generated'] },
 ]
 
 /* ── Feature Carousel ── */
@@ -432,7 +440,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 780, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '4px 16px', fontSize: 11, fontWeight: 800, marginBottom: 14, letterSpacing: 0.5 }}>
-              10 FEATURES
+              12 FEATURES
             </div>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(24px,4vw,38px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
               Everything your child needs to thrive 🌱

@@ -46,6 +46,8 @@ public class AdminController {
     private final FlashcardSetRepository        flashcardSetRepo;
     private final WordOfDayRepository           wordOfDayRepo;
     private final MemoryMatchRepository         memoryMatchRepo;
+    private final DrawSaveRepository            drawSaveRepo;
+    private final FlipbookSaveRepository        flipbookSaveRepo;
     private final AiUsageLogRepository          usageLogRepo;
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
     private final com.glumbi.service.ResendClient     resendClient;
@@ -106,6 +108,8 @@ public class AdminController {
         featureUsage.put("Flashcards",    flashcardSetRepo.countByCreatedAtAfter(since));
         featureUsage.put("Word of Day",   wordOfDayRepo.countByCreatedAtAfter(since));
         featureUsage.put("Memory Match",  memoryMatchRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Draw",          drawSaveRepo.countByCreatedAtAfter(since));
+        featureUsage.put("Flipbook",      flipbookSaveRepo.countByCreatedAtAfter(since));
 
         // Quiz score distribution — filtered by selected range
         Map<String, Long> quizScores = new LinkedHashMap<>();

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DrawSaveRepository extends JpaRepository<DrawSave, Long> {
@@ -12,4 +13,5 @@ public interface DrawSaveRepository extends JpaRepository<DrawSave, Long> {
     Page<DrawSave> findByChildIdOrderByUpdatedAtDesc(Long childId, Pageable pageable);
     long countByChildId(Long childId);
     void deleteByChildId(Long childId);
+    long countByCreatedAtAfter(LocalDateTime since);
 }

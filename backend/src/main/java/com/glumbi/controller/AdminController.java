@@ -520,7 +520,7 @@ public class AdminController {
 
     @PostMapping("/consent-backfill/send")
     public ResponseEntity<?> sendConsentBackfill() {
-        List<AppUser> targets = userRepo.findUsersWithChildrenAndNoConsent();
+        List<AppUser> targets = userRepo.findUsersWithNoConsent();
         int sent    = 0;
         int skipped = 0;
 

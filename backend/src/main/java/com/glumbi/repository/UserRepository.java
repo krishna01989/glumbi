@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
 
     // All regular users who have not yet given consent — used for DPDP backfill
     @Query("SELECT u FROM AppUser u WHERE u.role = 'USER' AND u.consentGiven = false AND u.onHold = false")
-    List<AppUser> findUsersWithChildrenAndNoConsent();
+    List<AppUser> findUsersWithNoConsent();
 
     @Query("SELECT COUNT(u) FROM AppUser u WHERE u.role = 'USER' AND u.id NOT IN (SELECT c.owner.id FROM Child c)")
     long countUsersWithNoChildren();

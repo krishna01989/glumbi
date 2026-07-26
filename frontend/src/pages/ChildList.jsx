@@ -510,6 +510,9 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   const [pendingChild, setPendingChild] = useState(null)
   const [showCreditInfo, setShowCreditInfo] = useState(false)
   const [showParentGuide, setShowParentGuide] = useState(() => !localStorage.getItem('glm_parent_guide_seen'))
+  const [dismissedGrownUp, setDismissedGrownUp] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('glm_grownup_dismissed') || '[]') } catch { return [] }
+  })
   // Carousel state
   const [activeIdx, setActiveIdx] = useState(0)
   const [animDir, setAnimDir]     = useState(1)
@@ -518,6 +521,15 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   const touchStartY = useRef(null)
 
   const navigate = useNavigate()
+
+  // Children who have aged past 10 and haven't been dismissed
+  const grownUpChildren = children.filter(c => calcAge(c.birthYear) > 10 && !dismissedGrownUp.includes(c.id))
+
+  function dismissGrownUp(childId) {
+    const next = [...dismissedGrownUp, childId]
+    setDismissedGrownUp(next)
+    localStorage.setItem('glm_grownup_dismissed', JSON.stringify(next))
+  }
 
   // Total slides = children + 1 (add new)
   const totalSlides = children.length + 1
@@ -716,6 +728,17 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
           </div>
         ) : (
           <>
+            {/* ── Grown-up nudge banners ── */}
+            {grownUpChildren.map(c => (
+              <div key={c.id} style={{ width: '100%', maxWidth: 480, marginBottom: 16, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, animation: 'glm-fadein 0.4s ease both' }}>
+                <span style={{ fontSize: 22, flexShrink: 0 }}>🎓</span>
+                <p style={{ margin: 0, color: 'white', fontSize: 13, lineHeight: 1.5, flex: 1 }}>
+                  🎉 <strong>{c.name}</strong> has graduated from Glumbi University! They've turned {calcAge(c.birthYear)} — our adventures are built for ages 1–10, so they may have outgrown some features. Congrats, superstar! 🌟
+                </p>
+                <button onClick={() => dismissGrownUp(c.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: 18, cursor: 'pointer', padding: '0 4px', flexShrink: 0, lineHeight: 1 }}>✕</button>
+              </div>
+            ))}
+
             {/* ── Header ── */}
             <div style={{ textAlign: 'center', marginBottom: 40, animation: 'glm-fadein 0.4s ease both' }}>
               <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: 3, marginBottom: 8 }}>Glumbi</div>

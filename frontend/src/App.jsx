@@ -251,7 +251,7 @@ export default function App() {
 
   // ── Hooks ──
   const auth = useAuth({ addToast })
-  const { authed, role, restoring, setRestoring, quota, featureConfig, consentGiven, setConsentGiven, handleAuth, logoutAuth } = auth
+  const { authed, role, restoring, setRestoring, quota, featureConfig, consentGiven, setConsentGiven, consentLoaded, handleAuth, logoutAuth } = auth
 
   const session = useChildSession({ authed, role, featureConfig, setRestoring, quota })
   const { child, setChild, offlineMode, sidebarWotd, prevChildId, handleChildSelected, handleThemeChange, toggleOffline, resetChild } = session
@@ -368,7 +368,7 @@ export default function App() {
     }
     return (
       <ManagementLayout lockModalEl={lockModalEl} quota={quota} handleLogout={handleLogout}>
-        {!consentGiven && location.pathname === '/child' && (
+        {role === 'USER' && consentLoaded && !consentGiven && location.pathname === '/child' && (
           <ConsentModal onAccept={onConsentAccept} />
         )}
         <Routes>
@@ -397,7 +397,7 @@ export default function App() {
     <ThemeContext.Provider value={theme}>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
-      {authed && role !== 'ADMIN' && !consentGiven && (
+      {authed && role === 'USER' && consentLoaded && !consentGiven && (
         <ConsentModal onAccept={() => {
           userApi.recordConsent().then(() => setConsentGiven(true)).catch(() => {})
           setConsentGiven(true)

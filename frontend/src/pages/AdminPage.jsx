@@ -2677,7 +2677,7 @@ function Compliance() {
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '24px 24px 20px', marginBottom: 24 }}>
         <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e', marginBottom: 6 }}>Parent Consent Notice — Backfill Email</div>
         <p style={{ fontSize: 13, color: '#555', lineHeight: 1.6, marginBottom: 16 }}>
-          Sends a dedicated parent data notice email to all accounts that have at least one child profile but have not yet recorded parental consent.
+          Sends a dedicated parent data notice email to all accounts that have not yet recorded parental consent.
           Safe to run multiple times — already-consented users are excluded automatically.
         </p>
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', marginBottom: 18, lineHeight: 1.6 }}>

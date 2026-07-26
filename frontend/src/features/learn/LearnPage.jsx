@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { hasSeen, markSeen } from '../../utils/seen'
 import { learnApi } from '../../api/client'
 import QuotaBanner from '../../components/QuotaBanner'
 import ThemeLoader from '../../components/ThemeLoader'
@@ -1281,6 +1282,7 @@ const SCRIPT_CATS = {
 export default function LearnPage({ child, quota }) {
   const { track } = useTracker()
   useFeatureDuration('learn', track)
+  const [showIntro, setShowIntro] = useState(() => !hasSeen('learn'))
   const [script,    setScript]    = useState('tamil')
   const [mode,      setMode]      = useState('letters')   // 'letters' | 'words'
   const [catKey,    setCatKey]    = useState('vowels')
@@ -1462,6 +1464,56 @@ export default function LearnPage({ child, quota }) {
         </>
       )}
       </div>
+
+      {/* ── First-visit intro popup ── */}
+      {showIntro && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, animation: 'fadeIn 0.3s ease',
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 28, padding: '40px 44px',
+            maxWidth: 480, width: '90%', textAlign: 'center',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+          }}>
+            <div style={{ fontSize: 56 }}>✍️</div>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, margin: '12px 0 6px', color: 'var(--primary)' }}>
+              Learn to Write
+            </h2>
+            <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, margin: '0 0 28px' }}>
+              Practise writing letters and words in multiple scripts! Here's how:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left', marginBottom: 30 }}>
+              {[
+                { icon: '🌐', step: '1. Pick a script', desc: 'Choose from Tamil, Hindi, English, Malayalam, Kannada, or Telugu' },
+                { icon: '🔤', step: '2. Select a letter or word', desc: 'Tap any letter or word to see how it looks and hear it spoken aloud' },
+                { icon: '✏️', step: '3. Trace & get feedback', desc: 'Draw it on the canvas — the AI will check your handwriting and encourage you!' },
+              ].map(({ icon, step, desc }) => (
+                <div key={step} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: '#333' }}>{step}</div>
+                    <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => { markSeen('learn'); setShowIntro(false) }}
+              style={{
+                padding: '14px 40px', borderRadius: 50, fontSize: 16, fontWeight: 800,
+                background: 'linear-gradient(135deg,var(--primary),var(--accent))',
+                color: 'white', border: 'none', cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              }}>
+              Let's Write! 🚀
+            </button>
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+      `}</style>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { hasSeen, markSeen } from '../../utils/seen'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { flipbookSaveApi } from '../../api/client'
@@ -277,6 +278,7 @@ export default function FlipbookStudio({ child, quota }) {
   const [flipbookSavesLoading, setFlipbookSavesLoading] = useState(false)
   const [currentSaveId, setCurrentSaveId] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [showIntro, setShowIntro] = useState(() => !hasSeen('flip'))
   const [flipbookTitle, setFlipbookTitle] = useState('')
 
   function fetchFlipbookSaves(page, replace = false) {
@@ -2426,6 +2428,7 @@ export default function FlipbookStudio({ child, quota }) {
     </HistoryDrawer>
 
     <style>{`
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
       @keyframes fbShake {
         0%,100% { transform: translate(0,0); }
         15%      { transform: translate(-9px, 2px); }
@@ -2454,6 +2457,53 @@ export default function FlipbookStudio({ child, quota }) {
         to   { transform: rotate(360deg) scale(0.94); }
       }
     `}</style>
+
+      {/* ── First-visit intro popup ── */}
+      {showIntro && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, animation: 'fadeIn 0.3s ease',
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 28, padding: '40px 44px',
+            maxWidth: 480, width: '90%', textAlign: 'center',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+          }}>
+            <div style={{ fontSize: 56 }}>🎬</div>
+            <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 26, margin: '12px 0 6px', color: 'var(--primary)' }}>
+              Flipbook Studio
+            </h2>
+            <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, margin: '0 0 28px' }}>
+              Create your own animated flipbook! Here's how it works:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left', marginBottom: 30 }}>
+              {[
+                { icon: '🖌️', step: '1. Draw frame by frame', desc: 'Each frame is one drawing — see a ghost of the previous frame to trace over!' },
+                { icon: '➕', step: '2. Add more frames', desc: 'Tap the + button to add a new frame and keep drawing' },
+                { icon: '▶️', step: '3. Play your animation!', desc: 'Hit Play to watch all your frames come to life as an animation' },
+              ].map(({ icon, step, desc }) => (
+                <div key={step} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: 28, flexShrink: 0 }}>{icon}</span>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: '#333' }}>{step}</div>
+                    <div style={{ fontSize: 13, color: '#888', marginTop: 2 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => { markSeen('flip'); setShowIntro(false) }}
+              style={{
+                padding: '14px 40px', borderRadius: 50, fontSize: 16, fontWeight: 800,
+                background: 'linear-gradient(135deg,var(--primary),var(--accent))',
+                color: 'white', border: 'none', cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              }}>
+              Let's Animate! 🚀
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }

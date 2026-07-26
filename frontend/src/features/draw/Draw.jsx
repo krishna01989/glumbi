@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
+import { hasSeen, markSeen } from '../../utils/seen'
 import { drawApi, drawSaveApi } from '../../api/client'
 import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
 import { useOffline } from '../../contexts/OfflineContext'
@@ -104,7 +105,7 @@ export default function Draw({ child, quota, featureConfig }) {
   const [guideSubject, setGuideSubject] = useState('')
   const [guideInput, setGuideInput]     = useState('')
   const [guideLoading, setGuideLoading] = useState(false)
-  const [showDemo, setShowDemo]   = useState(() => !localStorage.getItem('glm_draw_seen'))
+  const [showDemo, setShowDemo]   = useState(() => !hasSeen('draw'))
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [viewport, setViewport]   = useState({ vw: window.innerWidth, vh: window.innerHeight })
 
@@ -2130,7 +2131,7 @@ export default function Draw({ child, quota, featureConfig }) {
                 </div>
               ))}
             </div>
-            <button onClick={() => { localStorage.setItem('glm_draw_seen', '1'); setShowDemo(false) }}
+            <button onClick={() => { markSeen('draw'); setShowDemo(false) }}
               style={{
                 padding: '14px 40px', borderRadius: 50, fontSize: 16, fontWeight: 800,
                 background: 'linear-gradient(135deg,var(--primary),var(--accent))',

@@ -72,9 +72,9 @@ public class TextToSpeechService {
 
         record V(String code, String name, SsmlVoiceGender gender) {}
         V v = switch (language == null ? "" : language.toLowerCase()) {
-            // Indian — Neural2 where available, Standard fallback for others
-            case "tamil"     -> new V("ta-IN", "ta-IN-Neural2-A",  SsmlVoiceGender.FEMALE);
-            case "hindi"     -> new V("hi-IN", "hi-IN-Neural2-B",  SsmlVoiceGender.FEMALE);
+            // Indian — Wavenet where available, Standard fallback (Neural2 not available for any ta/hi/ml/te/kn voices)
+            case "tamil"     -> new V("ta-IN", "ta-IN-Wavenet-A",  SsmlVoiceGender.FEMALE);
+            case "hindi"     -> new V("hi-IN", "hi-IN-Wavenet-A",  SsmlVoiceGender.FEMALE);
             case "malayalam" -> new V("ml-IN", "ml-IN-Wavenet-A",  SsmlVoiceGender.FEMALE);
             case "telugu"    -> new V("te-IN", "te-IN-Standard-A", SsmlVoiceGender.FEMALE);
             case "kannada"   -> new V("kn-IN", "kn-IN-Standard-A", SsmlVoiceGender.FEMALE);

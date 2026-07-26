@@ -1282,8 +1282,9 @@ const SCRIPT_CATS = {
 export default function LearnPage({ child, quota }) {
   const { track } = useTracker()
   useFeatureDuration('learn', track)
-  const [showIntro, setShowIntro] = useState(() => !hasSeen('learn'))
-  const [script,    setScript]    = useState('tamil')
+  const [showIntro,      setShowIntro]      = useState(() => !hasSeen('learn'))
+  const [showLangPicker, setShowLangPicker] = useState(false)
+  const [script,         setScript]         = useState('tamil')
   const [mode,      setMode]      = useState('letters')   // 'letters' | 'words'
   const [catKey,    setCatKey]    = useState('vowels')
   const [selected,  setSelected]  = useState(null)
@@ -1366,34 +1367,50 @@ export default function LearnPage({ child, quota }) {
       <div style={{ marginTop: 6 }}>
       <QuotaBanner quota={quota} />
 
-      {/* Language selector — 2-row grid for 6 languages */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6, marginBottom:8 }}>
-          {Object.entries(LANG_CONFIG).map(([k, cfg]) => (
-            <button key={k} onClick={() => { setScript(k); setMode('letters') }}
-              style={{ padding:'8px 6px', borderRadius:12, border:'none', fontSize:12, fontWeight:800,
-                cursor:'pointer', fontFamily:'Nunito,sans-serif', textAlign:'center',
-                background: script===k ? 'var(--primary)' : '#f5f5f5',
-                color: script===k ? 'white' : '#666',
-                boxShadow: script===k ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
-                transition:'all 0.15s',
-                display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
-              <span style={{ fontSize:18 }}>{cfg.flag}</span>
-              <span>{cfg.label}</span>
-              <span style={{ fontSize:10, fontFamily: cfg.font, opacity: script===k ? 0.9 : 0.5, fontWeight:400 }}>{cfg.nativeLabel}</span>
-            </button>
-          ))}
+      {/* Language selector — compact chip, expands to picker on demand */}
+      <div style={{ marginBottom:14 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom: showLangPicker ? 10 : 0 }}>
+          {/* Current language chip */}
+          <button onClick={() => setShowLangPicker(v => !v)}
+            style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 14px 6px 10px',
+              borderRadius:50, border:'none', cursor:'pointer', fontFamily:'Nunito,sans-serif',
+              background:'var(--primary)', color:'white', fontWeight:800, fontSize:13,
+              boxShadow:'0 2px 8px rgba(0,0,0,0.15)', transition:'all 0.15s', flexShrink:0 }}>
+            <span style={{ fontSize:20, lineHeight:1 }}>{LANG_CONFIG[script].flag}</span>
+            <span>{LANG_CONFIG[script].label}</span>
+            <span style={{ fontSize:10, opacity:0.75, marginLeft:2 }}>{showLangPicker ? '▲' : '▼'}</span>
+          </button>
+
+          {/* Mode toggle */}
+          <button onClick={() => setMode(mode==='words' ? 'letters' : 'words')}
+            style={{ padding:'6px 14px', borderRadius:50, fontSize:13, fontWeight:800, cursor:'pointer',
+              fontFamily:'Nunito,sans-serif', flexShrink:0,
+              border:`1.5px solid ${mode==='words' ? 'var(--primary)' : '#ddd'}`,
+              background: mode==='words' ? 'var(--primary-lt)' : 'white',
+              color: mode==='words' ? 'var(--primary)' : '#999' }}>
+            ✍️ Words
+          </button>
         </div>
 
-        {/* Mode toggle */}
-        <button onClick={() => setMode(mode==='words' ? 'letters' : 'words')}
-          style={{ padding:'8px 20px', borderRadius:50, fontSize:13, fontWeight:800, cursor:'pointer',
-            fontFamily:'Nunito,sans-serif',
-            border:`1.5px solid ${mode==='words' ? 'var(--primary)' : '#ddd'}`,
-            background: mode==='words' ? 'var(--primary-lt)' : 'white',
-            color: mode==='words' ? 'var(--primary)' : '#999' }}>
-          ✍️ Write a word
-        </button>
+        {/* Expanded picker — only visible when open, any number of languages */}
+        {showLangPicker && (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+            {Object.entries(LANG_CONFIG).map(([k, cfg]) => (
+              <button key={k}
+                onClick={() => { setScript(k); setMode('letters'); setShowLangPicker(false) }}
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px',
+                  borderRadius:50, border:'none', cursor:'pointer', fontFamily:'Nunito,sans-serif',
+                  fontWeight:800, fontSize:13, transition:'all 0.15s',
+                  background: script===k ? 'var(--primary-lt)' : '#f5f5f5',
+                  color: script===k ? 'var(--primary)' : '#666',
+                  outline: script===k ? '2px solid var(--primary)' : 'none',
+                  outlineOffset: 1 }}>
+                <span style={{ fontSize:18 }}>{cfg.flag}</span>
+                <span>{cfg.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* English style toggles */}
@@ -1429,21 +1446,46 @@ export default function LearnPage({ child, quota }) {
         <WordMode script={script} child={child} quota={quota} />
       ) : (
         <>
-          {/* Category tabs */}
-          <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
-            {cats.map(c => (
-              <button key={c.key} onClick={() => setCatKey(c.key)}
-                style={{ padding:'7px 14px', borderRadius:50, fontSize:13, fontWeight:700, fontFamily:'Nunito,sans-serif',
-                  border: catKey===c.key ? 'none' : '1.5px solid #eee',
-                  background: catKey===c.key ? 'var(--primary-lt)' : 'white',
-                  color: catKey===c.key ? 'var(--primary)' : '#888', cursor:'pointer' }}>
-                {c.label}
+          {selected ? (
+            /* ── Collapsed picker: selected letter chip + Change button ── */
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, flexWrap:'wrap' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, background:'var(--primary-lt)',
+                borderRadius:50, padding:'6px 16px 6px 10px', flexShrink:0 }}>
+                <span style={{ fontSize:22, fontFamily: cat.font || 'Nunito, sans-serif', lineHeight:1 }}>
+                  {selected.char}
+                </span>
+                {selected.roman && (
+                  <span style={{ fontSize:12, fontWeight:700, color:'var(--primary)', opacity:0.7 }}>
+                    {selected.roman}
+                  </span>
+                )}
+                <span style={{ width:1, height:16, background:'var(--primary)', opacity:0.2 }} />
+                <span style={{ fontSize:12, fontWeight:700, color:'var(--primary)' }}>
+                  {cat.label}
+                </span>
+              </div>
+              <button onClick={() => setSelected(null)}
+                style={{ padding:'6px 16px', borderRadius:50, fontSize:13, fontWeight:800,
+                  fontFamily:'Nunito,sans-serif', cursor:'pointer',
+                  border:'1.5px solid #ddd', background:'white', color:'#666' }}>
+                ← Change letter
               </button>
-            ))}
-          </div>
+            </div>
+          ) : (
+            /* ── Expanded picker: category tabs + letter grid ── */
+            <>
+              <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+                {cats.map(c => (
+                  <button key={c.key} onClick={() => setCatKey(c.key)}
+                    style={{ padding:'7px 14px', borderRadius:50, fontSize:13, fontWeight:700, fontFamily:'Nunito,sans-serif',
+                      border: catKey===c.key ? 'none' : '1.5px solid #eee',
+                      background: catKey===c.key ? 'var(--primary-lt)' : 'white',
+                      color: catKey===c.key ? 'var(--primary)' : '#888', cursor:'pointer' }}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
 
-          <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
-            <div>
               {cat.compoundTable ? (
                 <ScriptCompoundTable
                   compoundTable={cat.compoundTable} vowels={cat.vowels}
@@ -1454,12 +1496,12 @@ export default function LearnPage({ child, quota }) {
                   pulli={cat.key === 'consonants' ? langCfg.virama || null : null}
                   engFontFamily={isEng ? engFontFamily : null} />
               )}
-            </div>
+            </>
+          )}
 
-            <div>
-              <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota}
-                engFontFamily={isEng ? engFontFamily : null} />
-            </div>
+          <div style={{ marginTop: selected ? 0 : 24 }}>
+            <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota}
+              engFontFamily={isEng ? engFontFamily : null} />
           </div>
         </>
       )}

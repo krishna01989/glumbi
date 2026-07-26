@@ -282,10 +282,20 @@ public class LearnController {
                 default          -> "english";
             };
             String cacheKey = text.toLowerCase().trim() + ":" + lang;
-            byte[] audio = audioCache.get(cacheKey, k -> {
-                try { return ttsService.synthesize(text, lang); }
-                catch (Exception e) { throw new RuntimeException(e); }
-            });
+
+            byte[] audio = audioCache.getIfPresent(cacheKey);
+            if (audio == null) {
+                try {
+                    audio = ttsService.synthesize(text, lang);
+                } catch (Exception first) {
+                    // Stale gRPC channel after server idle — wait for the channel to reconnect
+                    // before retrying; an immediate retry hits the same broken channel.
+                    try { Thread.sleep(1500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    audio = ttsService.synthesize(text, lang);
+                }
+                audioCache.put(cacheKey, audio);
+            }
+
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
                     .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")

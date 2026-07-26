@@ -31,20 +31,6 @@ export default function LegalLayout({ title, updated, children, inApp = false })
     <div style={{ background: 'white', minHeight: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif', color: '#3d3d3d' }}>
       <div style={{ maxWidth: 520, margin: `${inApp ? '0' : '24px'} auto`, padding: '0 16px', boxSizing: 'border-box' }}>
 
-        {/* Back button */}
-        <button onClick={() => navigate(-1)}
-          onMouseEnter={e => { e.currentTarget.style.background = accentLight; e.currentTarget.style.transform = 'translateX(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-          style={{
-            background: 'transparent', border: `1.5px solid ${accentBorder}`, color: accent,
-            fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            transition: 'all 0.15s ease',
-          }}>
-          ← Back
-        </button>
-
         {/* Hero banner */}
         <div style={{
           background: meta.grad, borderRadius: 20, padding: '24px 24px 20px',

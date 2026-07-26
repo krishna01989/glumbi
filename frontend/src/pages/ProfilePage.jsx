@@ -215,21 +215,6 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
 
   return (
     <div style={{ maxWidth: 520, margin: `${parentOnly ? '24px' : '0px'} auto`, padding: '0 16px', fontFamily: 'Nunito, sans-serif' }}>
-      {parentOnly && (
-        <button onClick={onBack}
-          onMouseEnter={e => { e.currentTarget.style.background = accentLight; e.currentTarget.style.transform = 'translateX(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-          style={{
-            background: 'transparent', border: `1.5px solid ${accentBorder}`, color: accent,
-            fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            transition: 'all 0.15s ease',
-          }}>
-          ← Back
-        </button>
-      )}
-
       {/* Hero header */}
       <div style={{
         background: btnGrad, borderRadius: 20, padding: '28px 28px 24px',

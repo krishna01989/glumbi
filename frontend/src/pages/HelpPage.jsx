@@ -353,20 +353,6 @@ export default function HelpPage() {
     <div style={{ background: 'white', minHeight: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
       <div style={{ maxWidth: 520, margin: '24px auto', padding: '0 16px', boxSizing: 'border-box' }}>
 
-        {/* Back button */}
-        <button onClick={() => navigate(-1)}
-          onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-lt)'; e.currentTarget.style.transform = 'translateX(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-          style={{
-            background: 'transparent', border: '1.5px solid var(--primary-lt)', color: 'var(--primary)',
-            fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            transition: 'all 0.15s ease',
-          }}>
-          ← Back
-        </button>
-
         {/* Hero banner */}
         <div style={{
           background: 'linear-gradient(135deg,#f7971e,#ffd200)',

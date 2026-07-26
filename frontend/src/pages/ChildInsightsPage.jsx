@@ -442,16 +442,7 @@ export default function ChildInsightsPage() {
 
   return (
     <div style={{ background: 'white', minHeight: '100vh', fontFamily: 'Nunito, sans-serif', color: '#3d3d3d' }}>
-      <div style={{ maxWidth: 520, margin: '0 auto', padding: '0 16px', boxSizing: 'border-box' }}>
-
-        {/* Back button */}
-        <button
-          onClick={() => navigate('/child')}
-          onMouseEnter={e => { e.currentTarget.style.background = t.primaryLt; e.currentTarget.style.transform = 'translateX(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-          style={{ background: 'transparent', border: `1.5px solid ${t.primaryLt || '#f0e0ff'}`, color: t.primary, fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '6px 14px', marginBottom: 20, marginTop: 24, borderRadius: 50, display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.15s ease' }}>
-          ← Back
-        </button>
+      <div style={{ maxWidth: 520, margin: '0 auto', padding: '24px 16px 0', boxSizing: 'border-box' }}>
 
         {/* Hero banner */}
         {child && (

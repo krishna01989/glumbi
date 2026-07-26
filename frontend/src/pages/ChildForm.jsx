@@ -136,21 +136,6 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
 
   return (
     <div style={{ maxWidth: 520, margin: `${inChildContext ? '0' : '24px'} auto`, padding: '0 16px', fontFamily: 'Nunito, sans-serif' }}>
-      {!inChildContext && (
-        <button onClick={() => navigate('/child')}
-          onMouseEnter={e => { e.currentTarget.style.background = primaryLt; e.currentTarget.style.transform = 'translateX(-2px)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'none' }}
-          style={{
-            background: 'transparent', border: `1.5px solid ${primary}44`, color: primary,
-            fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            padding: '6px 14px', marginBottom: 20, borderRadius: 50,
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            transition: 'all 0.15s ease',
-          }}>
-          ← Back
-        </button>
-      )}
-
       {/* Hero banner */}
       <div style={{
         background: headerGrad, borderRadius: 20, padding: '28px 28px 24px',

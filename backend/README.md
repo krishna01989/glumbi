@@ -466,6 +466,7 @@ All emails sent via `ResendClient` (fire-and-forget WebClient). `send()` uses 5s
 | `account-deleted-by-admin.html` | Admin deletes a user | `AdminController.deleteUser` — email captured before deletion |
 | `account-deleted-self.html` | User deletes own account | `UserController.deleteAccount` — email captured before deletion |
 | `announcement.html` | Admin broadcast to all app users | `AdminController.POST /api/admin/announcements/send` — batched via `sendBatch()` in `CompletableFuture.runAsync()`; returns `{ queued: N }` immediately. Only sent to users with `marketingEmailsEnabled = true`. |
+| `parent-notice.html` | Admin-triggered DPDP consent backfill | `AdminController.POST /api/admin/consent-backfill/send` — sent to all non-admin, non-consented, non-suspended users (`findUsersWithNoConsent()`). Safe to re-run. Run history stored in `AppSetting` key `"compliance.consent-backfill.history"`. |
 
 ---
 
@@ -486,6 +487,10 @@ Schema is managed by JPA `ddl-auto: update` — tables are created/altered autom
 `AiUsageLog` — permanent audit trail; one row per credit deduction with `user_id`, `child_id` (nullable), `feature_name`, `credits_used`, `used_at`. Never deleted on quota reset. Indexed on `(user_id, used_at)` and `(child_id, used_at)`. Admin dashboard and per-child breakdown read from this table so reset does not zero displayed totals.
 
 > **Quota design:** `AppUser.monthlyApiCalls` is used for fast enforcement (incremented on every `tryConsume`). `AiUsageLog` is the source of truth for display — parent credit header reads the counter (reflects resets), admin dashboard and per-child breakdown read the log (permanent history).
+
+> **Consent gate:** `ApiQuotaService.consumeCredits` blocks any AI credit deduction if `user.isConsentGiven() == false`. Admins and super-admins are exempt. This is the single enforcement point — all AI features funnel through it.
+
+> **Account deletion:** `AccountDeletionService` handles the full FK-safe deletion chain. `ChildActivityEvent` and `AiUsageLog` rows are anonymised (PII nulled) rather than deleted to preserve platform analytics. See `AccountDeletionService.java` for the per-child and per-user ordering.
 
 > **New user quota:** `quotaLimit` is set to the current global default at registration time (not 0). Users without a personal override inherit the default stored at signup; changing the global default only affects future signups. To migrate existing users: `UPDATE app_user SET quota_limit = <new> WHERE quota_limit = <old>`.
 

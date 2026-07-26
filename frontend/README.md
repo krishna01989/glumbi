@@ -280,6 +280,14 @@ An interactive companion layer woven into Stories, Read & Quiz, and Curiosity. A
 - While inside a child session, the child can extend time N times (configured per child via `maxSnoozeCount`)
 - Once all snoozes are used up: locked session → shows PIN unlock modal (forced, no Cancel); unlocked session → navigates back to child list
 
+### Parental Consent Modal (`ConsentModal`)
+
+- Shown when `!consentGiven && location.pathname === '/child'` inside the management layout — fires for all users (with or without children) on first landing at the child list.
+- `consentGiven` defaults to `false`; `useAuth.js` `handleAuth` is async — fetches `GET /api/users/profile` and resolves `consentGiven` from the server **before** `setAuthed(true)` to prevent a flash of the wrong state for Google-federated users.
+- Freely accessible without consent: Profile, Help, Privacy, Terms — only `/child` is gated.
+- On accept: calls `PATCH /api/users/me/consent { consentGiven: true }`, sets local state, modal closes.
+- `AuthPage.jsx` register tab — Google sign-in also requires the data-notice checkbox to be ticked before the OAuth flow begins.
+
 ### Authentication
 
 - JWT token stored in `localStorage` as `glm_token`
@@ -371,6 +379,7 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 - **Feature Credits**: enable/disable features globally, set per-feature credit costs. `FEATURE_META` map at the bottom of `AdminPage.jsx` drives the credits tab — new features must be added here as well as `FEATURE_DISPLAY_MAP` (used by the user feature override modal).
 - **Scheduler History**: live run history — RUNNING ⏳ / SUCCESS ✅ / FAILED ❌, timestamps, duration, agents ran/skipped, errors.
 - **Announcements**: compose and broadcast a rich-text email to all app users. Rich-text editor (`contenteditable`) with a floating selection toolbar (B / I / U / H2 / H3 / link / strikethrough) that appears on text selection — horizontal on wide screens, vertical on narrow. Bottom insert bar for bullet list, numbered list, and divider rule (no selection needed). Live preview panel mirrors `announcement.html` exactly (same padding, font sizes, logo, footer). On mobile the preview is hidden behind a toggle button. Calls `POST /api/admin/announcements/send`; returns `{ queued: N }` immediately while batches send in the background.
+- **Compliance**: send DPDP/COPPA consent backfill emails to all non-consented accounts. Send button + refresh button, inline result message, run history table (columns: Run at UTC, Emails sent, Skipped, Result). History loads on mount and auto-refreshes after send. Calls `POST /api/admin/consent-backfill/send` and `GET /api/admin/consent-backfill/history`.
 - **Admin profile** (`/admin/profile` → `AdminProfilePage.jsx`): separate page with dark indigo theme, no voice/theming features. Email fetched from `GET /api/users/profile` (not localStorage). Change password + two-step delete account. Super admins see a note that another super admin must exist before self-delete.
 
 ### Analytics — Activity Tracking

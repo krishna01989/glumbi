@@ -172,6 +172,7 @@ Guards: admins cannot touch other admin or super admin accounts. Super admins ca
 | ⚙️ **Feature Credits** | Enable/disable features globally and set per-feature credit costs. Budget simulator shows how a usage mix maps to credits. |
 | 🕒 **Schedulers** | Manually trigger background jobs. Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
 | 📣 **Announcements** | Compose and broadcast a rich-text email to all app users. Rich-text editor with floating selection toolbar and live email preview. Sent in background batches of 100 via Resend. |
+| 🛡️ **Compliance** | Trigger DPDP/COPPA consent backfill — sends a parent data notice email to all non-consented accounts. Safe to re-run; already-consented users are excluded. Run history table shows timestamp, emails sent, skipped, and result. |
 
 ---
 

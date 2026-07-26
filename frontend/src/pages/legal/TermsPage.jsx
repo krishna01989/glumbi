@@ -8,10 +8,12 @@ export default function TermsPage({ inApp = false }) {
       <h2>1. About Glumbi</h2>
       <p>Glumbi is an AI-powered children's storytelling and activity platform. It is intended for use by parents and caregivers to enrich the learning and imaginative development of young children aged 1–10.</p>
 
-      <h2>2. Eligibility</h2>
+      <h2>2. Eligibility and parental consent</h2>
       <ul>
         <li>You must be at least 18 years old to create an account.</li>
         <li>By registering, you confirm that you are the parent or legal guardian of any child whose name and profile you add to the app.</li>
+        <li>Before any child data is processed, you must provide explicit parental consent as required by the <strong>Digital Personal Data Protection Act 2023 (DPDP Act, India)</strong> and <strong>COPPA (USA)</strong>. This consent is recorded with a timestamp and policy version in our database.</li>
+        <li>You may withdraw consent at any time from Profile → Privacy &amp; Data → Withdraw Parental Consent. Withdrawal immediately stops all AI processing for your children.</li>
         <li>Glumbi is not intended to be used directly by children without parental supervision.</li>
       </ul>
 
@@ -76,8 +78,9 @@ export default function TermsPage({ inApp = false }) {
       <h2>11. Limitation of liability</h2>
       <p>To the fullest extent permitted by applicable law, Glumbi shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service.</p>
 
-      <h2>12. Governing law</h2>
+      <h2>12. Governing law and compliance</h2>
       <p>These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts of Bengaluru, India.</p>
+      <p>Glumbi is designed to comply with the <strong>Digital Personal Data Protection Act 2023 (DPDP Act, India)</strong> and the <strong>Children's Online Privacy Protection Act (COPPA, USA)</strong>. For privacy rights and data requests, see our <a href="/privacy">Privacy Policy</a> or contact <a href="mailto:privacy@glumbi.com">privacy@glumbi.com</a>.</p>
 
       <h2>13. Changes to these Terms</h2>
       <p>We may update these Terms from time to time. The "last updated" date at the top of this page always reflects the current version. Continued use of the service after changes are posted constitutes acceptance of the new Terms. We recommend checking this page periodically.</p>

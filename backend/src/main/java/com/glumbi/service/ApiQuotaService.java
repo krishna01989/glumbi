@@ -74,6 +74,9 @@ public class ApiQuotaService {
         // Admins and super-admins are exempt from quota — unlimited AI access
         if (user.isAdminOrAbove()) return true;
 
+        // Parental consent is required before any AI credit is spent
+        if (!user.isConsentGiven()) return false;
+
         String thisMonth = YearMonth.now().toString();
 
         // Roll counter forward if the month has changed — safe to do outside the atomic update

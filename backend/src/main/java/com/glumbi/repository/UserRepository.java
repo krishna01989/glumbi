@@ -20,6 +20,10 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findTop20ByOrderByCreatedAtDesc();
     List<AppUser> findByRoleAndCreatedAtAfter(AppUser.Role role, LocalDateTime since);
 
+    // Users who have at least one child but have not yet given consent — used for one-time DPDP backfill
+    @Query("SELECT DISTINCT u FROM AppUser u JOIN Child c ON c.owner.id = u.id WHERE u.role = 'USER' AND u.consentGiven = false AND u.onHold = false")
+    List<AppUser> findUsersWithChildrenAndNoConsent();
+
     @Query("SELECT COUNT(u) FROM AppUser u WHERE u.role = 'USER' AND u.id NOT IN (SELECT c.owner.id FROM Child c)")
     long countUsersWithNoChildren();
 

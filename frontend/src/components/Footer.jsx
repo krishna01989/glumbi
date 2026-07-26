@@ -50,7 +50,8 @@ export default function Footer() {
             <div style={{ marginTop: 16, fontSize: 12, color: '#555', lineHeight: 1.7 }}>
               🔒 No cookies used<br />
               🛡️ No third-party tracking<br />
-              👧 COPPA compliant
+              👧 COPPA compliant<br />
+              🛡️ DPDP Act 2023 compliant
             </div>
           </div>
         </div>

@@ -13,16 +13,28 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AccountDeletionService {
 
-    private final ChildRepository       childRepository;
-    private final StoryRepository       storyRepository;
-    private final ActivityRepository    activityRepository;
-    private final JournalRepository     journalRepository;
-    private final CuriosityRepository   curiosityRepository;
-    private final FamilyVoiceRepository familyVoiceRepository;
-    private final UserRepository        userRepository;
-    private final ElevenLabsService     elevenLabsService;
-    private final R2Service             r2Service;
-    private final ObjectMapper          objectMapper;
+    private final ChildRepository              childRepository;
+    private final StoryRepository              storyRepository;
+    private final ActivityRepository           activityRepository;
+    private final JournalRepository            journalRepository;
+    private final CuriosityRepository          curiosityRepository;
+    private final WordOfDayRepository          wordOfDayRepository;
+    private final ReadQuizRepository           readQuizRepository;
+    private final DrawSaveRepository           drawSaveRepository;
+    private final FlipbookSaveRepository       flipbookSaveRepository;
+    private final MemoryMatchRepository        memoryMatchRepository;
+    private final FlashcardSetRepository       flashcardSetRepository;
+    private final WritingRepository            writingRepository;
+    private final ChildActivityEventRepository childActivityEventRepository;
+    private final NotificationRepository       notificationRepository;
+    private final AiUsageLogRepository         aiUsageLogRepository;
+    private final UserFeatureOverrideRepository userFeatureOverrideRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final FamilyVoiceRepository        familyVoiceRepository;
+    private final UserRepository               userRepository;
+    private final ElevenLabsService            elevenLabsService;
+    private final R2Service                    r2Service;
+    private final ObjectMapper                 objectMapper;
 
     @Transactional
     public void deleteUser(Long userId) {
@@ -52,21 +64,38 @@ public class AccountDeletionService {
 
         // 2. Delete all child data — clean up all R2 audio (including default TTS) before DB delete
         childRepository.findByOwnerId(userId).forEach(child -> {
-            storyRepository.findByChildIdOrderByCreatedAtDesc(child.getId()).forEach(story -> {
+            long childId = child.getId();
+            storyRepository.findByChildIdOrderByCreatedAtDesc(childId).forEach(story -> {
                 if (story.getAudioUrls() == null) return;
                 try {
                     Map<String, String> urls = objectMapper.readValue(story.getAudioUrls(), new TypeReference<>() {});
                     urls.forEach((key, url) -> { try { r2Service.delete(key); } catch (Exception ignored) {} });
                 } catch (Exception ignored) {}
             });
-            storyRepository.deleteByChildId(child.getId());
-            activityRepository.deleteByChildId(child.getId());
-            journalRepository.deleteByChildId(child.getId());
-            curiosityRepository.deleteByChildId(child.getId());
+            storyRepository.deleteByChildId(childId);
+            activityRepository.deleteByChildId(childId);
+            journalRepository.deleteByChildId(childId);
+            curiosityRepository.deleteByChildId(childId);
+            wordOfDayRepository.deleteByChildId(childId);
+            readQuizRepository.deleteByChildId(childId);
+            drawSaveRepository.deleteByChildId(childId);
+            flipbookSaveRepository.deleteByChildId(childId);
+            memoryMatchRepository.deleteByChildId(childId);
+            flashcardSetRepository.deleteByChildId(childId);
+            writingRepository.deleteByChildId(childId);
+            childActivityEventRepository.anonymiseByChildId(childId);
+            aiUsageLogRepository.anonymiseByChildId(childId);
+            notificationRepository.deleteByChildId(childId);
             childRepository.delete(child);
         });
 
-        // 3. Delete remaining user records
+        // 3. Anonymise user-level analytics, delete user-level config
+        childActivityEventRepository.anonymiseByUserId(userId);
+        aiUsageLogRepository.anonymiseByUserId(userId);
+        userFeatureOverrideRepository.deleteByIdUserId(userId);
+        passwordResetTokenRepository.invalidateAllForUser(userId);
+
+        // 4. Delete the user account
         userRepository.deleteById(userId);
     }
 }

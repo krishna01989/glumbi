@@ -514,6 +514,45 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("schedulerId", id, "history", history));
     }
 
+    // ── Consent backfill ──────────────────────────────────────────────────────
+
+    private static final String BACKFILL_HISTORY_KEY = "compliance.consent-backfill.history";
+
+    @PostMapping("/consent-backfill/send")
+    public ResponseEntity<?> sendConsentBackfill() {
+        List<AppUser> targets = userRepo.findUsersWithChildrenAndNoConsent();
+        int sent    = 0;
+        int skipped = 0;
+
+        if (!targets.isEmpty()) {
+            List<String> recipients = targets.stream()
+                .map(AppUser::getEmail)
+                .filter(e -> e != null && !e.isBlank())
+                .collect(Collectors.toList());
+            sent    = recipients.size();
+            skipped = targets.size() - recipients.size();
+
+            String subject = "A quick note about your child's data on Glumbi";
+            String html    = emailTemplates.parentNotice();
+            CompletableFuture.runAsync(() -> resendClient.sendBatch(recipients, subject, html));
+        }
+
+        Map<String, Object> record = new LinkedHashMap<>();
+        record.put("ranAt",   LocalDateTime.now(java.time.ZoneOffset.UTC).toString());
+        record.put("sent",    sent);
+        record.put("skipped", skipped);
+        com.glumbi.scheduler.SchedulerHistoryHelper.append(appSettingRepo, objectMapper, BACKFILL_HISTORY_KEY, record);
+
+        return ResponseEntity.ok(Map.of("sent", sent, "skipped", skipped));
+    }
+
+    @GetMapping("/consent-backfill/history")
+    public ResponseEntity<?> consentBackfillHistory() {
+        List<Map<String, Object>> history =
+            com.glumbi.scheduler.SchedulerHistoryHelper.read(appSettingRepo, objectMapper, BACKFILL_HISTORY_KEY);
+        return ResponseEntity.ok(Map.of("history", history));
+    }
+
     // ── Announcements ─────────────────────────────────────────────────────────
 
     @PostMapping("/announcements/send")

@@ -13,6 +13,7 @@ export function useAuth({ addToast }) {
   const [role, setRole]                   = useState(getStoredRole())
   const [quota, setQuota]                 = useState(null)
   const [featureConfig, setFeatureConfig] = useState([])
+  const [consentGiven, setConsentGiven]   = useState(false) // safe default — set to true only after profile confirms it
   const [restoring, setRestoring]         = useState(
     () => !!getStoredToken() && (
       /^\/child\/\d+\//.test(window.location.pathname) ||
@@ -20,11 +21,12 @@ export function useAuth({ addToast }) {
     )
   )
 
-  // Quota + feature config on login; poll quota every 5 min
+  // Quota + feature config + consent on login; poll quota every 5 min
   useEffect(() => {
     if (!authed || role === 'ADMIN') return
     function fetchQuota() { userApi.quota().then(setQuota).catch(() => {}) }
     userApi.featureCredits().then(setFeatureConfig).catch(() => {})
+    userApi.getProfile().then(p => setConsentGiven(p.consentGiven === true)).catch(() => {})
     fetchQuota()
     const interval = setInterval(fetchQuota, 5 * 60 * 1000)
     return () => clearInterval(interval)
@@ -57,8 +59,14 @@ export function useAuth({ addToast }) {
     }
   }, [featureConfig])
 
-  function handleAuth(userRole) {
+  async function handleAuth(userRole) {
     setRole(userRole)
+    if (userRole !== 'ADMIN') {
+      try {
+        const p = await userApi.getProfile()
+        setConsentGiven(p.consentGiven === true)
+      } catch (_) {}
+    }
     setAuthed(true)
     navigate(userRole === 'ADMIN' ? '/admin/users' : '/child')
   }
@@ -89,6 +97,7 @@ export function useAuth({ addToast }) {
     restoring, setRestoring,
     quota, setQuota,
     featureConfig,
+    consentGiven, setConsentGiven,
     handleAuth,
     logoutAuth,
   }

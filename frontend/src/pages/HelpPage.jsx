@@ -283,12 +283,20 @@ const SECTIONS = [
         a: 'Yes. Every piece of AI-generated content passes a Safety Guard check before it is shown to your child. Anything flagged as inappropriate is discarded automatically.',
       },
       {
+        q: 'What is the parental consent prompt?',
+        a: 'Glumbi is designed to comply with the Digital Personal Data Protection Act 2023 (DPDP Act, India) and COPPA (USA). Before your child\'s data can be processed, we ask you — as a parent or guardian — to give explicit consent. This appears as a one-tap prompt on your first login. Your consent is recorded with a timestamp and the policy version. You can withdraw it at any time from Profile → Privacy & Data → Withdraw Parental Consent.',
+      },
+      {
+        q: 'What happens if I withdraw parental consent?',
+        a: 'Withdrawing consent immediately stops all AI-powered features for your children. Any attempt to generate a story, quiz, curiosity answer, or other AI content will be blocked — even in an open browser tab — until you re-consent. Your account and all saved content remain intact. You can re-consent at any time from Profile → Privacy & Data.',
+      },
+      {
         q: 'Is my child\'s data private?',
-        a: 'Journal entries are never sent to any AI. All other content is processed by Glumbi AI to generate responses but is not used for model training. Custom voice recordings are processed by a third-party voice synthesis service and stored securely — they are never shared or used for any other purpose. See our Privacy Policy for full details.',
+        a: 'Journal entries are never sent to any AI. All other content (story prompts, quiz topics) is processed by Glumbi AI to generate responses but is not used for model training. We never sell your data or run advertising. Custom voice recordings are processed by a third-party voice synthesis service and stored securely — never shared or used for any other purpose. You can view all data we hold from Profile → Privacy & Data → My Data. See our Privacy Policy for full details.',
       },
       {
         q: 'Can I delete my account and all data?',
-        a: 'Yes — go to My Account → Account Settings → Delete Account. This permanently removes your account, all child profiles, all generated content, and all voice recordings. This action cannot be undone.',
+        a: 'Yes — go to Profile → Delete Account. This permanently removes your account, all child profiles, all generated content, and all voice recordings. This action cannot be undone.',
       },
     ],
   },

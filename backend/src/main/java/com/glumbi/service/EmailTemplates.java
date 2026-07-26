@@ -84,6 +84,10 @@ public class EmailTemplates {
         return templateEngine.process("email/onboarding", new Context());
     }
 
+    public String parentNotice() {
+        return templateEngine.process("email/parent-notice", new Context());
+    }
+
     public String noChildAdded() {
         String message = NO_CHILD_MESSAGES.get(
             ThreadLocalRandom.current().nextInt(NO_CHILD_MESSAGES.size())

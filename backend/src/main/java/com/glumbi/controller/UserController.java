@@ -10,6 +10,7 @@ import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.EmailTemplates;
 import com.glumbi.service.ResendClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -40,6 +41,11 @@ public class UserController {
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
     private final ResendClient  resendClient;
     private final EmailTemplates emailTemplates;
+    private final StoryRepository         storyRepository;
+    private final JournalRepository       journalRepository;
+    private final DrawSaveRepository      drawSaveRepository;
+    private final WritingRepository       writingRepository;
+    private final CuriosityRepository     curiosityRepository;
 
     @GetMapping("/me/quota")
     @Transactional
@@ -94,7 +100,86 @@ public class UserController {
             "email",                   user.getEmail(),
             "authMethod",              user.getGoogleSub() != null ? "google" : "password",
             "joinedAt",                user.getCreatedAt().toString(),
-            "marketingEmailsEnabled",  user.isMarketingEmailsEnabled()
+            "marketingEmailsEnabled",  user.isMarketingEmailsEnabled(),
+            "consentGiven",            user.isConsentGiven(),
+            "consentVersion",          user.getConsentVersion() != null ? user.getConsentVersion() : ""
+        ));
+    }
+
+    @Value("${app.consent-version:v1}")
+    private String currentConsentVersion;
+
+    @PatchMapping("/me/consent")
+    @Transactional
+    public ResponseEntity<?> recordConsent(@AuthenticationPrincipal AuthUser authUser) {
+        AppUser user = userRepository.findById(authUser.id())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setConsentGiven(true);
+        user.setConsentGivenAt(LocalDateTime.now(java.time.ZoneOffset.UTC));
+        user.setConsentVersion(currentConsentVersion);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of(
+            "consentGiven",   true,
+            "consentVersion", currentConsentVersion
+        ));
+    }
+
+    @PatchMapping("/me/consent/withdraw")
+    @Transactional
+    public ResponseEntity<?> withdrawConsent(@AuthenticationPrincipal AuthUser authUser) {
+        AppUser user = userRepository.findById(authUser.id())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setConsentGiven(false);
+        user.setConsentGivenAt(null);
+        user.setConsentVersion(null);
+        userRepository.save(user);
+        return ResponseEntity.ok(Map.of("consentGiven", false));
+    }
+
+    @GetMapping("/me/data-summary")
+    public ResponseEntity<?> getDataSummary(@AuthenticationPrincipal AuthUser authUser) {
+        AppUser user = userRepository.findById(authUser.id())
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        List<Child> children = childRepository.findByOwnerId(authUser.id());
+
+        var childSummaries = children.stream().map(c -> {
+            long childId = c.getId();
+            return Map.of(
+                "name",          (Object) c.getName(),
+                "addedOn",       c.getCreatedAt() != null ? c.getCreatedAt().toLocalDate().toString() : "",
+                "stories",       storyRepository.countByChildIdAndCreatedAtBetween(childId,
+                                     LocalDateTime.of(2000,1,1,0,0), LocalDateTime.now()),
+                "journalEntries", journalRepository.countByChildId(childId),
+                "drawings",      drawSaveRepository.countByChildId(childId),
+                "writings",      writingRepository.countByChildId(childId),
+                "curiosityAsks", curiosityRepository.countByChildIdAndCreatedAtBetween(childId,
+                                     LocalDateTime.of(2000,1,1,0,0), LocalDateTime.now())
+            );
+        }).toList();
+
+        return ResponseEntity.ok(Map.of(
+            "account", Map.of(
+                "email",       user.getEmail(),
+                "joinedOn",    user.getCreatedAt().toLocalDate().toString(),
+                "authMethod",  user.getGoogleSub() != null ? "Google" : "Email & Password",
+                "dataStoredIn","Cloud infrastructure in the United States and other jurisdictions"
+            ),
+            "consent", Map.of(
+                "given",      user.isConsentGiven(),
+                "givenOn",    user.getConsentGivenAt() != null ? user.getConsentGivenAt().toLocalDate().toString() : "",
+                "version",    user.getConsentVersion() != null ? user.getConsentVersion() : ""
+            ),
+            "children",    childSummaries,
+            "dataCategories", List.of(
+                "Account: email address, authentication method, account creation date",
+                "Children: name, birth year, avatar, learning preferences",
+                "Stories: AI-generated story text and audio (linked to child)",
+                "Journal: mood and text entries written by child",
+                "Drawings: canvas images saved by child",
+                "Writing: text compositions by child with AI feedback",
+                "Curiosity Q&A: questions asked and AI answers",
+                "Activity events: feature usage timestamps (no personal content)"
+            )
         ));
     }
 

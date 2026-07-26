@@ -219,6 +219,9 @@ export const userApi = {
   creditBreakdown: ()                          => api.get('/users/me/credit-breakdown').then(r => r.data),
   getProfile:              ()        => api.get('/users/me').then(r => r.data),
   updateMarketingEmails:   (enabled) => api.patch('/users/me/marketing-emails', { enabled }).then(r => r.data),
+  recordConsent:           ()        => api.patch('/users/me/consent').then(r => r.data),
+  withdrawConsent:         ()        => api.patch('/users/me/consent/withdraw').then(r => r.data),
+  getDataSummary:          ()        => api.get('/users/me/data-summary').then(r => r.data),
   changePassword: (currentPassword, newPassword) => api.patch('/users/me/password', { currentPassword, newPassword }).then(r => r.data),
   deleteAccount:  ()                           => api.delete('/users/me'),
 }
@@ -307,6 +310,8 @@ export const adminApi = {
   listAgents:                ()                          => api.get('/admin/agents').then(r => r.data),
   setAgentEnabled:           (id, enabled)               => api.put(`/admin/agents/${id}/enabled`, { enabled }).then(r => r.data),
   sendAnnouncement:          (payload)                   => api.post('/admin/announcements/send', payload).then(r => r.data),
+  sendConsentBackfill:       ()                          => api.post('/admin/consent-backfill/send').then(r => r.data),
+  consentBackfillHistory:    ()                          => api.get('/admin/consent-backfill/history').then(r => r.data),
   getVendors:                ()                          => api.get('/admin/vendors').then(r => r.data),
   setVendorEnabled:          (vendor, enabled)           => api.patch(`/admin/vendors/${vendor}`, { enabled }).then(r => r.data),
 }

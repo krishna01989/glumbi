@@ -10,5 +10,6 @@ import java.util.List;
 public interface DrawSaveRepository extends JpaRepository<DrawSave, Long> {
     List<DrawSave> findByChildIdOrderByUpdatedAtDesc(Long childId);
     Page<DrawSave> findByChildIdOrderByUpdatedAtDesc(Long childId, Pageable pageable);
+    long countByChildId(Long childId);
     void deleteByChildId(Long childId);
 }

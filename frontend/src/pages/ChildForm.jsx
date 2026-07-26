@@ -8,22 +8,22 @@ const AVATARS = ['🧒','👧','👦','🧒🏽','👧🏽','👦🏽','🧒🏿
 const EMPTY_FORM = { name: '', birthYear: '', avatarEmoji: '🧒', gender: '', theme: 'coral', enabledFeatures: null }
 
 const CURRENT_YEAR = new Date().getFullYear()
-const BIRTH_YEARS  = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - 1 - i)
+const BIRTH_YEARS  = Array.from({ length: 11 }, (_, i) => CURRENT_YEAR - i)
 
 const ALL_FEATURES = [
-  { key: 'stories',    label: 'Stories',        emoji: '📖', minAge: 3, featureName: 'story' },
-  { key: 'activities', label: 'Activities',      emoji: '🎮', minAge: 3, featureName: 'activity' },
-  { key: 'learn',      label: 'Learn to Write',  emoji: '✏️', minAge: 3, maxAge: 6, featureName: 'learn-validate' },
+  { key: 'stories',    label: 'Stories',        emoji: '📖', minAge: 2, featureName: 'story' },
+  { key: 'activities', label: 'Activities',      emoji: '🎮', minAge: 2, featureName: 'activity' },
+  { key: 'learn',      label: 'Learn to Write',  emoji: '✏️', minAge: 3, maxAge: 8, featureName: 'learn-validate' },
   { key: 'curiosity',  label: 'Curiosity',       emoji: '🔍', minAge: 3, featureName: 'curiosity' },
-  { key: 'draw',       label: 'Draw',            emoji: '🎨', minAge: 3, featureName: 'draw' },
+  { key: 'draw',       label: 'Draw',            emoji: '🎨', minAge: 1, featureName: 'draw' },
   { key: 'flipbook',   label: 'Flipbook Studio', emoji: '🖼️', minAge: 5, featureName: 'flipbook' },
-  { key: 'journal',    label: 'Journal',         emoji: '📝', minAge: 5, featureName: null },
-  { key: 'timeline',   label: 'Timeline',        emoji: '🗓️', minAge: 3, featureName: null },
-  { key: 'readquiz',   label: 'Read & Quiz',     emoji: '📚', minAge: 7, featureName: 'read-quiz' },
+  { key: 'journal',    label: 'Journal',         emoji: '📝', minAge: 2, featureName: null },
+  { key: 'timeline',   label: 'Timeline',        emoji: '🗓️', minAge: 1, featureName: null },
+  { key: 'readquiz',   label: 'Read & Quiz',     emoji: '📚', minAge: 6, featureName: 'read-quiz' },
   { key: 'mywriting',  label: 'My Writing',      emoji: '✍️', minAge: 7, featureName: 'writing-coach' },
-  { key: 'memory',     label: 'Memory Play',     emoji: '🧠', minAge: 3, featureName: 'memory' },
+  { key: 'memory',     label: 'Memory Play',     emoji: '🧠', minAge: 2, featureName: 'memory' },
   { key: 'maze',       label: 'Maze',            emoji: '🌀', minAge: 3, featureName: 'maze'   },
-  { key: 'riddle',     label: 'Riddle',          emoji: '🧩', minAge: 4, featureName: 'riddle' },
+  { key: 'riddle',     label: 'Riddle',          emoji: '🧩', minAge: 5, featureName: 'riddle' },
 ]
 
 function calcAge(birthYear) {
@@ -83,7 +83,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
 
   const age       = calcAge(form.birthYear)
   const ageTooOld   = age !== null && age > 13
-  const ageTooYoung = age !== null && age < 2
+  const ageTooYoung = age !== null && age < 1
 
   const theme   = THEMES[form.theme] || THEMES.coral
   const primary = theme.primary

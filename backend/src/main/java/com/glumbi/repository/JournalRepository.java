@@ -12,5 +12,6 @@ public interface JournalRepository extends JpaRepository<JournalEntry, Long> {
     List<JournalEntry> findByChildIdOrderByCreatedAtDesc(Long childId);
     Page<JournalEntry> findByChildIdOrderByCreatedAtDesc(Long childId, Pageable pageable);
     List<JournalEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
+    long countByChildId(Long childId);
     void deleteByChildId(Long childId);
 }

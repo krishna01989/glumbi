@@ -61,8 +61,12 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
   const [marketingEmails, setMarketingEmails] = useState(true)
   const [marketingLoading, setMarketingLoading] = useState(false)
 
-  const [quota,     setQuota]     = useState(null)
-  const [breakdown, setBreakdown] = useState(null)
+  const [quota,       setQuota]       = useState(null)
+  const [breakdown,   setBreakdown]   = useState(null)
+  const [dataSummary, setDataSummary] = useState(null)
+  const [showMyData,  setShowMyData]  = useState(false)
+  const [withdrawLoading, setWithdrawLoading] = useState(false)
+  const [showWithdraw,    setShowWithdraw]    = useState(false)
 
   useEffect(() => {
     userApi.getProfile().then(p => { setProfile(p); setMarketingEmails(p.marketingEmailsEnabled ?? true) }).finally(() => setLoading(false))
@@ -479,6 +483,114 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
             borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
           }} />
         </button>
+      </div>
+
+      {/* Privacy & Data divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0 20px' }}>
+        <div style={{ flex: 1, height: 1, background: '#e0e0e0' }} />
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>Privacy & Data</span>
+        <div style={{ flex: 1, height: 1, background: '#e0e0e0' }} />
+      </div>
+
+      {/* My Data */}
+      <div style={{ ...card, marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+          <span style={{ fontSize: 28 }}>🗂️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 900, fontSize: 15, color: '#1a1a2e', marginBottom: 4 }}>My Data</div>
+            <p style={{ fontSize: 13, color: '#888', margin: 0, lineHeight: 1.6 }}>
+              See a summary of all data Glumbi holds about you and your children — as required by the DPDP Act 2023 and COPPA.
+            </p>
+          </div>
+        </div>
+        {!showMyData ? (
+          <button onClick={async () => {
+            if (!dataSummary) {
+              const s = await userApi.getDataSummary().catch(() => null)
+              setDataSummary(s)
+            }
+            setShowMyData(true)
+          }} style={{ padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: '#f0f4ff', color: '#3b5bdb', border: '1.5px solid #c5d0fc', cursor: 'pointer' }}>
+            View my data
+          </button>
+        ) : dataSummary ? (
+          <div style={{ fontSize: 13, color: '#333', lineHeight: 1.7 }}>
+            <div style={{ fontWeight: 700, marginBottom: 6, color: '#555' }}>Account</div>
+            <div style={{ background: '#f8f9fa', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+              <div>📧 <strong>Email:</strong> {dataSummary.account.email}</div>
+              <div>📅 <strong>Joined:</strong> {dataSummary.account.joinedOn}</div>
+              <div>🔑 <strong>Sign-in:</strong> {dataSummary.account.authMethod}</div>
+              <div>🌍 <strong>Data stored in:</strong> {dataSummary.account.dataStoredIn}</div>
+            </div>
+            <div style={{ fontWeight: 700, marginBottom: 6, color: '#555' }}>Consent</div>
+            <div style={{ background: '#f8f9fa', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
+              <div>✅ <strong>Consent given:</strong> {dataSummary.consent.given ? `Yes (${dataSummary.consent.givenOn}, policy ${dataSummary.consent.version})` : 'No'}</div>
+            </div>
+            {dataSummary.children.length > 0 && (<>
+              <div style={{ fontWeight: 700, marginBottom: 6, color: '#555' }}>Children's Data</div>
+              {dataSummary.children.map((c, i) => (
+                <div key={i} style={{ background: '#f8f9fa', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>👶 {c.name} <span style={{ fontWeight: 400, color: '#888' }}>(added {c.addedOn})</span></div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px' }}>
+                    <span>📖 Stories: {c.stories}</span>
+                    <span>📝 Journal entries: {c.journalEntries}</span>
+                    <span>🎨 Drawings: {c.drawings}</span>
+                    <span>✍️ Writings: {c.writings}</span>
+                    <span>🔍 Curiosity Q&As: {c.curiosityAsks}</span>
+                  </div>
+                </div>
+              ))}
+            </>)}
+            <div style={{ fontWeight: 700, margin: '10px 0 6px', color: '#555' }}>Data Categories We Hold</div>
+            <ul style={{ margin: 0, paddingLeft: 18, color: '#666' }}>
+              {dataSummary.dataCategories.map((d, i) => <li key={i}>{d}</li>)}
+            </ul>
+            <button onClick={() => setShowMyData(false)} style={{ marginTop: 14, padding: '7px 18px', borderRadius: 50, fontSize: 13, fontWeight: 700, background: '#f0f4ff', color: '#3b5bdb', border: '1.5px solid #c5d0fc', cursor: 'pointer' }}>
+              Hide
+            </button>
+          </div>
+        ) : (
+          <p style={{ fontSize: 13, color: '#e74c3c' }}>Failed to load data summary. Please try again.</p>
+        )}
+      </div>
+
+      {/* Withdraw Consent */}
+      <div style={{ ...card, marginBottom: 24, background: '#fffbf0', border: '1.5px solid #fde68a' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
+          <span style={{ fontSize: 28 }}>⚠️</span>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 15, color: '#92400e', marginBottom: 4 }}>Withdraw Parental Consent</div>
+            <p style={{ fontSize: 13, color: '#78350f', margin: 0, lineHeight: 1.6 }}>
+              Withdrawing consent stops all AI-powered child data processing. Your account remains active but child features will be inaccessible until you re-consent. You can re-consent on next login.
+            </p>
+          </div>
+        </div>
+        {!showWithdraw ? (
+          <button onClick={() => setShowWithdraw(true)}
+            style={{ padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: '#fef3c7', color: '#92400e', border: '1.5px solid #fde68a', cursor: 'pointer' }}>
+            Withdraw consent
+          </button>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: 13, color: '#92400e', fontWeight: 700, margin: 0 }}>Are you sure? You'll need to re-accept on next login to use child features.</p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={async () => {
+                setWithdrawLoading(true)
+                try {
+                  await userApi.withdrawConsent()
+                  window.location.reload()
+                } finally { setWithdrawLoading(false) }
+              }} disabled={withdrawLoading}
+                style={{ padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: '#f59e0b', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                {withdrawLoading ? 'Withdrawing…' : 'Yes, withdraw'}
+              </button>
+              <button onClick={() => setShowWithdraw(false)}
+                style={{ padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Danger zone divider */}

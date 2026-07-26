@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } fr
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { THEMES, THEME_GROUPS, applyTheme } from './themes'
 import { ThemeContext } from './contexts/ThemeContext'
-import { childApi } from './api/client'
+import { childApi, userApi } from './api/client'
 import { startTour } from './tour'
 import { useAuth }         from './hooks/useAuth'
 import { useChildSession } from './hooks/useChildSession'
@@ -185,6 +185,49 @@ function Toast({ toasts, onDismiss }) {
   )
 }
 
+// ─── CONSENT MODAL ─────────────────────────────────────────────────────────────
+function ConsentModal({ onAccept }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: 20, fontFamily: 'Nunito, sans-serif',
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 20, padding: '32px 28px', maxWidth: 480, width: '100%',
+        boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      }}>
+        <div style={{ fontSize: 40, textAlign: 'center', marginBottom: 8 }}>🔒</div>
+        <h2 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 800, textAlign: 'center', color: '#222' }}>
+          Parental Consent Required
+        </h2>
+        <p style={{ margin: '0 0 16px', fontSize: 14, color: '#555', textAlign: 'center', lineHeight: 1.6 }}>
+          Glumbi is designed for children. Before your child can use the app, we need your consent as a parent or guardian, as required by the <strong>DPDP Act 2023</strong> (India) and <strong>COPPA</strong> (USA).
+        </p>
+        <div style={{ background: '#fef9f0', border: '1.5px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+          <p style={{ margin: '0 0 8px', fontWeight: 700, fontSize: 13, color: '#92400e' }}>By clicking Accept, you confirm that:</p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#78350f', lineHeight: 1.8 }}>
+            <li>You are the parent or legal guardian of the child using this app</li>
+            <li>You consent to Glumbi collecting your child's name, age, and learning activity data to provide the service</li>
+            <li>You have read our <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b' }}>Privacy Policy</a> and <a href="/terms" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b' }}>Terms of Service</a></li>
+            <li>No behavioral tracking or targeted advertising is performed on your child</li>
+          </ul>
+        </div>
+        <p style={{ margin: '0 0 20px', fontSize: 12, color: '#888', textAlign: 'center' }}>
+          You can withdraw consent and delete all data at any time from your Profile settings.
+        </p>
+        <button onClick={onAccept} style={{
+          width: '100%', padding: '14px 0', borderRadius: 50, border: 'none',
+          background: '#ff6b6b', color: '#fff', fontWeight: 800, fontSize: 16,
+          cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
+        }}>
+          I Accept — I am the Parent / Guardian
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── APP ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const navigate = useNavigate()
@@ -208,7 +251,7 @@ export default function App() {
 
   // ── Hooks ──
   const auth = useAuth({ addToast })
-  const { authed, role, restoring, setRestoring, quota, featureConfig, handleAuth, logoutAuth } = auth
+  const { authed, role, restoring, setRestoring, quota, featureConfig, consentGiven, setConsentGiven, handleAuth, logoutAuth } = auth
 
   const session = useChildSession({ authed, role, featureConfig, setRestoring, quota })
   const { child, setChild, offlineMode, sidebarWotd, prevChildId, handleChildSelected, handleThemeChange, toggleOffline, resetChild } = session
@@ -319,11 +362,18 @@ export default function App() {
   }
 
   if (isChildManagementRoute || !child) {
+    const onConsentAccept = () => {
+      userApi.recordConsent().then(() => setConsentGiven(true)).catch(() => {})
+      setConsentGiven(true)
+    }
     return (
       <ManagementLayout lockModalEl={lockModalEl} quota={quota} handleLogout={handleLogout}>
+        {!consentGiven && location.pathname === '/child' && (
+          <ConsentModal onAccept={onConsentAccept} />
+        )}
         <Routes>
           <Route path="/child"          element={childLocked && child ? <Navigate to={`/child/${child.id}/stories`} replace /> : <ChildList onLockConfirmed={handleLockConfirmed} onLogout={handleLogout} onToggleOffline={toggleOffline} quota={quota} featureConfig={featureConfig} />} />
-          <Route path="/child/new"      element={<ChildForm onChildCreated={handleChildSelected} enabledFeatureConfig={featureConfig} />} />
+          <Route path="/child/new"      element={<ChildForm onChildCreated={() => navigate('/child')} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/edit"     element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/insights" element={<ChildInsightsPage />} />
           <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
@@ -346,6 +396,13 @@ export default function App() {
   return (
     <ThemeContext.Provider value={theme}>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
+
+      {authed && role !== 'ADMIN' && !consentGiven && (
+        <ConsentModal onAccept={() => {
+          userApi.recordConsent().then(() => setConsentGiven(true)).catch(() => {})
+          setConsentGiven(true)
+        }} />
+      )}
 
       {screenTimeAlert === true && (
         <ScreenTimeModal

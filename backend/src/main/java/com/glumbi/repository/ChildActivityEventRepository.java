@@ -209,6 +209,17 @@ public interface ChildActivityEventRepository extends JpaRepository<ChildActivit
         """, nativeQuery = true)
     List<Object[]> findRecentGlumbiEvents(@Param("childId") Long childId, @Param("limit") int limit);
 
+    // Anonymise rather than delete — retain aggregates, strip PII
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query(value = "UPDATE child_activity_events SET child_id = NULL, user_id = NULL, child_name = NULL, parent_email = NULL WHERE child_id = :childId", nativeQuery = true)
+    void anonymiseByChildId(@Param("childId") Long childId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query(value = "UPDATE child_activity_events SET user_id = NULL WHERE user_id = :userId", nativeQuery = true)
+    void anonymiseByUserId(@Param("userId") Long userId);
+
     long countByChildId(Long childId);
     long countByChildIdAndOnlineTrue(Long childId);
     long countByChildIdAndOccurredAtAfter(Long childId, LocalDateTime from);

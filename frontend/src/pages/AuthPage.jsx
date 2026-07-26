@@ -12,8 +12,9 @@ export default function AuthPage({ onAuth }) {
   const [mode, setMode]       = useState('login')
   const [email, setEmail]     = useState('')
   const [password, setPass]   = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState('')
+  const [noticeAgreed, setNoticeAgreed] = useState(false)
   const googleBtnRef          = useRef(null)
 
   useEffect(() => {
@@ -46,6 +47,10 @@ export default function AuthPage({ onAuth }) {
 
   async function handleGoogleCredential(response) {
     setError('')
+    if (mode === 'register' && !noticeAgreed) {
+      setError('Please confirm you have read the data notice below before continuing with Google.')
+      return
+    }
     setLoading(true)
     try {
       const { token, role } = await authApi.google(response.credential)
@@ -62,6 +67,10 @@ export default function AuthPage({ onAuth }) {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+    if (mode === 'register' && !noticeAgreed) {
+      setError('Please confirm you have read the data notice above before creating an account.')
+      return
+    }
     setLoading(true)
     try {
       const fn = mode === 'login' ? authApi.login : authApi.register
@@ -187,12 +196,22 @@ export default function AuthPage({ onAuth }) {
           </button>
 
           {mode === 'register' && (
-            <p style={{ fontSize: 11, color: '#aaa', textAlign: 'center', margin: '4px 0 0', lineHeight: 1.5 }}>
-              By creating an account you agree to our{' '}
-              <a href="/terms" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Terms of Service</a>
-              {' '}and acknowledge our{' '}
-              <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Privacy Policy</a>.
-            </p>
+            <div style={{ marginTop: 4 }}>
+              <div style={{ background: '#fef9f0', border: '1.5px solid #fde68a', borderRadius: 12, padding: '12px 14px', marginBottom: 10, fontSize: 12, color: '#78350f', lineHeight: 1.7 }}>
+                <strong>📋 Data Notice (DPDP Act 2023 / COPPA)</strong><br />
+                Glumbi collects your <strong>email address</strong> to create your account. When you add a child profile, we collect their <strong>name and birth year</strong> to personalise learning. We also store learning activity data (stories, drawings, journal entries) linked to each child profile. No data is sold or shared with third parties. Data is stored on servers in the United States. You may delete all data at any time from your Profile.
+              </div>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: '#444', lineHeight: 1.5 }}>
+                <input type="checkbox" checked={noticeAgreed} onChange={e => setNoticeAgreed(e.target.checked)}
+                  style={{ marginTop: 2, flexShrink: 0, accentColor: '#ff6b6b', width: 16, height: 16 }} />
+                <span>
+                  I am a parent or guardian and I have read the data notice above. I agree to the{' '}
+                  <a href="/terms" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#ff6b6b', textDecoration: 'none', fontWeight: 700 }}>Privacy Policy</a>.
+                </span>
+              </label>
+            </div>
           )}
         </form>
       </div>

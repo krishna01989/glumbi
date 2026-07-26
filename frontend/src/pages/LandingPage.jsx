@@ -494,6 +494,7 @@ export default function LandingPage() {
             { icon: '👨‍👩‍👧', text: 'Built by a parent, for parents' },
             { icon: '🌍', text: '12 languages, real WaveNet voices' },
             { icon: '💳', text: 'Free forever — no credit card' },
+            { icon: '🛡️', text: 'COPPA & DPDP Act 2023 compliant' },
           ].map(item => (
             <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#6b4fa3' }}>
               <span style={{ fontSize: 18 }}>{item.icon}</span>
@@ -539,7 +540,7 @@ export default function LandingPage() {
             },
             {
               q: "What happens to my child's data?",
-              a: "Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Glumbi AI to generate responses but is not used for model training. See our Privacy Policy for full details.",
+              a: "Journal entries are never sent to any AI. Other content (story prompts, quiz topics) is processed by Glumbi AI to generate responses but is not used for model training. We never sell data or run ads. Glumbi is COPPA and DPDP Act 2023 compliant — we record your parental consent before processing any child data, and you can view, withdraw, or delete everything from your Profile at any time. See our Privacy Policy for full details.",
             },
           ].map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
         </div>

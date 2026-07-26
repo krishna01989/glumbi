@@ -55,6 +55,17 @@ public class AppUser {
     @Column(columnDefinition = "TEXT")
     private String holdReason;
 
+    // COPPA / DPDP parental consent
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean consentGiven = false;
+
+    @Column(nullable = true)
+    private LocalDateTime consentGivenAt;
+
+    // Policy version string — bump this (e.g. "v2") to re-prompt existing users on policy changes
+    @Column(nullable = true, length = 10)
+    private String consentVersion;
+
     public enum Role { USER, ADMIN, SUPER_ADMIN }
 
     public boolean isSuperAdmin() { return role == Role.SUPER_ADMIN; }

@@ -23,6 +23,7 @@ const NAV = [
   { id: 'schedulers',    icon: '⏰', label: 'Schedulers'     },
   { id: 'announcements', icon: '📣', label: 'Announcements'  },
   { id: 'vendors',       icon: '🔌', label: 'Vendors'         },
+  { id: 'compliance',    icon: '🛡️', label: 'Compliance'      },
 ]
 
 // ─── Password reset modal ─────────────────────────────────────────────────────
@@ -2638,6 +2639,116 @@ function Vendors() {
   )
 }
 
+// ─── Compliance section ───────────────────────────────────────────────────────
+function Compliance() {
+  const [loading, setLoading]   = useState(false)
+  const [result, setResult]     = useState(null)
+  const [error, setError]       = useState('')
+  const [history, setHistory]   = useState(null)
+
+  function loadHistory() {
+    adminApi.consentBackfillHistory()
+      .then(d => setHistory(d.history ?? []))
+      .catch(() => setHistory([]))
+  }
+
+  useEffect(() => { loadHistory() }, [])
+
+  async function handleSend() {
+    setLoading(true)
+    setResult(null)
+    setError('')
+    try {
+      const data = await adminApi.sendConsentBackfill()
+      setResult(data)
+      loadHistory()
+    } catch (e) {
+      setError(e?.response?.data?.error || e.message || 'Failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{ padding: '32px 28px', maxWidth: 700 }}>
+      <div style={{ fontWeight: 900, fontSize: 20, color: '#1a1a2e', marginBottom: 4 }}>🛡️ Compliance</div>
+      <p style={{ fontSize: 13, color: '#666', marginBottom: 28 }}>DPDP Act 2023 &amp; COPPA compliance tools.</p>
+
+      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '24px 24px 20px', marginBottom: 24 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e', marginBottom: 6 }}>Parent Consent Notice — Backfill Email</div>
+        <p style={{ fontSize: 13, color: '#555', lineHeight: 1.6, marginBottom: 16 }}>
+          Sends a dedicated parent data notice email to all accounts that have at least one child profile but have not yet recorded parental consent.
+          Safe to run multiple times — already-consented users are excluded automatically.
+        </p>
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#92400e', marginBottom: 18, lineHeight: 1.6 }}>
+          <strong>When to use:</strong> after bumping CONSENT_VERSION in env, after a major policy change, or when onboarding email delivery was disrupted for a batch of users.
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            style={{ background: loading ? '#ccc' : '#ff6b6b', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 800, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}
+          >
+            {loading ? 'Sending…' : 'Send Consent Notice Email'}
+          </button>
+          <button onClick={loadHistory}
+            style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #e0e0e0', background: '#f8f8f8', fontSize: 13, cursor: 'pointer', color: '#777', fontWeight: 700 }}>
+            🔄 Refresh
+          </button>
+        </div>
+        {result && (
+          <div style={{ marginTop: 14, fontSize: 13, color: '#16a34a', fontWeight: 700 }}>
+            ✅ Done — {result.sent} email{result.sent !== 1 ? 's' : ''} queued{result.skipped > 0 ? `, ${result.skipped} skipped (no email address)` : ''}.
+            {result.sent === 0 && ' All users with children have already consented.'}
+          </div>
+        )}
+        {error && <div style={{ marginTop: 14, fontSize: 13, color: '#dc2626', fontWeight: 700 }}>❌ {error}</div>}
+      </div>
+
+      {/* Run history */}
+      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '20px 24px' }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>📋 Run History</div>
+        {history === null && <div style={{ fontSize: 13, color: '#aaa' }}>Loading…</div>}
+        {history && history.length === 0 && (
+          <div style={{ fontSize: 13, color: '#aaa' }}>No runs yet.</div>
+        )}
+        {history && history.length > 0 && (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #f0f0f0' }}>
+                <th style={{ textAlign: 'left', padding: '6px 10px', color: '#888', fontWeight: 700 }}>Run at (UTC)</th>
+                <th style={{ textAlign: 'center', padding: '6px 10px', color: '#888', fontWeight: 700 }}>Emails sent</th>
+                <th style={{ textAlign: 'center', padding: '6px 10px', color: '#888', fontWeight: 700 }}>Skipped</th>
+                <th style={{ textAlign: 'center', padding: '6px 10px', color: '#888', fontWeight: 700 }}>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((run, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                  <td style={{ padding: '8px 10px', color: '#444', fontVariantNumeric: 'tabular-nums' }}>
+                    {run.ranAt ? run.ranAt.replace('T', ' ').split('.')[0] : '—'}
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, color: run.sent > 0 ? '#16a34a' : '#888' }}>
+                    {run.sent}
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center', color: run.skipped > 0 ? '#f59e0b' : '#aaa' }}>
+                    {run.skipped}
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                    {run.sent === 0
+                      ? <span style={{ color: '#aaa', fontWeight: 700 }}>All consented</span>
+                      : <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Queued</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
 export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
@@ -2651,7 +2762,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
   const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
-  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors /> }
+  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
   const current = NAV.find(n => n.id === active)
 
   return (

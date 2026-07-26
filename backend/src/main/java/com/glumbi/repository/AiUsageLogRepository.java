@@ -37,6 +37,14 @@ public interface AiUsageLogRepository extends JpaRepository<AiUsageLog, Long> {
     @Query("SELECT l.userId, COALESCE(SUM(l.creditsUsed), 0) FROM AiUsageLog l WHERE l.usedAt BETWEEN :from AND :to GROUP BY l.userId")
     List<Object[]> sumPerUserInPeriod(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    void deleteByUserId(Long userId);
-    void deleteByChildId(Long childId);
+    // Anonymise rather than delete — credit history is platform analytics
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE AiUsageLog l SET l.userId = 0 WHERE l.userId = :userId")
+    void anonymiseByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE AiUsageLog l SET l.childId = NULL WHERE l.childId = :childId")
+    void anonymiseByChildId(@org.springframework.data.repository.query.Param("childId") Long childId);
 }

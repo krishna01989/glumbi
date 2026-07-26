@@ -13,6 +13,7 @@ public interface WritingRepository extends JpaRepository<WritingEntry, Long> {
     Page<WritingEntry> findByChildIdOrderByCreatedAtDesc(Long childId, Pageable pageable);
     Page<WritingEntry> findByChildIdAndSeriesIdIsNullOrderByCreatedAtDesc(Long childId, Pageable pageable);
     List<WritingEntry> findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(Long childId, LocalDateTime from, LocalDateTime to);
+    long countByChildId(Long childId);
     long countByCreatedAtAfter(LocalDateTime since);
     long countByChildIdAndFeedbackReceivedTrueAndCreatedAtBetween(Long childId, LocalDateTime from, LocalDateTime to);
     List<WritingEntry> findTop5ByOrderByCreatedAtDesc();

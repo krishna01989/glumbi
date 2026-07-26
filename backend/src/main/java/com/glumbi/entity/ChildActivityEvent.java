@@ -24,12 +24,12 @@ public class ChildActivityEvent {
     private Long id;
 
     // Plain Long columns — no FK constraint so rows survive child/user deletion
-    @Column(name = "child_id",     nullable = false) private Long    childId;
-    @Column(name = "user_id",      nullable = false) private Long    userId;
+    @Column(name = "child_id")     private Long    childId;   // null after account deletion (anonymised)
+    @Column(name = "user_id")      private Long    userId;    // null after account deletion (anonymised)
 
     // Denormalised so records stay readable after account deletion
-    @Column(name = "child_name",   nullable = false, length = 100)  private String childName;
-    @Column(name = "parent_email", nullable = false, length = 255)  private String parentEmail;
+    @Column(name = "child_name",   length = 100)  private String childName;   // null after anonymisation
+    @Column(name = "parent_email", length = 255)  private String parentEmail; // null after anonymisation
 
     @Column(nullable = false, length = 64)  private String feature;
     @Column(nullable = false, length = 64)  private String eventType;

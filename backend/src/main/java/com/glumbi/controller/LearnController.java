@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.glumbi.service.AudioTokenService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import jakarta.annotation.PostConstruct;
@@ -44,6 +45,7 @@ public class LearnController {
 
     private final AnthropicClient anthropicClient;
     private final TextToSpeechService ttsService;
+    private final AudioTokenService audioTokenService;
     private final ActivityRepository activityRepository;
     private final ChildRepository childRepository;
     private final ApiQuotaService quotaService;
@@ -271,7 +273,11 @@ public class LearnController {
     @GetMapping("/audio")
     public ResponseEntity<byte[]> audio(
             @RequestParam String text,
-            @RequestParam(defaultValue = "english") String language) {
+            @RequestParam(defaultValue = "english") String language,
+            @RequestParam(required = false) String stoken) {
+        if (!audioTokenService.validate(stoken, "learn")) {
+            return ResponseEntity.status(401).build();
+        }
         try {
             String lang = switch (language.toLowerCase()) {
                 case "tamil"     -> "tamil";

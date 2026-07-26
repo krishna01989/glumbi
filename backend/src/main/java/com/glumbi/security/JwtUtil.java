@@ -13,10 +13,12 @@ import java.util.Date;
 public class JwtUtil {
 
     private final Key key;
-    private static final long EXPIRY_MS = 7 * 24 * 60 * 60 * 1000L; // 7 days
+    private final long expiryMs;
 
-    public JwtUtil(@Value("${app.jwt.secret:glumbi-super-secret-key-change-in-production-min-32-chars}") String secret) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    public JwtUtil(@Value("${app.jwt.secret:glumbi-super-secret-key-change-in-production-min-32-chars}") String secret,
+                   @Value("${app.jwt.expiry-hours:24}") int expiryHours) {
+        this.key      = Keys.hmacShaKeyFor(secret.getBytes());
+        this.expiryMs = expiryHours * 60L * 60 * 1000;
     }
 
     public String generate(AppUser user) {
@@ -25,7 +27,7 @@ public class JwtUtil {
                 .claim("userId", user.getId())
                 .claim("role", user.getRole().name())
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRY_MS))
+                .setExpiration(new Date(System.currentTimeMillis() + expiryMs))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }

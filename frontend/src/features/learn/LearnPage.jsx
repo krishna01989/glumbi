@@ -1049,8 +1049,8 @@ function WordMode({ script, child, quota }) {
   const crossTts   = crossKey
   const srcTts     = LANG_CONFIG[script]?.tts || 'english'
 
-  function play(text, tts) {
-    const url = learnApi.audioUrl(text, tts)
+  async function play(text, tts) {
+    const url = await learnApi.audioUrl(text, tts)
     if (audioRef.current) { audioRef.current.src = url; audioRef.current.play().catch(()=>{}) }
   }
 
@@ -1341,20 +1341,20 @@ export default function LearnPage({ child, quota }) {
 
   useEffect(() => { setSelected(null) }, [engCase, engFont, catKey])
 
-  function selectLetter(item) {
+  async function selectLetter(item) {
     const langCfg = LANG_CONFIG[script]
     const pulliMark = cat.key === 'consonants' && langCfg?.virama ? langCfg.virama : ''
     const displayItem = pulliMark
       ? { ...item, char: item.char + pulliMark, roman: item.roman ? item.roman.replace(/a$/, '') : item.roman }
       : item
     setSelected(displayItem)
-    const url = learnApi.audioUrl(displayItem.char, langCfg?.tts || 'english')
+    const url = await learnApi.audioUrl(displayItem.char, langCfg?.tts || 'english')
     if (audioRef.current) { audioRef.current.src = url; audioRef.current.load(); audioRef.current.play().catch(()=>{}) }
   }
 
-  function replayAudio() {
+  async function replayAudio() {
     if (!selected) return
-    const url = learnApi.audioUrl(selected.char, LANG_CONFIG[script]?.tts || 'english')
+    const url = await learnApi.audioUrl(selected.char, LANG_CONFIG[script]?.tts || 'english')
     if (audioRef.current) { audioRef.current.src = url; audioRef.current.load(); audioRef.current.play().catch(()=>{}) }
   }
 

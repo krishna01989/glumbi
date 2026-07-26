@@ -75,6 +75,7 @@ app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   jwt:
     secret: ${JWT_SECRET:glumbi-super-secret-key-change-in-production-min-32-chars}
+    expiry-hours: ${JWT_EXPIRY_HOURS:24}
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
     token-info-url: https://oauth2.googleapis.com/tokeninfo
@@ -89,6 +90,7 @@ app:
     tts-max-size: 200
     tts-ttl-hours: 6
     wotd-ttl-hours: 25
+    audio-token-ttl-hours: ${AUDIO_TOKEN_TTL_HOURS:8}
   embedding:
     thread-pool-size: 4
 

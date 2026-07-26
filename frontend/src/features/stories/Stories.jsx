@@ -443,7 +443,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
       const isPart1Phase = glumbiPhase === 'reading1' || glumbiPhase === 'mid'
       const isPart2Phase = glumbiPhase === 'reading2' || glumbiPhase === 'post' || glumbiPhase === 'epilogue'
       const glumbiPart = isPart1Phase ? 1 : isPart2Phase ? 2 : null
-      const url = storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId, glumbiPart, isPart2Phase ? glumbiMidPicked : null)
+      const url = await storyApi.listenUrl(story.id, lang, resolvedVoice, selectedVoiceId, glumbiPart, isPart2Phase ? glumbiMidPicked : null)
       const audio = new Audio(url)
       audioRef.current = audio
       // play() must be called here — in the click handler — to satisfy browser autoplay policy

@@ -10,6 +10,7 @@ import com.glumbi.repository.FamilyVoiceRepository;
 import com.glumbi.repository.StoryRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.AudioTokenService;
 import com.glumbi.service.ElevenLabsService;
 import com.glumbi.service.R2Service;
 import com.glumbi.service.RateLimitService;
@@ -55,6 +56,7 @@ public class StoryController {
     private final RateLimitService rateLimiter;
     private final ApiQuotaService quotaService;
     private final R2Service r2Service;
+    private final AudioTokenService audioTokenService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.cache.tts-max-size:200}") private int ttsCacheMaxSize;
@@ -152,11 +154,14 @@ public class StoryController {
             @RequestParam(defaultValue = "english") String language,
             @RequestParam(required = false) String voice,
             @RequestParam(required = false) Long familyVoiceId,
-            @RequestParam(required = false) String token,
+            @RequestParam(required = false) String stoken,
             @RequestParam(required = false) Integer part,
             @RequestParam(required = false) String branch,
             @AuthenticationPrincipal AuthUser authUser,
             @RequestHeader(value = HttpHeaders.RANGE, required = false) String rangeHeader) {
+        if (!audioTokenService.validate(stoken, "story:" + id)) {
+            return ResponseEntity.status(401).body(null);
+        }
         try {
             // Resolve ElevenLabs voice ID from familyVoiceId param
             String elVoiceId = null;

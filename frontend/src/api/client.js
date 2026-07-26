@@ -1,5 +1,19 @@
 import axios from 'axios'
 
+// In-memory audio token cache keyed by resource (e.g. "learn", "story:41").
+// Tokens are valid for 60s; we refresh 5s early to avoid races on slow networks.
+const _audioTokenCache = {}
+async function getAudioToken(resource) {
+  const cached = _audioTokenCache[resource]
+  if (cached && cached.expiresAt > Date.now()) return cached.token
+  const { data } = await api.post('/audio-token', { resource })
+  _audioTokenCache[resource] = {
+    token:     data.stoken,
+    expiresAt: Date.now() + (data.expiresIn - 5) * 1000,
+  }
+  return data.stoken
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080/api',
   headers: { 'Content-Type': 'application/json' }
@@ -96,14 +110,14 @@ export const storyApi = {
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
   getSimilar:     (id)                => api.get(`/stories/${id}/similar`).then(r => r.data),
   translate:      (id, language)      => api.get(`/stories/${id}/translate?language=${language}`).then(r => r.data),
-  listenUrl:      (id, language, voice, familyVoiceId, part, branch) => {
-    const token = localStorage.getItem('glm_token')
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+  listenUrl:      async (id, language, voice, familyVoiceId, part, branch) => {
+    const base   = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+    const stoken = await getAudioToken(`story:${id}`)
     const v  = voice ? `&voice=${encodeURIComponent(voice)}` : ''
     const fv = familyVoiceId ? `&familyVoiceId=${familyVoiceId}` : ''
     const p  = part ? `&part=${part}` : ''
     const b  = part === 2 && branch != null ? `&branch=${branch === 1 ? 'b' : 'a'}` : ''
-    return `${base}/stories/${id}/listen?language=${language}${v}${fv}${p}${b}&token=${token}`
+    return `${base}/stories/${id}/listen?language=${language}${v}${fv}${p}${b}&stoken=${stoken}`
   },
   delete:         (id)                => api.delete(`/stories/${id}`).then(r => r.data).catch(() => null),
 }
@@ -168,10 +182,10 @@ export const learnApi = {
     api.post('/learn/validate', { imageData, letter, script, childName, childAge: String(childAge), ...(childId ? { childId: String(childId) } : {}) }).then(r => r.data),
   identifyWord: (imageData, script, childName, childAge, childId, targetWord) =>
     api.post('/learn/word', { imageData, script, childName, childAge: String(childAge), ...(childId ? { childId: String(childId) } : {}), ...(targetWord ? { targetWord } : {}) }).then(r => r.data),
-  audioUrl: (text, language) => {
-    const base  = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
-    const token = localStorage.getItem('glm_token')
-    return `${base}/learn/audio?text=${encodeURIComponent(text)}&language=${language}&token=${token}`
+  audioUrl: async (text, language) => {
+    const base   = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+    const stoken = await getAudioToken('learn')
+    return `${base}/learn/audio?text=${encodeURIComponent(text)}&language=${language}&stoken=${stoken}`
   },
 }
 

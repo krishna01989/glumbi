@@ -2822,6 +2822,10 @@ export default function AdminPage({ onBack, onLogout }) {
   const alertDrawerRef                          = useRef(null)
   const isMobile = useIsMobile()
 
+  useEffect(() => {
+    adminApi.getStats().then(s => setAdminAlerts(s?.alerts ?? [])).catch(() => {})
+  }, [])
+
   // Derive active section from URL: /admin/users → 'users', /admin → 'dashboard'
   const pathSegment = location.pathname.split('/').filter(Boolean)[1] // segment after 'admin'
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'

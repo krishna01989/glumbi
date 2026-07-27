@@ -20,7 +20,7 @@ function PasswordStrength({ password }) {
   )
 }
 
-export default function ProfilePage({ onLogout, parentOnly = false }) {
+export default function ProfilePage({ onLogout, onConsentWithdrawn, parentOnly = false }) {
   const navigate = useNavigate()
   const [profile, setProfile]       = useState(null)
   const [loading, setLoading]       = useState(true)
@@ -578,7 +578,8 @@ export default function ProfilePage({ onLogout, parentOnly = false }) {
                 setWithdrawLoading(true)
                 try {
                   await userApi.withdrawConsent()
-                  window.location.reload()
+                  setShowWithdraw(false)
+                  onConsentWithdrawn?.()
                 } finally { setWithdrawLoading(false) }
               }} disabled={withdrawLoading}
                 style={{ padding: '9px 20px', borderRadius: 50, fontSize: 13, fontWeight: 800, background: '#f59e0b', color: '#fff', border: 'none', cursor: 'pointer' }}>

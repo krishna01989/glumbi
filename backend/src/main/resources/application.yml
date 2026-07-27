@@ -69,6 +69,15 @@ anthropic:
     draw-guide: 300
 
 app:
+  brand:
+    name: ${APP_BRAND_NAME:Glumbi}
+    base-url: ${APP_BRAND_BASE_URL:https://glumbi.com}
+    logo-url: ${APP_BRAND_LOGO_URL:https://glumbi.com/logo.svg}
+    privacy-url: ${APP_BRAND_PRIVACY_URL:https://glumbi.com/privacy}
+    contact-url: ${APP_BRAND_CONTACT_URL:https://glumbi.com/contact}
+    privacy-email: ${APP_BRAND_PRIVACY_EMAIL:privacy@glumbi.com}
+    auth-url: ${APP_BRAND_AUTH_URL:https://glumbi.com/auth}
+    login-url: ${APP_BRAND_LOGIN_URL:https://glumbi.com/login}
   env: ${APP_ENV:local}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

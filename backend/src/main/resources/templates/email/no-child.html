@@ -14,7 +14,7 @@
           <!-- Header -->
           <tr>
             <td style="background:#ffffff;padding:24px 32px;text-align:center;border-bottom:3px solid #ff6b6b;">
-              <img src="https://glumbi.com/logo.svg" alt="Glumbi" width="140" style="display:block;margin:0 auto;">
+              <img th:src="${brandLogoUrl}" alt="Glumbi" width="140" style="display:block;margin:0 auto;">
             </td>
           </tr>
 
@@ -66,7 +66,7 @@
               <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px auto;">
                 <tr>
                   <td style="background:#ff6b6b;padding:12px 32px;text-align:center;">
-                    <a href="https://glumbi.com/auth" style="color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Add Your Child</a>
+                    <a th:href="${brandAuthUrl}" style="color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Add Your Child</a>
                   </td>
                 </tr>
               </table>
@@ -83,9 +83,9 @@
             <td style="padding:20px;text-align:center;">
               <p style="margin:0;font-size:12px;color:#aaaaaa;">
                 &copy; Glumbi &nbsp;&middot;&nbsp;
-                <a href="https://glumbi.com/privacy" style="color:#aaaaaa;">Privacy</a>
+                <a th:href="${brandPrivacyUrl}" style="color:#aaaaaa;">Privacy</a>
                 &nbsp;&middot;&nbsp;
-                <a href="https://glumbi.com/contact" style="color:#aaaaaa;">Contact</a>
+                <a th:href="${brandContactUrl}" style="color:#aaaaaa;">Contact</a>
               </p>
             </td>
           </tr>

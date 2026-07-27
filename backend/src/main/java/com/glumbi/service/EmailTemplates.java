@@ -1,5 +1,6 @@
 package com.glumbi.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -9,6 +10,43 @@ import java.util.concurrent.ThreadLocalRandom;
 
 @Component
 public class EmailTemplates {
+
+    @Value("${app.brand.name:Glumbi}")
+    private String brandName;
+
+    @Value("${app.brand.base-url:https://glumbi.com}")
+    private String brandBaseUrl;
+
+    @Value("${app.brand.logo-url:https://glumbi.com/logo.svg}")
+    private String brandLogoUrl;
+
+    @Value("${app.brand.privacy-url:https://glumbi.com/privacy}")
+    private String brandPrivacyUrl;
+
+    @Value("${app.brand.contact-url:https://glumbi.com/contact}")
+    private String brandContactUrl;
+
+    @Value("${app.brand.privacy-email:privacy@glumbi.com}")
+    private String brandPrivacyEmail;
+
+    @Value("${app.brand.auth-url:https://glumbi.com/auth}")
+    private String brandAuthUrl;
+
+    @Value("${app.brand.login-url:https://glumbi.com/login}")
+    private String brandLoginUrl;
+
+    private Context brandContext() {
+        Context ctx = new Context();
+        ctx.setVariable("brandName", brandName);
+        ctx.setVariable("brandBaseUrl", brandBaseUrl);
+        ctx.setVariable("brandLogoUrl", brandLogoUrl);
+        ctx.setVariable("brandPrivacyUrl", brandPrivacyUrl);
+        ctx.setVariable("brandContactUrl", brandContactUrl);
+        ctx.setVariable("brandPrivacyEmail", brandPrivacyEmail);
+        ctx.setVariable("brandAuthUrl", brandAuthUrl);
+        ctx.setVariable("brandLoginUrl", brandLoginUrl);
+        return ctx;
+    }
 
     private static final List<String> NO_CHILD_MESSAGES = List.of(
         "It looks like you haven't added a child profile yet — it only takes a minute! Once you do, Glumbi will start creating personalised stories, games, and activities just for them.",
@@ -38,61 +76,61 @@ public class EmailTemplates {
     }
 
     public String passwordReset(String resetUrl, boolean isAdmin) {
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("resetUrl", resetUrl);
         ctx.setVariable("salutation", isAdmin ? "Dear Glumbi Admin," : "Dear Glumbi User,");
         return templateEngine.process("email/password-reset", ctx);
     }
 
     public String passwordChanged(String context, boolean isAdmin) {
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("context", context);
         ctx.setVariable("salutation", isAdmin ? "Dear Glumbi Admin," : "Dear Glumbi User,");
         return templateEngine.process("email/password-changed", ctx);
     }
 
     public String accountOnHold() {
-        return templateEngine.process("email/account-on-hold", new Context());
+        return templateEngine.process("email/account-on-hold", brandContext());
     }
 
     public String accountReleased() {
-        return templateEngine.process("email/account-released", new Context());
+        return templateEngine.process("email/account-released", brandContext());
     }
 
     public String accountDeletedByAdmin() {
-        return templateEngine.process("email/account-deleted-by-admin", new Context());
+        return templateEngine.process("email/account-deleted-by-admin", brandContext());
     }
 
     public String accountDeletedBySelf() {
-        return templateEngine.process("email/account-deleted-self", new Context());
+        return templateEngine.process("email/account-deleted-self", brandContext());
     }
 
     public String quotaWarning(int usedPercent) {
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("usedPercent", usedPercent);
         return templateEngine.process("email/quota-warning", ctx);
     }
 
     public String announcement(String headline, String bodyHtml) {
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("headline", headline);
         ctx.setVariable("bodyHtml", bodyHtml);
         return templateEngine.process("email/announcement", ctx);
     }
 
     public String onboarding() {
-        return templateEngine.process("email/onboarding", new Context());
+        return templateEngine.process("email/onboarding", brandContext());
     }
 
     public String parentNotice() {
-        return templateEngine.process("email/parent-notice", new Context());
+        return templateEngine.process("email/parent-notice", brandContext());
     }
 
     public String noChildAdded() {
         String message = NO_CHILD_MESSAGES.get(
             ThreadLocalRandom.current().nextInt(NO_CHILD_MESSAGES.size())
         );
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("message", message);
         return templateEngine.process("email/no-child", ctx);
     }
@@ -101,14 +139,14 @@ public class EmailTemplates {
         String template = QUIET_WEEK_MESSAGES.get(
             ThreadLocalRandom.current().nextInt(QUIET_WEEK_MESSAGES.size())
         );
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("childName", childName);
         ctx.setVariable("message", template.replace("{name}", childName));
         return templateEngine.process("email/quiet-week", ctx);
     }
 
     public String weeklyRecap(String childName, String recapText) {
-        Context ctx = new Context();
+        Context ctx = brandContext();
         ctx.setVariable("childName", childName);
         ctx.setVariable("recapHtml", recapText.replace("\n", "<br>"));
         return templateEngine.process("email/weekly-recap", ctx);

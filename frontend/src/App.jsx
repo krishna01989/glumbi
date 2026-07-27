@@ -461,7 +461,7 @@ export default function App() {
           <Route path="/child/new"      element={<ChildForm onChildCreated={() => navigate('/child')} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/edit"     element={<ChildForm onChildUpdated={c => { applyTheme(c.theme); if (child) setChild(c); navigate(-1) }} enabledFeatureConfig={featureConfig} />} />
           <Route path="/child/:id/insights" element={<ChildInsightsPage />} />
-          <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} parentOnly />} />
+          <Route path="/profile"        element={<ProfilePage onLogout={handleLogout} onConsentWithdrawn={() => setConsentGiven(false)} parentOnly />} />
           <Route path="/help"           element={<HelpPage />} />
           <Route path="/privacy"        element={<PrivacyPage />} />
           <Route path="/terms"          element={<TermsPage />} />

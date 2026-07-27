@@ -2775,33 +2775,38 @@ function AdminAlertDrawer({ open, alerts, drawerRef, onClose }) {
         border: '1px solid #f0f0f0', overflow: 'hidden',
       }}>
       <div style={{
-        padding: '14px 18px 10px', borderBottom: '1px solid #f5f5f5',
+        padding: '16px 20px 12px', borderBottom: '1px solid #f0f0f0',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <span style={{ fontWeight: 800, fontSize: 14, color: '#222' }}>Notifications</span>
+        <span style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>Notifications</span>
         <button onClick={onClose}
-          style={{ background: 'none', border: 'none', fontSize: 17, cursor: 'pointer', color: '#aaa', padding: 0 }}>
+          style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#aaa', padding: 0, lineHeight: 1 }}>
           ✕
         </button>
       </div>
       {!alerts?.length ? (
-        <div style={{ padding: '32px 18px', textAlign: 'center', color: '#bbb' }}>
-          <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
+        <div style={{ padding: '40px 24px', textAlign: 'center', color: '#bbb' }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🔔</div>
           <div style={{ fontSize: 13, fontWeight: 600 }}>Nothing to flag right now</div>
         </div>
-      ) : alerts.map((a, i) => {
-        const s = ALERT_STYLE[a.level] || ALERT_STYLE.info
-        return (
-          <div key={i} style={{
-            padding: '12px 18px',
-            borderBottom: i < alerts.length - 1 ? '1px solid #fafafa' : 'none',
-            background: s.bg, display: 'flex', gap: 10, alignItems: 'flex-start',
-          }}>
-            <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>{s.icon}</span>
-            <span style={{ fontSize: 13, color: s.text, fontWeight: 600, lineHeight: 1.45 }}>{a.msg}</span>
-          </div>
-        )
-      })}
+      ) : (
+        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {alerts.map((a, i) => {
+            const s = ALERT_STYLE[a.level] || ALERT_STYLE.info
+            return (
+              <div key={i} style={{
+                padding: '12px 14px',
+                borderRadius: 10,
+                border: `1px solid ${s.border}`,
+                background: s.bg, display: 'flex', gap: 10, alignItems: 'flex-start',
+              }}>
+                <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{s.icon}</span>
+                <span style={{ fontSize: 13, color: s.text, fontWeight: 600, lineHeight: 1.5 }}>{a.msg}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

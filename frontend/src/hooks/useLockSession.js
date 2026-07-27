@@ -121,7 +121,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
           return current
         })
       }
-    }, 30000)
+    }, 5000)
     return () => clearInterval(interval)
   }, [sessionStart, lockTimeLimit, childLocked])
 

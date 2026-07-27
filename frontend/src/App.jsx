@@ -185,6 +185,114 @@ function Toast({ toasts, onDismiss }) {
   )
 }
 
+// ─── SESSION TIMER PILL ────────────────────────────────────────────────────────
+const TIMER_KEYFRAMES = `
+  @keyframes glm-timer-warn {
+    0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(230,130,0,0.55); }
+    50%      { transform: scale(1.07); box-shadow: 0 0 0 5px rgba(230,130,0,0); }
+  }
+  @keyframes glm-timer-panic {
+    0%   { transform: rotate(-5deg) scale(1.1); }
+    100% { transform: rotate(5deg)  scale(1.1); }
+  }
+  @keyframes glm-hourglass {
+    0%        { transform: rotate(0deg); }
+    40%       { transform: rotate(0deg); }
+    50%       { transform: rotate(180deg); }
+    90%       { transform: rotate(180deg); }
+    100%      { transform: rotate(360deg); }
+  }
+  @keyframes glm-hg-flip {
+    0%   { transform: rotate(0deg)   scale(1); }
+    25%  { transform: rotate(90deg)  scale(0.6); }
+    50%  { transform: rotate(180deg) scale(1); }
+    75%  { transform: rotate(270deg) scale(0.6); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+`
+
+let timerStyleInjected = false
+function injectTimerStyles() {
+  if (timerStyleInjected) return
+  const el = document.createElement('style')
+  el.textContent = TIMER_KEYFRAMES
+  document.head.appendChild(el)
+  timerStyleInjected = true
+}
+
+function SessionTimerPill({ sessionStart, lockTimeLimit, formatElapsed, sessionMinutes, mobile }) {
+  const [elapsedSec, setElapsedSec] = useState(0)
+  const [isFlipping, setIsFlipping] = useState(false)
+  const prevSessionStart = useRef(null)
+
+  useEffect(() => { injectTimerStyles() }, [])
+
+  useEffect(() => {
+    if (prevSessionStart.current !== null && sessionStart !== prevSessionStart.current) {
+      setIsFlipping(true)
+      const t = setTimeout(() => setIsFlipping(false), 700)
+      prevSessionStart.current = sessionStart
+      return () => clearTimeout(t)
+    }
+    prevSessionStart.current = sessionStart
+  }, [sessionStart])
+
+  // 1-second display-only tick — never touches limit logic
+  useEffect(() => {
+    if (!sessionStart) return
+    const tick = () => {
+      if (document.hidden) return
+      setElapsedSec(Math.max(0, Math.floor((Date.now() - sessionStart) / 1000)))
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [sessionStart])
+
+  if (!sessionStart) return null
+
+  // No time limit — simple elapsed pill
+  if (!lockTimeLimit) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: mobile ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.07)', borderRadius: 50, padding: '2px 8px', fontSize: 10, fontWeight: 700, color: mobile ? 'white' : '#888', whiteSpace: 'nowrap' }}>
+        ⏳ {formatElapsed(sessionMinutes)} used
+      </span>
+    )
+  }
+
+  const totalSec     = lockTimeLimit * 60
+  const remainingSec = Math.max(0, totalSec - elapsedSec)
+  const pct          = elapsedSec / totalSec
+  const isPanic      = remainingSec <= 30
+  const warnThreshold = Math.min(5 * 60, totalSec * 0.2)
+  const isWarning    = !isPanic && remainingSec <= warnThreshold
+  const remMins      = Math.floor(remainingSec / 60)
+  const remSecs      = remainingSec % 60
+  const remStr       = `${remMins}:${String(remSecs).padStart(2, '0')}`
+
+  const bg    = isPanic  ? 'linear-gradient(135deg,#cc0033,#ff3355)'
+              : isWarning ? 'linear-gradient(135deg,#e67e00,#f7a800)'
+              :             'rgba(255,255,255,0.22)'
+  const color = isPanic || isWarning ? 'white' : 'white'
+  const anim  = isPanic   ? 'glm-timer-panic 0.35s ease infinite alternate'
+              : isWarning ? 'glm-timer-warn 1.6s ease infinite'
+              : 'none'
+
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: bg, borderRadius: 50, padding: '2px 8px 2px 6px',
+      animation: anim, transition: 'background 0.4s',
+      whiteSpace: 'nowrap', boxShadow: isPanic ? '0 2px 8px rgba(204,0,51,0.4)' : isWarning ? '0 2px 8px rgba(230,130,0,0.35)' : 'none',
+    }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, fontSize: 11, lineHeight: 1, transformOrigin: '50% 50%', animation: isFlipping ? 'glm-hg-flip 0.7s ease-in-out' : isPanic ? 'glm-hourglass 1s ease-in-out infinite' : isWarning ? 'glm-hourglass 2s ease-in-out infinite' : 'glm-hourglass 4s ease-in-out infinite' }}>⏳</span>
+      <span style={{ fontSize: 10, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3 }}>
+        {remStr}
+      </span>
+    </span>
+  )
+}
+
 // ─── CONSENT MODAL ─────────────────────────────────────────────────────────────
 function ConsentModal({ onAccept }) {
   return (
@@ -441,24 +549,20 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {/* Desktop / TV / Tablet header */}
-        <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${isTV ? 40 : 24}px`, height: isTV ? 72 : 60, flexShrink: 0, background: 'white', borderBottom: '1px solid #f0f0f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${isTV ? 40 : 24}px`, height: isTV ? 72 : 60, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <div id="tour-child-name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: isTV ? 36 : 28 }}>{child.avatarEmoji}</span>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: '#333' }}>{child.name}</span>
-                {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: '#aaa' }}>{childAge} yrs</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: 'white' }}>{child.name}</span>
+                {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: 'rgba(255,255,255,0.7)' }}>{childAge} yrs</span>}
                 {child?.streakCount > 0 && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, padding: '2px 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(247,168,0,0.35)', whiteSpace: 'nowrap' }}>
                     🔥 {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
                   </span>
                 )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {sessionStart && childLocked && (
-                  <span style={{ fontSize: isTV ? 12 : 10, fontWeight: 700, color: lockTimeLimit > 0 && sessionMinutes >= lockTimeLimit ? '#cc0033' : '#aaa' }}>
-                    ⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}
-                  </span>
+                  <SessionTimerPill sessionStart={sessionStart} lockTimeLimit={lockTimeLimit} formatElapsed={formatElapsed} sessionMinutes={sessionMinutes} />
                 )}
               </div>
             </div>
@@ -467,22 +571,22 @@ export default function App() {
             {!childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
             {!childLocked && (
               <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
-                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
+                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
             )}
             {!childLocked && (
               <button onClick={handleLogout}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: '#fff0f0', color: '#cc0033', border: '1.5px solid #fcc', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: 'rgba(255,255,255,0.2)', color: 'white', border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer' }}>
                 <span style={{ fontSize: 16 }}>🚪</span><span>Sign Out</span>
               </button>
             )}
             {childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
             {childLocked && (
               <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
-                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #eee', cursor: 'pointer', fontSize: 18, background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
+                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
             )}
             {childLocked && (
               <button onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }} title="Parent access"
-                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid #fcc', cursor: 'pointer', fontSize: 18, background: '#fff0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 🔒
               </button>
             )}
@@ -503,18 +607,16 @@ export default function App() {
                   <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>
                 </span>
                 <div style={{ lineHeight: 1.2 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
+                    {childAge !== null && !sessionStart && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>{childAge} yrs</span>}
                     {child?.streakCount > 0 && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, padding: '2px 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
                         🔥 {child.streakCount}d
                       </span>
                     )}
+                    {sessionStart && <SessionTimerPill sessionStart={sessionStart} lockTimeLimit={lockTimeLimit} formatElapsed={formatElapsed} sessionMinutes={sessionMinutes} mobile />}
                   </div>
-                  {sessionStart
-                    ? <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)', fontWeight: 700 }}>⏱️ {formatElapsed(sessionMinutes)}{lockTimeLimit > 0 ? ` / ${formatElapsed(lockTimeLimit)}` : ' used'}</div>
-                    : childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>
-                  }
                 </div>
               </>
             )}

@@ -283,6 +283,7 @@ export const analyticsApi = {
 export const adminApi = {
   getStats:          (from, to)     => api.get('/admin/stats', { params: from ? { from, to } : {} }).then(r => r.data),
   getUsers:          ()             => api.get('/admin/users').then(r => r.data),
+  revealEmail:       (id)           => api.get(`/admin/users/${id}/email`).then(r => r.data),
   deleteUser:        (id)           => api.delete(`/admin/users/${id}`),
   changeRole:        (id, role)     => api.patch(`/admin/users/${id}/role`, { role }).then(r => r.data),
   resetPassword:     (id, password) => api.patch(`/admin/users/${id}/password`, { password }).then(r => r.data),

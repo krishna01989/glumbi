@@ -1151,6 +1151,16 @@ function Dashboard() {
 
 // ─── Users section ────────────────────────────────────────────────────────────
 function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete, onFeatureAccess, onPromote, onDemote }) {
+  const [revealedEmail, setRevealedEmail] = useState(null)
+  const [revealing, setRevealing] = useState(false)
+  async function revealEmail() {
+    if (revealedEmail) { setRevealedEmail(null); return }
+    setRevealing(true)
+    try {
+      const data = await adminApi.revealEmail(user.id)
+      setRevealedEmail(data.email)
+    } finally { setRevealing(false) }
+  }
   const avatarBg = user.onHold
     ? 'linear-gradient(135deg,#e74c3c,#c0392b)'
     : user.role === 'SUPER_ADMIN' ? 'linear-gradient(135deg,#f59e0b,#d97706)'
@@ -1171,7 +1181,13 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{user.email}</span>
+          <span style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{revealedEmail ?? user.email}</span>
+          {callerRole === 'SUPER_ADMIN' && (
+            <button onClick={revealEmail} disabled={revealing} title={revealedEmail ? 'Hide email' : 'Reveal email'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#aaa', padding: '0 2px', lineHeight: 1 }}>
+              {revealing ? '⏳' : revealedEmail ? '🙈' : '👁️'}
+            </button>
+          )}
           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: user.authMethod === 'google' ? '#e8f0fe' : '#f0fff4', color: user.authMethod === 'google' ? '#1a73e8' : '#2e7d32' }}>
             {user.authMethod === 'google' ? '🔵 Google' : '🔒 Password'}
           </span>
@@ -2689,7 +2705,7 @@ function Compliance() {
             disabled={loading}
             style={{ background: loading ? '#ccc' : '#ff6b6b', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 800, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer' }}
           >
-            {loading ? 'Sending…' : 'Send Consent Notice Email'}
+            {loading ? '⏳ Sending…' : '📨 Send'}
           </button>
           <button onClick={loadHistory}
             style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid #e0e0e0', background: '#f8f8f8', fontSize: 13, cursor: 'pointer', color: '#777', fontWeight: 700 }}>

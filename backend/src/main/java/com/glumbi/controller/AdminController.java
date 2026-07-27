@@ -265,7 +265,7 @@ public class AdminController {
         return userRepo.findAll().stream().map(u -> {
             Map<String, Object> m = new java.util.HashMap<>();
             m.put("id",          u.getId());
-            m.put("email",       u.getEmail());
+            m.put("email",       maskEmail(u.getEmail()));
             m.put("role",        u.getRole().name());
             m.put("createdAt",   u.getCreatedAt());
             m.put("childCount",  (long) childRepo.findByOwnerId(u.getId()).size());
@@ -404,6 +404,14 @@ public class AdminController {
         }
         quotaService.setDefaultMonthlyCredits(credits);
         return ResponseEntity.ok(Map.of("defaultMonthlyCredits", credits));
+    }
+
+    @GetMapping("/users/{id}/email")
+    public ResponseEntity<?> revealEmail(@PathVariable Long id,
+                                         @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+        return userRepo.findById(id)
+            .map(u -> ResponseEntity.ok(Map.of("email", u.getEmail())))
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/users/{id}")
@@ -582,6 +590,13 @@ public class AdminController {
         CompletableFuture.runAsync(() -> resendClient.sendBatch(recipients, subject, html));
 
         return ResponseEntity.ok(Map.of("queued", total));
+    }
+
+    private static String maskEmail(String email) {
+        if (email == null) return null;
+        int at = email.indexOf('@');
+        if (at <= 1) return email;
+        return email.charAt(0) + "***" + email.substring(at);
     }
 
     private Object parseJson(String json) {

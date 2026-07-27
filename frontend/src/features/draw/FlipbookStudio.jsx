@@ -33,7 +33,12 @@ const PRESET_COLORS = [
   '#9c6ef8','#9c27b0','#673ab7','#7c4dff','#ce93d8','#f48fb1',
   '#4e342e','#6d4c41','#8d5524','#c68642','#f1c27d','#ffdbac',
 ]
-const QUICK_COLORS = ['#000000','#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#9c6ef8','#ff69b4']
+const QUICK_COLORS = [
+  '#000000','#ffffff','#808080','#ff4757',
+  '#ff6b35','#ffa502','#ffd32a','#2ed573',
+  '#1e90ff','#00bcd4','#9c6ef8','#ff69b4',
+  '#4e342e','#8d5524','#3d5a80','#26de81',
+]
 const BRUSHES = [
   { size: 3,  title: 'Extra thin', dotSize: 4,  btnH: 24 },
   { size: 7,  title: 'Thin',       dotSize: 8,  btnH: 28 },
@@ -144,6 +149,7 @@ export default function FlipbookStudio({ child, quota }) {
   const [showPalette, setShowPalette]   = useState(false)
   const [palettePos, setPalettePos]     = useState({ x: 0, y: 0 })
   const [showOnionSkin, setShowOnionSkin] = useState(true)
+  const [stripCollapsed, setStripCollapsed] = useState(false)
   const [canUndo, setCanUndo] = useState(false)
 
   // Canvas / undo
@@ -989,16 +995,6 @@ export default function FlipbookStudio({ child, quota }) {
     ctx.stroke()
     lastPos.current = pos
 
-    if (!previewThrottleRef.current) {
-      previewThrottleRef.current = requestAnimationFrame(() => {
-        previewThrottleRef.current = null
-        const url = canvasRef.current.toDataURL('image/png')
-        const idx = currentIdxRef.current
-        framesRef.current = [...framesRef.current]
-        framesRef.current[idx] = url
-        setFrames([...framesRef.current])
-      })
-    }
   }
 
   function stopDraw() {
@@ -1409,19 +1405,13 @@ export default function FlipbookStudio({ child, quota }) {
   const total = frames.length
 
   const toolbarStyle = {
-    width:     isFullscreen ? 80 : isCompact ? '100%' : 96,
-    flexShrink: 0, alignSelf: 'stretch',
-    display: 'flex',
-    flexDirection: isFullscreen ? 'column' : 'column',
-    flexWrap:  'nowrap',
-    gap: isFullscreen ? 8 : isCompact ? 6 : 12,
-    background: 'white',
+    width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column',
+    gap: isMobile ? 6 : 10,
+    background: isFullscreen ? 'rgba(255,255,255,0.97)' : 'white',
     borderRadius: isFullscreen ? 0 : 20,
-    padding: isFullscreen ? '14px 10px' : isCompact ? '10px 14px' : '16px 10px',
-    boxShadow: isFullscreen ? '2px 0 8px rgba(0,0,0,0.06)' : 'var(--shadow)',
-    alignItems: isCompact && !isFullscreen ? 'stretch' : 'center',
-    justifyContent: 'flex-start',
-    overflowY: isCompact ? undefined : 'auto',
+    padding: isMobile ? '8px 10px' : '10px 14px',
+    boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.08)' : 'var(--shadow)',
+    alignItems: 'stretch',
   }
 
   return (
@@ -1449,7 +1439,7 @@ export default function FlipbookStudio({ child, quota }) {
       )}
 
       {/* ── Main row: toolbar + canvas ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && !isFullscreen ? 'column' : 'row', gap: isFullscreen ? 0 : isCompact ? 12 : 20, minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: isFullscreen ? 0 : 12, minHeight: 0 }}>
 
         {/* ── Toolbar ── */}
         <div style={toolbarStyle}>
@@ -1520,7 +1510,7 @@ export default function FlipbookStudio({ child, quota }) {
             </div>
           )}
 
-          {isCompact && !isFullscreen ? (() => {
+          {(() => {
             const swatchSz = isMobile ? 26 : 30
             const palSz    = isMobile ? 26 : 30
             const colorSz  = isMobile ? 20 : 22
@@ -1528,7 +1518,7 @@ export default function FlipbookStudio({ child, quota }) {
             const btnSz    = isMobile ? 28 : 36
             const fontSize = isMobile ? 17 : 20
 
-            const tabletRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }
+            const tabletRow = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }
             const mobileRow = { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
             const rowStyle  = isMobile ? mobileRow : tabletRow
 
@@ -1676,16 +1666,18 @@ export default function FlipbookStudio({ child, quota }) {
                       outline: showPalette ? '2px solid var(--primary)' : 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>🎨</button>
-                  {QUICK_COLORS.map(c => (
-                    <button key={c} onClick={() => pickColor(c)}
-                      style={{
-                        width: colorSz, height: colorSz, minWidth: colorSz,
-                        borderRadius: '50%', padding: 0, flexShrink: 0,
-                        background: c, border: 'none', cursor: 'pointer',
-                        boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : c === '#ffffff' ? '0 0 0 1px #ccc inset' : 'none',
-                        transform: color === c && !eraser ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.1s',
-                      }} />
-                  ))}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, maxWidth: colorSz * 8 + 5 * 7 }}>
+                    {QUICK_COLORS.map(c => (
+                      <button key={c} onClick={() => pickColor(c)}
+                        style={{
+                          width: colorSz, height: colorSz, minWidth: colorSz,
+                          borderRadius: '50%', padding: 0, flexShrink: 0,
+                          background: c, border: 'none', cursor: 'pointer',
+                          boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : c === '#ffffff' ? '0 0 0 1px #ccc inset' : 'none',
+                          transform: color === c && !eraser ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.1s',
+                        }} />
+                    ))}
+                  </div>
                   {BRUSHES.map(b => (
                     <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
                       style={{
@@ -1731,99 +1723,10 @@ export default function FlipbookStudio({ child, quota }) {
                     </button>
                   ))}
                 </div>
+
               </>
             )
-          })() : (
-            /* ── DESKTOP + FULLSCREEN ── */
-            <>
-              {!isFullscreen && <SectionLabel>Colour</SectionLabel>}
-              <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: eraser ? '#f5f5f5' : color,
-                  boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {eraser && <span style={{ fontSize: 20 }}>🧹</span>}
-                </div>
-                <button ref={swatchRef} className="fb-palette-trigger"
-                  onClick={() => {
-                    const rect = swatchRef.current.getBoundingClientRect()
-                    setPalettePos({ x: rect.right + 10, y: rect.top })
-                    setShowPalette(p => !p)
-                  }}
-                  style={{ width: 44, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', padding: '4px 0',
-                    background: showPalette ? 'var(--primary-lt)' : '#f5f5f5',
-                    outline: showPalette ? '2px solid var(--primary)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                  <span style={{ fontSize: 16 }}>🎨</span>
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isFullscreen ? 52 : 76 }}>
-                {QUICK_COLORS.map(c => (
-                  <button key={c} onClick={() => pickColor(c)}
-                    style={{ width: 22, height: 22, borderRadius: 6, background: c, border: 'none', cursor: 'pointer', padding: 0,
-                      boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 4px ${c}` : c === '#ffffff' ? '0 0 0 1px #ddd' : 'none',
-                      transform: color === c && !eraser ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.12s' }} />
-                ))}
-              </div>
-
-              {!isFullscreen && <HDivider />}
-              {!isFullscreen && <SectionLabel>Size</SectionLabel>}
-              {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
-                {BRUSHES.map(b => (
-                  <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
-                    style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? b.btnH * 0.8 : b.btnH,
-                      borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
-                      outline: brush === b.size ? '2px solid var(--primary)' : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 6px' }}>
-                    <div style={{ width: b.dotSize, height: b.dotSize, borderRadius: '50%', flexShrink: 0,
-                      background: brush === b.size ? 'var(--primary)' : '#aaa' }} />
-                  </button>
-                ))}
-              </div>
-
-              {!isFullscreen && <HDivider />}
-              {!isFullscreen && <SectionLabel>Tools</SectionLabel>}
-              {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
-                {[
-                  { key: 'pencil', emoji: '✏️', active: !eraser && !fillMode && !selectTool && !shapeTool, title: 'Pencil', onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false); setShapeTool(null) } },
-                  { key: 'fill',   emoji: '🪣', active: fillMode,   title: 'Fill',   onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false); setShapeTool(null) } },
-                  { key: 'eraser', emoji: '🧽', active: eraser,     title: 'Eraser', onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false); setShapeTool(null) } },
-                  { key: 'select', emoji: '⬚',  active: selectTool, title: 'Select', onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setShapeTool(null); setSelectTool(true) } } },
-                  { key: 'undo',   emoji: '↩️', active: false, disabled: !canUndo, title: 'Undo', onClick: handleUndo },
-                  { key: 'clear',  emoji: '🗑️', active: false, title: 'Clear frame', onClick: clearCurrentFrame },
-                  { key: 'onion',  emoji: '👁️', active: showOnionSkin, title: 'Onion skin', onClick: () => setShowOnionSkin(v => !v) },
-                  { key: 'save',   emoji: isSaving ? '⏳' : '💾', active: false, disabled: isSaving || isPlaying || !hasContent || !child?.id, title: isSaving ? 'Saving…' : 'Save', onClick: saveFlipbook },
-                  { key: 'export', emoji: isDownloading ? '⏳' : '🎬', active: false, disabled: isDownloading || isPlaying || total < 2, title: isDownloading ? 'Exporting…' : 'Export video', onClick: downloadAnimation },
-                  { key: 'new',    emoji: '🆕',  active: false, disabled: isSaving, title: 'New flipbook', onClick: newFlipbook },
-                ].map(({ key, emoji, active, disabled, onClick, title }) => (
-                  <button key={key} onClick={onClick} disabled={disabled} title={title}
-                    style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
-                      borderRadius: 8, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-                      background: active ? 'var(--primary-lt)' : '#f5f5f5',
-                      outline: active ? '2px solid var(--primary)' : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: disabled ? 0.35 : 1, fontSize: 18 }}>
-                    {emoji}
-                  </button>
-                ))}
-
-                <button ref={shapesBtnRef} onClick={openShapePicker} title="Draw shapes" className="fb-shape-picker-trigger"
-                  style={{ width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
-                    borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: shapeTool ? 'var(--primary-lt)' : '#f5f5f5',
-                    outline: shapeTool ? '2px solid var(--primary)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-                  <ShapeIcon shape={shapeTool || 'rect'} size={20} color={shapeTool ? 'var(--primary)' : '#aaa'} />
-                  <span style={{ fontSize: 9, color: shapeTool ? 'var(--primary)' : '#aaa', marginTop: 1 }}>▾</span>
-                </button>
-              </div>
-            </>
-          )}
+          })()}
         </div>
 
         {/* ── Canvas column: title + canvas ── */}
@@ -1845,10 +1748,12 @@ export default function FlipbookStudio({ child, quota }) {
         {/* Centering wrapper — fills remaining space, centers canvas without stretching it */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
         {/* Canvas container — fixed 1200×800 logical resolution, scales via CSS only */}
-        <div style={{ aspectRatio: `${W} / ${H}`, width: '100%', maxHeight: '100%',
+        <div style={{ aspectRatio: `${W} / ${H}`, height: '100%', maxWidth: '100%',
           borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
           position: 'relative', background: 'white' }}>
+
+          {isFullscreen && <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(0,0,0,0.3)', pointerEvents: 'none', zIndex: 99 }} />}
 
           {/* Draw canvas */}
           <canvas ref={canvasRef} width={W} height={H}
@@ -2161,13 +2066,27 @@ export default function FlipbookStudio({ child, quota }) {
         </div>{/* end canvas column */}
       </div>
 
+      {/* Collapse toggle — sits between canvas and bottom panel */}
+      <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, marginTop: 8 }}>
+        <button
+          onClick={() => setStripCollapsed(v => !v)}
+          title={stripCollapsed ? 'Show frames' : 'Hide frames'}
+          style={{ width: 36, height: 20, borderRadius: 20, border: '1.5px solid #e8e8e8',
+            background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, color: '#999' }}>
+          {stripCollapsed ? '▲' : '▼'}
+        </button>
+      </div>
+
       {/* ── Bottom: playback + frames strip ── */}
       <div style={{ flexShrink: 0, background: 'white',
         borderRadius: isFullscreen ? 0 : 20,
         boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
-        marginTop: isFullscreen ? 0 : 16,
+        marginTop: 8,
         borderTop: isFullscreen ? '1px solid #f0f0f0' : 'none',
-        overflow: isFullscreen ? 'visible' : 'hidden' }}>
+        overflow: 'hidden',
+        display: stripCollapsed ? 'none' : 'block' }}>
 
         {/* ── Playback controls ── */}
         <div style={{
@@ -2214,75 +2133,61 @@ export default function FlipbookStudio({ child, quota }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▶</button>
           </div>
 
-          {/* Loop toggle */}
-          <button onClick={() => setLoop(v => !v)} title={loop ? 'Loop on' : 'Loop off'}
-            style={{ width: 38, height: 38, minWidth: 38, borderRadius: 12, border: 'none',
-              cursor: 'pointer', flexShrink: 0, fontSize: 20,
-              background: loop ? 'var(--primary-lt)' : 'white',
-              outline: loop ? '2px solid var(--primary)' : 'none',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔁</button>
-
-          {/* Speed presets */}
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#b0a0d0', letterSpacing: 0.5,
-              textTransform: 'uppercase', marginRight: 2 }}>Speed</span>
-            {SPEEDS.map(s => {
-              const active = fps === s.fps
-              return (
-                <button key={s.fps} onClick={() => { setFps(s.fps); fpsRef.current = s.fps }}
-                  disabled={isPlaying}
-                  title={`${s.label} — ${s.fps} fps`}
-                  style={{ padding: '4px 10px', borderRadius: 20, border: 'none',
-                    cursor: isPlaying ? 'not-allowed' : 'pointer', flexShrink: 0,
-                    background: active ? 'var(--primary)' : 'white',
-                    boxShadow: active ? '0 3px 10px rgba(0,0,0,0.18)' : '0 2px 6px rgba(0,0,0,0.08)',
-                    fontFamily: 'Nunito, sans-serif', fontWeight: 800,
-                    color: active ? 'white' : '#888',
-                    opacity: isPlaying ? 0.45 : 1, transition: 'all 0.15s',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                  <span style={{ fontSize: 18, lineHeight: 1.2 }}>{s.emoji}</span>
-                  <span style={{ fontSize: 10 }}>{s.label}</span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Playback effect presets */}
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#b0a0d0', letterSpacing: 0.5,
-              textTransform: 'uppercase', marginRight: 2 }}>FX</span>
-            {PLAY_EFFECTS.map(fx => {
-              const active = playEffect === fx.key
-              return (
-                <button key={String(fx.key)} onClick={() => setPlayEffect(fx.key)}
-                  title={fx.label}
-                  style={{ padding: '4px 10px', borderRadius: 20, border: 'none',
-                    cursor: 'pointer', flexShrink: 0,
-                    background: active ? 'var(--primary)' : '#f5f5f5',
-                    boxShadow: active ? '0 3px 10px rgba(0,0,0,0.18)' : '0 2px 6px rgba(0,0,0,0.08)',
-                    fontFamily: 'Nunito, sans-serif', fontWeight: 800,
-                    color: active ? 'white' : '#888',
-                    transition: 'all 0.15s',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
-                  <span style={{ fontSize: 18, lineHeight: 1.2 }}>{fx.emoji}</span>
-                  <span style={{ fontSize: 10 }}>{fx.label}</span>
-                </button>
-              )
-            })}
-          </div>
+          {/* Loop + Speed + FX */}
+          <button onClick={() => { setLoop(l => !l); loopRef.current = !loopRef.current }}
+            title="Loop"
+            style={{ width: 36, height: 36, minWidth: 36, borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0,
+              background: loop ? 'var(--primary-lt)' : '#f0f0f0', outline: loop ? '2px solid var(--primary)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔁</button>
+          <span style={{ fontSize: 10, fontWeight: 800, color: '#bbb', letterSpacing: 1, flexShrink: 0 }}>SPEED</span>
+          {SPEEDS.map(s => (
+            <button key={s.fps} title={`${s.label} — ${s.fps} fps`}
+              onClick={() => {
+                setFps(s.fps); fpsRef.current = s.fps
+                if (isPlaying) {
+                  clearInterval(playTimerRef.current)
+                  playTimerRef.current = setInterval(() => {
+                    const tot = framesRef.current.length
+                    let next = playIdxRef.current + 1
+                    if (next >= tot) { if (loopRef.current) next = 0; else { stopPlay(); return } }
+                    playIdxRef.current = next
+                    setPlaybackSrc(framesRef.current[next] ?? null)
+                    setCurrentIdx(next)
+                  }, 1000 / s.fps)
+                }
+              }}
+              style={{ width: 52, height: 36, minWidth: 52, borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0,
+                background: fps === s.fps ? 'var(--primary)' : '#f0f0f0',
+                color: fps === s.fps ? 'white' : '#555',
+                outline: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
+              <span style={{ fontSize: 14, lineHeight: 1.1 }}>{s.emoji}</span>
+              <span style={{ fontSize: 8, fontWeight: 700 }}>{s.label}</span>
+            </button>
+          ))}
+          <span style={{ fontSize: 10, fontWeight: 800, color: '#bbb', letterSpacing: 1, flexShrink: 0 }}>FX</span>
+          {PLAY_EFFECTS.map(fx => (
+            <button key={String(fx.key)} title={fx.label}
+              onClick={() => setPlayEffect(fx.key)}
+              style={{ width: 52, height: 36, minWidth: 52, borderRadius: 10, border: 'none', cursor: 'pointer', flexShrink: 0,
+                background: playEffect === fx.key ? 'var(--primary)' : '#f0f0f0',
+                color: playEffect === fx.key ? 'white' : '#555',
+                outline: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
+              <span style={{ fontSize: 14, lineHeight: 1.1 }}>{fx.emoji}</span>
+              <span style={{ fontSize: 8, fontWeight: 700 }}>{fx.label}</span>
+            </button>
+          ))}
 
           <div style={{ flex: 1 }} />
 
-          {/* Smooth it — pixel tween between current and next frame */}
-          {(() => {
-            const idx = currentIdx
-            const canSmooth = !isPlaying && !isTweening
-              && idx < total - 1
-              && frames[idx] && frames[idx + 1]
-              && total + TWEEN_STEPS <= MAX_FRAMES
-            return (
-              <div style={{ position: 'relative', flexShrink: 0 }}>
+          {/* Blend + Copy — grouped together */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            {(() => {
+              const idx = currentIdx
+              const canSmooth = !isPlaying && !isTweening
+                && idx < total - 1
+                && frames[idx] && frames[idx + 1]
+                && total + TWEEN_STEPS <= MAX_FRAMES
+              return (
                 <button onClick={tweenFrames} disabled={!canSmooth}
                   style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
                     fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
@@ -2292,26 +2197,23 @@ export default function FlipbookStudio({ child, quota }) {
                     boxShadow: canSmooth ? '0 3px 12px rgba(0,0,0,0.2)' : 'none',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                   <span style={{ fontSize: 15 }}>{isTweening ? '⏳' : '🎨'} {isTweening ? 'Blending…' : 'Blend Frames'}</span>
-                  <span style={{ fontSize: 9, opacity: 0.85, fontWeight: 600 }}>
-                    mixes this + next frame
-                  </span>
+                  <span style={{ fontSize: 9, opacity: 0.85, fontWeight: 600 }}>mixes this + next frame</span>
                 </button>
-              </div>
-            )
-          })()}
+              )
+            })()}
 
-          {/* Duplicate */}
-          <button onClick={duplicateFrame} disabled={isPlaying || total >= MAX_FRAMES}
-            title="Copy this frame"
-            style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
-              fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
-              cursor: (isPlaying || total >= MAX_FRAMES) ? 'not-allowed' : 'pointer',
-              background: 'var(--primary-lt)', color: 'var(--primary)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              opacity: (isPlaying || total >= MAX_FRAMES) ? 0.4 : 1,
-              display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
-            <span style={{ fontSize: 16 }}>⧉</span> Copy Frame
-          </button>
+            <button onClick={duplicateFrame} disabled={isPlaying || total >= MAX_FRAMES}
+              title="Copy this frame"
+              style={{ padding: '8px 14px', borderRadius: 20, border: 'none',
+                fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
+                cursor: (isPlaying || total >= MAX_FRAMES) ? 'not-allowed' : 'pointer',
+                background: 'var(--primary-lt)', color: 'var(--primary)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                opacity: (isPlaying || total >= MAX_FRAMES) ? 0.4 : 1,
+                display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontSize: 16 }}>⧉</span> Copy Frame
+            </button>
+          </div>
 
         </div>
 
@@ -2387,14 +2289,15 @@ export default function FlipbookStudio({ child, quota }) {
       {close => <>
         {flipbookSaves.map(save => (
           <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
-            {save.thumbnail && (
-              <img src={save.thumbnail ? `data:image/png;base64,${save.thumbnail}` : ''} alt="thumbnail"
-                onClick={() => { loadFlipbookSave(save); close() }}
-                style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
-                  border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
-                  flexShrink: 0, cursor: 'pointer' }} />
-            )}
+            padding: '8px 10px', borderRadius: 10, marginBottom: 2,
+            border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid transparent',
+            background: currentSaveId === save.id ? 'var(--primary-lt)' : '#fafafa',
+            cursor: 'pointer', transition: 'background 0.15s' }}
+            onClick={() => { loadFlipbookSave(save); close() }}>
+            <img src={save.thumbnail ? `data:image/png;base64,${save.thumbnail}` : ''}
+              alt={save.title || 'Flipbook'}
+              style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
+                background: '#e0e0e0', flexShrink: 0, pointerEvents: 'none' }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
                 color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2404,13 +2307,7 @@ export default function FlipbookStudio({ child, quota }) {
                 {fmtDate(save.updatedAt)}
               </div>
             </div>
-            <button onClick={() => { loadFlipbookSave(save); close() }}
-              style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
-                background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
-                fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
-              Resume
-            </button>
-            <button onClick={() => deleteFlipbookSave(save.id)}
+            <button onClick={e => { e.stopPropagation(); deleteFlipbookSave(save.id) }}
               className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               ✕
             </button>

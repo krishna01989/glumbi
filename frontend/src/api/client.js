@@ -239,7 +239,7 @@ export const voiceApi = {
 }
 
 export const notificationApi = {
-  getAll:      () => api.get('/notifications').then(r => r.data),
+  getAll:      (page = 0, size = 20) => api.get('/notifications', { params: { page, size } }).then(r => r.data),
   unreadCount: () => api.get('/notifications/unread-count').then(r => r.data),
   markAllRead: () => api.put('/notifications/mark-read'),
 }

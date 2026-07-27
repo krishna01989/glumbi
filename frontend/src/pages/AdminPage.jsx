@@ -942,7 +942,7 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
 }
 
 // ─── Dashboard section ────────────────────────────────────────────────────────
-function Dashboard() {
+function Dashboard({ onAlerts }) {
   const [range, setRange]         = useState('7d')
   const [stats, setStats]         = useState(null)
   const [analyticsData, setAnalyticsData] = useState(null)
@@ -960,7 +960,7 @@ function Dashboard() {
       adminApi.getStats(from, to),
       analyticsApi.getAdminAnalytics(from, to),
     ])
-      .then(([s, a]) => { setStats(s); setAnalyticsData(a) })
+      .then(([s, a]) => { setStats(s); setAnalyticsData(a); onAlerts?.(s?.alerts ?? []) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [range])
@@ -978,12 +978,6 @@ function Dashboard() {
   const rangeLabel = RANGES.find(r => r.value === range)?.label || '7 Days'
 
   if (error) return <div style={{ padding: 24 }}><ErrorBox msg={error} /></div>
-
-  const alertStyle = {
-    warn:    { bg: '#fff8e1', border: '#ffd54f', icon: '⚠️',  text: '#f57f17' },
-    info:    { bg: '#e3f2fd', border: '#90caf9', icon: 'ℹ️',  text: '#1565c0' },
-    success: { bg: '#e8f5e9', border: '#a5d6a7', icon: '✅',  text: '#2e7d32' },
-  }
 
   const featureColors  = ['#4facfe', '#43e97b', '#fa709a', '#f093fb']
   const scoreColors    = ['#ff6b6b', '#ffa726', '#43e97b']
@@ -1070,21 +1064,6 @@ function Dashboard() {
       </div>
 
       {!stats && loading && <div style={{ padding: 48, textAlign: 'center', color: '#aaa' }}>Loading dashboard…</div>}
-
-      {/* Alerts */}
-      {stats?.alerts?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {stats.alerts.map((a, i) => {
-            const s = alertStyle[a.level] || alertStyle.info
-            return (
-              <div key={i} style={{ background: s.bg, border: `1.5px solid ${s.border}`, borderRadius: 12, padding: '10px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span>{s.icon}</span>
-                <span style={{ fontSize: 13, color: s.text, fontWeight: 600 }}>{a.msg}</span>
-              </div>
-            )
-          })}
-        </div>
-      )}
 
       {/* Stat cards */}
       {stats && (
@@ -2766,12 +2745,76 @@ function Compliance() {
   )
 }
 
+// ─── Admin alert drawer ───────────────────────────────────────────────────────
+const ALERT_STYLE = {
+  warn:    { bg: '#fff8e1', border: '#ffd54f', icon: '⚠️',  text: '#f57f17' },
+  info:    { bg: '#e3f2fd', border: '#90caf9', icon: 'ℹ️',  text: '#1565c0' },
+  success: { bg: '#e8f5e9', border: '#a5d6a7', icon: '✅',  text: '#2e7d32' },
+}
+
+function AdminAlertDrawer({ open, alerts, drawerRef, onClose }) {
+  useEffect(() => {
+    if (!open) return
+    function handler(e) {
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, drawerRef, onClose])
+
+  if (!open) return null
+
+  return (
+    <div
+      ref={drawerRef}
+      style={{
+        position: 'absolute', top: 60, right: 24, zIndex: 2000,
+        width: Math.min(360, window.innerWidth - 48),
+        background: '#fff', borderRadius: 16,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
+        border: '1px solid #f0f0f0', overflow: 'hidden',
+      }}>
+      <div style={{
+        padding: '14px 18px 10px', borderBottom: '1px solid #f5f5f5',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <span style={{ fontWeight: 800, fontSize: 14, color: '#222' }}>Notifications</span>
+        <button onClick={onClose}
+          style={{ background: 'none', border: 'none', fontSize: 17, cursor: 'pointer', color: '#aaa', padding: 0 }}>
+          ✕
+        </button>
+      </div>
+      {!alerts?.length ? (
+        <div style={{ padding: '32px 18px', textAlign: 'center', color: '#bbb' }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Nothing to flag right now</div>
+        </div>
+      ) : alerts.map((a, i) => {
+        const s = ALERT_STYLE[a.level] || ALERT_STYLE.info
+        return (
+          <div key={i} style={{
+            padding: '12px 18px',
+            borderBottom: i < alerts.length - 1 ? '1px solid #fafafa' : 'none',
+            background: s.bg, display: 'flex', gap: 10, alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: 17, flexShrink: 0, marginTop: 1 }}>{s.icon}</span>
+            <span style={{ fontSize: 13, color: s.text, fontWeight: 600, lineHeight: 1.45 }}>{a.msg}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
 export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
   const location     = useLocation()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen]       = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [alertDrawerOpen, setAlertDrawerOpen]   = useState(false)
+  const [adminAlerts, setAdminAlerts]           = useState([])
+  const alertDrawerRef                          = useRef(null)
   const isMobile = useIsMobile()
 
   // Derive active section from URL: /admin/users → 'users', /admin → 'dashboard'
@@ -2779,7 +2822,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
   const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
-  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
+  const section = { dashboard: <Dashboard onAlerts={setAdminAlerts} />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
   const current = NAV.find(n => n.id === active)
 
   return (
@@ -2875,7 +2918,7 @@ export default function AdminPage({ onBack, onLogout }) {
         <div style={{
           height: 60, background: 'white', borderBottom: '1px solid #eee',
           display: 'flex', alignItems: 'center', padding: '0 24px', gap: 14,
-          boxShadow: '0 1px 4px rgba(0,0,0,0.05)', flexShrink: 0,
+          boxShadow: '0 1px 4px rgba(0,0,0,0.05)', flexShrink: 0, position: 'relative',
         }}>
           {isMobile && (
             <button onClick={() => setSidebarOpen(o => !o)}
@@ -2888,12 +2931,49 @@ export default function AdminPage({ onBack, onLogout }) {
               {current?.icon} {current?.label}
             </div>
           </div>
-          {!isMobile && (
-            <div style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa' }}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+            {!isMobile && (
+              <div style={{ fontSize: 12, color: '#aaa' }}>
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              </div>
+            )}
+            {/* Admin alert bell */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setAlertDrawerOpen(o => !o)}
+                title="System Alerts"
+                style={{
+                  position: 'relative', width: 36, height: 36, borderRadius: 10,
+                  border: adminAlerts.length > 0 ? '1.5px solid #ffd54f' : '1.5px solid #eee',
+                  background: adminAlerts.length > 0 ? '#fff8e1' : '#fafafa',
+                  cursor: 'pointer', fontSize: 17,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                🔔
+                {adminAlerts.length > 0 && (
+                  <span style={{
+                    position: 'absolute', top: 3, right: 3,
+                    minWidth: 15, height: 15, borderRadius: 8,
+                    background: '#f57f17', color: '#fff',
+                    fontSize: 9, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px',
+                  }}>
+                    {adminAlerts.length > 9 ? '9+' : adminAlerts.length}
+                  </span>
+                )}
+              </button>
             </div>
-          )}
+          </div>
         </div>
+
+        {/* Admin alert drawer */}
+        <AdminAlertDrawer
+          open={alertDrawerOpen}
+          alerts={adminAlerts}
+          drawerRef={alertDrawerRef}
+          onClose={() => setAlertDrawerOpen(false)}
+        />
 
         {/* Page content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 24 }}>

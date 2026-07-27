@@ -10,8 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +32,9 @@ public class NotificationService {
         repo.save(n);
     }
 
-    public List<Notification> getAll(AppUser user) {
-        return repo.findByUserAndCreatedAtAfterOrderByCreatedAtDesc(
-            user, LocalDateTime.now().minusDays(historyDays)
+    public Page<Notification> getAll(AppUser user, Pageable pageable) {
+        return repo.findByUserAndCreatedAtAfter(
+            user, LocalDateTime.now().minusDays(historyDays), pageable
         );
     }
 

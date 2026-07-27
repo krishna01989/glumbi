@@ -26,11 +26,14 @@ const TYPE_LABEL = {
 }
 
 export default function NotificationBell({ isMobile = false }) {
-  const [open, setOpen]           = useState(false)
+  const [open, setOpen]               = useState(false)
   const [notifications, setNotifications] = useState([])
-  const [unread, setUnread]       = useState(0)
-  const panelRef                  = useRef(null)
-  const btnRef                    = useRef(null)
+  const [unread, setUnread]           = useState(0)
+  const [page, setPage]               = useState(0)
+  const [hasMore, setHasMore]         = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const panelRef                      = useRef(null)
+  const btnRef                        = useRef(null)
 
   const fetchCount = useCallback(() => {
     notificationApi.unreadCount()
@@ -47,14 +50,32 @@ export default function NotificationBell({ isMobile = false }) {
 
   function openPanel() {
     if (open) { setOpen(false); return }
-    notificationApi.getAll()
-      .then(data => { setNotifications(data); setOpen(true) })
+    notificationApi.getAll(0, 20)
+      .then(data => {
+        setNotifications(data.content ?? [])
+        setHasMore(!data.last)
+        setPage(0)
+        setOpen(true)
+      })
       .catch(() => {})
     if (unread > 0) {
       notificationApi.markAllRead()
         .then(() => setUnread(0))
         .catch(() => {})
     }
+  }
+
+  function loadMore() {
+    const nextPage = page + 1
+    setLoadingMore(true)
+    notificationApi.getAll(nextPage, 20)
+      .then(data => {
+        setNotifications(prev => [...prev, ...(data.content ?? [])])
+        setHasMore(!data.last)
+        setPage(nextPage)
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false))
   }
 
   // Close on outside click
@@ -162,43 +183,60 @@ export default function NotificationBell({ isMobile = false }) {
               <div style={{ fontSize: 12, marginTop: 4 }}>Weekly reports appear every Sunday.</div>
             </div>
           ) : (
-            notifications.map(n => (
-              <div key={n.id} style={{
-                padding: '14px 18px',
-                borderBottom: '1px solid #fafafa',
-                background: n.read ? '#fff' : '#f8f4ff',
-                transition: 'background 0.2s',
-              }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 24, flexShrink: 0, marginTop: 2 }}>
-                    {TYPE_ICON[n.type] || '🔔'}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{
-                        fontSize: 10, fontWeight: 700, color: 'var(--primary, #4d96ff)',
-                        background: 'var(--primary-light, #EFF6FF)',
-                        padding: '2px 8px', borderRadius: 20,
-                        textTransform: 'uppercase', letterSpacing: 0.5,
-                      }}>
-                        {TYPE_LABEL[n.type] || n.type}
-                      </span>
-                      {n.child && (
-                        <span style={{ fontSize: 11, color: '#aaa' }}>
-                          {n.child.avatarEmoji} {n.child.name}
+            <>
+              {notifications.map(n => (
+                <div key={n.id} style={{
+                  padding: '14px 18px',
+                  borderBottom: '1px solid #fafafa',
+                  background: n.read ? '#fff' : '#f8f4ff',
+                  transition: 'background 0.2s',
+                }}>
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 24, flexShrink: 0, marginTop: 2 }}>
+                      {TYPE_ICON[n.type] || '🔔'}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, color: 'var(--primary, #4d96ff)',
+                          background: 'var(--primary-light, #EFF6FF)',
+                          padding: '2px 8px', borderRadius: 20,
+                          textTransform: 'uppercase', letterSpacing: 0.5,
+                        }}>
+                          {TYPE_LABEL[n.type] || n.type}
                         </span>
-                      )}
-                    </div>
-                    <p style={{ margin: 0, fontSize: 13, color: '#333', lineHeight: 1.5 }}>
-                      {n.message}
-                    </p>
-                    <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>
-                      {formatTime(n.createdAt)}
+                        {n.child && (
+                          <span style={{ fontSize: 11, color: '#aaa' }}>
+                            {n.child.avatarEmoji} {n.child.name}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#333', lineHeight: 1.5 }}>
+                        {n.message}
+                      </p>
+                      <div style={{ fontSize: 11, color: '#bbb', marginTop: 6 }}>
+                        {formatTime(n.createdAt)}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+
+              {hasMore && (
+                <div style={{ padding: '12px 18px', textAlign: 'center' }}>
+                  <button
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    style={{
+                      background: 'none', border: '1.5px solid #e0e0e0', borderRadius: 20,
+                      padding: '6px 20px', fontSize: 12, fontWeight: 700, color: '#888',
+                      cursor: loadingMore ? 'default' : 'pointer', opacity: loadingMore ? 0.6 : 1,
+                    }}>
+                    {loadingMore ? 'Loading…' : 'Load more'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

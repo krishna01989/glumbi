@@ -1160,24 +1160,14 @@ export default function Draw({ child, quota, featureConfig }) {
     }
   })
 
-  const toolbarStyle = isFullscreen ? {
-    width: 64, flexShrink: 0, alignSelf: 'stretch',
-    display: 'flex', flexDirection: 'column', gap: 6,
-    background: 'white', borderRadius: 0, padding: '12px 8px',
-    boxShadow: '2px 0 8px rgba(0,0,0,0.06)',
-    alignItems: 'center', justifyContent: 'flex-start', overflowY: 'auto',
-  } : {
-    width: isCompact ? '100%' : 96,
-    flexShrink: 0, display: 'flex',
-    flexDirection: isCompact ? 'column' : 'column',
-    gap: isCompact ? 6 : 12,
-    background: 'white', borderRadius: 20,
-    padding: isCompact ? '10px 14px' : '16px 10px',
-    boxShadow: 'var(--shadow)',
-    alignItems: isCompact ? 'stretch' : 'center',
-    justifyContent: 'flex-start',
-    overflowY: isCompact ? undefined : 'auto',
-    position: 'relative',
+  const toolbarStyle = {
+    width: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column',
+    gap: isMobile ? 6 : 10,
+    background: isFullscreen ? 'rgba(255,255,255,0.97)' : 'white',
+    borderRadius: isFullscreen ? 0 : 20,
+    padding: isMobile ? '8px 10px' : '10px 14px',
+    boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.08)' : 'var(--shadow)',
+    alignItems: 'stretch', position: 'relative',
   }
   const VDivider = () => <div style={{ width: 1, height: 26, background: '#e8e8e8', flexShrink: 0 }} />
 
@@ -1196,41 +1186,15 @@ export default function Draw({ child, quota, featureConfig }) {
 
     <>
 
-      {/* ── Guide prompt (top, full width) ── */}
-      {!isCompact && guideEnabled && (
-        <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexShrink: 0 }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
-            borderRadius: 50, padding: '0 16px', boxShadow: 'var(--shadow)', minHeight: 46 }}>
-            <span style={{ fontSize: 18 }}>🎨</span>
-            <input
-              value={guideInput}
-              onChange={e => setGuideInput(e.target.value)}
-              placeholder={`Hey ${child?.name || 'there'}, what do you want to draw today?`}
-              disabled={offline || quota?.used >= quota?.limit}
-              style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14,
-                fontFamily: 'Nunito, sans-serif', fontWeight: 600, background: 'transparent',
-                color: '#333' }}
-            />
-          </div>
-          <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
-            style={{ padding: '0 20px', borderRadius: 50, border: 'none', fontWeight: 700,
-              fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
-              background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
-              color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
-            {guideLoading ? <><span className="spinner" /> Thinking…</> : offline ? '✈️ ✨ Show me how!' : '✨ Show me how!'}
-          </button>
-        </form>
-      )}
-
       {/* ── Middle: toolbar + drawing area (fullscreen root) ── */}
       <div ref={fsRef} style={isFullscreen ? {
         position: 'relative',
-        display: 'flex', flexDirection: 'row',
+        display: 'flex', flexDirection: 'column',
         height: '100dvh', width: '100dvw',
         background: '#f0f0f0',
         boxSizing: 'border-box',
         overflow: 'hidden',
-      } : { flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', gap: isCompact ? 12 : 20, minHeight: 0 }}>
+      } : { flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
 
       {/* ── Toolbar ── */}
       <div style={toolbarStyle}>
@@ -1315,11 +1279,11 @@ export default function Draw({ child, quota, featureConfig }) {
           </div>
         )}
 
-        {isCompact && !isFullscreen ? (() => {
+        {(() => {
           // Tablet: 2 rows with comfortable sizing
           // Mobile: 3 rows so nothing overflows even on 320px screens
           const tabletRow = {
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           }
           const mobileRow = {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1383,9 +1347,9 @@ export default function Draw({ child, quota, featureConfig }) {
                       outline: showPalette ? '2px solid var(--primary)' : 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>🎨</button>
-                  {/* 8 quick colours — 4×2 grid */}
+                  {/* 16 quick colours — 4×4 grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 14px)', gap: 3 }}>
-                    {['#000000','#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#9c6ef8','#ff69b4'].map(c => (
+                    {['#000000','#ffffff','#808080','#ff4757','#ff6b35','#ffa502','#ffd32a','#2ed573','#1e90ff','#00bcd4','#9c6ef8','#ff69b4','#4e342e','#8d5524','#3d5a80','#26de81'].map(c => (
                       <button key={c} onClick={() => pickColor(c)}
                         style={{
                           width: 14, height: 14, borderRadius: '50%', padding: 0,
@@ -1479,16 +1443,18 @@ export default function Draw({ child, quota, featureConfig }) {
                     outline: showPalette ? '2px solid var(--primary)' : 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>🎨</button>
-                {['#000000','#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#9c6ef8','#ff69b4'].map(c => (
-                  <button key={c} onClick={() => pickColor(c)}
-                    style={{
-                      width: colorSz, height: colorSz, minWidth: colorSz,
-                      borderRadius: '50%', padding: 0, flexShrink: 0,
-                      background: c, border: 'none', cursor: 'pointer',
-                      boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : c === '#ffffff' ? '0 0 0 1px #ccc inset' : 'none',
-                      transform: color === c && !eraser ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.1s',
-                    }} />
-                ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, maxWidth: colorSz * 8 + 5 * 7 }}>
+                  {['#000000','#ffffff','#808080','#ff4757','#ff6b35','#ffa502','#ffd32a','#2ed573','#1e90ff','#00bcd4','#9c6ef8','#ff69b4','#4e342e','#8d5524','#3d5a80','#26de81'].map(c => (
+                    <button key={c} onClick={() => pickColor(c)}
+                      style={{
+                        width: colorSz, height: colorSz, minWidth: colorSz,
+                        borderRadius: '50%', padding: 0, flexShrink: 0,
+                        background: c, border: 'none', cursor: 'pointer',
+                        boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 3.5px ${c}` : c === '#ffffff' ? '0 0 0 1px #ccc inset' : 'none',
+                        transform: color === c && !eraser ? 'scale(1.25)' : 'scale(1)', transition: 'transform 0.1s',
+                      }} />
+                  ))}
+                </div>
                 {BRUSHES.map(b => (
                   <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
                     style={{
@@ -1535,119 +1501,7 @@ export default function Draw({ child, quota, featureConfig }) {
               </div>
             </>
           )
-        })() : (
-          /* ── DESKTOP + FULLSCREEN: vertical sidebar layout ── */
-          <>
-            {!isFullscreen && <SectionLabel>Colour</SectionLabel>}
-
-            {/* Active color swatch + palette trigger */}
-            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: eraser ? '#f5f5f5' : color,
-                boxShadow: `0 0 0 3px white, 0 0 0 5px ${eraser ? '#ccc' : color}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                {eraser && <span style={{ fontSize: 20 }}>🧹</span>}
-              </div>
-              <button ref={swatchRef} className="palette-trigger"
-                onClick={() => {
-                  const rect = swatchRef.current.getBoundingClientRect()
-                  setPalettePos(isFullscreen
-                    ? { x: rect.right + 10, y: rect.top }
-                    : { x: rect.right + 10, y: rect.top }
-                  )
-                  setShowPalette(p => !p)
-                }}
-                title="Open colour palette"
-                style={{
-                  width: 44, height: 30, borderRadius: 8, border: 'none', cursor: 'pointer', padding: '4px 0',
-                  background: showPalette ? 'var(--primary-lt)' : '#f5f5f5',
-                  outline: showPalette ? '2px solid var(--primary)' : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, transition: 'all 0.15s',
-                }}>
-                <span style={{ fontSize: 16, lineHeight: 1 }}>🎨</span>
-              </button>
-            </div>
-
-            {/* Quick colours */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: isFullscreen ? 52 : 76 }}>
-              {['#000000','#ffffff','#ff4757','#ffa502','#2ed573','#1e90ff','#9c6ef8','#ff69b4'].map(c => (
-                <button key={c} onClick={() => pickColor(c)}
-                  style={{
-                    width: 22, height: 22, borderRadius: 6, background: c, border: 'none',
-                    cursor: 'pointer', padding: 0,
-                    boxShadow: color === c && !eraser ? `0 0 0 2px white, 0 0 0 4px ${c}` : c === '#ffffff' ? '0 0 0 1px #ddd' : 'none',
-                    transform: color === c && !eraser ? 'scale(1.2)' : 'scale(1)', transition: 'all 0.12s',
-                  }} />
-              ))}
-            </div>
-
-            {!isFullscreen && <Divider />}
-            {!isFullscreen && <SectionLabel>Size</SectionLabel>}
-            {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
-              {BRUSHES.map(b => (
-                <button key={b.size} onClick={() => setBrush(b.size)} title={b.title}
-                  style={{
-                    width: isFullscreen ? 44 : 72, height: isFullscreen ? b.btnH * 0.8 : b.btnH,
-                    borderRadius: 8, border: 'none', cursor: 'pointer',
-                    background: brush === b.size ? 'var(--primary-lt)' : '#f5f5f5',
-                    outline: brush === b.size ? '2px solid var(--primary)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 6px',
-                  }}>
-                  <div style={{ width: b.dotSize, height: b.dotSize, borderRadius: '50%', flexShrink: 0,
-                    background: brush === b.size ? 'var(--primary)' : '#aaa' }} />
-                </button>
-              ))}
-            </div>
-
-            {!isFullscreen && <Divider />}
-            {!isFullscreen && <SectionLabel>Tools</SectionLabel>}
-            {isFullscreen && <div style={{ width: '80%', height: 1, background: '#f0f0f0', margin: '2px 0' }} />}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center' }}>
-              {[
-                { key: 'pencil', title: 'Pencil',        emoji: '✏️',  active: !eraser && !fillMode && !selectTool && !shapeTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(false); setFillMode(false); setShapeTool(null) } },
-                { key: 'fill',   title: 'Fill',          emoji: '🪣',  active: fillMode,   onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setFillMode(f => !f); setEraser(false); setShapeTool(null) } },
-                { key: 'eraser', title: 'Eraser',        emoji: '🧽',  active: eraser,     onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } setEraser(e => !e); setFillMode(false); setShapeTool(null) } },
-                { key: 'select', title: 'Select & Move', emoji: '⬚',   active: selectTool, onClick: () => { commitPendingShape(); if (selectTool) { commitSelection(); setSelectTool(false) } else { setEraser(false); setFillMode(false); setShapeTool(null); setSelectTool(true) } } },
-                { key: 'undo',   title: 'Undo',          emoji: '↩️',  active: false, disabled: !canUndo, onClick: handleUndo },
-                { key: 'clear',    title: 'Clear',         emoji: '🗑️', active: false, onClick: clearCanvas },
-                { key: 'save',     title: isSaving ? 'Saving…' : 'Save', emoji: isSaving ? '⏳' : '💾', active: false, disabled: isEmpty || isSaving, onClick: saveDrawing },
-                { key: 'download', title: 'Download PNG', emoji: '⬇️', active: false, disabled: isEmpty, onClick: downloadDrawing },
-                { key: 'new',      title: 'New Drawing',  emoji: '🆕',  active: false, disabled: isSaving, onClick: newDrawing },
-              ].map(({ key, title, emoji, active, disabled, onClick }) => (
-                <button key={key} onClick={onClick} title={title} disabled={disabled}
-                  style={{
-                    width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
-                    borderRadius: 8, border: 'none',
-                    cursor: disabled ? 'not-allowed' : 'pointer',
-                    background: active ? 'var(--primary-lt)' : '#f5f5f5',
-                    outline: active ? '2px solid var(--primary)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    opacity: disabled ? 0.35 : 1, fontSize: 18,
-                  }}>
-                  {emoji}
-                </button>
-              ))}
-
-              {/* Shapes button */}
-              <button ref={shapesBtnRef} onClick={openShapePicker} title="Draw shapes" className="shape-picker-trigger"
-                style={{
-                  width: isFullscreen ? 44 : 72, height: isFullscreen ? 40 : 32,
-                  borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: shapeTool ? 'var(--primary-lt)' : '#f5f5f5',
-                  outline: shapeTool ? '2px solid var(--primary)' : 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                }}>
-                <ShapeIcon shape={shapeTool || 'rect'} size={20} color={shapeTool ? 'var(--primary)' : '#aaa'} />
-                <span style={{ fontSize: 9, color: shapeTool ? 'var(--primary)' : '#aaa', marginTop: 1 }}>▾</span>
-              </button>
-            </div>
-          </>
-        )}
+        })()}
 
       </div>{/* end toolbar */}
 
@@ -1667,8 +1521,8 @@ export default function Draw({ child, quota, featureConfig }) {
           />
         )}
 
-        {/* Guide prompt — mobile only, hidden in fullscreen */}
-        {isCompact && !isFullscreen && guideEnabled && (
+        {/* Guide prompt — hidden in fullscreen */}
+        {!isFullscreen && guideEnabled && (
           <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
               borderRadius: 50, padding: '0 16px', boxShadow: 'var(--shadow)', minHeight: 46 }}>
@@ -1693,12 +1547,12 @@ export default function Draw({ child, quota, featureConfig }) {
           </form>
         )}
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: isCompact && guide && !isFullscreen ? 'column' : 'row',
-          gap: 16, minHeight: isCompact && !isFullscreen ? (isMobile ? 340 : 480) : 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: guide && !isFullscreen ? 'column' : 'row',
+          gap: 16, minHeight: 0 }}>
 
         {/* Guide panel — side panel in normal mode, floating overlay in fullscreen */}
         {guide && !isFullscreen && (
-          <div style={{ width: isCompact ? '100%' : 220, flexShrink: 0, background: 'white',
+          <div style={{ width: '100%', flexShrink: 0, background: 'white',
             borderRadius: 20, boxShadow: 'var(--shadow)', padding: '16px', overflowY: 'auto',
             display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1714,16 +1568,18 @@ export default function Draw({ child, quota, featureConfig }) {
         )}
 
         {/* Centering wrapper — fills remaining space, never stretches the canvas */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0, overflow: 'hidden' }}>
+        <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
         {/* Outer wrapper: fixed 1200×800 aspect ratio; position:relative so overlay can escape inner clip */}
         <div style={{
-          aspectRatio: '1200 / 800', width: '100%', maxHeight: '100%',
+          aspectRatio: '1200 / 800', position: 'absolute', inset: 0, margin: 'auto',
+          maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
           borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)', position: 'relative',
           cursor: canvasCursor,
         }}>
           {/* Inner clip: clips the drawing canvas to rounded corners without clipping the animation overlay */}
           <div style={{ position: 'absolute', inset: 0, borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden', background: 'white' }}>
+          {isFullscreen && <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(0,0,0,0.3)', pointerEvents: 'none', zIndex: 10 }} />}
             <canvas
               ref={canvasRef}
               width={1200}
@@ -2153,13 +2009,15 @@ export default function Draw({ child, quota, featureConfig }) {
       {close => <>
         {drawSaves.map(s => (
           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+            padding: '8px 10px', borderRadius: 10, marginBottom: 2,
+            border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid transparent',
+            background: currentSaveId === s.id ? 'var(--primary-lt)' : '#fafafa',
+            cursor: 'pointer', transition: 'background 0.15s' }}
+            onClick={() => { loadDrawSave(s); close() }}>
             <img src={s.thumbnail ? 'data:image/png;base64,' + s.thumbnail : ''}
               alt={s.title || 'Drawing'}
-              onClick={() => { loadDrawSave(s); close() }}
               style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6, flexShrink: 0,
-                border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',
-                cursor: 'pointer', background: '#fafafa' }} />
+                background: '#e0e0e0', pointerEvents: 'none' }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 800, fontSize: 13, fontFamily: 'Nunito, sans-serif',
                 color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -2169,13 +2027,7 @@ export default function Draw({ child, quota, featureConfig }) {
                 {fmtDate(s.updatedAt)}
               </div>
             </div>
-            <button onClick={() => { loadDrawSave(s); close() }}
-              style={{ padding: '5px 10px', borderRadius: 14, border: 'none',
-                background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 12,
-                fontFamily: 'Nunito, sans-serif', cursor: 'pointer', flexShrink: 0 }}>
-              Resume
-            </button>
-            <button onClick={() => deleteDrawSave(s.id)}
+            <button onClick={e => { e.stopPropagation(); deleteDrawSave(s.id) }}
               className="btn-danger" style={{ width: 28, height: 28, minWidth: 28, minHeight: 28,
                 borderRadius: '50%', padding: 0, fontSize: 12, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

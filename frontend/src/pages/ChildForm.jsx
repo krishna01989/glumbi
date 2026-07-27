@@ -294,14 +294,14 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
                       transition: 'all 0.12s ease',
                     }}>
                     {f.emoji} {f.label}
-                    {tooYoung && <span style={{ fontSize: 10, marginLeft: 4 }}>{f.minAge}+</span>}
+                    {tooYoung && <span style={{ fontSize: 10, marginLeft: 4 }}>· ages {f.minAge}+</span>}
                     {adminDisabled && <span style={{ fontSize: 10, marginLeft: 4 }}>🚫</span>}
                   </button>
                 )
               })}
             </div>
             <div style={{ fontSize: 11, color: '#bbb', marginTop: 10 }}>
-              Toggle features on/off for this child. Features marked 🚫 are currently unavailable.
+              Toggle features on/off for this child. Features showing · ages N+ are recommended for older children but can still be enabled. Features marked 🚫 are currently unavailable.
             </div>
           </div>
         )}

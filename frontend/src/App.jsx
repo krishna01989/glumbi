@@ -192,22 +192,11 @@ const TIMER_KEYFRAMES = `
     50%      { transform: scale(1.07); box-shadow: 0 0 0 5px rgba(230,130,0,0); }
   }
   @keyframes glm-timer-panic {
-    0%   { transform: rotate(-5deg) scale(1.1); }
-    100% { transform: rotate(5deg)  scale(1.1); }
-  }
-  @keyframes glm-hourglass {
-    0%        { transform: rotate(0deg); }
-    40%       { transform: rotate(0deg); }
-    50%       { transform: rotate(180deg); }
-    90%       { transform: rotate(180deg); }
-    100%      { transform: rotate(360deg); }
-  }
-  @keyframes glm-hg-flip {
-    0%   { transform: rotate(0deg)   scale(1); }
-    25%  { transform: rotate(90deg)  scale(0.6); }
-    50%  { transform: rotate(180deg) scale(1); }
-    75%  { transform: rotate(270deg) scale(0.6); }
-    100% { transform: rotate(360deg) scale(1); }
+    0%   { transform: translate(-3px, 0) scale(1.08); }
+    25%  { transform: translate(3px, -2px) scale(1.1); }
+    50%  { transform: translate(-2px, 2px) scale(1.08); }
+    75%  { transform: translate(3px, -1px) scale(1.1); }
+    100% { transform: translate(-3px, 0) scale(1.08); }
   }
 `
 
@@ -222,20 +211,7 @@ function injectTimerStyles() {
 
 function SessionTimerPill({ sessionStart, lockTimeLimit, formatElapsed, sessionMinutes, mobile }) {
   const [elapsedSec, setElapsedSec] = useState(0)
-  const [isFlipping, setIsFlipping] = useState(false)
-  const prevSessionStart = useRef(null)
-
   useEffect(() => { injectTimerStyles() }, [])
-
-  useEffect(() => {
-    if (prevSessionStart.current !== null && sessionStart !== prevSessionStart.current) {
-      setIsFlipping(true)
-      const t = setTimeout(() => setIsFlipping(false), 700)
-      prevSessionStart.current = sessionStart
-      return () => clearTimeout(t)
-    }
-    prevSessionStart.current = sessionStart
-  }, [sessionStart])
 
   // 1-second display-only tick — never touches limit logic
   useEffect(() => {
@@ -255,7 +231,7 @@ function SessionTimerPill({ sessionStart, lockTimeLimit, formatElapsed, sessionM
   if (!lockTimeLimit) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: mobile ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.07)', borderRadius: 50, padding: '2px 8px', fontSize: 10, fontWeight: 700, color: mobile ? 'white' : '#888', whiteSpace: 'nowrap' }}>
-        ⏳ {formatElapsed(sessionMinutes)} used
+        ⏱️ {formatElapsed(sessionMinutes)} used
       </span>
     )
   }
@@ -280,13 +256,14 @@ function SessionTimerPill({ sessionStart, lockTimeLimit, formatElapsed, sessionM
 
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      background: bg, borderRadius: 50, padding: '2px 8px 2px 6px',
+      display: 'inline-flex', alignItems: 'center', gap: 3,
+      background: bg, borderRadius: 50, height: 20, padding: '0 7px',
       animation: anim, transition: 'background 0.4s',
       whiteSpace: 'nowrap', boxShadow: isPanic ? '0 2px 8px rgba(204,0,51,0.4)' : isWarning ? '0 2px 8px rgba(230,130,0,0.35)' : 'none',
+      lineHeight: 1, fontSize: 10, fontWeight: 800,
     }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 14, height: 14, fontSize: 11, lineHeight: 1, transformOrigin: '50% 50%', animation: isFlipping ? 'glm-hg-flip 0.7s ease-in-out' : isPanic ? 'glm-hourglass 1s ease-in-out infinite' : isWarning ? 'glm-hourglass 2s ease-in-out infinite' : 'glm-hourglass 4s ease-in-out infinite' }}>⏳</span>
-      <span style={{ fontSize: 10, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3 }}>
+      <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>⏱️</span>
+      <span style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: 0.3, color }}>
         {remStr}
       </span>
     </span>
@@ -498,7 +475,6 @@ export default function App() {
   // ── Child session layout ──
   const theme      = THEMES[child.theme] || THEMES.coral
   const GROUPS     = groupsForChild(child, childLocked)
-  const childGroups = GROUPS.filter(g => !g.parentOnly)
   const childAge   = calcChildAge(child.birthYear)
 
   return (
@@ -557,8 +533,8 @@ export default function App() {
                 <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: 'white' }}>{child.name}</span>
                 {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: 'rgba(255,255,255,0.7)' }}>{childAge} yrs</span>}
                 {child?.streakCount > 0 && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, padding: '2px 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(247,168,0,0.35)', whiteSpace: 'nowrap' }}>
-                    🔥 {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, height: 20, padding: '0 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(247,168,0,0.35)', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>🔥</span> {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
                   </span>
                 )}
                 {sessionStart && childLocked && (
@@ -611,8 +587,8 @@ export default function App() {
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
                     {childAge !== null && !sessionStart && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>{childAge} yrs</span>}
                     {child?.streakCount > 0 && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, padding: '2px 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
-                        🔥 {child.streakCount}d
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, height: 20, padding: '0 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>🔥</span> {child.streakCount}d
                       </span>
                     )}
                     {sessionStart && <SessionTimerPill sessionStart={sessionStart} lockTimeLimit={lockTimeLimit} formatElapsed={formatElapsed} sessionMinutes={sessionMinutes} mobile />}
@@ -673,24 +649,6 @@ export default function App() {
       <Toast toasts={toasts} onDismiss={dismissToast} />
 
       {/* Bottom nav (mobile only) */}
-      <nav className="bottom-nav">
-        {childGroups.slice(0, 4).map(group => {
-          const groupActive = group.items.some(i => i.path === currentSegment)
-          const firstItem   = group.items[0]
-          return (
-            <button key={group.id} onClick={() => navigate(`/child/${child.id}/${firstItem.path}`)}
-              style={{ flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, background: 'none', border: 'none', fontSize: 9, fontWeight: 700, color: groupActive ? theme.primary : '#bbb', borderTop: groupActive ? `3px solid ${theme.primary}` : '3px solid transparent', paddingTop: 4, cursor: 'pointer', transition: 'color 0.15s' }}>
-              <span style={{ fontSize: 22 }}>{group.emoji}</span>
-              <span style={{ whiteSpace: 'nowrap' }}>{group.label}</span>
-            </button>
-          )
-        })}
-        <button onClick={() => setMobileMenuOpen(true)}
-          style={{ flex: '0 0 auto', width: '20%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, background: 'none', border: 'none', fontSize: 9, fontWeight: 700, color: '#bbb', borderTop: '3px solid transparent', paddingTop: 4, cursor: 'pointer' }}>
-          <span style={{ fontSize: 22 }}>☰</span>
-          <span>More</span>
-        </button>
-      </nav>
     </div>
     </ThemeContext.Provider>
   )

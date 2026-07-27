@@ -154,26 +154,6 @@ input:focus, textarea:focus, select:focus {
   width: 100%;
 }
 
-/* ── Bottom nav (mobile only) ── */
-.bottom-nav {
-  display: none;
-}
-@media (max-width: 640px) {
-  .bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: 64px;
-    background: white;
-    border-top: 1px solid #f0f0f0;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-    z-index: 100;
-  }
-  /* Add padding so content doesn't hide behind bottom nav */
-  .main-scroll {
-    padding-bottom: 72px !important;
-  }
-}
 
 /* ── Sidebar hidden on mobile ── */
 @media (max-width: 640px) {

@@ -1613,6 +1613,7 @@ const FEATURE_META = {
   'draw-animate':        { label: 'Bring to Life',   icon: '🎬', desc: "Analyzes a child's drawing and returns animation objects (1 credit per tap; replays are free)", maxTokens: 600, suggestedCost: 1 },
   'maze':                { label: 'Maze',            icon: '🌀', desc: 'Generate a themed maze level with age-based complexity',  maxTokens: 300, suggestedCost: 1 },
   'riddle':              { label: 'Riddle',          icon: '🧩', desc: 'Generate a set of 5 age-appropriate riddles',             maxTokens: 400, suggestedCost: 1 },
+  'flipbook':            { label: 'Flipbook Studio', icon: '🖼️', desc: 'Frame-by-frame animation studio (no AI credits)',         maxTokens: 0,   suggestedCost: 0 },
 }
 
 const MAX_TOKENS_OVERALL = 2048  // translation is the ceiling

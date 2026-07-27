@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Confetti from '../../components/Confetti'
 import { riddleApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
@@ -213,6 +214,7 @@ export default function Riddle({ child, quota, featureConfig }) {
   const [score, setScore]             = useState(0)
   const [completed, setCompleted]     = useState(false)
   const [feedback, setFeedback]       = useState(null) // 'correct' | 'wrong' | 'revealed'
+  const [showConfetti, setShowConfetti] = useState(false)
   const [glumbiPhase, setGlumbiPhase] = useState('intro') // 'intro' | 'answering' | 'reaction'
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
@@ -296,6 +298,7 @@ export default function Riddle({ child, quota, featureConfig }) {
     if (!input.trim() || feedback || glumbiPhase !== 'answering') return
     if (checkAnswer(input, current.answer)) {
       setFeedback('correct')
+      setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000)
       track('riddle', 'correct', { metadata: { riddle: current.question, attempt: wrongCount + 1 } })
       advanceOrComplete(true)
     } else {
@@ -321,6 +324,7 @@ export default function Riddle({ child, quota, featureConfig }) {
 
   return (
     <div style={{ padding: isMobile ? '12px 12px 40px' : '16px 24px 40px', fontFamily: 'Nunito, sans-serif' }}>
+      {showConfetti && <Confetti />}
       <FeatureBanner feature="riddle" child={child} isMobile={isMobile} />
       <QuotaBanner quota={quota} isMobile={isMobile} />
 
@@ -366,7 +370,11 @@ export default function Riddle({ child, quota, featureConfig }) {
               boxShadow: '0 4px 24px rgba(0,0,0,0.08)', border: `2.5px solid ${feedbackColor || '#f0f0f0'}`,
               textAlign: 'center', marginBottom: 16, transition: 'border-color 0.3s', position: 'relative',
             }}>
-              <div style={{ fontSize: isMobile ? 56 : 72, marginBottom: 16, lineHeight: 1 }}>{current?.emoji}</div>
+              {feedback ? (
+                <div style={{ fontSize: isMobile ? 56 : 72, marginBottom: 16, lineHeight: 1 }}>{current?.emoji}</div>
+              ) : (
+                <div style={{ fontSize: isMobile ? 56 : 72, marginBottom: 16, lineHeight: 1 }}>🤔</div>
+              )}
               <div style={{ fontSize: isMobile ? 17 : 20, fontWeight: 800, color: '#333', lineHeight: 1.5, marginBottom: 20 }}>
                 {current?.question}
               </div>

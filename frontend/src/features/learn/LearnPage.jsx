@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import Confetti from '../../components/Confetti'
 import { hasSeen, markSeen } from '../../utils/seen'
 import { learnApi } from '../../api/client'
 import QuotaBanner from '../../components/QuotaBanner'
@@ -792,6 +793,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
   const offline = useOffline()
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [viewport, setViewport] = useState({ vw: window.innerWidth, vh: window.innerHeight })
   const fsRef = useRef(null)
@@ -830,6 +832,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
       const result = await learnApi.validate(imageData, selected.char, script, child?.name || 'you', age, child?.id)
       track('learn', 'ai_validate', { metadata: { script, letter: selected?.char, correct: result.correct } })
       setFeedback({ type: 'ai', correct: result.correct, text: result.feedback, emoji: result.correct ? '🎉' : '💪' })
+      if (result.correct) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000) }
       window.__glumbiRefreshQuota?.('learn-validate')
     } catch { setFeedback({ type: 'ai', correct: true, text: 'Great effort! Keep practising! 🌟', emoji: '🌟' }) }
     finally { setLoading(false) }
@@ -874,7 +877,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
 
   return (
     <div ref={fsRef} style={fsContainerStyle}>
-
+      {showConfetti && <Confetti />}
       {/* TOP BAR — in-flow row, always visible, reserves space so content starts below */}
       {isFullscreen ? (
         <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', padding:'8px 12px', flexShrink:0, width:'100%', boxSizing:'border-box' }}>
@@ -1026,6 +1029,7 @@ function WordMode({ script, child, quota }) {
   const [step,          setStep]          = useState('pick')   // 'pick' | 'draw'
   const [loading,       setLoading]       = useState(false)
   const [result,        setResult]        = useState(null)
+  const [showConfetti,  setShowConfetti]  = useState(false)
   const [extraLang,     setExtraLang]     = useState(null)
   const [visibleWords,  setVisibleWords]  = useState(() => shuffle(WORD_POOL[script]).slice(0, BANK_SIZE))
   const audioRef = useRef(null)
@@ -1069,6 +1073,7 @@ function WordMode({ script, child, quota }) {
       track('learn', 'ai_word', { metadata: { script, word: targetWord, correct: data.correct } })
       setResult(data)
       window.__glumbiRefreshQuota?.('learn-word')
+      if (data.correct) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000) }
       if (data.correct && data.translations?.[crossKey]) play(data.translations[crossKey], crossTts)
     } catch {
       setResult({ correct:false, couldRead:false, feedback:"Couldn't read that — try writing a bit bigger! 😊", emoji:'✍️' })
@@ -1116,6 +1121,7 @@ function WordMode({ script, child, quota }) {
   /* ── Step 2: Draw the word ──────────────────────────────── */
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
+      {showConfetti && <Confetti />}
       <audio ref={audioRef} />
 
       {/* Target word display */}

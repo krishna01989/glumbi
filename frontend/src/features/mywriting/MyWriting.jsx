@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Confetti from '../../components/Confetti'
 import { writingApi, storyApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -103,6 +104,7 @@ export default function MyWriting({ child, quota }) {
   const [content,  setContent]  = useState('')
   const [saving,   setSaving]   = useState(false)
   const [feedback, setFeedback] = useState(null)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [fbLoading,setFbLoading]= useState(false)
   const [continuation, setContinuation] = useState(null)
   const [contLoading, setContLoading]   = useState(false)
@@ -251,6 +253,7 @@ export default function MyWriting({ child, quota }) {
         starWord: result.starWord,
         badge: result.badge,
       })
+      setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000)
       setEntries(prev => prev.map(e => e.id === result.id ? result : e))
       window.__glumbiRefreshQuota?.('writing-coach')
     } catch (e) { setError(e.message) }
@@ -327,6 +330,7 @@ export default function MyWriting({ child, quota }) {
 
   return (
     <>
+    {showConfetti && <Confetti />}
     {(fbLoading || contLoading) && <ThemeLoader theme={child.theme} label={contLoading ? 'Imagining what happens next…' : 'Reading your story…'} />}
     <ConfirmDialog
       open={!!confirmDelete}

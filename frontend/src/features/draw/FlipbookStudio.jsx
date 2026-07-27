@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import Confetti from '../../components/Confetti'
 import { hasSeen, markSeen } from '../../utils/seen'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -130,6 +131,8 @@ export default function FlipbookStudio({ child, quota }) {
 
   // Playback
   const [isPlaying, setIsPlaying]     = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const hasPlayedRef = useRef(false)
   const [playbackSrc, setPlaybackSrc] = useState(null)
   const [showPlayback, setShowPlayback] = useState(false)
   const [fps, setFps]   = useState(4)
@@ -792,6 +795,11 @@ export default function FlipbookStudio({ child, quota }) {
     setPlaybackSrc(framesRef.current[0])   // show first frame immediately
     setShowPlayback(true)
     setIsPlaying(true)
+    if (!hasPlayedRef.current && framesRef.current.length >= 3) {
+      hasPlayedRef.current = true
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 3000)
+    }
 
     playTimerRef.current = setInterval(() => {
       const total = framesRef.current.length
@@ -1416,6 +1424,7 @@ export default function FlipbookStudio({ child, quota }) {
 
   return (
     <>
+    {showConfetti && <Confetti />}
     <FeatureBanner feature="flipbook" child={child} isMobile={isCompact} />
     <QuotaBanner quota={quota} />
     <div ref={fsRef} style={{
@@ -2103,23 +2112,24 @@ export default function FlipbookStudio({ child, quota }) {
               title="Previous frame"
               style={{ width: 38, height: 38, minWidth: 38, borderRadius: 12, border: 'none',
                 cursor: (isPlaying || currentIdx === 0) ? 'not-allowed' : 'pointer',
-                background: 'white', fontSize: 18, fontWeight: 700,
+                background: 'white', fontSize: 18, fontWeight: 700, color: '#444',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
                 opacity: (isPlaying || currentIdx === 0) ? 0.35 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>◀</button>
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: 1 }}>◀</button>
 
             <button onClick={isPlaying ? stopPlay : startPlay} disabled={total < 2}
               title={isPlaying ? 'Pause' : 'Play my flipbook!'}
               style={{ width: 54, height: 54, minWidth: 54, borderRadius: '50%', border: 'none',
                 cursor: total < 2 ? 'not-allowed' : 'pointer', padding: 0, flexShrink: 0,
-                background: 'var(--primary)',
-                color: 'white', fontSize: 24,
+                background: 'var(--primary)', color: 'white', fontSize: 22,
                 boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 opacity: total < 2 ? 0.4 : 1,
-                paddingLeft: isPlaying ? 0 : 3,
                 transform: 'scale(1)', transition: 'transform 0.1s' }}>
-              {isPlaying ? '⏸' : '▶'}
+              {isPlaying
+                ? <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="3" width="5" height="16" rx="2" fill="white"/><rect x="13" y="3" width="5" height="16" rx="2" fill="white"/></svg>
+                : <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="6,2 20,11 6,20" fill="white"/></svg>}
             </button>
 
             <button onClick={() => switchFrame(Math.min(total - 1, currentIdx + 1))}
@@ -2127,10 +2137,11 @@ export default function FlipbookStudio({ child, quota }) {
               title="Next frame"
               style={{ width: 38, height: 38, minWidth: 38, borderRadius: 12, border: 'none',
                 cursor: (isPlaying || currentIdx === total - 1) ? 'not-allowed' : 'pointer',
-                background: 'white', fontSize: 18, fontWeight: 700,
+                background: 'white', fontSize: 18, fontWeight: 700, color: '#444',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
                 opacity: (isPlaying || currentIdx === total - 1) ? 0.35 : 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center' }}>▶</button>
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: 1 }}>▶</button>
           </div>
 
           {/* Loop + Speed + FX */}

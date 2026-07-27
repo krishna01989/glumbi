@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { readQuizApi } from '../../api/client'
+import Confetti from '../../components/Confetti'
 import ErrorBox from '../../components/ErrorBox'
 import ThemeLoader from '../../components/ThemeLoader'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -55,6 +56,7 @@ export default function ReadQuiz({ child, quota }) {
   const [error,    setError]    = useState('')
   const [answers,     setAnswers]     = useState([null, null, null])
   const [submitted,   setSubmitted]   = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const fsRef = useRef(null)
@@ -171,6 +173,7 @@ export default function ReadQuiz({ child, quota }) {
       setSelected({ ...selected, score: result.score, completed: true, answersJson: result.answersJson })
       setEntries(prev => prev.map(e => e.id === result.id ? { ...e, score: result.score, completed: true, answersJson: result.answersJson } : e))
       setSubmitted(true)
+      if (result.score >= 2) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000) }
       if (selected.glumbiIntro) setGlumbiPhase('post')
     } catch (e) { setError(e.message) }
   }
@@ -190,6 +193,7 @@ export default function ReadQuiz({ child, quota }) {
 
   return (
     <>
+    {showConfetti && <Confetti />}
     <ConfirmDialog
       open={!!confirmDelete}
       title="Delete Entry?"

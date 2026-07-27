@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import Confetti from '../../components/Confetti'
 import { traceApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
@@ -142,6 +143,7 @@ export default function Maze({ child, quota, featureConfig }) {
   const [aiSkin, setAiSkin]     = useState(null)
   const [pathPts, setPathPts]   = useState([])
   const [phase, setPhase]       = useState('idle')
+  const [showConfetti, setShowConfetti] = useState(false)
   const [wallMsg, setWallMsg]   = useState('')
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading]   = useState(false)
@@ -337,6 +339,7 @@ export default function Maze({ child, quota, featureConfig }) {
       setPhase('success')
       completedRef.current = true
       track('maze', 'complete', { metadata: { cols, rows, wallHits: wallHitsRef.current }, durationSeconds: Math.round((Date.now() - mazeStartTime.current) / 1000) })
+      setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000)
       drawingRef.current = false
     }
   }
@@ -424,6 +427,7 @@ export default function Maze({ child, quota, featureConfig }) {
 
   return (
     <div ref={containerRef} style={{ padding: fullscreen ? 0 : '12px 12px 40px', fontFamily: 'Nunito, sans-serif', ...fsStyle }}>
+      {showConfetti && <Confetti />}
       {!fullscreen && <FeatureBanner feature="maze" child={child} isMobile={false} />}
       {!fullscreen && <QuotaBanner quota={quota} isMobile={false} />}
       {loading && <ThemeLoader theme={child?.theme} label="Cooking up your maze adventure..." />}

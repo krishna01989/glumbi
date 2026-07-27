@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
+import Confetti from '../../components/Confetti'
 import { useSearchParams } from 'react-router-dom'
 import { memoryApi, learnApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
@@ -351,6 +352,7 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   const [flippedIds, setFlippedIds] = useState([])
   const [locked, setLocked] = useState(false)
   const [moves, setMoves] = useState(0)
+  const [showConfetti, setShowConfetti] = useState(false)
   const matchStartTime = useRef(Date.now())
 
   // Reset cards when difficulty changes without unmounting (preserves fullscreen)
@@ -364,7 +366,11 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
   const won = cards.every(c => c.matched)
   const prevWonRef = useRef(false)
   useEffect(() => {
-    if (won && !prevWonRef.current) track('memorymatch', 'complete', { metadata: { difficulty, moves }, durationSeconds: Math.round((Date.now() - matchStartTime.current) / 1000) })
+    if (won && !prevWonRef.current) {
+      track('memorymatch', 'complete', { metadata: { difficulty, moves }, durationSeconds: Math.round((Date.now() - matchStartTime.current) / 1000) })
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 3000)
+    }
     prevWonRef.current = won
   }, [won]) // eslint-disable-line react-hooks/exhaustive-deps
   const cardsRef = useRef(null)
@@ -451,6 +457,7 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
 
   return (
     <div ref={cardsRef} style={fsStyle}>
+      {showConfetti && <Confetti />}
       {/* Top bar: difficulty (fullscreen only) + fullscreen toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: isLandscapeMobile ? 2 : 6, gap: 8 }}>
         <div style={{ display: 'flex', gap: isLandscapeMobile ? 4 : 6, alignItems: 'center', visibility: isFullscreen ? 'visible' : 'hidden' }}>

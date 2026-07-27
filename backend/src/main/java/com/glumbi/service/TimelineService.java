@@ -21,7 +21,8 @@ public class TimelineService {
 
     private static final Set<String> VALID_TYPES = Set.of(
         "story", "journal", "activity", "learn", "curiosity",
-        "readquiz", "writing", "flashcards", "wordofday", "memorymatch");
+        "readquiz", "writing", "flashcards", "wordofday", "memorymatch",
+        "draw", "flipbook");
 
     public Page<Map<String, Object>> getPage(Long childId, Pageable pageable, String from, String to, String type) {
         LocalDateTime fromDt = from != null
@@ -47,6 +48,8 @@ public class TimelineService {
             .setParameter(19, childId).setParameter(20, fromDt).setParameter(21, toDt)
             .setParameter(22, childId).setParameter(23, fromDt).setParameter(24, toDt)
             .setParameter(25, childId).setParameter(26, fromDt).setParameter(27, toDt)
+            .setParameter(28, childId).setParameter(29, fromDt).setParameter(30, toDt)
+            .setParameter(31, childId).setParameter(32, fromDt).setParameter(33, toDt)
             .getSingleResult()).longValue();
 
         @SuppressWarnings("unchecked")
@@ -61,6 +64,8 @@ public class TimelineService {
             .setParameter(19, childId).setParameter(20, fromDt).setParameter(21, toDt)
             .setParameter(22, childId).setParameter(23, fromDt).setParameter(24, toDt)
             .setParameter(25, childId).setParameter(26, fromDt).setParameter(27, toDt)
+            .setParameter(28, childId).setParameter(29, fromDt).setParameter(30, toDt)
+            .setParameter(31, childId).setParameter(32, fromDt).setParameter(33, toDt)
             .setParameter("size",   pageable.getPageSize())
             .setParameter("offset", pageable.getOffset())
             .getResultList();
@@ -140,6 +145,22 @@ public class TimelineService {
                    NULL AS extra1, NULL AS extra2,
                    NULL AS extra3, NULL AS extra4, NULL AS extra5
               FROM memory_matches WHERE child_id = ?25 AND created_at BETWEEN ?26 AND ?27
+
+            UNION ALL
+
+            SELECT id, 'draw' AS type, created_at,
+                   title, NULL AS content,
+                   thumbnail AS extra1, NULL AS extra2,
+                   NULL AS extra3, NULL AS extra4, NULL AS extra5
+              FROM draw_saves WHERE child_id = ?28 AND created_at BETWEEN ?29 AND ?30
+
+            UNION ALL
+
+            SELECT id, 'flipbook' AS type, created_at,
+                   title, NULL AS content,
+                   thumbnail AS extra1, CAST(frame_count AS CHAR) AS extra2,
+                   NULL AS extra3, NULL AS extra4, NULL AS extra5
+              FROM flipbook_saves WHERE child_id = ?31 AND created_at BETWEEN ?32 AND ?33
             """;
     }
 
@@ -176,6 +197,8 @@ public class TimelineService {
                                    m.put("feedbackReceived", parseBool(e3)); }
             case "wordofday"  -> { m.put("emoji", e1); m.put("exampleSentence", e2); m.put("meaning", r[4]); }
             case "memorymatch"-> { m.put("theme", r[3]); }
+            case "draw"       -> { m.put("thumbnail", e1); }
+            case "flipbook"   -> { m.put("thumbnail", e1); m.put("frameCount", e2 != null ? Integer.parseInt(e2) : 0); }
         }
         return m;
     }

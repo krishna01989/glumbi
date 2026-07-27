@@ -330,7 +330,8 @@ export default function FlipbookStudio({ child, quota }) {
     setIsSaving(true)
     try {
       const framesJson = JSON.stringify(allFrames)
-      const thumbnail = allFrames.find(f => f) || null
+      const rawThumb = allFrames.find(f => f) || null
+      const thumbnail = rawThumb ? rawThumb.split(',')[1] : null
       const count = allFrames.length
       const title = flipbookTitle.trim() || untitledTitle()
       if (currentSaveId) {
@@ -2388,7 +2389,7 @@ export default function FlipbookStudio({ child, quota }) {
           <div key={save.id} style={{ display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
             {save.thumbnail && (
-              <img src={save.thumbnail} alt="thumbnail"
+              <img src={save.thumbnail ? `data:image/png;base64,${save.thumbnail}` : ''} alt="thumbnail"
                 onClick={() => { loadFlipbookSave(save); close() }}
                 style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,
                   border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid var(--primary-lt)',

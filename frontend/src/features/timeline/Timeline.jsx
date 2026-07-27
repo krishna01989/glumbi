@@ -13,6 +13,8 @@ const TYPE_META = {
   flashcards: { label: '📇 Flashcards',   dot: '#14b8a6', textColor: '#0d9488',  feature: 'memory' },
   wordofday:  { label: '📘 Word of Day',  dot: '#6366f1', textColor: '#4f46e5',  feature: 'memory' },
   memorymatch:{ label: '🎴 Memory Match', dot: '#ec4899', textColor: '#db2777',  feature: 'memory' },
+  draw:       { label: '🎨 Drawing',      dot: '#f97316', textColor: '#ea580c',  feature: 'draw' },
+  flipbook:   { label: '🖼️ Flipbook',     dot: '#8b5cf6', textColor: '#7c3aed',  feature: 'flipbook' },
 }
 
 const PAGE_SIZE = 15
@@ -179,6 +181,17 @@ export default function Timeline({ child, t = {} }) {
         return <>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>🎴 {item.title}</div>
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Memory match game</div>
+        </>
+      case 'draw':
+        return <>
+          {item.thumbnail && <img src={`data:image/png;base64,${item.thumbnail}`} alt={item.title || 'Drawing'} style={{ width: '100%', maxWidth: 200, borderRadius: 8, marginBottom: 6, objectFit: 'cover' }} />}
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>🎨 {item.title || 'Untitled Drawing'}</div>
+        </>
+      case 'flipbook':
+        return <>
+          {item.thumbnail && <img src={`data:image/png;base64,${item.thumbnail}`} alt={item.title || 'Flipbook'} style={{ width: '100%', maxWidth: 200, borderRadius: 8, marginBottom: 6, objectFit: 'cover' }} />}
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>🖼️ {item.title || 'Untitled Flipbook'}</div>
+          {item.frameCount > 0 && <div style={{ fontSize: 13, color: 'var(--muted)' }}>{item.frameCount} frames</div>}
         </>
       default: return null
     }

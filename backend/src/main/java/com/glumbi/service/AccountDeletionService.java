@@ -95,7 +95,10 @@ public class AccountDeletionService {
         userFeatureOverrideRepository.deleteByIdUserId(userId);
         passwordResetTokenRepository.invalidateAllForUser(userId);
 
-        // 4. Delete the user account
+        // 4. Delete remaining user-level notifications (child notifications already deleted per-child above)
+        notificationRepository.deleteByUserId(userId);
+
+        // 5. Delete the user account
         userRepository.deleteById(userId);
     }
 }

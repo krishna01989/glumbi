@@ -31,4 +31,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     void markAllReadByUserAndType(AppUser user, NotificationType type);
 
     void deleteByChildId(Long childId);
+
+    void deleteByUserId(Long userId);
 }

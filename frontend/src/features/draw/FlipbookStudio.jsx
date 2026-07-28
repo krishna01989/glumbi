@@ -1077,15 +1077,16 @@ export default function FlipbookStudio({ child, quota }) {
       } else {
         if (selTmpRef.current) {
           ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.18)'; ctx.shadowBlur = 8
-          ctx.drawImage(selTmpRef.current, px, py); ctx.restore()
+          ctx.drawImage(selTmpRef.current, px, py, sd.w, sd.h); ctx.restore()
         }
+        const hs = 12
         ctx.save()
         ctx.strokeStyle = primary; ctx.lineWidth = 2; ctx.setLineDash([8, 4])
         ctx.strokeRect(px, py, sd.w, sd.h)
         ctx.setLineDash([])
         ;[[px, py], [px + sd.w, py], [px, py + sd.h], [px + sd.w, py + sd.h]].forEach(([cx, cy]) => {
-          ctx.fillStyle = 'white'; ctx.fillRect(cx - 4, cy - 4, 8, 8)
-          ctx.strokeStyle = primary; ctx.lineWidth = 1.5; ctx.strokeRect(cx - 4, cy - 4, 8, 8)
+          ctx.fillStyle = 'white'; ctx.fillRect(cx - hs/2, cy - hs/2, hs, hs)
+          ctx.strokeStyle = primary; ctx.lineWidth = 1.5; ctx.strokeRect(cx - hs/2, cy - hs/2, hs, hs)
         })
         ctx.restore()
       }
@@ -1211,11 +1212,32 @@ export default function FlipbookStudio({ child, quota }) {
     selOverlayRef.current?.getContext('2d').clearRect(0, 0, W, H)
   }
 
+  function hitSelCorner(pos) {
+    const sd = selStateRef.current
+    if (sd.phase !== 'floating') return null
+    const px = Math.round(sd.posX), py = Math.round(sd.posY)
+    const HIT = 18
+    return [
+      { id: 'nw', x: px,        y: py        },
+      { id: 'ne', x: px + sd.w, y: py        },
+      { id: 'sw', x: px,        y: py + sd.h },
+      { id: 'se', x: px + sd.w, y: py + sd.h },
+    ].find(h => Math.abs(pos.x - h.x) <= HIT && Math.abs(pos.y - h.y) <= HIT) || null
+  }
+
   function onSelDown(e) {
     if (isPlayingRef.current) return
     const sd = selStateRef.current
     const pos = getPos(e, canvasRef.current)
     if (sd.phase === 'floating') {
+      const corner = hitSelCorner(pos)
+      if (corner) {
+        sd.resizing = true; sd.resizeHandle = corner.id
+        sd.resizeDragStartX = pos.x; sd.resizeDragStartY = pos.y
+        sd.resizeOrigX = sd.posX; sd.resizeOrigY = sd.posY
+        sd.resizeOrigW = sd.w;   sd.resizeOrigH = sd.h
+        return
+      }
       const inside = pos.x >= sd.posX && pos.x <= sd.posX + sd.w
                   && pos.y >= sd.posY && pos.y <= sd.posY + sd.h
       if (inside) {
@@ -1239,6 +1261,24 @@ export default function FlipbookStudio({ child, quota }) {
     if (sd.phase === 'drawing') {
       sd.x = Math.min(pos.x, sd.startX); sd.y = Math.min(pos.y, sd.startY)
       sd.w = Math.abs(pos.x - sd.startX); sd.h = Math.abs(pos.y - sd.startY)
+      drawSelOverlay()
+    } else if (sd.phase === 'floating' && sd.resizing) {
+      if (!sd.erased) {
+        const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true })
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(Math.round(sd.x), Math.round(sd.y), Math.round(sd.resizeOrigW), Math.round(sd.resizeOrigH))
+        sd.erased = true
+      }
+      const dx = pos.x - sd.resizeDragStartX, dy = pos.y - sd.resizeDragStartY
+      let nx = sd.resizeOrigX, ny = sd.resizeOrigY, nw = sd.resizeOrigW, nh = sd.resizeOrigH
+      switch (sd.resizeHandle) {
+        case 'se': nw += dx; nh += dy; break
+        case 'sw': nw -= dx; nx += dx; nh += dy; break
+        case 'ne': nw += dx; nh -= dy; ny += dy; break
+        case 'nw': nw -= dx; nx += dx; nh -= dy; ny += dy; break
+      }
+      nw = Math.max(10, nw); nh = Math.max(10, nh)
+      sd.posX = nx; sd.posY = ny; sd.w = nw; sd.h = nh
       drawSelOverlay()
     } else if (sd.phase === 'floating' && sd.dragging) {
       if (!sd.erased) {
@@ -1284,6 +1324,13 @@ export default function FlipbookStudio({ child, quota }) {
       drawSelOverlay()
       refreshSelPreview()
     } else if (sd.phase === 'floating') {
+      if (sd.resizing) {
+        const dst = document.createElement('canvas')
+        dst.width = Math.round(sd.w); dst.height = Math.round(sd.h)
+        dst.getContext('2d').drawImage(selTmpRef.current, 0, 0, dst.width, dst.height)
+        selTmpRef.current = dst
+        sd.resizing = false
+      }
       sd.dragging = false
       refreshSelPreview()
     }
@@ -2004,27 +2051,6 @@ export default function FlipbookStudio({ child, quota }) {
             </>)
           })()}
 
-          {hasPendingShape && !showPlayback && (
-            <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 20,
-              background: 'white', borderRadius: 16, padding: '8px 14px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.2)', border: '1.5px solid var(--primary-lt)',
-              fontFamily: 'Nunito, sans-serif', fontSize: 13,
-              display: 'flex', alignItems: 'center', gap: 10, whiteSpace: 'nowrap' }}>
-              <span style={{ fontWeight: 800, color: 'var(--primary)', fontSize: 13 }}>🔷 Drag · corners to resize</span>
-              <button onClick={commitPendingShape}
-                style={{ padding: '4px 12px', borderRadius: 8, border: 'none',
-                  background: 'var(--primary)', color: 'white',
-                  fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                ✓ Place
-              </button>
-              <button onClick={cancelPendingShape}
-                style={{ padding: '4px 8px', borderRadius: 8, border: 'none',
-                  background: 'var(--primary-lt)', color: 'var(--primary)',
-                  fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}>
-                ✕
-              </button>
-            </div>
-          )}
 
           {/* Playback overlay */}
           {showPlayback && (

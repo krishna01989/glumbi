@@ -63,6 +63,8 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
   const [pinVal, setPinVal]         = useState('')
   const [pinConfirm, setPinConfirm] = useState('')
   const [pinError, setPinError]     = useState('')
+  const [graduated, setGraduated] = useState(false)
+  const [savedGraduated, setSavedGraduated] = useState(false)
 
   useEffect(() => {
     if (!isEdit) { if (!inChildContext) applyTheme('coral'); return }
@@ -71,6 +73,8 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
       setForm({ name: child.name, birthYear: child.birthYear, avatarEmoji: child.avatarEmoji, gender: child.gender || '', theme: child.theme || 'coral' })
       setFeatures(child.enabledFeatures ? JSON.parse(child.enabledFeatures) : defaultFeatureKeys(calcAge(child.birthYear) ?? 5))
       setHasPinSet(!!child.hasPinSet)
+      setGraduated(!!child.graduated)
+      setSavedGraduated(!!child.graduated)
       setFetching(false)
     })
   }, [id])
@@ -114,7 +118,7 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
     if (isEdit && pinVal && pinVal !== pinConfirm) { setPinError('PINs do not match'); return }
     setLoading(true)
     try {
-      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null, ...(pinVal ? { pin: pinVal } : {}) }
+      const payload = { ...form, enabledFeatures: features ? JSON.stringify(features) : null, ...(pinVal ? { pin: pinVal } : {}), ...(isEdit ? { graduated } : {}) }
       if (isEdit) {
         const updated = await childApi.update(id, payload)
         if (onChildUpdated) onChildUpdated(updated)
@@ -330,6 +334,43 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
             </div>
           </div>
         </div>
+
+        {isEdit && (() => {
+          const pending = graduated !== savedGraduated
+          const willGraduate = pending && graduated
+          const willReenrol = pending && !graduated
+          return (
+            <div style={{ background: savedGraduated ? '#fffbea' : 'white', borderRadius: 16, border: `1.5px solid ${savedGraduated ? '#ffe08a' : '#f0f0f0'}`, padding: '20px 24px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: savedGraduated ? '#b45309' : '#555', marginBottom: 4 }}>
+                    {savedGraduated ? '🎓 Profile graduated' : '🎓 Graduate profile'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#999', lineHeight: 1.5 }}>
+                    {willGraduate
+                      ? `Profile will be graduated when you save. ${form.name || 'This child'} won't receive weekly reports.`
+                      : willReenrol
+                      ? `Profile will be re-enrolled when you save.`
+                      : savedGraduated
+                      ? `${form.name || 'This child'} has graduated from Glumbi. Weekly reports and notifications are off.`
+                      : `Mark ${form.name || 'this child'} as graduated when they outgrow Glumbi. Everything is preserved and can be re-enrolled at any time.`}
+                  </div>
+                </div>
+                <button type="button"
+                  onClick={() => setGraduated(g => !g)}
+                  style={{
+                    flexShrink: 0, padding: '9px 18px', borderRadius: 50, fontSize: 13, fontWeight: 800,
+                    background: graduated ? '#f59e0b' : '#f5f5f5',
+                    color: graduated ? 'white' : '#888',
+                    border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif',
+                    transition: 'all 0.15s ease',
+                  }}>
+                  {graduated ? 'Re-enrol' : 'Graduate'}
+                </button>
+              </div>
+            </div>
+          )
+        })()}
 
         {isEdit && (
           <div style={{ marginBottom: 16 }}>

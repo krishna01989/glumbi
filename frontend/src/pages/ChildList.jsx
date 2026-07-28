@@ -369,16 +369,20 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
 ══════════════════════════════════════════════════════ */
 function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir }) {
   const age = calcAge(c.birthYear)
+  const isHibernated = !!c.graduated
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       animation: animDir > 0 ? 'globe-in-right 0.5s cubic-bezier(0.22,1,0.36,1) both'
                              : 'globe-in-left 0.5s cubic-bezier(0.22,1,0.36,1) both',
+      opacity: isHibernated ? 0.5 : 1,
+      filter: isHibernated ? 'grayscale(0.7)' : 'none',
+      transition: 'opacity 0.3s, filter 0.3s',
     }}>
       {/* ── Avatar ── */}
       <div
-        onClick={() => onSelect(c)}
+        onClick={() => !isHibernated && onSelect(c)}
         style={{
           width: 'clamp(140px, 22vw, 180px)',
           height: 'clamp(140px, 22vw, 180px)',
@@ -386,16 +390,23 @@ function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir }) {
           background: t.headerGrad,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 'clamp(58px, 9vw, 76px)',
-          cursor: 'pointer',
+          cursor: isHibernated ? 'not-allowed' : 'pointer',
           boxShadow: `0 0 0 6px rgba(255,255,255,0.2), 0 0 0 12px rgba(255,255,255,0.08), 0 24px 64px ${t.primary}55`,
           transition: 'transform 0.2s cubic-bezier(0.34,1.56,0.64,1)',
           position: 'relative',
           userSelect: 'none',
         }}
-        onMouseEnter={e => e.currentTarget.style.transform='scale(1.07) translateY(-4px)'}
+        onMouseEnter={e => { if (!isHibernated) e.currentTarget.style.transform='scale(1.07) translateY(-4px)' }}
         onMouseLeave={e => e.currentTarget.style.transform='scale(1) translateY(0)'}
       >
         <span style={{ lineHeight: 1 }}>{c.avatarEmoji}</span>
+        {isHibernated && (
+          <span style={{
+            position: 'absolute', bottom: 6, right: 6,
+            fontSize: 22, lineHeight: 1,
+            background: 'rgba(0,0,0,0.35)', borderRadius: '50%', padding: 4,
+          }}>🎓</span>
+        )}
       </div>
 
       {/* ── Name & age ── */}
@@ -412,15 +423,17 @@ function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir }) {
         </div>
       </div>
 
-      {/* ── PIN status ── */}
-      {c.hasPinSet
-        ? <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>🔐 Lock PIN set</div>
-        : <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.08)', border: '1.5px dashed rgba(255,255,255,0.2)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>○ No lock PIN</div>
+      {/* ── Graduated badge or PIN status ── */}
+      {isHibernated
+        ? <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.9)', background: 'rgba(0,0,0,0.25)', border: '1.5px solid rgba(255,255,255,0.2)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>🎓 Graduated</div>
+        : c.hasPinSet
+          ? <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.9)', background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>🔐 Lock PIN set</div>
+          : <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', background: 'rgba(255,255,255,0.08)', border: '1.5px dashed rgba(255,255,255,0.2)', borderRadius: 50, padding: '3px 12px', marginBottom: 14 }}>○ No lock PIN</div>
       }
 
-      {/* ── Tap to open hint ── */}
+      {/* ── Hint ── */}
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 20, fontStyle: 'italic' }}>
-        tap avatar to open
+        {isHibernated ? 'edit profile to re-enrol' : 'tap avatar to open'}
       </div>
 
       {/* ── Action buttons ── */}
@@ -459,8 +472,9 @@ function ChildCard({ c, t, onSelect, onEdit, onInsights, animDir }) {
 }
 
 /* ── Add child slide ── */
-function AddChildSlide({ onAdd, animDir }) {
+function AddChildSlide({ onAdd, animDir, activeCount }) {
   const [hovered, setHovered] = useState(false)
+  const atLimit = activeCount >= 3
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -468,31 +482,31 @@ function AddChildSlide({ onAdd, animDir }) {
                              : 'globe-in-left 0.5s cubic-bezier(0.22,1,0.36,1) both',
     }}>
       <div
-        onClick={onAdd}
-        onMouseEnter={() => setHovered(true)}
+        onClick={atLimit ? undefined : onAdd}
+        onMouseEnter={() => { if (!atLimit) setHovered(true) }}
         onMouseLeave={() => setHovered(false)}
         style={{
           width: 'clamp(140px, 22vw, 180px)',
           height: 'clamp(140px, 22vw, 180px)',
           borderRadius: '50%',
-          border: `3px dashed ${hovered ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'}`,
-          background: hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)',
+          border: `3px dashed ${atLimit ? 'rgba(255,255,255,0.15)' : hovered ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'}`,
+          background: atLimit ? 'rgba(255,255,255,0.03)' : hovered ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.07)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer',
+          cursor: atLimit ? 'not-allowed' : 'pointer',
           transition: 'all 0.25s cubic-bezier(0.34,1.56,0.64,1)',
           transform: hovered ? 'scale(1.07) translateY(-4px)' : 'scale(1)',
           boxShadow: hovered ? '0 24px 64px rgba(255,255,255,0.12)' : 'none',
         }}
       >
-        <span style={{ fontSize: 52, color: hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)', transition: 'color 0.2s', lineHeight: 1 }}>+</span>
+        <span style={{ fontSize: 52, color: atLimit ? 'rgba(255,255,255,0.15)' : hovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)', transition: 'color 0.2s', lineHeight: 1 }}>+</span>
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 24, marginBottom: 8 }}>
-        <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 'clamp(20px,3.5vw,26px)', color: 'rgba(255,255,255,0.7)' }}>
+        <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 'clamp(20px,3.5vw,26px)', color: atLimit ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.7)' }}>
           Add a child
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 5 }}>
-          Up to 3 profiles per account
+          {atLimit ? '3 profiles — graduate one to add more' : `${3 - activeCount} slot${3 - activeCount !== 1 ? 's' : ''} remaining`}
         </div>
       </div>
 
@@ -522,8 +536,9 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
 
   const navigate = useNavigate()
 
-  // Children who have aged past 10 and haven't been dismissed
-  const grownUpChildren = children.filter(c => calcAge(c.birthYear) > 10 && !dismissedGrownUp.includes(c.id))
+  // Children who have aged past 10 and haven't been dismissed (and aren't already graduated)
+  const grownUpChildren = children.filter(c => calcAge(c.birthYear) > 10 && !dismissedGrownUp.includes(c.id) && !c.graduated)
+  const activeCount = children.filter(c => !c.graduated).length
 
   function dismissGrownUp(childId) {
     const next = [...dismissedGrownUp, childId]
@@ -730,11 +745,18 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
           <>
             {/* ── Grown-up nudge banners ── */}
             {grownUpChildren.map(c => (
-              <div key={c.id} style={{ width: '100%', maxWidth: 480, marginBottom: 16, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, animation: 'glm-fadein 0.4s ease both' }}>
-                <span style={{ fontSize: 22, flexShrink: 0 }}>🎓</span>
-                <p style={{ margin: 0, color: 'white', fontSize: 13, lineHeight: 1.5, flex: 1 }}>
-                  🎉 <strong>{c.name}</strong> has graduated from Glumbi University! They've turned {calcAge(c.birthYear)} — our adventures are built for ages 1–10, so they may have outgrown some features. Congrats, superstar! 🌟
-                </p>
+              <div key={c.id} style={{ width: '100%', maxWidth: 480, marginBottom: 16, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 12, animation: 'glm-fadein 0.4s ease both' }}>
+                <span style={{ fontSize: 22, flexShrink: 0, marginTop: 2 }}>🎓</span>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 10px', color: 'white', fontSize: 13, lineHeight: 1.5 }}>
+                    🎉 <strong>{c.name}</strong> has graduated from Glumbi University! They've turned {calcAge(c.birthYear)} — our adventures are built for ages 1–10. Congrats, superstar! 🌟
+                  </p>
+                  <button
+                    onClick={() => navigate(`/child/${c.id}/edit`)}
+                    style={{ background: 'rgba(255,255,255,0.25)', border: '1.5px solid rgba(255,255,255,0.4)', color: 'white', borderRadius: 50, padding: '5px 14px', fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
+                    🎓 Graduate profile
+                  </button>
+                </div>
                 <button onClick={() => dismissGrownUp(c.id)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', fontSize: 18, cursor: 'pointer', padding: '0 4px', flexShrink: 0, lineHeight: 1 }}>✕</button>
               </div>
             ))}
@@ -783,7 +805,7 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
                     animDir={animDir}
                   />
                 ) : (
-                  <AddChildSlide onAdd={() => navigate('/child/new')} animDir={animDir} />
+                  <AddChildSlide onAdd={() => navigate('/child/new')} animDir={animDir} activeCount={children.length} />
                 )}
               </div>
 

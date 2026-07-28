@@ -53,6 +53,9 @@ public class ChildService {
     public Child create(ChildRequest req, Long ownerId) {
         AppUser owner = userRepo.findById(ownerId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        long totalCount = repo.findByOwnerId(ownerId).size();
+        if (totalCount >= 3)
+            throw new IllegalStateException("You can have up to 3 child profiles per account. Graduate an existing profile to add a new one.");
         Child child = new Child();
         child.setOwner(owner);
         child.setName(req.getName());
@@ -80,6 +83,8 @@ public class ChildService {
         }
         if (req.getPin() != null && req.getPin().matches("\\d{4}"))
             child.setPinHash(passwordEncoder.encode(req.getPin()));
+        if (req.getGraduated() != null)
+            child.setGraduated(req.getGraduated());
         return repo.save(child);
     }
 

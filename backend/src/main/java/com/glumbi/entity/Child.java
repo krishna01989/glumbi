@@ -42,6 +42,9 @@ public class Child {
     @Column(name = "pin_hash")
     private String pinHash;
 
+    @Column(name = "graduated", nullable = false, columnDefinition = "boolean default false")
+    private boolean graduated = false;
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 

@@ -19,4 +19,6 @@ public class ChildRequest {
     private String enabledFeatures; // JSON array string
 
     private String pin; // optional 4-digit PIN; null/blank = no change
+
+    private Boolean graduated; // null = no change
 }

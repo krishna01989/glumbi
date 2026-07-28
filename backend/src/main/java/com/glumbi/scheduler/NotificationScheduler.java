@@ -136,7 +136,7 @@ public class NotificationScheduler {
                     continue;
                 }
 
-                for (Child child : children) {
+                for (Child child : children.stream().filter(c -> !c.isGraduated()).toList()) {
                     try {
                         boolean processed = runAgentsForChild(
                             user, child, weekAgo, twoWeeksAgo,

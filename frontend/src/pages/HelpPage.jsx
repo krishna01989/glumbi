@@ -26,6 +26,14 @@ const SECTIONS = [
         q: 'Can I enable or disable specific features for my child?',
         a: 'Yes — when editing a child\'s profile, scroll to the Features section. Toggle any feature on or off. Disabled features are hidden from that child\'s screen entirely.',
       },
+      {
+        q: 'What does "Graduate profile" mean?',
+        a: 'Graduating a profile marks a child as having outgrown Glumbi — typically at age 11+. Their profile stays visible on the home screen but is greyed out and can\'t be opened. Weekly reports and email notifications are paused. All their stories, drawings, and memories are fully preserved — you can re-enrol them at any time from the Edit screen.',
+      },
+      {
+        q: 'Does graduating a child free up a profile slot?',
+        a: 'No — a graduated profile still counts toward your 3-profile limit. Graduating is about celebrating their journey, not removing them. If you want to permanently free up a slot, you\'ll need to delete the profile instead.',
+      },
     ],
   },
   {

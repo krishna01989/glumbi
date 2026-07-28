@@ -108,8 +108,7 @@ function useBreakpoint() {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function FlipbookStudio({ child, quota }) {
   const { track } = useTracker()
-  const fbSessionTracked = useRef(false)
-  useFeatureDuration('flipbook', track, { condition: fbSessionTracked })
+  const { markActive } = useFeatureDuration('flipbook', track)
   // Frame storage — ref is source of truth, state drives rendering
   const framesRef      = useRef([null])          // null = blank white
   const [frames, setFrames]         = useState([null])
@@ -789,7 +788,7 @@ export default function FlipbookStudio({ child, quota }) {
   // ── Playback ───────────────────────────────────────────────────────────────
   function startPlay() {
     if (framesRef.current.length < 2) return
-    track('flipbook', 'play', { metadata: { frames: framesRef.current.length, fps: fpsRef.current } })
+    track('flipbook', 'play', { metadata: { frames: framesRef.current.length, fps: fpsRef.current } }); markActive()
     saveCurrentFrame()                     // ensure latest frame is saved
     playIdxRef.current = 0
     setPlaybackSrc(framesRef.current[0])   // show first frame immediately
@@ -914,7 +913,7 @@ export default function FlipbookStudio({ child, quota }) {
   // ── Drawing ────────────────────────────────────────────────────────────────
   function startDraw(e) {
     if (isPlaying || selectTool) return
-    if (!fbSessionTracked.current) fbSessionTracked.current = true
+    markActive()
     updateTouchIndicator(e)
     hasMovedRef.current = false
     const pos = getPos(e, canvasRef.current)
@@ -2304,7 +2303,7 @@ export default function FlipbookStudio({ child, quota }) {
             border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid transparent',
             background: currentSaveId === save.id ? 'var(--primary-lt)' : '#fafafa',
             cursor: 'pointer', transition: 'background 0.15s' }}
-            onClick={() => { loadFlipbookSave(save); close() }}>
+            onClick={() => { loadFlipbookSave(save); markActive(); close() }}>
             <img src={save.thumbnail ? `data:image/png;base64,${save.thumbnail}` : ''}
               alt={save.title || 'Flipbook'}
               style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,

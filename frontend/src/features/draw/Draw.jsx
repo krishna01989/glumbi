@@ -88,8 +88,7 @@ export default function Draw({ child, quota, featureConfig }) {
   const colorInput = useRef(null)
   const drawing    = useRef(false)
   const lastPos    = useRef(null)
-  const sessionTracked = useRef(false)
-  useFeatureDuration('draw', track, { condition: sessionTracked })
+  const { markActive } = useFeatureDuration('draw', track)
   const fsRef      = useRef(null)
 
   const historyRef = useRef([])
@@ -576,7 +575,7 @@ export default function Draw({ child, quota, featureConfig }) {
   function startDraw(e) {
     e.preventDefault()
     if (selectTool) return
-    if (!sessionTracked.current) sessionTracked.current = true
+    markActive()
     updateTouchIndicator(e)
     hasMovedRef.current = false
     const pos = getPos(e, canvasRef.current)
@@ -804,7 +803,7 @@ export default function Draw({ child, quota, featureConfig }) {
       const { objects: rawJson } = await drawApi.animate(
         imageData, child?.name || 'you', age, guideSubject, child?.id
       )
-      track('draw', 'animate')
+      track('draw', 'animate'); markActive()
       window.__glumbiRefreshQuota?.('draw-animate')
 
       let parsed
@@ -2013,7 +2012,7 @@ export default function Draw({ child, quota, featureConfig }) {
             border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid transparent',
             background: currentSaveId === s.id ? 'var(--primary-lt)' : '#fafafa',
             cursor: 'pointer', transition: 'background 0.15s' }}
-            onClick={() => { loadDrawSave(s); close() }}>
+            onClick={() => { loadDrawSave(s); markActive(); close() }}>
             <img src={s.thumbnail ? 'data:image/png;base64,' + s.thumbnail : ''}
               alt={s.title || 'Drawing'}
               style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6, flexShrink: 0,

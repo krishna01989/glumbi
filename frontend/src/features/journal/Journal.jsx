@@ -11,7 +11,7 @@ import { MOODS, moodFor } from '../../constants/moods'
 
 export default function Journal({ child, featureConfig, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('journal', track)
+  const { markActive } = useFeatureDuration('journal', track)
   const offline = useOffline()
   const [entries, setEntries]     = useState([])
   const [entriesPage, setEntriesPage]           = useState(0)
@@ -50,7 +50,7 @@ export default function Journal({ child, featureConfig, quota }) {
     setSaving(true)
     try {
       const entry = await journalApi.create({ childId: child.id, content, mood, milestone })
-      track('journal', 'save')
+      track('journal', 'save'); markActive()
       setEntries(prev => [entry, ...prev])
       setContent(''); setMood(''); setMilestone('')
     } finally { setSaving(false) }
@@ -69,7 +69,7 @@ export default function Journal({ child, featureConfig, quota }) {
     if (selectedMood) setMood(selectedMood)
     try {
       const result = await journalApi.generateAiEntry(child.id, selectedMood)
-      track('journal', 'ai_generate')
+      track('journal', 'ai_generate'); markActive()
       setContent(result.content || '')
       if (result.mood)      setMood(result.mood)
       if (result.milestone) setMilestone(result.milestone)
@@ -125,7 +125,7 @@ export default function Journal({ child, featureConfig, quota }) {
               {MOODS.map(m => {
                 const selected = mood === m.value
                 return (
-                  <button key={m.value} type="button" onClick={() => setMood(selected ? '' : m.value)}
+                  <button key={m.value} type="button" onClick={() => { setMood(selected ? '' : m.value); if (!selected) markActive() }}
                     title={m.label}
                     style={{ display: 'flex', alignItems: 'center', gap: selected ? 4 : 0,
                       padding: selected ? '5px 12px' : '5px 8px', borderRadius: 50,

@@ -40,7 +40,7 @@ const LESSON_COLORS = {
 
 export default function ReadQuiz({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('readquiz', track)
+  const { markActive } = useFeatureDuration('readquiz', track)
   const quizStartTime = useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -110,7 +110,7 @@ export default function ReadQuiz({ child, quota }) {
       openEntry({ ...entry, questions })
       initGlumbi(entry)
       if (isNew) {
-        track('readquiz', 'generate', { metadata: { topic: entry.topic, fromStory: true } })
+        track('readquiz', 'generate', { metadata: { topic: entry.topic, fromStory: true } }); markActive()
         window.__glumbiRefreshQuota?.('read-quiz')
       }
     } catch (e) { setError(e.message) }
@@ -134,7 +134,7 @@ export default function ReadQuiz({ child, quota }) {
     setLoading(true); setError('')
     try {
       const entry = await readQuizApi.generate(child.id, topic)
-      track('readquiz', 'generate', { metadata: { topic } })
+      track('readquiz', 'generate', { metadata: { topic } }); markActive()
       quizStartTime.current = Date.now()
       const questions = JSON.parse(entry.questionsJson || '[]')
       setEntries(prev => [{ ...entry, questions }, ...prev])
@@ -148,6 +148,7 @@ export default function ReadQuiz({ child, quota }) {
   }
 
   function openEntry(entry) {
+    markActive()
     const questions = entry.questions || JSON.parse(entry.questionsJson || '[]')
     setSelected({ ...entry, questions })
     const savedAnswers = entry.completed && entry.answersJson

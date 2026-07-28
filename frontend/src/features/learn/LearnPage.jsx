@@ -544,7 +544,7 @@ function pathEndpoints(pathStr) {
 
 // ── Canvas component ───────────────────────────────────────────────────────────
 
-function DrawCanvas({ onSubmit, onPractice, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Nunito, sans-serif' }) {
+function DrawCanvas({ onSubmit, onPractice, loading, disabled = false, height = 260, fullWidth = false, traceChar = null, traceFontFamily = 'Nunito, sans-serif', onFirstStroke }) {
   const canvasRef = useRef(null)
   const drawing   = useRef(false)
 
@@ -583,6 +583,7 @@ function DrawCanvas({ onSubmit, onPractice, loading, disabled = false, height = 
   function start(e) {
     e.preventDefault()
     drawing.current = true
+    onFirstStroke?.()
     const ctx = canvasRef.current.getContext('2d')
     const pos = getPos(e, canvasRef.current)
     ctx.beginPath(); ctx.moveTo(pos.x, pos.y)
@@ -788,7 +789,7 @@ const PRACTICE_MSGS = [
   { emoji:'🎯', msg:"Awesome! Try it one more time without looking at the trace." },
 ]
 
-function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) {
+function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily, onFirstStroke }) {
   const { track } = useTracker()
   const offline = useOffline()
   const [loading, setLoading] = useState(false)
@@ -830,7 +831,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
     try {
       const age = child?.birthYear ? new Date().getFullYear() - child.birthYear : 5
       const result = await learnApi.validate(imageData, selected.char, script, child?.name || 'you', age, child?.id)
-      track('learn', 'ai_validate', { metadata: { script, letter: selected?.char, correct: result.correct } })
+      track('learn', 'ai_validate', { metadata: { script, letter: selected?.char, correct: result.correct } }); markActive()
       setFeedback({ type: 'ai', correct: result.correct, text: result.feedback, emoji: result.correct ? '🎉' : '💪' })
       if (result.correct) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000) }
       window.__glumbiRefreshQuota?.('learn-validate')
@@ -933,6 +934,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily }) 
         <DrawCanvas
           onSubmit={handleAiCheck}
           onPractice={handlePractice}
+          onFirstStroke={onFirstStroke}
           loading={loading}
           disabled={quota?.used >= quota?.limit || offline}
           fullWidth
@@ -1021,7 +1023,7 @@ const WORD_POOL = {
 function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5) }
 const BANK_SIZE = 10
 
-function WordMode({ script, child, quota }) {
+function WordMode({ script, child, quota, onFirstStroke }) {
   const { track } = useTracker()
   const offline = useOffline()
   const [targetWord,    setTargetWord]    = useState('')
@@ -1070,7 +1072,7 @@ function WordMode({ script, child, quota }) {
     track('learn', 'trace', { metadata: { script } })
     try {
       const data = await learnApi.identifyWord(imageData, script, childName, childAge, child?.id, targetWord)
-      track('learn', 'ai_word', { metadata: { script, word: targetWord, correct: data.correct } })
+      track('learn', 'ai_word', { metadata: { script, word: targetWord, correct: data.correct } }); markActive()
       setResult(data)
       window.__glumbiRefreshQuota?.('learn-word')
       if (data.correct) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000) }
@@ -1143,7 +1145,7 @@ function WordMode({ script, child, quota }) {
       </div>
 
       {/* Canvas */}
-      <DrawCanvas onSubmit={handleSubmit} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth />
+      <DrawCanvas onSubmit={handleSubmit} onFirstStroke={onFirstStroke} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth />
       {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
 
       {/* Loading / Result side */}
@@ -1287,7 +1289,7 @@ const SCRIPT_CATS = {
 
 export default function LearnPage({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('learn', track)
+  const { markActive } = useFeatureDuration('learn', track)
   const [showIntro,      setShowIntro]      = useState(() => !hasSeen('learn'))
   const [showLangPicker, setShowLangPicker] = useState(false)
   const [script,         setScript]         = useState('tamil')
@@ -1449,7 +1451,7 @@ export default function LearnPage({ child, quota }) {
       )}
 
       {mode === 'words' ? (
-        <WordMode script={script} child={child} quota={quota} />
+        <WordMode script={script} child={child} quota={quota} onFirstStroke={markActive} />
       ) : (
         <>
           {selected ? (
@@ -1507,7 +1509,7 @@ export default function LearnPage({ child, quota }) {
 
           <div style={{ marginTop: selected ? 0 : 24 }}>
             <LetterPanel selected={selected} script={script} child={child} onPlay={replayAudio} quota={quota}
-              engFontFamily={isEng ? engFontFamily : null} />
+              engFontFamily={isEng ? engFontFamily : null} onFirstStroke={markActive} />
           </div>
         </>
       )}

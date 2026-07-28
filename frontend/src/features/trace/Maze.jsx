@@ -162,7 +162,7 @@ export default function Maze({ child, quota, featureConfig }) {
   const mazeStartTime  = useRef(Date.now())
   const wallHitsRef    = useRef(0)
   const completedRef   = useRef(false)
-  useFeatureDuration('maze', track)
+  const { markActive } = useFeatureDuration('maze', track)
 
   useEffect(() => {
     return () => {
@@ -344,11 +344,11 @@ export default function Maze({ child, quota, featureConfig }) {
     }
   }
 
-  const onMouseDown = useCallback(e => { e.preventDefault(); handleAt(e.clientX, e.clientY) }, [grid, wallSegs, cols, rows])
+  const onMouseDown = useCallback(e => { e.preventDefault(); markActive(); handleAt(e.clientX, e.clientY) }, [grid, wallSegs, cols, rows])
   const onMouseMove = useCallback(e => { if (drawingRef.current) handleAt(e.clientX, e.clientY) }, [grid, wallSegs, cols, rows])
   const onMouseUp   = useCallback(() => { drawingRef.current = false }, [])
 
-  const onTouchStart = useCallback(e => { e.preventDefault(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, wallSegs, cols, rows])
+  const onTouchStart = useCallback(e => { e.preventDefault(); markActive(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, wallSegs, cols, rows])
   const onTouchMove  = useCallback(e => { e.preventDefault(); const t = e.touches[0]; handleAt(t.clientX, t.clientY) }, [grid, wallSegs, cols, rows])
   const onTouchEnd   = useCallback(() => { drawingRef.current = false }, [])
 
@@ -377,7 +377,7 @@ export default function Maze({ child, quota, featureConfig }) {
     try {
       const difficulty = childAge <= 4 ? 'easy' : childAge <= 7 ? 'medium' : 'hard'
       const result = await traceApi.generate(child.id, child.name, childAge, difficulty)
-      track('maze', 'ai_theme', { metadata: { difficulty } })
+      track('maze', 'ai_theme', { metadata: { difficulty } }); markActive()
       window.__glumbiRefreshQuota?.('maze')
       setSeed((Math.random() * 1e8) | 0)
       setThemeIdx(i => (i + 1) % BASE_THEMES.length)

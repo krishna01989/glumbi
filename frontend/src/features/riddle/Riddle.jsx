@@ -196,7 +196,7 @@ const SCORE_COMMENTS = [
 
 export default function Riddle({ child, quota, featureConfig }) {
   const { track } = useTracker()
-  useFeatureDuration('riddle', track)
+  const { markActive } = useFeatureDuration('riddle', track)
   const riddleStartTime = useRef(null)
   const offline = useOffline()
   const bp = useBreakpoint()
@@ -356,7 +356,7 @@ export default function Riddle({ child, quota, featureConfig }) {
               <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 700, color: '#333', lineHeight: 1.6, marginBottom: 20 }}>
                 {glumbiIntro.current}
               </div>
-              <button onClick={() => { setGlumbiPhase('answering'); riddleStartTime.current = Date.now() }}
+              <button onClick={() => { setGlumbiPhase('answering'); riddleStartTime.current = Date.now(); markActive() }}
                 style={{ padding: '12px 28px', borderRadius: 50, border: 'none', background: 'var(--primary)', color: 'white', fontWeight: 800, fontSize: 15, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>
                 Let's go! 🎯
               </button>

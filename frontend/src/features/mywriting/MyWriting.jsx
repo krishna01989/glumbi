@@ -89,7 +89,7 @@ function SeriesGroup({ root, chapters, selected, onOpen }) {
 
 export default function MyWriting({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('mywriting', track)
+  const { markActive } = useFeatureDuration('mywriting', track)
   const offline = useOffline()
   const [entries,  setEntries]  = useState([])
   const [entriesPage, setEntriesPage]             = useState(0)
@@ -178,6 +178,7 @@ export default function MyWriting({ child, quota }) {
   }
 
   function openEntry(e) {
+    markActive()
     setSelected(e); setEditing(false); setContinuation(null); setError('')
     setFeedback(e.feedbackReceived ? {
       praise: e.feedbackPraise,
@@ -220,7 +221,7 @@ export default function MyWriting({ child, quota }) {
         saved = await writingApi.save(data)
         savedId.current = saved.id
       }
-      track('mywriting', 'save')
+      track('mywriting', 'save'); markActive()
       setEntries(prev => {
         const exists = prev.find(e => e.id === saved.id)
         if (!exists) {
@@ -245,7 +246,7 @@ export default function MyWriting({ child, quota }) {
     setError(''); setFbLoading(true)
     try {
       const result = await writingApi.feedback(savedId.current)
-      track('mywriting', 'feedback', { metadata: { wordCount: wordCount(content) } })
+      track('mywriting', 'feedback', { metadata: { wordCount: wordCount(content) } }); markActive()
       setFeedback({
         praise: result.feedbackPraise,
         suggestion: result.feedbackSuggestion,

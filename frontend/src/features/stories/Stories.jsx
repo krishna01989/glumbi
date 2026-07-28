@@ -140,7 +140,7 @@ function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
 
 export default function Stories({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('stories', track)
+  const { markActive } = useFeatureDuration('stories', track)
   const navigate = useNavigate()
   const location = useLocation()
   const offline = useOffline()
@@ -263,7 +263,7 @@ export default function Stories({ child, quota }) {
     setError('')
     try {
       const res = await storyApi.generate({ childId: child.id, keywords, category })
-      track('stories', 'generate', { metadata: { category } })
+      track('stories', 'generate', { metadata: { category } }); markActive()
       const story = res.story ?? res   // fallback if backend not yet updated
       const similar = res.similar ?? []
       setSelected(story)
@@ -421,7 +421,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
 
   async function handleListen(story, lang, voice) {
     if (speaking && speakingStoryId === story.id && speakingLang === lang) { stopSpeaking(); return }
-    track('stories', 'listen', { metadata: { language: lang } })
+    track('stories', 'listen', { metadata: { language: lang } }); markActive()
     // advance Glumbi from intro → reading1 when user taps Listen
     if (story.glumbiIntro && (glumbiPhase === 'intro' || glumbiPhase === 'idle')) {
       updateGlumbiPhase('reading1')
@@ -1156,7 +1156,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
         setLangPickerOpen(false); setAudioError(''); setSelected(s); setSimilarStories([]); loadGlumbiState(s)
         storyApi.getSimilar(s.id).then(r => { setSimilarStories(r); if (r.length > 0) track('stories', 'similar_viewed', { metadata: { trigger: 'select' } }) }).catch(() => {})
         if (isMobile) setShowList(false)
-        track('stories', 'read', { metadata: { category: s.category } })
+        track('stories', 'read', { metadata: { category: s.category } }); markActive()
       }
       return (
         <HistoryDrawer icon="📖" title="My Adventures" count={storiesTotalCount}>

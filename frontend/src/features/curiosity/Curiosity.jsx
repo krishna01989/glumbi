@@ -237,7 +237,7 @@ function CuriosityCard({ entry }) {
 
 export default function Curiosity({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('curiosity', track)
+  const { markActive } = useFeatureDuration('curiosity', track)
   const offline = useOffline()
   const navigate = useNavigate()
   const location = useLocation()
@@ -272,7 +272,7 @@ export default function Curiosity({ child, quota }) {
     setError('')
     try {
       const entry = await curiosityApi.ask({ childId: child.id, question: q })
-      track('curiosity', 'ask')
+      track('curiosity', 'ask'); markActive()
       setEntries(prev => [entry, ...prev])
       setSelected(entry)
       setQuestion('')
@@ -353,7 +353,7 @@ export default function Curiosity({ child, quota }) {
           {entries.map(entry => {
             const isSelected = selected?.id === entry.id
             return (
-              <div key={entry.id} onClick={() => { setSelected(entry); close() }}
+              <div key={entry.id} onClick={() => { setSelected(entry); markActive(); close() }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
                   borderRadius: 12, cursor: 'pointer',

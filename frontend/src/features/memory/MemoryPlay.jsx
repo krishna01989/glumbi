@@ -88,7 +88,7 @@ function FlashcardsTab({ child, quota, isMobile }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const flipTracked = useRef(false)
-  useFeatureDuration('flashcards', track)
+  const { markActive: markFlashcardActive } = useFeatureDuration('flashcards', track)
   const [sets, setSets] = useState([])
   const [activeSet, setActiveSet] = useState(null)
   const [setsPage, setSetsPage]           = useState(0)
@@ -113,7 +113,7 @@ function FlashcardsTab({ child, quota, isMobile }) {
     setLoading(true); setError('')
     try {
       const set = await memoryApi.generateFlashcards(child.id, topic)
-      track('flashcards', 'generate', { metadata: { topic } })
+      track('flashcards', 'generate', { metadata: { topic } }); markFlashcardActive()
       setSets(prev => [set, ...prev])
       setActiveSet(set)
       setTopic('')
@@ -166,7 +166,7 @@ function FlashcardsTab({ child, quota, isMobile }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
             {parsedActive.map((card, i) => (
-              <FlipCard key={i} index={i} q={card.q} a={card.a} onFirstFlip={() => { if (!flipTracked.current) { flipTracked.current = true; track('flashcards', 'view') } }} />
+              <FlipCard key={i} index={i} q={card.q} a={card.a} onFirstFlip={() => { if (!flipTracked.current) { flipTracked.current = true; track('flashcards', 'view'); markFlashcardActive() } }} />
             ))}
           </div>
         </div>
@@ -176,7 +176,7 @@ function FlashcardsTab({ child, quota, isMobile }) {
         {close => (<>
           {sets.map(s => (
             <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10, flexShrink: 0 }}>
-              <button onClick={() => { loadSet(s); close() }}
+              <button onClick={() => { loadSet(s); markFlashcardActive(); close() }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
                 📇 {s.topic}
               </button>
@@ -209,7 +209,7 @@ function FlashcardsTab({ child, quota, isMobile }) {
 
 function WordOfDayTab({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('wordofday', track)
+  const { markActive: markWodActive } = useFeatureDuration('wordofday', track)
   const offline = useOffline()
   const [word, setWord] = useState(null)
   const [history, setHistory] = useState([])
@@ -231,7 +231,7 @@ function WordOfDayTab({ child, quota }) {
       memoryApi.getWordOfDay(child.id),
       memoryApi.getWordOfDayHistoryPaged(child.id, 0),
     ]).then(([today, histData]) => {
-      if (today) track('wordofday', 'view')
+      if (today) { track('wordofday', 'view'); markWodActive() }
       setWord(today)
       setHistory(histData.content.filter(h => h.id !== today?.id))
       setHistPage(histData.number)
@@ -568,10 +568,12 @@ function MemoryMatchTab({ child, quota, isMobile }) {
   const matchStartRef = useRef(Date.now())
   const matchElapsedRef = useRef(0)
   const activeThemeRef = useRef(null)
+  const matchEngagedRef = useRef(false)
 
-  // Fire session on unmount (navigating back to selector or away from memory)
+  // Fire session on unmount only if child actually started or opened a game
   useEffect(() => {
     return () => {
+      if (!matchEngagedRef.current) return
       if (matchStartRef.current === null) return
       const seconds = Math.round((matchElapsedRef.current + Date.now() - matchStartRef.current) / 1000)
       if (seconds >= 5) track('memorymatch', 'session', { durationSeconds: seconds, metadata: activeThemeRef.current ? { theme: activeThemeRef.current } : undefined })
@@ -606,7 +608,7 @@ function MemoryMatchTab({ child, quota, isMobile }) {
     setLoading(true); setError('')
     try {
       const match = await memoryApi.generateMatch(child.id, theme)
-      track('memorymatch', 'generate', { metadata: { theme } })
+      track('memorymatch', 'generate', { metadata: { theme } }); matchEngagedRef.current = true
       setMatches(prev => [match, ...prev])
       startMatch(match)
       setTheme('')
@@ -694,7 +696,7 @@ function MemoryMatchTab({ child, quota, isMobile }) {
         {close => (<>
           {matches.map(m => (
             <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#fafafa', borderRadius: 12, gap: 10, flexShrink: 0 }}>
-              <button onClick={() => { startMatch(m); close() }}
+              <button onClick={() => { startMatch(m); matchEngagedRef.current = true; close() }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--primary)', textAlign: 'left', flex: 1 }}>
                 🔁 Replay: {m.theme}
               </button>

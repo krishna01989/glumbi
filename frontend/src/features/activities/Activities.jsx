@@ -36,7 +36,7 @@ function StarRating({ value, onChange }) {
 
 export default function Activities({ child, quota }) {
   const { track } = useTracker()
-  useFeatureDuration('activities', track)
+  const { markActive } = useFeatureDuration('activities', track)
   const offline = useOffline()
   const [activities, setActivities] = useState([])
   const [loading, setLoading]       = useState(false)
@@ -67,7 +67,7 @@ export default function Activities({ child, quota }) {
     try {
       await activityApi.deletePending(child.id)
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
-      track('activities', 'generate')
+      track('activities', 'generate'); markActive()
       setActivities(prev => [...newOnes, ...prev])
       window.__glumbiRefreshQuota?.('activity')
     } catch (e) {
@@ -82,7 +82,7 @@ export default function Activities({ child, quota }) {
     try {
       await activityApi.deletePending(child.id)
       const newOnes = await activityApi.generate({ childId: child.id, timeOfDay, weather, count: 3 })
-      track('activities', 'generate')
+      track('activities', 'generate'); markActive()
       setActivities(prev => [...newOnes, ...prev])
       window.__glumbiRefreshQuota?.('activity')
     } catch (e) {
@@ -114,7 +114,7 @@ export default function Activities({ child, quota }) {
 
   async function handleComplete(id) {
     const updated = await activityApi.markComplete(id, null)
-    track('activities', 'complete')
+    track('activities', 'complete'); markActive()
     setActivities(prev => prev.map(a => a.id === id ? updated : a))
   }
 

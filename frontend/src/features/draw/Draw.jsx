@@ -1760,8 +1760,8 @@ export default function Draw({ child, quota, featureConfig }) {
               <div style={{ fontSize: 16, color: '#ccc', fontWeight: 700, marginTop: 8 }}>Start drawing!</div>
             </div>
           )}
-          {/* Fullscreen toggle button — canvas overlay in normal mode */}
-          {!isFullscreen && (
+          {/* Fullscreen toggle — desktop/tablet only; mobile layout breaks in fullscreen */}
+          {!isFullscreen && !isMobile && (
             <button onClick={toggleFullscreen} title="Fullscreen"
               style={{ position:'absolute', top:10, right:10, zIndex:10,
                 width:32, height:32, borderRadius:8, border:'1.5px solid rgba(0,0,0,0.1)',

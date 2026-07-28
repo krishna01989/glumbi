@@ -151,7 +151,6 @@ export default function FlipbookStudio({ child, quota }) {
   const [showPalette, setShowPalette]   = useState(false)
   const [palettePos, setPalettePos]     = useState({ x: 0, y: 0 })
   const [showOnionSkin, setShowOnionSkin] = useState(true)
-  const [stripCollapsed, setStripCollapsed] = useState(false)
   const [canUndo, setCanUndo] = useState(false)
 
   // Canvas / undo
@@ -1753,11 +1752,12 @@ export default function FlipbookStudio({ child, quota }) {
         )}
 
         {/* ── Canvas area ── */}
-        {/* Centering wrapper — fills remaining space, centers canvas without stretching it */}
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 0 }}>
-        {/* Canvas container — fixed 1200×800 logical resolution, scales via CSS only */}
-        <div style={{ aspectRatio: `${W} / ${H}`, height: '100%', maxWidth: '100%',
-          borderRadius: isFullscreen ? 0 : 20, overflow: 'hidden',
+        {/* Centering wrapper — fills remaining space, never stretches the canvas */}
+        <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
+        {/* Canvas container — fixed aspect ratio; position:absolute+margin:auto keeps it centred in any orientation */}
+        <div style={{ aspectRatio: `${W} / ${H}`, position: 'absolute', inset: 0, margin: 'auto',
+          maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
+          borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
           position: 'relative', background: 'white' }}>
 
@@ -2034,8 +2034,8 @@ export default function FlipbookStudio({ child, quota }) {
             </div>
           )}
 
-          {/* Fullscreen toggle */}
-          {!isFullscreen && (
+          {/* Fullscreen toggle — desktop/tablet only; mobile layout breaks in fullscreen */}
+          {!isFullscreen && !isMobile && (
             <button onClick={toggleFullscreen} title="Fullscreen"
               style={{ position: 'absolute', top: 10, right: 10, zIndex: 10,
                 width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: 8,
@@ -2074,27 +2074,13 @@ export default function FlipbookStudio({ child, quota }) {
         </div>{/* end canvas column */}
       </div>
 
-      {/* Collapse toggle — sits between canvas and bottom panel */}
-      <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, marginTop: 8 }}>
-        <button
-          onClick={() => setStripCollapsed(v => !v)}
-          title={stripCollapsed ? 'Show frames' : 'Hide frames'}
-          style={{ width: 36, height: 20, borderRadius: 20, border: '1.5px solid #e8e8e8',
-            background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, color: '#999' }}>
-          {stripCollapsed ? '▲' : '▼'}
-        </button>
-      </div>
-
       {/* ── Bottom: playback + frames strip ── */}
       <div style={{ flexShrink: 0, background: 'white',
         borderRadius: isFullscreen ? 0 : 20,
         boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
         marginTop: 8,
         borderTop: isFullscreen ? '1px solid #f0f0f0' : 'none',
-        overflow: 'hidden',
-        display: stripCollapsed ? 'none' : 'block' }}>
+        overflow: 'hidden' }}>
 
         {/* ── Playback controls ── */}
         <div style={{

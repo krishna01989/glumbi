@@ -261,17 +261,22 @@ function WordOfDayTab({ child, quota }) {
 
   const isMobile = window.innerWidth < 768
 
-  function playAudio(w, id) {
+  async function playAudio(w, id) {
     if (offline) return
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
     if (speakingId === id) { setSpeaking(false); setSpeakingId(null); return }
     track('wordofday', 'listen', { metadata: { word: w } })
     setSpeaking(true); setSpeakingId(id)
-    const audio = new Audio(learnApi.audioUrl(w, 'en-US'))
-    audioRef.current = audio
-    audio.onended = () => { setSpeaking(false); setSpeakingId(null) }
-    audio.onerror = () => { setSpeaking(false); setSpeakingId(null) }
-    audio.play().catch(() => { setSpeaking(false); setSpeakingId(null) })
+    try {
+      const url = await learnApi.audioUrl(w, 'en-US')
+      const audio = new Audio(url)
+      audioRef.current = audio
+      audio.onended = () => { setSpeaking(false); setSpeakingId(null) }
+      audio.onerror = () => { setSpeaking(false); setSpeakingId(null) }
+      audio.play().catch(() => { setSpeaking(false); setSpeakingId(null) })
+    } catch {
+      setSpeaking(false); setSpeakingId(null)
+    }
   }
 
   return (

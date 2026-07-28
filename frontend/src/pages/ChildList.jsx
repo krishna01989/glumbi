@@ -205,14 +205,30 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
             width: phase==='sleeping' ? 0 : phase==='waking' ? 54 : (offline ? 54 : 0),
           }} />
 
-          {/* 💤 — above the head on the right */}
-          <span style={{
-            position:'absolute', right:16, bottom:66, fontSize:14, lineHeight:1, display:'inline-block', zIndex:7,
-            animation: phase==='sleeping' ? 'zzz-rise 0.4s 1.0s ease forwards'
-                     : phase==='waking'   ? 'zzz-poof 0.3s ease forwards' : 'none',
-            opacity: phase ? (phase==='sleeping' ? 0 : 1) : (offline ? 1 : 0),
-            transform: 'translateY(-12px)',
-          }}>💤</span>
+          {/* Zzz — starts after bot lies down (~1.2s), loops while sleeping */}
+          {(phase === 'sleeping' || (phase === null && offline)) && (
+            <span style={{ position:'absolute', right:10, bottom:62, zIndex:7, pointerEvents:'none' }}>
+              {[
+                { char:'z', size:10, delay: phase==='sleeping' ? '1.3s' : '0s',   right:18, duration:'2.4s' },
+                { char:'Z', size:13, delay: phase==='sleeping' ? '2.1s' : '0.8s', right:10, duration:'2.4s' },
+                { char:'Z', size:16, delay: phase==='sleeping' ? '2.9s' : '1.6s', right:2,  duration:'2.4s' },
+              ].map((z, i) => (
+                <span key={i} style={{
+                  position:'absolute', bottom:0, right:z.right,
+                  fontSize:z.size, fontWeight:900, color:'#7c9cbf', lineHeight:1,
+                  animation: `zzz-float ${z.duration} ${z.delay} ease-in-out infinite`,
+                  opacity: 0,
+                  display:'inline-block',
+                }}>{z.char}</span>
+              ))}
+            </span>
+          )}
+          {phase === 'waking' && (
+            <span style={{
+              position:'absolute', right:16, bottom:66, fontSize:14, lineHeight:1, display:'inline-block', zIndex:7,
+              animation: 'zzz-poof 0.3s ease forwards', opacity:1, transform:'translateY(-12px)',
+            }}>💤</span>
+          )}
 
           {/* Standing / walking robot */}
           {(() => {
@@ -238,8 +254,8 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
                   <div style={{ position:'absolute', left:14, top:1, width:2, height:7, background:RD, borderRadius:1 }} />
                   <div style={{ position:'absolute', left:11, top:-2, width:8, height:8, borderRadius:'50%', background:RL, boxShadow:`0 0 4px ${RL}88` }} />
                   <div style={{ position:'absolute', left:4, top:8, width:22, height:16, background:R, borderRadius:5, border:`1.5px solid ${RD}`, boxSizing:'border-box' }}>
-                    <div style={{ position:'absolute', left:3, top:4, width:4, height:4, borderRadius:'50%', background:RE }} />
-                    <div style={{ position:'absolute', left:13, top:4, width:4, height:4, borderRadius:'50%', background:RE }} />
+                    <div style={{ position:'absolute', left:3, top:4, width:4, height:4, borderRadius:'50%', background:RE, animation: !offline ? 'bot-blink 2s ease-in-out infinite' : 'none' }} />
+                    <div style={{ position:'absolute', left:13, top:4, width:4, height:4, borderRadius:'50%', background:RE, animation: !offline ? 'bot-blink 2s ease-in-out infinite' : 'none' }} />
                     <div style={{ position:'absolute', left:5, top:10, width:10, height:2, borderRadius:1, background:RD }} />
                   </div>
                   <div style={{ position:'absolute', left:13, top:24, width:4, height:2, background:RD }} />
@@ -350,8 +366,8 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
                 <div style={{ fontSize: 11, color: '#888', lineHeight: 1.6, background: '#f8f8f8', borderRadius: 8, padding: '8px 10px' }}>
                   💡 When time is up, your child can request up to <strong>{maxSnooze}</strong> extension{maxSnooze > 1 ? 's' : ''}.{' '}
                   {max
-                    ? <>Each extension lets them pick a short break — up to <strong>{max} min</strong>.</>
-                    : <>The session is very short, so extensions will only offer a couple of minutes.</>
+                    ? <>Each extension adds extra time — up to <strong>{max} min</strong>.</>
+                    : <>The session is very short, so extensions will only add a couple of minutes.</>
                   }
                   {maxSnooze > 1 && <> Every extension offers the same options.</>}
                 </div>
@@ -705,10 +721,15 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
           from { width: 54px; }
           to   { width: 0; }
         }
-        @keyframes zzz-rise {
-          0%   { opacity: 0; transform: translateY(4px) scale(0.3); }
-          60%  { opacity: 1; transform: translateY(-8px) scale(1.1); }
-          100% { opacity: 1; transform: translateY(-12px) scale(1); }
+        @keyframes zzz-float {
+          0%   { opacity: 0; transform: translateY(0px) rotate(-10deg); }
+          20%  { opacity: 1; }
+          80%  { opacity: 0.7; }
+          100% { opacity: 0; transform: translateY(-32px) rotate(10deg); }
+        }
+        @keyframes bot-blink {
+          0%, 90%, 100% { transform: scaleY(1); }
+          93%            { transform: scaleY(0.15); }
         }
         @keyframes zzz-poof {
           from { opacity: 1; transform: translateY(-12px) scale(1); }

@@ -932,8 +932,8 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function cancelSelection() {
     const sd = selStateRef.current
-    if (sd.phase === 'floating' && selTmpRef.current) {
-      canvasRef.current.getContext('2d').drawImage(selTmpRef.current, Math.round(sd.x), Math.round(sd.y))
+    if (sd.erased && sd.pixels && selTmpRef.current) {
+      canvasRef.current.getContext('2d').putImageData(sd.pixels, Math.round(sd.x), Math.round(sd.y))
     }
     sd.phase = null; sd.pixels = null; selTmpRef.current = null
     setSelPanelOpen(false); setSelTick(t => t + 1)
@@ -942,7 +942,12 @@ export default function Draw({ child, quota, featureConfig }) {
 
   function deleteSelection() {
     const sd = selStateRef.current
-    // The region was already cleared from the canvas when lifted — just discard floating content
+    if (!sd.erased && sd.phase === 'floating') {
+      // Never dragged — original still on canvas; erase it now
+      const ctx = canvasRef.current.getContext('2d')
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(Math.round(sd.x), Math.round(sd.y), Math.round(sd.w), Math.round(sd.h))
+    }
     sd.phase = null; sd.pixels = null; selTmpRef.current = null
     setSelPanelOpen(false); setSelTick(t => t + 1)
     selOverlayRef.current?.getContext('2d').clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
@@ -1008,8 +1013,15 @@ export default function Draw({ child, quota, featureConfig }) {
     const dup = document.createElement('canvas'); dup.width = src.width; dup.height = src.height
     dup.getContext('2d').drawImage(src, 0, 0)
     selTmpRef.current = dup
-    sd.posX = Math.min(sd.posX + 20, canvasRef.current.width - sd.w)
-    sd.posY = Math.min(sd.posY + 20, canvasRef.current.height - sd.h)
+    const cw = canvasRef.current.width, ch = canvasRef.current.height
+    const offX = sd.posX + 20 + sd.w <= cw ? 20 : -20
+    const offY = sd.posY + 20 + sd.h <= ch ? 20 : -20
+    sd.posX = Math.max(0, Math.min(sd.posX + offX, cw - sd.w))
+    sd.posY = Math.max(0, Math.min(sd.posY + offY, ch - sd.h))
+    // Copy mode: original already committed, dragging the copy should erase nothing
+    sd.x = Math.round(sd.posX); sd.y = Math.round(sd.posY)
+    sd.erased = true; sd.pixels = null
+    drawSelOverlay()
     setSelTick(t => t + 1)
   }
 
@@ -1041,6 +1053,12 @@ export default function Draw({ child, quota, featureConfig }) {
       sd.w = Math.abs(pos.x - sd.startX); sd.h = Math.abs(pos.y - sd.startY)
       drawSelOverlay()
     } else if (sd.phase === 'floating' && sd.dragging) {
+      if (!sd.erased) {
+        const ctx = canvasRef.current.getContext('2d', { willReadFrequently: true })
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(Math.round(sd.x), Math.round(sd.y), Math.round(sd.w), Math.round(sd.h))
+        sd.erased = true
+      }
       sd.posX = sd.dragOrigX + (pos.x - sd.dragStartX)
       sd.posY = sd.dragOrigY + (pos.y - sd.dragStartY)
       drawSelOverlay()
@@ -1058,11 +1076,10 @@ export default function Draw({ child, quota, featureConfig }) {
       const ctx = canvas.getContext('2d', { willReadFrequently: true })
       sd.pixels = ctx.getImageData(xi, yi, wi, hi)
       sd.w = wi; sd.h = hi; sd.x = xi; sd.y = yi
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(xi, yi, wi, hi)
       selTmpRef.current = document.createElement('canvas')
       selTmpRef.current.width = wi; selTmpRef.current.height = hi
       selTmpRef.current.getContext('2d').putImageData(sd.pixels, 0, 0)
-      sd.posX = xi; sd.posY = yi; sd.phase = 'floating'; sd.dragging = false
+      sd.posX = xi; sd.posY = yi; sd.phase = 'floating'; sd.dragging = false; sd.erased = false
       // Panel position is in CSS pixels (container space), canvas coords are logical pixels
       const cRect = canvas.getBoundingClientRect()
       const scaleX = cRect.width / canvas.width, scaleY = cRect.height / canvas.height
@@ -1643,7 +1660,6 @@ export default function Draw({ child, quota, featureConfig }) {
               </button>
             )
             return (<>
-            <div onClick={cancelSelection} style={{ position: 'absolute', inset: 0, zIndex: 19 }} />
             <div ref={selPanelElRef} style={{
               position: 'absolute', top: selPanelPos.y, left: selPanelPos.x, zIndex: 20,
               background: 'white', borderRadius: 14,
@@ -1666,12 +1682,6 @@ export default function Draw({ child, quota, featureConfig }) {
                   onMouseDown={onSelPanelDragStart}
                   onTouchStart={onSelPanelDragStart}
                   style={{ fontWeight: 800, color: 'var(--primary)', fontSize: pf(13), flex: 1, cursor: 'grab', userSelect: 'none', touchAction: 'none' }}>✂️ Selection</span>
-                <button onClick={commitSelection}
-                  style={{ padding: `${pp(3)}px ${pp(10)}px`, borderRadius: pp(7), border: 'none',
-                    background: 'var(--primary)', color: 'white',
-                    fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', fontSize: pf(11) }}>
-                  ✓ Place
-                </button>
                 <button onClick={deleteSelection}
                   style={{ padding: `${pp(3)}px ${pp(7)}px`, borderRadius: pp(7), border: 'none',
                     background: '#ffe0e0', color: '#d00', fontWeight: 700, cursor: 'pointer', fontSize: pf(13) }}

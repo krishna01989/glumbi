@@ -18,8 +18,8 @@ const ERRORS = {
     desc: "You don't have permission to view this page. If you think this is a mistake, contact support.",
     bg: 'linear-gradient(135deg,#f7971e,#ffd200)',
     primary: '#f7971e',
-    cta: 'Go Home',
-    ctaPath: '/',
+    cta: 'Sign Out & Continue',
+    ctaPath: null,
   },
   404: {
     emoji: '🗺️',
@@ -83,17 +83,7 @@ export default function ErrorPage({ code, message }) {
   const status   = parseInt(code) || 0
   const info     = ERRORS[status] || DEFAULT
 
-  function handleCta() {
-    if (info.ctaPath) {
-      navigate(info.ctaPath)
-    } else {
-      // Go back and force a reload so the original request is retried
-      window.history.go(-1)
-      setTimeout(() => window.location.reload(), 100)
-    }
-  }
-
-  function handleSignOut() {
+  function clearSession() {
     localStorage.removeItem('glm_token')
     localStorage.removeItem('glm_role')
     localStorage.removeItem('glm_child_locked')
@@ -107,7 +97,20 @@ export default function ErrorPage({ code, message }) {
         k.startsWith('glm_offline_')
       )
       .forEach(k => localStorage.removeItem(k))
-    navigate('/auth')
+  }
+
+  function handleCta() {
+    if (status === 403) {
+      // Clear session before navigating — otherwise the app re-mounts,
+      // fires API calls with the same forbidden token, and loops back here
+      clearSession()
+      window.location.href = '/login'
+    } else if (info.ctaPath) {
+      navigate(info.ctaPath)
+    } else {
+      window.history.go(-1)
+      setTimeout(() => window.location.reload(), 100)
+    }
   }
 
   return (
@@ -168,15 +171,11 @@ export default function ErrorPage({ code, message }) {
               }}>
               {info.cta}
             </button>
-            {status === 403
-              ? <button onClick={handleSignOut}
-                  style={{ padding: '13px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
-                  Sign Out
-                </button>
-              : <button onClick={() => navigate(-1)}
-                  style={{ padding: '13px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
-                  ← Go Back
-                </button>
+            {status !== 403 &&
+              <button onClick={() => navigate(-1)}
+                style={{ padding: '13px 28px', borderRadius: 50, fontSize: 15, fontWeight: 700, background: '#f0f0f0', color: '#555', border: 'none', cursor: 'pointer' }}>
+                ← Go Back
+              </button>
             }
           </div>
 

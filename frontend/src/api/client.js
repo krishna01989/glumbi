@@ -32,12 +32,13 @@ api.interceptors.response.use(
   err => {
     const status = err.response?.status
     const url    = err.config?.url || ''
-    const isAuthEndpoint = url.startsWith('/auth/')
-    const isDemoEndpoint = url.startsWith('/demo/')
+    const isAuthEndpoint  = url.startsWith('/auth/')
+    const isDemoEndpoint  = url.startsWith('/demo/')
+    const isAudioToken    = url.startsWith('/audio-token')
 
     const alreadyOnErrorPage = window.location.pathname.startsWith('/error/')
 
-    if (status === 401 && !isAuthEndpoint && !isDemoEndpoint) {
+    if (status === 401 && !isAuthEndpoint && !isDemoEndpoint && !isAudioToken) {
       ;['glm_token','glm_role','glm_child_locked','glm_locked_child_id']
         .forEach(k => localStorage.removeItem(k))
       Object.keys(localStorage)

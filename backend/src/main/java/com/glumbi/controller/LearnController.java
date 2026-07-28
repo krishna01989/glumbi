@@ -299,7 +299,7 @@ public class LearnController {
                     try { Thread.sleep(1500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                     audio = ttsService.synthesize(text, lang);
                 }
-                audioCache.put(cacheKey, audio);
+                if (audio != null && audio.length > 0) audioCache.put(cacheKey, audio);
             }
 
             return ResponseEntity.ok()

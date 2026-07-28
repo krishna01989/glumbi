@@ -553,7 +553,6 @@ export default function Draw({ child, quota, featureConfig }) {
     const ctx = canvas.getContext('2d', { willReadFrequently: true })
     ctx.putImageData(snapshot, 0, 0)
     setCanUndo(newHistory.length > 0)
-    if (newHistory.length === 0) setIsEmpty(true)
   }
 
   function floodFill(canvas, startX, startY, fillHex) {
@@ -936,6 +935,11 @@ export default function Draw({ child, quota, featureConfig }) {
   function commitSelection() {
     const sd = selStateRef.current
     if (sd.phase === 'floating' && selTmpRef.current) {
+      // For move/resize: canvas was lazily erased (erased=true, pixels=ImageData) —
+      // the snapshot was already saved at corner-grab or at the initial selection draw.
+      // For copy-mode floating (erased=true, pixels=null): stamp is a fresh addition,
+      // save snapshot so this commit is its own undoable step.
+      if (!sd.erased || sd.pixels === null) saveSnapshot()
       canvasRef.current.getContext('2d').drawImage(selTmpRef.current, Math.round(sd.posX), Math.round(sd.posY))
       setIsEmpty(false)
     }
@@ -958,6 +962,7 @@ export default function Draw({ child, quota, featureConfig }) {
     const sd = selStateRef.current
     if (!sd.erased && sd.phase === 'floating') {
       // Never dragged — original still on canvas; erase it now
+      saveSnapshot()
       const ctx = canvasRef.current.getContext('2d')
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(Math.round(sd.x), Math.round(sd.y), Math.round(sd.w), Math.round(sd.h))
@@ -1022,6 +1027,7 @@ export default function Draw({ child, quota, featureConfig }) {
     const src = selTmpRef.current
     if (!src || selStateRef.current.phase !== 'floating') return
     const sd = selStateRef.current
+    saveSnapshot()
     canvasRef.current.getContext('2d').drawImage(src, Math.round(sd.posX), Math.round(sd.posY))
     setIsEmpty(false); setDrawnAfterAnim(true)
     const dup = document.createElement('canvas'); dup.width = src.width; dup.height = src.height
@@ -1045,6 +1051,7 @@ export default function Draw({ child, quota, featureConfig }) {
     if (sd.phase === 'floating') {
       const corner = hitSelCorner(pos)
       if (corner) {
+        saveSnapshot()
         sd.resizing = true; sd.resizeHandle = corner.id
         sd.resizeDragStartX = pos.x; sd.resizeDragStartY = pos.y
         sd.resizeOrigX = sd.posX; sd.resizeOrigY = sd.posY
@@ -1060,6 +1067,11 @@ export default function Draw({ child, quota, featureConfig }) {
         return
       }
       commitSelection()
+      // commitSelection already saved a snapshot; start new selection without another
+      sd.phase = 'drawing'; sd.startX = pos.x; sd.startY = pos.y
+      sd.x = pos.x; sd.y = pos.y; sd.w = 0; sd.h = 0
+      drawSelOverlay()
+      return
     }
     saveSnapshot()
     sd.phase = 'drawing'; sd.startX = pos.x; sd.startY = pos.y

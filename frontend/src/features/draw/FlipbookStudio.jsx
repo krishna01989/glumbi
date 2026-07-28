@@ -1096,6 +1096,7 @@ export default function FlipbookStudio({ child, quota }) {
   function commitSelection() {
     const sd = selStateRef.current
     if (sd.phase === 'floating' && selTmpRef.current) {
+      if (!sd.erased || sd.pixels === null) saveSnapshot()
       canvasRef.current.getContext('2d').drawImage(selTmpRef.current, Math.round(sd.posX), Math.round(sd.posY))
       markHasContent()
       saveCurrentFrame()
@@ -1108,6 +1109,7 @@ export default function FlipbookStudio({ child, quota }) {
   function deleteSelection() {
     const sd = selStateRef.current
     if (!sd.erased && sd.phase === 'floating') {
+      saveSnapshot()
       const ctx = canvasRef.current.getContext('2d')
       ctx.fillStyle = '#ffffff'
       ctx.fillRect(Math.round(sd.x), Math.round(sd.y), Math.round(sd.w), Math.round(sd.h))
@@ -1187,6 +1189,7 @@ export default function FlipbookStudio({ child, quota }) {
     const src = selTmpRef.current
     if (!src || selStateRef.current.phase !== 'floating') return
     const sd = selStateRef.current
+    saveSnapshot()
     canvasRef.current.getContext('2d').drawImage(src, Math.round(sd.posX), Math.round(sd.posY))
     saveCurrentFrame()
     const dup = document.createElement('canvas'); dup.width = src.width; dup.height = src.height
@@ -1232,6 +1235,7 @@ export default function FlipbookStudio({ child, quota }) {
     if (sd.phase === 'floating') {
       const corner = hitSelCorner(pos)
       if (corner) {
+        saveSnapshot()
         sd.resizing = true; sd.resizeHandle = corner.id
         sd.resizeDragStartX = pos.x; sd.resizeDragStartY = pos.y
         sd.resizeOrigX = sd.posX; sd.resizeOrigY = sd.posY
@@ -1247,6 +1251,11 @@ export default function FlipbookStudio({ child, quota }) {
         return
       }
       commitSelection()
+      // commitSelection already saved a snapshot; start new selection without another
+      sd.phase = 'drawing'; sd.startX = pos.x; sd.startY = pos.y
+      sd.x = pos.x; sd.y = pos.y; sd.w = 0; sd.h = 0
+      drawSelOverlay()
+      return
     }
     saveSnapshot()
     sd.phase = 'drawing'; sd.startX = pos.x; sd.startY = pos.y
@@ -1855,6 +1864,16 @@ export default function FlipbookStudio({ child, quota }) {
             transition: 'border-color 0.08s',
             left: 0, top: 0,
           }} />
+
+          {!hasContent && !showPlayback && (
+            <div style={{
+              position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+            }}>
+              <div style={{ fontSize: 64, opacity: 0.1 }}>🎬</div>
+              <div style={{ fontSize: 16, color: '#ccc', fontWeight: 700, marginTop: 8 }}>Start animating!</div>
+            </div>
+          )}
 
           {/* Selection panel — draggable + resizable, floats inside canvas area */}
           {selPanelOpen && selStateRef.current.phase === 'floating' && !isPlaying && (() => {

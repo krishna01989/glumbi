@@ -5,9 +5,12 @@ import com.glumbi.agent.*;
 import com.glumbi.entity.*;
 import com.glumbi.entity.Notification.NotificationType;
 import com.glumbi.repository.*;
+import com.glumbi.service.AdminAlertService;
+import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.EmailTemplates;
 import com.glumbi.service.NotificationService;
 import com.glumbi.service.ResendClient;
+import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -67,6 +70,9 @@ public class NotificationScheduler {
     private final ChildActivityEventRepository    activityEventRepo;
     private final ResendClient             resendClient;
     private final EmailTemplates           emailTemplates;
+    private final AdminAlertService        adminAlertService;
+    private final ApiQuotaService          quotaService;
+    private final AiUsageLogRepository     usageLogRepo;
 
     private final ObjectMapper objectMapper;
 
@@ -152,6 +158,8 @@ public class NotificationScheduler {
                     }
                 }
             }
+
+            pushWeeklyStatsAlerts(weekAgo);
 
             if (runProgress)    ran.add("Progress Report");
             if (runMilestone)   ran.add("Milestone");
@@ -294,6 +302,31 @@ public class NotificationScheduler {
         }
 
         return true;
+    }
+
+    private void pushWeeklyStatsAlerts(LocalDateTime weekAgo) {
+        try {
+            String thisMonth = YearMonth.now().toString();
+            int defaultLimit = quotaService.getDefaultMonthlyCredits();
+
+            long newUsersThisWeek  = userRepository.countByRoleAndCreatedAtAfter(AppUser.Role.USER, weekAgo);
+            long usersNoChildren   = userRepository.countUsersWithNoChildren();
+            long usersAtLimit      = userRepository.countUsersAtQuotaLimit(thisMonth, defaultLimit);
+            long usersNearLimit    = userRepository.countUsersNearQuotaLimit(thisMonth, defaultLimit);
+
+            if (newUsersThisWeek == 0)
+                adminAlertService.notifyStatsAlert("ℹ️ No new users signed up this week", "info");
+            if (newUsersThisWeek >= 5)
+                adminAlertService.notifyStatsAlert("🎉 " + newUsersThisWeek + " new users joined this week!", "success");
+            if (usersNoChildren > 0)
+                adminAlertService.notifyStatsAlert("⚠️ " + usersNoChildren + " user(s) signed up but haven't added a child yet", "warn");
+            if (usersAtLimit > 0)
+                adminAlertService.notifyStatsAlert("🚫 " + usersAtLimit + " user(s) have exhausted their monthly AI credits", "warn");
+            if (usersNearLimit > 0)
+                adminAlertService.notifyStatsAlert("⚠️ " + usersNearLimit + " user(s) are at 80%+ of their monthly AI credits", "warn");
+        } catch (Exception e) {
+            log.warn("pushWeeklyStatsAlerts failed: {}", e.getMessage());
+        }
     }
 
     private void saveLastRunAppSetting(SchedulerRun run) {

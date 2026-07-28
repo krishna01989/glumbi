@@ -7,6 +7,7 @@ import com.glumbi.entity.PasswordResetToken;
 import com.glumbi.repository.PasswordResetTokenRepository;
 import com.glumbi.repository.UserRepository;
 import com.glumbi.security.JwtUtil;
+import com.glumbi.service.AdminAlertService;
 import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.EmailTemplates;
 import com.glumbi.service.RateLimitService;
@@ -42,6 +43,7 @@ public class AuthController {
     private final RateLimitService            rateLimitService;
     private final ResendClient                resendClient;
     private final EmailTemplates              emailTemplates;
+    private final AdminAlertService           adminAlertService;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${app.google.token-info-url}") private String googleTokenInfoUrl;
@@ -58,6 +60,7 @@ public class AuthController {
         user.setQuotaLimit(quotaService.getDefaultMonthlyCredits());
         userRepo.save(user);
         resendClient.send(user.getEmail(), "Welcome to Glumbi! 🎉", emailTemplates.onboarding());
+        adminAlertService.notifyUserRegistered(user, "Email");
         return ResponseEntity.ok(Map.of("token", jwtUtil.generate(user), "role", user.getRole().name()));
     }
 
@@ -122,6 +125,7 @@ public class AuthController {
             userRepo.save(user);
             if (isNewUser) {
                 resendClient.send(user.getEmail(), "Welcome to Glumbi! 🎉", emailTemplates.onboarding());
+                adminAlertService.notifyUserRegistered(user, "Google");
             }
 
             if (user.isOnHold()) return ResponseEntity.status(403).body(Map.of(

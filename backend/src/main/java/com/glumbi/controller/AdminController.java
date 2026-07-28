@@ -5,7 +5,10 @@ import com.glumbi.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.scheduler.NotificationScheduler;
 import com.glumbi.scheduler.QuotaScheduler;
+import com.glumbi.entity.Notification;
+import com.glumbi.entity.Notification.NotificationType;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import com.glumbi.security.JwtFilter;
@@ -53,6 +56,9 @@ public class AdminController {
     private final com.glumbi.service.ResendClient     resendClient;
     private final com.glumbi.service.EmailTemplates   emailTemplates;
     private final com.glumbi.service.VendorConfigService vendorConfigService;
+    private final com.glumbi.service.AdminAlertService adminAlertService;
+    private final NotificationService notificationService;
+    private final NotificationRepository notificationRepo;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(
@@ -425,8 +431,12 @@ public class AdminController {
 
             String email = u.getEmail();
             boolean isAppUser = !u.isAdminOrAbove();
+            String callerEmail = userRepo.findById(caller.id()).map(AppUser::getEmail).orElse("admin");
             accountDeletionService.deleteUser(id);
-            if (isAppUser) resendClient.send(email, "Your Glumbi account has been removed", emailTemplates.accountDeletedByAdmin());
+            if (isAppUser) {
+                resendClient.send(email, "Your Glumbi account has been removed", emailTemplates.accountDeletedByAdmin());
+                adminAlertService.notifyUserDeleted(email, "admin: " + callerEmail);
+            }
             return ResponseEntity.noContent().build();
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -461,6 +471,32 @@ public class AdminController {
 
     private boolean callerIsSuperAdmin(JwtFilter.AuthUser caller) {
         return "SUPER_ADMIN".equals(caller.role());
+    }
+
+    @GetMapping("/alerts")
+    public ResponseEntity<?> getAdminAlerts(@AuthenticationPrincipal JwtFilter.AuthUser caller) {
+        return userRepo.findById(caller.id()).map(sa -> {
+            List<Notification> alerts = notificationRepo.findByUserAndTypeOrderByCreatedAtDesc(sa, NotificationType.ADMIN_ALERT);
+            long unread = notificationRepo.countByUserAndTypeAndReadFalse(sa, NotificationType.ADMIN_ALERT);
+            List<Map<String, Object>> items = alerts.stream().map(n -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", n.getId());
+                m.put("message", n.getMessage());
+                m.put("read", n.isRead());
+                m.put("createdAt", n.getCreatedAt().toString());
+                return m;
+            }).toList();
+            return ResponseEntity.ok(Map.of("alerts", items, "unread", unread));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/alerts/mark-read")
+    @Transactional
+    public ResponseEntity<?> markAdminAlertsRead(@AuthenticationPrincipal JwtFilter.AuthUser caller) {
+        return userRepo.findById(caller.id()).map(sa -> {
+            notificationRepo.markAllReadByUserAndType(sa, NotificationType.ADMIN_ALERT);
+            return ResponseEntity.ok(Map.of("ok", true));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/notifications/run")
@@ -593,10 +629,7 @@ public class AdminController {
     }
 
     private static String maskEmail(String email) {
-        if (email == null) return null;
-        int at = email.indexOf('@');
-        if (at <= 1) return email;
-        return email.charAt(0) + "***" + email.substring(at);
+        return com.glumbi.util.MaskUtil.maskEmail(email);
     }
 
     private Object parseJson(String json) {

@@ -942,7 +942,7 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
 }
 
 // ─── Dashboard section ────────────────────────────────────────────────────────
-function Dashboard({ onAlerts }) {
+function Dashboard() {
   const [range, setRange]         = useState('7d')
   const [stats, setStats]         = useState(null)
   const [analyticsData, setAnalyticsData] = useState(null)
@@ -960,7 +960,7 @@ function Dashboard({ onAlerts }) {
       adminApi.getStats(from, to),
       analyticsApi.getAdminAnalytics(from, to),
     ])
-      .then(([s, a]) => { setStats(s); setAnalyticsData(a); onAlerts?.(s?.alerts ?? []) })
+      .then(([s, a]) => { setStats(s); setAnalyticsData(a) })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false))
   }, [range])
@@ -2792,16 +2792,23 @@ function AdminAlertDrawer({ open, alerts, drawerRef, onClose }) {
       ) : (
         <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {alerts.map((a, i) => {
-            const s = ALERT_STYLE[a.level] || ALERT_STYLE.info
+            const isDelete = a.message?.startsWith('🗑️')
+            const s = ALERT_STYLE[a._level] || (isDelete ? ALERT_STYLE.warn : ALERT_STYLE.info)
+            const ts = a.createdAt ? new Date(a.createdAt).toLocaleString() : ''
             return (
               <div key={i} style={{
                 padding: '12px 14px',
                 borderRadius: 10,
-                border: `1px solid ${s.border}`,
-                background: s.bg, display: 'flex', gap: 10, alignItems: 'flex-start',
+                border: `1px solid ${a.read ? '#eee' : s.border}`,
+                background: a.read ? '#fafafa' : s.bg,
+                display: 'flex', gap: 10, alignItems: 'flex-start',
               }}>
                 <span style={{ fontSize: 18, flexShrink: 0, marginTop: 1 }}>{s.icon}</span>
-                <span style={{ fontSize: 13, color: s.text, fontWeight: 600, lineHeight: 1.5 }}>{a.msg}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, color: a.read ? '#888' : s.text, fontWeight: a.read ? 500 : 700, lineHeight: 1.5 }}>{a.message}</div>
+                  {ts && <div style={{ fontSize: 11, color: '#bbb', marginTop: 3 }}>{ts}</div>}
+                </div>
+                {!a.read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.border, flexShrink: 0, marginTop: 5 }} />}
               </div>
             )
           })}
@@ -2819,19 +2826,32 @@ export default function AdminPage({ onBack, onLogout }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [alertDrawerOpen, setAlertDrawerOpen]   = useState(false)
   const [adminAlerts, setAdminAlerts]           = useState([])
+  const [adminAlertsUnread, setAdminAlertsUnread] = useState(0)
   const alertDrawerRef                          = useRef(null)
   const isMobile = useIsMobile()
 
-  useEffect(() => {
-    adminApi.getStats().then(s => setAdminAlerts(s?.alerts ?? [])).catch(() => {})
-  }, [])
+  const fetchAdminAlerts = () => {
+    adminApi.getAdminAlerts().then(d => {
+      setAdminAlerts(d.alerts ?? [])
+      setAdminAlertsUnread(d.unread ?? 0)
+    }).catch(() => {})
+  }
+
+  useEffect(() => { fetchAdminAlerts() }, [])
+
+  const handleAlertBellClick = () => {
+    setAlertDrawerOpen(o => !o)
+    if (!alertDrawerOpen && adminAlertsUnread > 0) {
+      adminApi.markAdminAlertsRead().then(fetchAdminAlerts).catch(() => {})
+    }
+  }
 
   // Derive active section from URL: /admin/users → 'users', /admin → 'dashboard'
   const pathSegment = location.pathname.split('/').filter(Boolean)[1] // segment after 'admin'
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
   const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
-  const section = { dashboard: <Dashboard onAlerts={setAdminAlerts} />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
+  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
   const current = NAV.find(n => n.id === active)
 
   return (
@@ -2949,17 +2969,17 @@ export default function AdminPage({ onBack, onLogout }) {
             {/* Admin alert bell */}
             <div style={{ position: 'relative' }}>
               <button
-                onClick={() => setAlertDrawerOpen(o => !o)}
+                onClick={handleAlertBellClick}
                 title="System Alerts"
                 style={{
                   position: 'relative', width: 36, height: 36, borderRadius: 10,
-                  border: adminAlerts.length > 0 ? '1.5px solid #ffd54f' : '1.5px solid #eee',
-                  background: adminAlerts.length > 0 ? '#fff8e1' : '#fafafa',
+                  border: adminAlertsUnread > 0 ? '1.5px solid #ffd54f' : '1.5px solid #eee',
+                  background: adminAlertsUnread > 0 ? '#fff8e1' : '#fafafa',
                   cursor: 'pointer', fontSize: 17,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                 🔔
-                {adminAlerts.length > 0 && (
+                {adminAlertsUnread > 0 && (
                   <span style={{
                     position: 'absolute', top: 3, right: 3,
                     minWidth: 15, height: 15, borderRadius: 8,
@@ -2968,7 +2988,7 @@ export default function AdminPage({ onBack, onLogout }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     padding: '0 3px',
                   }}>
-                    {adminAlerts.length > 9 ? '9+' : adminAlerts.length}
+                    {adminAlertsUnread > 9 ? '9+' : adminAlertsUnread}
                   </span>
                 )}
               </button>

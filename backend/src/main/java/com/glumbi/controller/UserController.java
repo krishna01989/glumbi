@@ -6,6 +6,7 @@ import com.glumbi.repository.*;
 import com.glumbi.repository.FeatureConfigRepository;
 import com.glumbi.repository.UserFeatureOverrideRepository;
 import com.glumbi.security.JwtFilter.AuthUser;
+import com.glumbi.service.AdminAlertService;
 import com.glumbi.service.ApiQuotaService;
 import com.glumbi.service.EmailTemplates;
 import com.glumbi.service.ResendClient;
@@ -41,6 +42,7 @@ public class UserController {
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
     private final ResendClient  resendClient;
     private final EmailTemplates emailTemplates;
+    private final AdminAlertService adminAlertService;
     private final StoryRepository         storyRepository;
     private final JournalRepository       journalRepository;
     private final DrawSaveRepository      drawSaveRepository;
@@ -317,12 +319,13 @@ public class UserController {
                 return ResponseEntity.status(400).body(Map.of("error",
                     "You are the only super admin. Promote another admin first before deleting your account."));
         }
-        String email = userRepository.findById(authUser.id())
-            .filter(u -> !u.isAdminOrAbove())
-            .map(u -> u.getEmail()).orElse(null);
+        AppUser deleting = userRepository.findById(authUser.id())
+            .filter(u -> !u.isAdminOrAbove()).orElse(null);
+        String email = deleting != null ? deleting.getEmail() : null;
         accountDeletionService.deleteUser(authUser.id());
         if (email != null) {
             resendClient.send(email, "Your Glumbi account has been deleted", emailTemplates.accountDeletedBySelf());
+            adminAlertService.notifyUserDeleted(email, "self");
         }
         return ResponseEntity.noContent().build();
     }

@@ -151,4 +151,11 @@ public class EmailTemplates {
         ctx.setVariable("recapHtml", recapText.replace("\n", "<br>"));
         return templateEngine.process("email/weekly-recap", ctx);
     }
+
+    public String adminAlert(String headline, String bodyHtml) {
+        Context ctx = brandContext();
+        ctx.setVariable("headline", headline);
+        ctx.setVariable("bodyHtml", bodyHtml);
+        return templateEngine.process("email/admin-alert", ctx);
+    }
 }

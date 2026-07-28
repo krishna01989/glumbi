@@ -20,6 +20,8 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findTop20ByOrderByCreatedAtDesc();
     List<AppUser> findByRoleAndCreatedAtAfter(AppUser.Role role, LocalDateTime since);
 
+    List<AppUser> findByRole(AppUser.Role role);
+
     // All regular users who have not yet given consent — used for DPDP backfill
     @Query("SELECT u FROM AppUser u WHERE u.role = 'USER' AND u.consentGiven = false AND u.onHold = false")
     List<AppUser> findUsersWithNoConsent();

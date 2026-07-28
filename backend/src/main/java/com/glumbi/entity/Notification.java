@@ -48,6 +48,7 @@ public class Notification {
         MEMORY_PLAY,
         CURIOSITY_INSIGHT,
         JOURNAL_INSIGHT,
-        QUOTA_WARNING
+        QUOTA_WARNING,
+        ADMIN_ALERT
     }
 }

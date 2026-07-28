@@ -316,4 +316,6 @@ export const adminApi = {
   consentBackfillHistory:    ()                          => api.get('/admin/consent-backfill/history').then(r => r.data),
   getVendors:                ()                          => api.get('/admin/vendors').then(r => r.data),
   setVendorEnabled:          (vendor, enabled)           => api.patch(`/admin/vendors/${vendor}`, { enabled }).then(r => r.data),
+  getAdminAlerts:            ()                          => api.get('/admin/alerts').then(r => r.data),
+  markAdminAlertsRead:       ()                          => api.post('/admin/alerts/mark-read').then(r => r.data),
 }

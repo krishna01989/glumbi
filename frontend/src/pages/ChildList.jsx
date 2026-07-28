@@ -111,6 +111,7 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
 
   const [phase, setPhase]             = useState(null) // null | 'sleeping' | 'waking'
   const [timeLimit, setTimeLimit]     = useState(30)
+  const [customTimeStr, setCustomTimeStr] = useState('')
   const [maxSnooze, setMaxSnooze]     = useState(1)
   const [lockPin, setLockPin]         = useState('')
   const [lockPinError, setLockPinError] = useState('')
@@ -312,7 +313,7 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {TIME_OPTS.map(o => (
               <button key={o.value} style={chipStyle(o.value === -1 ? isCustomTime : timeLimit === o.value)}
-                onClick={() => { if (o.value === -1) setTimeLimit(0); else setTimeLimit(o.value) }}>
+                onClick={() => { if (o.value === -1) { setTimeLimit(0); setCustomTimeStr('') } else { setTimeLimit(o.value); setCustomTimeStr('') } }}>
                 {o.label}
               </button>
             ))}
@@ -320,8 +321,13 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
           {isCustomTime && (
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="number" inputMode="numeric" min={1} max={480} placeholder="Minutes"
-                value={timeLimit > 0 ? timeLimit : ''}
-                onChange={e => { const v = parseInt(e.target.value); setTimeLimit(!isNaN(v) && v > 0 ? Math.min(v, 480) : 0) }}
+                value={customTimeStr}
+                onChange={e => setCustomTimeStr(e.target.value)}
+                onBlur={e => {
+                  const v = parseInt(e.target.value)
+                  if (!isNaN(v) && v > 0) { const clamped = Math.min(v, 480); setTimeLimit(clamped); setCustomTimeStr(String(clamped)) }
+                  else { setCustomTimeStr(''); setTimeLimit(0) }
+                }}
                 style={{ width: 80, padding: '6px 10px', borderRadius: 10, border: `2px solid ${pt.primary}`, fontSize: 14, fontWeight: 700, textAlign: 'center', outline: 'none' }} />
               <span style={{ fontSize: 13, color: '#888', fontFamily: 'Nunito, sans-serif' }}>minutes</span>
             </div>
@@ -332,11 +338,25 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
         {timeLimit > 0 && (
           <div style={{ textAlign: 'left', marginBottom: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, marginBottom: 6 }}>EXTENSIONS ALLOWED</div>
-            <div style={{ display: 'flex', gap: 5 }}>
+            <div style={{ display: 'flex', gap: 5, marginBottom: maxSnooze > 0 ? 8 : 0 }}>
               {EXT_OPTS.map(o => (
                 <button key={o.value} style={chipStyle(maxSnooze === o.value)} onClick={() => setMaxSnooze(o.value)}>{o.label}</button>
               ))}
             </div>
+            {maxSnooze > 0 && (() => {
+              const opts = [5, 10, 15, 30, 45, 60].filter(m => m < timeLimit)
+              const max = opts[opts.length - 1]
+              return (
+                <div style={{ fontSize: 11, color: '#888', lineHeight: 1.6, background: '#f8f8f8', borderRadius: 8, padding: '8px 10px' }}>
+                  💡 When time is up, your child can request up to <strong>{maxSnooze}</strong> extension{maxSnooze > 1 ? 's' : ''}.{' '}
+                  {max
+                    ? <>Each extension lets them pick a short break — up to <strong>{max} min</strong>.</>
+                    : <>The session is very short, so extensions will only offer a couple of minutes.</>
+                  }
+                  {maxSnooze > 1 && <> Every extension offers the same options.</>}
+                </div>
+              )
+            })()}
           </div>
         )}
 

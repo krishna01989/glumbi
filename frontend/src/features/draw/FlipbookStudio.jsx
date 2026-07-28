@@ -1827,7 +1827,7 @@ export default function FlipbookStudio({ child, quota }) {
           maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
           borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
-          position: 'relative', background: 'white' }}>
+          position: 'relative', background: 'white', overflow: 'hidden' }}>
 
           {isFullscreen && <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(0,0,0,0.3)', pointerEvents: 'none', zIndex: 99 }} />}
 

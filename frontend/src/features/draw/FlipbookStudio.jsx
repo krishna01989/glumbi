@@ -1475,6 +1475,7 @@ export default function FlipbookStudio({ child, quota }) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const isMobile = bp === 'mobile'
+  const isPortrait = isFullscreen && window.innerWidth < window.innerHeight
 
   const total = frames.length
 
@@ -1821,10 +1822,13 @@ export default function FlipbookStudio({ child, quota }) {
 
         {/* ── Canvas area ── */}
         {/* Centering wrapper — fills remaining space, never stretches the canvas */}
-        <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
-        {/* Canvas container — fixed aspect ratio; position:absolute+margin:auto keeps it centred in any orientation */}
-        <div style={{ aspectRatio: `${W} / ${H}`, position: 'absolute', inset: 0, margin: 'auto',
-          maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
+        <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden',
+          ...(isPortrait ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}) }}>
+        {/* Canvas container — fixed aspect ratio */}
+        <div style={{ aspectRatio: `${W} / ${H}`,
+          maxWidth: '100%', maxHeight: '100%',
+          width: isPortrait ? '100%' : 'auto', height: 'auto',
+          margin: isPortrait ? undefined : 'auto',
           borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
           position: 'relative', background: 'white', overflow: 'hidden' }}>
@@ -2120,7 +2124,7 @@ export default function FlipbookStudio({ child, quota }) {
             </div>
           )}
         </div>{/* end canvas container */}
-        </div>{/* end centering wrapper */}
+        </div>
         </div>{/* end canvas column */}
       </div>
 

@@ -367,6 +367,7 @@ export default function Draw({ child, quota, featureConfig }) {
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   const isCompact = bp === 'mobile' || bp === 'tablet'
+  const isPortrait = isFullscreen && viewport.vw < viewport.vh
   const canvasCursor = useMemo(() => {
     if (fillMode)   return makeEmojiCursor('🪣', 24, 3, 21)
     if (eraser)     return makeEmojiCursor('🧽', 28, 4, 24)
@@ -1643,13 +1644,17 @@ export default function Draw({ child, quota, featureConfig }) {
         )}
 
         {/* Centering wrapper — fills remaining space, never stretches the canvas */}
-        <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden' }}>
-        {/* Outer wrapper: fixed 1200×800 aspect ratio; position:relative so overlay can escape inner clip */}
+        <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden',
+          ...(isPortrait ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}) }}>
+        {/* Outer wrapper: fixed 1200×800 aspect ratio */}
         <div style={{
-          aspectRatio: '1200 / 800', position: 'absolute', inset: 0, margin: 'auto',
-          maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
+          aspectRatio: '1200 / 800',
+          maxWidth: '100%', maxHeight: '100%',
+          width: isPortrait ? '100%' : 'auto', height: 'auto',
+          margin: isPortrait ? undefined : 'auto',
           borderRadius: isFullscreen ? 0 : 20,
-          boxShadow: isFullscreen ? 'none' : 'var(--shadow)', position: 'relative',
+          boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
+          position: 'relative',
           cursor: canvasCursor,
         }}>
           {/* Inner clip: clips the drawing canvas to rounded corners without clipping the animation overlay */}
@@ -1850,8 +1855,8 @@ export default function Draw({ child, quota, featureConfig }) {
             </button>
           )}
         </div>
-        </div>{/* end outer wrapper */}
-        </div>{/* end centering wrapper */}
+        </div>
+        </div>
 
         {/* ── Fullscreen bottom action bar ── */}
         {isFullscreen && (

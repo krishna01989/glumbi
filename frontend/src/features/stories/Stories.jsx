@@ -646,8 +646,8 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                   <div style={{ position:'relative', display:'inline-flex' }} ref={langPickerRef}>
                     <button ref={langBtnRef} onClick={openLangPicker}
                       style={{ padding:'7px 14px', fontSize:13, borderRadius:50, border:'none',
-                        background:'rgba(255,255,255,0.2)', backdropFilter:'blur(6px)',
-                        color:'white', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6,
+                        background:'rgba(255,255,255,0.88)', backdropFilter:'blur(6px)',
+                        color:'#333', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', gap:6,
                         boxShadow:'0 2px 8px rgba(0,0,0,0.2)' }}>
                       {translating ? <><span className="spinner" /> Translating…</> : '🔊 Listen'}
                     </button>
@@ -711,7 +711,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                 )}
                 <button onClick={() => toggleFav(selected.id)}
                   style={{ padding:'7px 12px', fontSize:18,
-                    background: isFullscreen ? 'rgba(255,255,255,0.2)' : (selected.favorite ? '#fff3cd' : '#f5f5f5'),
+                    background: isFullscreen ? 'rgba(255,255,255,0.88)' : (selected.favorite ? '#fff3cd' : '#f5f5f5'),
                     borderRadius:50, border:'none', cursor:'pointer',
                     boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.2)' : 'none' }}>
                   {selected.favorite ? '⭐' : '☆'}
@@ -721,8 +721,8 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                   title={offline ? 'AI is off — go online to continue stories' : 'Continue this story'}
                   style={{ padding:'7px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none',
                     cursor: loading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
-                    background: isFullscreen ? 'rgba(255,255,255,0.2)' : 'var(--primary-lt)',
-                    color: isFullscreen ? 'white' : 'var(--primary)',
+                    background: isFullscreen ? 'rgba(255,255,255,0.88)' : 'var(--primary-lt)',
+                    color: isFullscreen ? '#333' : 'var(--primary)',
                     opacity: loading || offline ? 0.5 : 1, whiteSpace:'nowrap',
                     boxShadow: isFullscreen ? '0 2px 8px rgba(0,0,0,0.2)' : 'none',
                     backdropFilter: isFullscreen ? 'blur(6px)' : 'none' }}>
@@ -731,7 +731,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                 )}
                 <button onClick={() => handleDelete(selected.id)}
                   style={{ padding:'7px 12px', fontSize:13, borderRadius:50, border:'none', cursor:'pointer',
-                    background: isFullscreen ? 'rgba(255,0,0,0.3)' : '#fee', color: isFullscreen ? 'white' : '#e55' }}>
+                    background: isFullscreen ? 'rgba(255,255,255,0.88)' : '#fee', color: isFullscreen ? '#e55' : '#e55' }}>
                   🗑
                 </button>
               </div>

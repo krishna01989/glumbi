@@ -89,6 +89,12 @@ export function useAuth({ addToast }) {
         k.startsWith('glm_offline_')
       )
       .forEach(k => localStorage.removeItem(k))
+    // Clear hub galaxy/swiper session state for all children
+    try {
+      Object.keys(sessionStorage)
+        .filter(k => k.startsWith('glm_hub_'))
+        .forEach(k => sessionStorage.removeItem(k))
+    } catch {}
     setAuthed(false)
     setRole(null)
     navigate('/', { replace: true })

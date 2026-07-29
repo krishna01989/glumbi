@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useParams } from 'react-router-dom'
 import { OfflineContext, useOffline } from '../contexts/OfflineContext'
 import { ActivityTrackerContext } from '../contexts/ActivityTrackerContext'
@@ -16,6 +16,7 @@ import MemoryPlay      from '../features/memory/MemoryPlay'
 import Maze            from '../features/trace/Maze'
 import Riddle          from '../features/riddle/Riddle'
 import LearnPage       from '../features/learn/LearnPage'
+import UniverseHub     from '../pages/UniverseHub'
 import ChildForm       from '../pages/ChildForm'
 import ProfilePage     from '../pages/ProfilePage'
 import ErrorPage       from '../pages/ErrorPage'
@@ -31,6 +32,19 @@ function ErrorPageRoute() {
   return <ErrorPage code={code} />
 }
 
+function PhoneGate({ children, emoji, title, message }) {
+  const isPhone = window.innerWidth < 600
+  if (!isPhone) return children
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      flex: 1, padding: '40px 24px', textAlign: 'center', fontFamily: 'Nunito, sans-serif' }}>
+      <div style={{ fontSize: 56, marginBottom: 16 }}>{emoji}</div>
+      <div style={{ fontWeight: 900, fontSize: 20, color: '#444', marginBottom: 10 }}>{title}</div>
+      <div style={{ fontSize: 15, color: '#888', lineHeight: 1.6, maxWidth: 280 }}>{message}</div>
+    </div>
+  )
+}
+
 function TrackerProvider({ child, childLocked, children }) {
   const isOffline = useOffline()
   const { track } = useActivityTracker(child, isOffline, childLocked)
@@ -43,31 +57,38 @@ function TrackerProvider({ child, childLocked, children }) {
 
 export default function ChildRoutes({
   child, childLocked, offlineMode,
-  quota, featureConfig,
+  quota, featureConfig, wotd,
   onChildUpdated, onLogout,
 }) {
   const guard = (name, el) => (
     <FeatureGuard featureName={name} featureConfig={featureConfig}>{el}</FeatureGuard>
   )
   const blockedWhenLocked = (el) =>
-    childLocked ? <Navigate to={`/child/${child.id}/stories`} replace /> : el
+    childLocked ? <Navigate to={`/child/${child.id}/hub`} replace /> : el
+
+  const location = useLocation()
+  const p = location.pathname
+  const isFullWidth = p.endsWith('/hub') || p.endsWith('/draw') || p.endsWith('/flipbook')
 
   return (
     <OfflineContext.Provider value={offlineMode}>
       <TrackerProvider child={child} childLocked={childLocked}>
       <CreditPop />
-      <div className="page-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className={isFullWidth ? 'page-content page-content--full' : 'page-content'} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Routes>
+          <Route path="/child/:childId/hub"        element={<UniverseHub child={child} featureConfig={featureConfig} wotd={wotd} />} />
           <Route path="/child/:childId/stories"    element={guard('story',              <Stories    child={child} quota={quota} />)} />
           <Route path="/child/:childId/activities" element={guard('activity',           <Activities child={child} quota={quota} />)} />
           <Route path="/child/:childId/curiosity"  element={guard('curiosity',          <Curiosity  child={child} quota={quota} />)} />
-          <Route path="/child/:childId/draw"       element={guard('draw',               <Draw          child={child} quota={quota} featureConfig={featureConfig} />)} />
-          <Route path="/child/:childId/flipbook"   element={guard('flipbook',            <FlipbookStudio child={child} quota={quota} />)} />
+          <Route path="/child/:childId/draw"       element={guard('draw',               <PhoneGate emoji="🎨" title="Best on a bigger screen!" message="Drawing works much better on a tablet or computer. Grab one and unleash your creativity!"><Draw          child={child} quota={quota} featureConfig={featureConfig} /></PhoneGate>)} />
+          <Route path="/child/:childId/flipbook"   element={guard('flipbook',            <PhoneGate emoji="🎬" title="Flipbook needs more space!" message="Animating frames is way more fun on a tablet or computer. Try it there for the full flipbook experience!"><FlipbookStudio child={child} quota={quota} /></PhoneGate>)} />
           <Route path="/child/:childId/journal"    element={<Journal    child={child} featureConfig={featureConfig} quota={quota} />} />
           <Route path="/child/:childId/readquiz"   element={guard('read-quiz',          <ReadQuiz   child={child} quota={quota} />)} />
           <Route path="/child/:childId/learn"      element={guard('learn-validate',     <LearnPage  child={child} quota={quota} />)} />
           <Route path="/child/:childId/mywriting"  element={guard('writing-coach',      <MyWriting  child={child} quota={quota} />)} />
-          <Route path="/child/:childId/memory"     element={guard('memory-flashcards',  <MemoryPlay child={child} quota={quota} />)} />
+          <Route path="/child/:childId/memory/match"      element={guard('memory-flashcards', <MemoryPlay child={child} quota={quota} initialTab="match" />)} />
+          <Route path="/child/:childId/memory/flashcards" element={guard('memory-flashcards', <MemoryPlay child={child} quota={quota} initialTab="flashcards" />)} />
+          <Route path="/child/:childId/memory/wordofday"  element={guard('memory-flashcards', <MemoryPlay child={child} quota={quota} initialTab="wordofday" />)} />
           <Route path="/child/:childId/maze"       element={guard('maze',               <Maze       child={child} quota={quota} featureConfig={featureConfig} />)} />
           <Route path="/child/:childId/trace"      element={<Navigate to={`/child/${child?.id}/maze`} replace />} />
           <Route path="/child/:childId/riddle"     element={guard('riddle',             <Riddle     child={child} quota={quota} featureConfig={featureConfig} />)} />
@@ -81,7 +102,7 @@ export default function ChildRoutes({
           <Route path="/contact"                   element={<ContactPage inApp />} />
           <Route path="/help"                      element={<HelpPage />} />
           <Route path="/error/:code"               element={<ErrorPageRoute />} />
-          <Route path="*"                          element={<Navigate to={`/child/${child?.id}/stories`} replace />} />
+          <Route path="*"                          element={<Navigate to={`/child/${child?.id}/hub`} replace />} />
         </Routes>
       </div>
       </TrackerProvider>

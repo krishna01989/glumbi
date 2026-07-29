@@ -100,6 +100,7 @@ export default function Draw({ child, quota, featureConfig }) {
   const [aiReply, setAiReply]     = useState('')
   const [loading, setLoading]     = useState(false)
   const [isEmpty, setIsEmpty]     = useState(true)
+  const [previewUrl, setPreviewUrl] = useState('')
   const [guide, setGuide]         = useState('')
   const [guideSubject, setGuideSubject] = useState('')
   const [guideInput, setGuideInput]     = useState('')
@@ -203,6 +204,7 @@ export default function Draw({ child, quota, featureConfig }) {
       setIsEmpty(false)
       setCurrentSaveId(full.id)
       setDrawingTitle(full.title || '')
+      capturePreview()
     }
     img.src = 'data:image/png;base64,' + full.imageData
   }
@@ -242,6 +244,13 @@ export default function Draw({ child, quota, featureConfig }) {
   const selPanelDragRef   = useRef(null)
   const selPanelResizeRef = useRef(null)
   const selPanelElRef     = useRef(null)
+
+  // Guide panel drag/resize
+  const [guidePanelPos, setGuidePanelPos]   = useState({ x: 10, y: 10 })
+  const [guidePanelSize, setGuidePanelSize] = useState({ w: 220, h: null })
+  const guidePanelDragRef   = useRef(null)
+  const guidePanelResizeRef = useRef(null)
+  const guidePanelElRef     = useRef(null)
 
   function onSelPanelResizeStart(corner, e) {
     e.stopPropagation(); e.preventDefault()
@@ -317,8 +326,77 @@ export default function Draw({ child, quota, featureConfig }) {
     window.addEventListener('touchend', onUp)
   }
 
+  function onGuidePanelDragStart(e) {
+    e.stopPropagation()
+    const src = e.touches ? e.touches[0] : e
+    const panel = guidePanelElRef.current
+    const pw = panel ? panel.offsetWidth : 220
+    const ph = panel ? panel.offsetHeight : 200
+    guidePanelDragRef.current = { sx: src.clientX, sy: src.clientY, ox: guidePanelPos.x, oy: guidePanelPos.y, pw, ph }
+    function onMove(ev) {
+      if (!guidePanelDragRef.current) return
+      ev.preventDefault()
+      const s = ev.touches ? ev.touches[0] : ev
+      const r = guidePanelDragRef.current
+      const vw = window.innerWidth, vh = window.innerHeight
+      setGuidePanelPos({
+        x: Math.max(0, Math.min(r.ox + s.clientX - r.sx, vw - r.pw)),
+        y: Math.max(0, Math.min(r.oy + s.clientY - r.sy, vh - 40)),
+      })
+    }
+    function onUp() {
+      guidePanelDragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
+  }
+
+  function onGuidePanelResizeStart(e) {
+    e.stopPropagation()
+    const src = e.touches ? e.touches[0] : e
+    const panel = guidePanelElRef.current
+    const ow = panel ? panel.offsetWidth : 220
+    const oh = panel ? panel.offsetHeight : 200
+    guidePanelResizeRef.current = { sx: src.clientX, sy: src.clientY, ow, oh }
+    function onMove(ev) {
+      if (!guidePanelResizeRef.current) return
+      ev.preventDefault()
+      const s = ev.touches ? ev.touches[0] : ev
+      const r = guidePanelResizeRef.current
+      setGuidePanelSize({
+        w: Math.max(160, r.ow + s.clientX - r.sx),
+        h: Math.max(80,  r.oh + s.clientY - r.sy),
+      })
+    }
+    function onUp() {
+      guidePanelResizeRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      window.removeEventListener('touchmove', onMove)
+      window.removeEventListener('touchend', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    window.addEventListener('touchmove', onMove, { passive: false })
+    window.addEventListener('touchend', onUp)
+  }
+
+  function capturePreview() {
+    try { if (canvasRef.current) setPreviewUrl(canvasRef.current.toDataURL('image/jpeg', 0.85)) } catch {}
+  }
+
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    const onFsChange = () => {
+      const isFull = !!document.fullscreenElement
+      setIsFullscreen(isFull)
+      if (!isFull) { capturePreview(); setDrawingTitle(''); setGuide(''); setGuideSubject(''); setGuideInput(''); setGuideLoading(false) }
+    }
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
@@ -721,6 +799,7 @@ export default function Draw({ child, quota, featureConfig }) {
     }
     drawing.current = false
     lastPos.current = null
+    if (!isEmpty) capturePreview()
   }
 
   async function newDrawing() {
@@ -1262,6 +1341,66 @@ export default function Draw({ child, quota, featureConfig }) {
 
     <>
 
+      {/* ── Non-fullscreen: draw button + optional guide ── */}
+      {!isFullscreen && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {guideEnabled ? (
+            <form onSubmit={handleGuide} style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'white',
+                borderRadius: 50, padding: '0 16px', boxShadow: 'var(--shadow)', minHeight: 46 }}>
+                <span style={{ fontSize: 18 }}>🎨</span>
+                <input
+                  value={guideInput}
+                  onChange={e => setGuideInput(e.target.value)}
+                  placeholder={`Hey ${child?.name || 'there'}, what do you want to draw today?`}
+                  disabled={offline || quota?.used >= quota?.limit}
+                  style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14,
+                    fontFamily: 'Nunito, sans-serif', fontWeight: 600, background: 'transparent', color: '#333' }}
+                />
+              </div>
+              <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
+                style={{ padding: '0 16px', borderRadius: 50, border: 'none', fontWeight: 700,
+                  fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
+                  background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
+                  color: guideInput.trim() && !offline ? 'white' : '#aaa', whiteSpace: 'nowrap' }}>
+                {guideLoading ? <><span className="spinner" /> Thinking…</> : '✨ Show me how!'}
+              </button>
+              <button type="button" onClick={() => newDrawing().then(() => toggleFullscreen())}
+                style={{ padding: '0 20px', borderRadius: 50, border: 'none',
+                  background: 'linear-gradient(135deg,var(--primary),var(--accent))',
+                  color: 'white', fontWeight: 800, fontSize: 15,
+                  fontFamily: 'Nunito, sans-serif', cursor: 'pointer',
+                  boxShadow: '0 3px 14px rgba(0,0,0,0.18)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                🎨 Draw
+              </button>
+            </form>
+          ) : (
+            <button onClick={() => newDrawing().then(() => toggleFullscreen())}
+              style={{ alignSelf: 'flex-start', padding: '10px 28px', borderRadius: 50, border: 'none',
+                background: 'linear-gradient(135deg,var(--primary),var(--accent))',
+                color: 'white', fontWeight: 800, fontSize: 15,
+                fontFamily: 'Nunito, sans-serif', cursor: 'pointer',
+                boxShadow: '0 3px 14px rgba(0,0,0,0.18)' }}>
+              🎨 Draw
+            </button>
+          )}
+          {guide && (
+            <div style={{ background: 'white', borderRadius: 20, boxShadow: 'var(--shadow)',
+              padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 14,
+                  color: 'var(--primary)' }}>🖼️ Draw a {guideSubject}</div>
+                <button onClick={() => setGuide('')}
+                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
+                    background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
+              </div>
+              <div style={{ fontSize: 13, lineHeight: 1.8, color: '#444', whiteSpace: 'pre-wrap' }}>{guide}</div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Middle: toolbar + drawing area (fullscreen root) ── */}
       <div ref={fsRef} style={isFullscreen ? {
         position: 'relative',
@@ -1270,10 +1409,24 @@ export default function Draw({ child, quota, featureConfig }) {
         background: '#f0f0f0',
         boxSizing: 'border-box',
         overflow: 'hidden',
-      } : { flex: 1, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
+      } : { display: 'none' }}>
 
       {/* ── Toolbar ── */}
       <div style={toolbarStyle}>
+
+        {/* Title input — fullscreen only */}
+        {isFullscreen && (
+          <input
+            value={drawingTitle}
+            onChange={e => setDrawingTitle(e.target.value)}
+            placeholder="Give your drawing a name…"
+            maxLength={60}
+            style={{ width: '100%', padding: '5px 12px', borderRadius: 20,
+              border: '1.5px solid var(--primary-lt)', outline: 'none',
+              fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+              color: '#444', background: 'white', boxSizing: 'border-box' }}
+          />
+        )}
 
         {/* Shared: palette popup (position:fixed, works anywhere in DOM) */}
         {showPalette && (
@@ -1645,13 +1798,12 @@ export default function Draw({ child, quota, featureConfig }) {
 
         {/* Centering wrapper — fills remaining space, never stretches the canvas */}
         <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden',
-          ...(isPortrait ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}) }}>
-        {/* Outer wrapper: fixed 1200×800 aspect ratio */}
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Outer wrapper: fixed 1200×800 aspect ratio — fill height, clamp by width */}
         <div style={{
           aspectRatio: '1200 / 800',
           maxWidth: '100%', maxHeight: '100%',
-          width: isPortrait ? '100%' : 'auto', height: 'auto',
-          margin: isPortrait ? undefined : 'auto',
+          width: 'auto', height: '100%',
           borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
           position: 'relative',
@@ -1825,22 +1977,6 @@ export default function Draw({ child, quota, featureConfig }) {
               </svg>
             </button>
           )}
-          {/* Guide floating panel in fullscreen */}
-          {isFullscreen && guide && (
-            <div style={{ position:'absolute', top:10, left:10, zIndex:10, maxWidth:220,
-              background:'rgba(255,255,255,0.97)', borderRadius:16,
-              boxShadow:'0 4px 20px rgba(0,0,0,0.15)', padding:'12px 14px',
-              display:'flex', flexDirection:'column', gap:8, maxHeight:'60vh', overflowY:'auto' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <div style={{ fontWeight:900, fontSize:13, color:'var(--primary)' }}>🖼️ {guideSubject}</div>
-                <button onClick={() => setGuide('')}
-                  style={{ width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: 'none',
-                    background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
-              </div>
-              <div style={{ fontSize:12, lineHeight:1.7, color:'#444', whiteSpace:'pre-wrap' }}>{guide}</div>
-            </div>
-          )}
           {/* Exit fullscreen button — absolute top-right of canvas in fullscreen */}
           {isFullscreen && (
             <button onClick={toggleFullscreen} title="Exit fullscreen"
@@ -1921,10 +2057,56 @@ export default function Draw({ child, quota, featureConfig }) {
 
       </div>{/* end canvas area */}
 
+      {/* Guide floating panel in fullscreen — direct child of fsRef to avoid overflow:hidden ancestors blocking touch scroll */}
+      {isFullscreen && guide && (
+        <div ref={guidePanelElRef} style={{
+          position: 'absolute', top: guidePanelPos.y, left: guidePanelPos.x, zIndex: 20,
+          width: guidePanelSize.w,
+          height: guidePanelSize.h || 260,
+          maxHeight: 'calc(100% - 80px)',
+          background: 'rgba(255,255,255,0.97)', borderRadius: 16,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.18)', border: '1.5px solid var(--primary-lt)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+          {/* Drag handle */}
+          <div
+            onMouseDown={onGuidePanelDragStart}
+            onTouchStart={onGuidePanelDragStart}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px 6px',
+              cursor: 'grab', userSelect: 'none', flexShrink: 0, touchAction: 'none' }}>
+            <span style={{ fontSize: 11, color: '#bbb', lineHeight: 1 }}>⠿</span>
+            <span style={{ fontWeight: 900, fontSize: 13, color: 'var(--primary)', flex: 1 }}>🖼️ {guideSubject}</span>
+            <button onClick={() => setGuide('')}
+              style={{ width: 26, height: 26, minWidth: 26, minHeight: 26, borderRadius: '50%', border: 'none',
+                background: '#f0f0f0', color: '#888', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
+          </div>
+          {/* Scrollable content — explicit height needed for touch scroll to work */}
+          <div
+            style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y', padding: '0 12px 10px',
+              fontSize: 12, lineHeight: 1.7, color: '#444', whiteSpace: 'pre-wrap',
+              minHeight: 0 }}>
+            {guide}
+          </div>
+          {/* Resize handle — bottom-right corner */}
+          <div
+            onMouseDown={onGuidePanelResizeStart}
+            onTouchStart={onGuidePanelResizeStart}
+            style={{ position: 'absolute', bottom: 0, right: 0, width: 22, height: 22,
+              cursor: 'nwse-resize', touchAction: 'none', zIndex: 1 }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+              style={{ position: 'absolute', bottom: 3, right: 3 }}>
+              <path d="M9 1L1 9M9 5L5 9" stroke="#ccc" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
+        </div>
+      )}
+
       </div>{/* end fsRef / middle row */}
 
-      {/* ── AI section — hidden in fullscreen ── */}
-      <div style={{ display: isFullscreen ? 'none' : 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
+      {/* ── AI section — only visible in fullscreen (via bottom bar); hidden here ── */}
+      <div style={{ display: 'none', flexWrap: 'wrap', gap: 12, alignItems: 'stretch', flexShrink: 0 }}>
         {!drawAiEnabled && (
           <div style={{ fontSize: 13, color: '#999', fontStyle: 'italic' }}>
             ✈️ AI drawing features are currently off
@@ -2065,7 +2247,7 @@ export default function Draw({ child, quota, featureConfig }) {
             border: currentSaveId === s.id ? '2px solid var(--primary)' : '2px solid transparent',
             background: currentSaveId === s.id ? 'var(--primary-lt)' : '#fafafa',
             cursor: 'pointer', transition: 'background 0.15s' }}
-            onClick={() => { loadDrawSave(s); markActive(); close() }}>
+            onClick={() => { loadDrawSave(s).then(() => toggleFullscreen()); markActive(); close() }}>
             <img src={s.thumbnail ? 'data:image/png;base64,' + s.thumbnail : ''}
               alt={s.title || 'Drawing'}
               style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6, flexShrink: 0,

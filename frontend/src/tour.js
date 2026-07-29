@@ -1,75 +1,12 @@
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
-// ── Desktop tour ───────────────────────────────────────────────────────────────
-
-const DESKTOP_STEPS = [
-  {
-    popover: {
-      title: '👋 Welcome to Glumbi!',
-      description: 'Let\'s take a quick tour so you know where everything is. It only takes a minute!',
-      side: 'over', align: 'center',
-    },
-  },
-  {
-    element: '#tour-stories-tab',
-    popover: {
-      title: '📖 Everything\'s in the sidebar',
-      description: 'Features are grouped on the left — <strong>Stories</strong>, <strong>Play</strong>, <strong>Curiosity</strong>, and <strong>Create</strong>. Click any group to expand it and jump straight in.',
-      side: 'right',
-    },
-  },
-  {
-    element: '#tour-theme-btn',
-    popover: {
-      title: '🎨 Change Theme',
-      description: 'Click the palette to change the app\'s look. Pick from 20+ themes — Superheroes, Festivals, Nature, and more!',
-      side: 'bottom', align: 'end',
-    },
-  },
-  {
-    element: '#tour-child-name',
-    popover: {
-      title: '👧 Child Info',
-      description: 'Shows the active child\'s name, age, and daily streak. Use the sidebar to switch features, or click the 🔒 icon to hand the device to a parent.',
-      side: 'bottom', align: 'start',
-    },
-  },
-  {
-    popover: {
-      title: '🌟 You\'re all set!',
-      description: 'Start by generating your first story. Type something like "dragon, brave girl, magic forest" and watch the magic happen!',
-      side: 'over', align: 'center',
-    },
-  },
-]
-
-// ── Mobile tour ────────────────────────────────────────────────────────────────
-
-const MOBILE_STEPS = [
-  {
-    element: '#tour-mobile-menu',
-    popover: {
-      title: '☰ All Your Features',
-      description: 'Tap the menu to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, Read & Quiz, My Writing, Memory Play, and Journal.',
-      side: 'bottom', align: 'end',
-    },
-  },
-  {
-    element: '#tour-mobile-theme',
-    popover: {
-      title: '🎨 Change Theme',
-      description: 'Tap the palette to change the app\'s look. Pick from 20 themes — Superheroes, Festivals, Nature, and more!',
-      side: 'bottom', align: 'end',
-    },
-  },
-]
-
-
-// ── Shared launcher ────────────────────────────────────────────────────────────
-
 function isMobileView() {
   return window.innerWidth < 768
+}
+
+function present(sel) {
+  return !!document.querySelector(sel)
 }
 
 function makeDriver(steps) {
@@ -86,48 +23,129 @@ function makeDriver(steps) {
   })
 }
 
-// enabledFeatures: string[] of feature keys or null = show all
-// quota: { used, limit } — the user's actual quota object
+// ── Desktop tour ───────────────────────────────────────────────────────────────
+
+const DESKTOP_STEPS = [
+  {
+    popover: {
+      title: '👋 Welcome to Glumbi!',
+      description: 'Your child\'s learning world is ready. Let\'s take a quick look around — it only takes a minute!',
+      side: 'over', align: 'center',
+    },
+  },
+  {
+    element: '#tour-hub-header',
+    popover: {
+      title: '🌌 Your child\'s themed world',
+      description: 'The hub is styled to match your child\'s chosen theme — background, particles, colours, and more change with every theme.',
+      side: 'bottom', align: 'center',
+    },
+  },
+  {
+    element: '#tour-hub-swiper',
+    popover: {
+      title: '🪐 Four learning zones',
+      description: '<strong>Swipe left or right</strong> to browse the four zones — <strong>Story World</strong>, <strong>Curiosity Corner</strong>, <strong>Play Zone</strong>, and <strong>Art Studio</strong>. Tap a zone card to enter it and see the features inside as orbiting planets.',
+      side: 'top', align: 'center',
+    },
+  },
+  {
+    element: '#tour-hub-wotd',
+    popover: {
+      title: '🧠 Word of the Day',
+      description: 'A new word appears here every day. Tap it to explore the full entry, or jump straight to Flashcards or Memory Match.',
+      side: 'bottom', align: 'center',
+    },
+  },
+  {
+    element: '#tour-theme-btn',
+    popover: {
+      title: '🎨 Change the theme',
+      description: 'Tap the palette to pick from 49 themes — Superheroes, Festivals, Nature, Seasons, and more. The whole hub transforms instantly.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-child-name',
+    popover: {
+      title: '🔒 Parental controls',
+      description: 'Click the child avatar to lock the session with a PIN, set a screen-time limit, or switch back to the parent view.',
+      side: 'bottom', align: 'start',
+    },
+  },
+  {
+    popover: {
+      title: '🌟 You\'re all set!',
+      description: 'Ask your child to pick a zone and explore. Every feature is designed to be fun and age-appropriate.',
+      side: 'over', align: 'center',
+    },
+  },
+]
+
+// ── Mobile tour ────────────────────────────────────────────────────────────────
+
+const MOBILE_STEPS = [
+  {
+    popover: {
+      title: '👋 Welcome to Glumbi!',
+      description: 'Your child\'s learning world is ready. Here\'s a quick look at how the hub works.',
+      side: 'over', align: 'center',
+    },
+  },
+  {
+    element: '#tour-hub-header',
+    popover: {
+      title: '🌌 Your child\'s themed world',
+      description: 'The hub matches your child\'s chosen theme — background, particles, and colours all change with it.',
+      side: 'bottom', align: 'center',
+    },
+  },
+  {
+    element: '#tour-hub-swiper',
+    popover: {
+      title: '🪐 Swipe to explore zones',
+      description: '<strong>Swipe left or right</strong> to browse the four learning zones. Tap a zone card to enter it and see the features inside as orbiting planets. Tap a planet to jump straight in.',
+      side: 'top', align: 'center',
+    },
+  },
+  {
+    element: '#tour-hub-wotd',
+    popover: {
+      title: '🧠 Word of the Day',
+      description: 'A new word appears here every day — tap it to explore, or jump to Flashcards or Match.',
+      side: 'bottom', align: 'center',
+    },
+  },
+  {
+    element: '#tour-mobile-theme',
+    popover: {
+      title: '🎨 Change the theme',
+      description: 'Tap the palette to pick from 49 themes. The whole hub transforms instantly.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    element: '#tour-mobile-tour',
+    popover: {
+      title: '❓ This button',
+      description: 'Tap here any time to replay this tour. Tap your child\'s avatar (with 🔒) to set a PIN, screen-time limit, or return to the parent view.',
+      side: 'bottom', align: 'end',
+    },
+  },
+  {
+    popover: {
+      title: '🌟 All set!',
+      description: 'Let your child swipe through the zones and explore. Have fun!',
+      side: 'over', align: 'center',
+    },
+  },
+]
+
+// ── Launcher ──────────────────────────────────────────────────────────────────
+
 export function startTour(enabledFeatures, quota, featureConfig = []) {
-  function present(el) { return !!document.querySelector(el) }
-
   if (isMobileView()) {
-    const openMenu  = () => window.dispatchEvent(new CustomEvent('glumbi:mobile-menu', { detail: true }))
-    const closeMenu = () => window.dispatchEvent(new CustomEvent('glumbi:mobile-menu', { detail: false }))
-
-    const HEADER_IDS = ['#tour-mobile-theme']
-
-    const headerSteps = MOBILE_STEPS
-      .filter(s => HEADER_IDS.includes(s.element) && present(s.element))
-      .map(s => ({ ...s, onHighlightStarted: closeMenu }))
-
-    const steps = [
-      {
-        popover: {
-          title: '👋 Welcome to Glumbi!',
-          description: 'Let\'s take a quick tour so you know where everything is. It only takes a minute!',
-          side: 'over', align: 'center',
-        },
-      },
-      {
-        element: '#tour-mobile-menu',
-        popover: {
-          title: '☰ Menu & AI Credits',
-          description: 'Tap to access all features — Stories, Activities, Learn to Write, Curiosity, Draw, and more. The menu also shows your <strong>monthly AI credit balance</strong> so you always know how many you have left.',
-          side: 'bottom', align: 'end',
-        },
-        onHighlightStarted: closeMenu,
-      },
-      ...headerSteps,
-      {
-        popover: {
-          title: '🌟 You\'re all set!',
-          description: 'Tap ☰ to pick a feature and start the magic. Try generating your first story!',
-          side: 'over', align: 'center',
-          onPopoverRender: closeMenu,
-        },
-      },
-    ]
+    const steps = MOBILE_STEPS.filter(s => !s.element || present(s.element))
     makeDriver(steps).drive()
   } else {
     const steps = DESKTOP_STEPS.filter(s => !s.element || present(s.element))

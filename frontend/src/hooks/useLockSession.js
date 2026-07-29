@@ -172,6 +172,10 @@ export function useLockSession({ child, setChild, prevChildId }) {
       setLockModalForced(true)
       setLockPin(''); setLockPinError(''); setLockModal('unlock')
     } else {
+      try {
+        sessionStorage.removeItem(`glm_hub_galaxy_${child?.id}`)
+        sessionStorage.removeItem(`glm_hub_swiper_${child?.id}`)
+      } catch {}
       setChild(null); navigate('/child')
     }
   }, [screenTimeAlert])
@@ -247,6 +251,10 @@ export function useLockSession({ child, setChild, prevChildId }) {
     setLockTimeLimit(0); setLockMaxSnooze(1)
     setChildLocked(false); setLockModal(null); setLockPin(''); setLockPinError('')
     setLockModalForced(false); setShowPin(false)
+    try {
+      sessionStorage.removeItem(`glm_hub_galaxy_${childId}`)
+      sessionStorage.removeItem(`glm_hub_swiper_${childId}`)
+    } catch {}
     setChild(null); navigate('/child')
   }, [child, lockPin])
 

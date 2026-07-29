@@ -1,41 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTheme } from '../contexts/ThemeContext'
 
-const NAV_GROUPS = [
-  {
-    id: 'stories', label: 'Stories', emoji: '📖',
-    items: [
-      { path: 'stories',   label: 'Stories',     emoji: '📖' },
-      { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚' },
-      { path: 'mywriting', label: 'My Writing',  emoji: '✍️' },
-      { path: 'journal',   label: 'Journal',     emoji: '📝' },
-    ]
-  },
-  {
-    id: 'curiosity', label: 'Curiosity', emoji: '🔍',
-    items: [
-      { path: 'curiosity', label: 'Ask Anything', emoji: '🔍' },
-      { path: 'riddle',    label: 'Riddle',       emoji: '🧩' },
-    ]
-  },
-  {
-    id: 'play', label: 'Play', emoji: '🎮',
-    items: [
-      { path: 'memory',     label: 'Memory',         emoji: '🧠' },
-      { path: 'maze',       label: 'Maze',           emoji: '🌀' },
-      { path: 'learn',      label: 'Learn to Write', emoji: '✏️' },
-      { path: 'activities', label: 'Activities',     emoji: '🎯' },
-    ]
-  },
-  {
-    id: 'studio', label: 'Studio', emoji: '🎬',
-    items: [
-      { path: 'draw',     label: 'Draw',     emoji: '🎨' },
-      { path: 'flipbook', label: 'Flipbook', emoji: '🖼️' },
-    ]
-  },
-]
-
 export default function MobileMenu({ open, onClose, onLogout, child, onTour, wotd, childLocked, onUnlock }) {
   const theme = useTheme()
   const navigate = useNavigate()
@@ -45,20 +10,6 @@ export default function MobileMenu({ open, onClose, onLogout, child, onTour, wot
     navigate(path)
     onClose()
   }
-
-  const enabledKeys = child?.enabledFeatures
-    ? (() => { try { return JSON.parse(child.enabledFeatures) } catch { return null } })()
-    : null
-
-  const groups = NAV_GROUPS
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => {
-        if (enabledKeys && !enabledKeys.includes(item.path)) return false
-        return true
-      })
-    }))
-    .filter(group => group.items.length > 0)
 
   return (
     <>
@@ -87,70 +38,7 @@ export default function MobileMenu({ open, onClose, onLogout, child, onTour, wot
           </button>
         </div>
 
-        {/* Word of Day */}
-        {wotd && childLocked && (
-          <div style={{ margin: '0 16px 8px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 14, padding: '12px 14px' }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>🧠 Word of the Day</div>
-            <button onClick={() => go(`/child/${child?.id}/memory?tab=wordofday`)}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', marginBottom: 10, padding: 0 }}>
-              <span style={{ fontSize: 28 }}>{wotd.emoji}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: 'white', fontFamily: 'Nunito, sans-serif' }}>{wotd.word}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{wotd.meaning}</div>
-              </div>
-              <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)' }}>›</span>
-            </button>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {[{ tab: 'flashcards', label: '📇 Flashcards' }, { tab: 'match', label: '🎴 Match' }].map(({ tab, label }) => (
-                <button key={tab} onClick={() => go(`/child/${child?.id}/memory?tab=${tab}`)}
-                  style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-          {groups.map((group, gi) => {
-            const isSingleItem = group.items.length === 1
-            const currentPath = location.pathname
-
-            return (
-              <div key={group.id}>
-
-                {/* Group label */}
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: 1, padding: gi === 0 ? '8px 20px 4px' : '4px 20px' }}>
-                  {group.emoji} {group.label}
-                </div>
-
-                {/* Items */}
-                {group.items.map(item => {
-                  const path = `/child/${child?.id}/${item.path}`
-                  const active = currentPath === path
-                  return (
-                    <button key={item.path} onClick={() => go(path)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 14,
-                        width: 'calc(100% - 24px)', margin: '2px 12px',
-                        padding: '10px 16px', border: 'none', borderRadius: 50,
-                        fontSize: 14, fontWeight: active ? 900 : 700,
-                        color: active ? (theme?.primary || 'white') : 'white',
-                        cursor: 'pointer', textAlign: 'left',
-                        background: active ? 'rgba(255,255,255,0.92)' : 'transparent',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(255,255,255,0.1)' }}
-                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}>
-                      <span style={{ fontSize: 17, width: 22, textAlign: 'center' }}>{item.emoji}</span>
-                      {item.label}
-                    </button>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
+        <div style={{ flex: 1 }} />
 
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {<button onClick={() => { onClose(); setTimeout(onTour, 300) }}

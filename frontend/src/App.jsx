@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { THEMES, THEME_GROUPS, applyTheme } from './themes'
 import { ThemeContext } from './contexts/ThemeContext'
@@ -11,10 +11,8 @@ import AdminPage        from './pages/AdminPage'
 import AdminProfilePage from './pages/AdminProfilePage'
 import ChildList        from './pages/ChildList'
 import ChildForm        from './pages/ChildForm'
-import MobileMenu       from './components/MobileMenu'
 import LockModal        from './components/LockModal'
 import ScreenTimeModal  from './components/ScreenTimeModal'
-import AppSidebar       from './components/AppSidebar'
 import ManagementLayout from './layouts/ManagementLayout'
 import PublicRoutes     from './routes/PublicRoutes'
 import ChildRoutes      from './routes/ChildRoutes'
@@ -27,56 +25,6 @@ import ContactPage      from './pages/legal/ContactPage'
 import ErrorPage        from './pages/ErrorPage'
 import './index.css'
 
-// ─── NAV GROUPS ────────────────────────────────────────────────────────────────
-const NAV_GROUPS = [
-  {
-    id: 'stories', label: 'Stories', emoji: '📖',
-    items: [
-      { path: 'stories',   label: 'Stories',     emoji: '📖', id: 'tour-stories-tab'  },
-      { path: 'readquiz',  label: 'Read & Quiz', emoji: '📚', id: 'tour-readquiz-tab' },
-      { path: 'mywriting', label: 'My Writing',  emoji: '✍️', id: 'tour-writing-tab'  },
-      { path: 'journal',   label: 'Journal',     emoji: '📝', id: 'tour-journal-tab'  },
-    ]
-  },
-  {
-    id: 'curiosity', label: 'Curiosity', emoji: '🔍',
-    items: [
-      { path: 'curiosity', label: 'Ask Anything', emoji: '🔍', id: 'tour-curiosity-tab' },
-      { path: 'riddle',    label: 'Riddle',       emoji: '🧩', id: 'tour-riddle-tab'    },
-    ]
-  },
-  {
-    id: 'play', label: 'Play', emoji: '🎮',
-    items: [
-      { path: 'memory',     label: 'Memory',        emoji: '🧠', id: 'tour-memory-tab'     },
-      { path: 'maze',       label: 'Maze',          emoji: '🌀', id: 'tour-maze-tab'       },
-      { path: 'learn',      label: 'Learn to Write', emoji: '✏️', id: 'tour-learn-tab'    },
-      { path: 'activities', label: 'Activities',    emoji: '🎯', id: 'tour-activities-tab' },
-    ]
-  },
-  {
-    id: 'studio', label: 'Studio', emoji: '🎬',
-    items: [
-      { path: 'draw',     label: 'Draw',     emoji: '🎨', id: 'tour-draw-tab'     },
-      { path: 'flipbook', label: 'Flipbook', emoji: '🖼️', id: 'tour-flipbook-tab' },
-    ]
-  },
-]
-
-function groupsForChild(child, locked = false) {
-  const enabledKeys = child?.enabledFeatures
-    ? (() => { try { return JSON.parse(child.enabledFeatures) } catch { return null } })()
-    : null
-  return NAV_GROUPS
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => {
-        if (enabledKeys && !enabledKeys.includes(item.path)) return false
-        return true
-      })
-    }))
-    .filter(group => group.items.length > 0)
-}
 
 function calcChildAge(birthYear) {
   if (!birthYear) return null
@@ -319,14 +267,10 @@ export default function App() {
   const location = useLocation()
   const bp       = useBreakpoint()
   const isMobile = bp === 'mobile'
-  const isTablet = bp === 'tablet'
+
   const isTV     = bp === 'tv'
 
   const [toasts, setToasts]               = useState([])
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [openGroupId, setOpenGroupId]     = useState(null)
-  const [collapsed, setCollapsed]         = useState(false)
-
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now()
     setToasts(t => [...t, { id, message, type }])
@@ -365,28 +309,12 @@ export default function App() {
   }
 
   // Auto-collapse sidebar on tablet
-  useLayoutEffect(() => { setCollapsed(isTablet) }, [isTablet])
-
-  // Auto-expand sidebar group matching current route
-  const currentSegment = location.pathname.split('/').pop()
-  const activeGroupId = useMemo(
-    () => NAV_GROUPS.find(g => g.items.some(i => i.path === currentSegment))?.id ?? null,
-    [currentSegment]
-  )
-  useEffect(() => { if (activeGroupId) setOpenGroupId(activeGroupId) }, [activeGroupId])
-
   // Reset to neutral theme on management pages
   useLayoutEffect(() => {
     const isManagement = /^\/child(\/new|\/\d+\/edit|\/\d+\/insights)?$|^\/(profile|help|privacy|terms|contact)/.test(location.pathname)
     if (isManagement && !child) applyTheme('coral')
   }, [location.pathname])
 
-  // Mobile menu open/close via custom event
-  useEffect(() => {
-    const handler = e => setMobileMenuOpen(e.detail)
-    window.addEventListener('glumbi:mobile-menu', handler)
-    return () => window.removeEventListener('glumbi:mobile-menu', handler)
-  }, [])
 
   function handleLockConfirmed(c, timeLimit, maxSnooze) {
     applyTheme(c.theme)
@@ -473,9 +401,8 @@ export default function App() {
   }
 
   // ── Child session layout ──
-  const theme      = THEMES[child.theme] || THEMES.coral
-  const GROUPS     = groupsForChild(child, childLocked)
-  const childAge   = calcChildAge(child.birthYear)
+  const theme    = THEMES[child.theme] || THEMES.coral
+  const childAge = calcChildAge(child.birthYear)
 
   return (
     <ThemeContext.Provider value={theme}>
@@ -511,24 +438,21 @@ export default function App() {
 
       {lockModalEl}
 
-      <AppSidebar
-        child={child} isTV={isTV}
-        collapsed={collapsed} setCollapsed={setCollapsed}
-        GROUPS={GROUPS}
-        openGroupId={openGroupId} setOpenGroupId={setOpenGroupId}
-        currentSegment={currentSegment}
-        sidebarWotd={sidebarWotd}
-        childLocked={childLocked}
-        navigate={navigate}
-      />
-
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {/* Desktop / TV / Tablet header */}
         <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${isTV ? 40 : 24}px`, height: isTV ? 72 : 60, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <div id="tour-child-name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: isTV ? 36 : 28 }}>{child.avatarEmoji}</span>
-            <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {/* Glumbi logo — click to go to Universe hub */}
+            <div onClick={() => navigate(`/child/${child.id}/hub`)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, cursor: 'pointer' }}>
+              <img src="/icon.svg" alt="Glumbi" style={{ width: isTV ? 36 : 28, height: isTV ? 36 : 28 }} />
+              <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: isTV ? 20 : 16, color: 'white', fontWeight: 700, letterSpacing: 0.2 }}>Glumbi</span>
+            </div>
+            <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+            {/* Child identity */}
+            <div id="tour-child-name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: isTV ? 32 : 24 }}>{child.avatarEmoji}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: 'white' }}>{child.name}</span>
                 {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: 'rgba(255,255,255,0.7)' }}>{childAge} yrs</span>}
@@ -544,21 +468,14 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {!childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
-            {!childLocked && (
-              <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
-                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
-            )}
+            <ThemePicker child={child} onThemeChange={handleThemeChange} />
+            <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
+              style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
             {!childLocked && (
               <button onClick={handleLogout}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, height: 38, padding: '0 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, background: 'rgba(255,255,255,0.2)', color: 'white', border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer' }}>
                 <span style={{ fontSize: 16 }}>🚪</span><span>Sign Out</span>
               </button>
-            )}
-            {childLocked && <ThemePicker child={child} onThemeChange={handleThemeChange} />}
-            {childLocked && (
-              <button onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)} title="Tour"
-                style={{ width: 38, height: 38, borderRadius: 10, border: '1.5px solid rgba(255,255,255,0.35)', cursor: 'pointer', fontSize: 18, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❓</button>
             )}
             {childLocked && (
               <button onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }} title="Parent access"
@@ -571,13 +488,14 @@ export default function App() {
 
         {/* Mobile header */}
         <header className="mobile-header" style={{ alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div onClick={() => navigate(`/child/${child.id}/hub`)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
             <img src="/icon.svg" alt="Glumbi" style={{ width: 30, height: 30 }} />
             {!childLocked && <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'white' }}>Glumbi</span>}
             {childLocked && (
               <>
                 <span id="tour-child-name"
-                  onClick={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }}
+                  onClick={e => { e.stopPropagation(); setLockPin(''); setLockPinError(''); setLockModal('unlock') }}
                   style={{ fontSize: 22, cursor: 'pointer', position: 'relative' }}>
                   {child.avatarEmoji}
                   <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>
@@ -608,19 +526,11 @@ export default function App() {
               </>
             )}
             <span id="tour-mobile-theme"><ThemePicker child={child} onThemeChange={handleThemeChange} /></span>
-            <button id="tour-mobile-menu" onClick={() => setMobileMenuOpen(true)}
-              style={{ width: 36, height: 36, borderRadius: 10, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.2)', border: 'none', fontSize: 18, cursor: 'pointer' }}>☰</button>
+            <button id="tour-mobile-tour"
+              onClick={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
+              style={{ width: 36, height: 36, borderRadius: 10, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer' }}>❓</button>
           </div>
         </header>
-
-        <MobileMenu
-          open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}
-          onLogout={handleLogout} child={child}
-          onTour={() => startTour(child?.enabledFeatures ? JSON.parse(child.enabledFeatures) : null, quota, featureConfig)}
-          wotd={sidebarWotd}
-          childLocked={childLocked}
-          onUnlock={() => { setLockPin(''); setLockPinError(''); setLockModal('unlock') }}
-        />
 
         {offlineMode && (
           <div style={{ background: '#f4f6ff', borderBottom: '1px solid #dce4f7', padding: '7px 24px', fontSize: 12, fontWeight: 700, color: '#5a72c9', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -633,13 +543,17 @@ export default function App() {
           </div>
         )}
 
-        <main className="main-scroll" style={{ flex: 1, padding: isMobile ? '16px 12px' : isTV ? '32px 40px' : '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <main className="main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0,
+          ...(location.pathname.endsWith('/hub')
+            ? { padding: 0 }
+            : { padding: isMobile ? '16px 12px' : isTV ? '32px 40px' : '24px', overflowY: 'auto' }) }}>
           <ChildRoutes
             child={child}
             childLocked={childLocked}
             offlineMode={offlineMode}
             quota={quota}
             featureConfig={featureConfig}
+            wotd={sidebarWotd}
             onChildUpdated={c => { applyTheme(c.theme); setChild(c); navigate(-1) }}
             onLogout={handleLogout}
           />

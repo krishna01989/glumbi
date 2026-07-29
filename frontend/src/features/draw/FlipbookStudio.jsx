@@ -118,8 +118,18 @@ export default function FlipbookStudio({ child, quota }) {
   // Fullscreen
   const fsRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState('')
+
+  function capturePreview() {
+    try { if (canvasRef.current) setPreviewUrl(canvasRef.current.toDataURL('image/jpeg', 0.85)) } catch {}
+  }
+
   useEffect(() => {
-    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement)
+    const onFsChange = () => {
+      const isFull = !!document.fullscreenElement
+      setIsFullscreen(isFull)
+      if (!isFull) { capturePreview(); setFlipbookTitle('') }
+    }
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
@@ -374,6 +384,7 @@ export default function FlipbookStudio({ child, quota }) {
           ctx.clearRect(0, 0, W, H)
           ctx.drawImage(img, 0, 0)
           saveSnapshot()
+          capturePreview()
         }
         img.src = first
       }
@@ -1040,6 +1051,7 @@ export default function FlipbookStudio({ child, quota }) {
     }
     drawing.current = false
     lastPos.current = null
+    capturePreview()
   }
 
   // ── Selection tool ─────────────────────────────────────────────────────────
@@ -1494,13 +1506,27 @@ export default function FlipbookStudio({ child, quota }) {
     {showConfetti && <Confetti />}
     <FeatureBanner feature="flipbook" child={child} isMobile={isCompact} />
     <QuotaBanner quota={quota} />
+
+    {/* ── Non-fullscreen: animate button ── */}
+    {!isFullscreen && (
+      <div style={{ fontFamily: 'Nunito, sans-serif' }}>
+        <button onClick={() => newFlipbook().then(() => toggleFullscreen())}
+          style={{ padding: '10px 28px', borderRadius: 50, border: 'none',
+            background: 'linear-gradient(135deg,var(--primary),var(--accent))',
+            color: 'white', fontWeight: 800, fontSize: 15,
+            fontFamily: 'Nunito, sans-serif', cursor: 'pointer',
+            boxShadow: '0 3px 14px rgba(0,0,0,0.18)', whiteSpace: 'nowrap' }}>
+          🎬 Animate
+        </button>
+      </div>
+    )}
+
     <div ref={fsRef} style={{
-      display: 'flex', flexDirection: 'column',
-      height: isFullscreen ? '100dvh' : isCompact ? 'auto' : '100%',
-      minHeight: isFullscreen ? undefined : isMobile ? undefined : isCompact ? '80vh' : undefined,
-      width: isFullscreen ? '100dvw' : undefined,
-      background: isFullscreen ? '#f5f5f5' : undefined,
-      boxSizing: 'border-box', overflow: isFullscreen ? 'hidden' : undefined,
+      display: isFullscreen ? 'flex' : 'none',
+      flexDirection: 'column',
+      height: '100dvh', width: '100dvw',
+      background: '#f5f5f5',
+      boxSizing: 'border-box', overflow: 'hidden',
       fontFamily: 'Nunito, sans-serif',
     }}>
 
@@ -1519,6 +1545,20 @@ export default function FlipbookStudio({ child, quota }) {
 
         {/* ── Toolbar ── */}
         <div style={toolbarStyle}>
+
+          {/* Title input — fullscreen only */}
+          {isFullscreen && (
+            <input
+              value={flipbookTitle}
+              onChange={e => setFlipbookTitle(e.target.value)}
+              placeholder="Give your flipbook a name…"
+              maxLength={60}
+              style={{ width: '100%', padding: '5px 12px', borderRadius: 20,
+                border: '1.5px solid var(--primary-lt)', outline: 'none',
+                fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+                color: '#444', background: 'white', boxSizing: 'border-box' }}
+            />
+          )}
 
           {/* Shared popups (position:fixed) */}
           {showPalette && (
@@ -1823,12 +1863,11 @@ export default function FlipbookStudio({ child, quota }) {
         {/* ── Canvas area ── */}
         {/* Centering wrapper — fills remaining space, never stretches the canvas */}
         <div style={{ flex: 1, position: 'relative', minHeight: 0, overflow: 'hidden',
-          ...(isPortrait ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}) }}>
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Canvas container — fixed aspect ratio */}
         <div style={{ aspectRatio: `${W} / ${H}`,
           maxWidth: '100%', maxHeight: '100%',
-          width: isPortrait ? '100%' : 'auto', height: 'auto',
-          margin: isPortrait ? undefined : 'auto',
+          width: '100%', height: 'auto',
           borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
           position: 'relative', background: 'white', overflow: 'hidden' }}>
@@ -2343,7 +2382,7 @@ export default function FlipbookStudio({ child, quota }) {
             border: currentSaveId === save.id ? '2px solid var(--primary)' : '2px solid transparent',
             background: currentSaveId === save.id ? 'var(--primary-lt)' : '#fafafa',
             cursor: 'pointer', transition: 'background 0.15s' }}
-            onClick={() => { loadFlipbookSave(save); markActive(); close() }}>
+            onClick={() => { loadFlipbookSave(save).then(() => toggleFullscreen()); markActive(); close() }}>
             <img src={save.thumbnail ? `data:image/png;base64,${save.thumbnail}` : ''}
               alt={save.title || 'Flipbook'}
               style={{ width: 56, height: 42, objectFit: 'cover', borderRadius: 6,

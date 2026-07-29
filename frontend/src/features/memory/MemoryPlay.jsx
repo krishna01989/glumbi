@@ -732,20 +732,16 @@ const MODE_BUBBLES = [
 
 // ── Main MemoryPlay page ────────────────────────────────────────────────────────
 
-export default function MemoryPlay({ child, quota }) {
+export default function MemoryPlay({ child, quota, initialTab }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const VALID_TABS = ['flashcards', 'wordofday', 'match']
-  const tab = VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : null
+  const tab = initialTab || (VALID_TABS.includes(searchParams.get('tab')) ? searchParams.get('tab') : null)
 
 
   const isMobile = window.innerWidth < 600
 
   function selectTab(key) {
     setSearchParams({ tab: key }, { replace: true })
-  }
-
-  function goBack() {
-    setSearchParams({}, { replace: true })
   }
 
   const bannerFeature = tab ? `memory-${tab}` : 'memory'
@@ -773,20 +769,6 @@ export default function MemoryPlay({ child, quota }) {
 
       <FeatureBanner feature={bannerFeature} child={child} isMobile={isMobile} />
       <QuotaBanner quota={quota} />
-
-      {/* Back button — shown when a tab is active */}
-      {tab && (
-        <div>
-          <button onClick={goBack} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--primary-lt,#ffe5e5)', border: 'none',
-            borderRadius: 50, padding: '8px 16px 8px 12px', cursor: 'pointer',
-            fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13, color: 'var(--primary,#ff6b6b)',
-            transition: 'opacity 0.15s',
-          }}>
-            ← Back
-          </button>
-        </div>
-      )}
 
       {/* Mode selector — shown when no tab is active */}
       {!tab && (

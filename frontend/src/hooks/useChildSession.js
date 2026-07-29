@@ -110,6 +110,13 @@ export function useChildSession({ authed, role, featureConfig, setRestoring, quo
         .filter(k => k.startsWith('glm_session_start_') || k.startsWith('glm_snooze_count_'))
         .forEach(k => localStorage.removeItem(k))
     }
+    // Clear hub galaxy/swiper session state so next login starts at galaxy selection
+    if (child?.id) {
+      try {
+        sessionStorage.removeItem(`glm_hub_galaxy_${child.id}`)
+        sessionStorage.removeItem(`glm_hub_swiper_${child.id}`)
+      } catch {}
+    }
     prevChildId.current = null
     applyTheme('coral')
     setChild(null)

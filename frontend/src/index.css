@@ -154,6 +154,11 @@ input:focus, textarea:focus, select:focus {
   width: 100%;
 }
 
+.page-content--full {
+  max-width: none;
+  margin: 0;
+}
+
 
 /* ── Sidebar hidden on mobile ── */
 @media (max-width: 640px) {

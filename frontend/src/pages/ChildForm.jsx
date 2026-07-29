@@ -224,41 +224,19 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
           </div>
         </div>
 
-        {/* Theme */}
-        <div style={sectionCard}>
-          <SectionLabel>App Theme</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {THEME_GROUPS.map(group => (
-              <div key={group.label}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#ccc', marginBottom: 8, letterSpacing: 0.5 }}>
-                  {group.label}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  {group.keys.map(key => {
-                    const t = THEMES[key]
-                    const active = form.theme === key
-                    return (
-                      <button key={key} type="button"
-                        onClick={() => setForm(f => ({ ...f, theme: key }))}
-                        style={{
-                          padding: '10px 6px', borderRadius: 14, fontSize: 11, fontWeight: 700,
-                          background: active ? t.primaryLt : '#f5f5f5',
-                          border: active ? `2px solid ${t.primary}` : '2px solid transparent',
-                          color: active ? t.primary : '#888',
-                          cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                          transition: 'all 0.12s ease',
-                        }}>
-                        <div style={{ width: '100%', height: 16, borderRadius: 6, background: t.headerGrad }} />
-                        <span style={{ fontSize: 18, marginTop: 2 }}>{t.emoji}</span>
-                        <span>{t.name}</span>
-                      </button>
-                    )
-                  })}
-                </div>
+        {/* Theme — read-only in edit; default used on create */}
+        {isEdit && (
+          <div style={sectionCard}>
+            <SectionLabel>App Theme</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 24, borderRadius: 8, background: theme.headerGrad, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: primary }}>{theme.emoji} {theme.name}</div>
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>Change theme from inside the child's page</div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Features */}
         {features !== null && (

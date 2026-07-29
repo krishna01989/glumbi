@@ -171,6 +171,11 @@ export default function ChildForm({ onChildCreated, onChildUpdated, enabledFeatu
             <input placeholder="e.g. Emma, Liam, Sofia" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required
               style={{ width: '100%', padding: '11px 14px', borderRadius: 12, border: '1.5px solid #eee', fontSize: 14, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }} />
+            {isEdit && (
+              <div style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>
+                ℹ️ Changing the name only affects new content — previously generated content will keep the old name.
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: 18 }}>

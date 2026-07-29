@@ -8,7 +8,6 @@ import com.glumbi.scheduler.QuotaScheduler;
 import com.glumbi.entity.Notification;
 import com.glumbi.entity.Notification.NotificationType;
 import com.glumbi.service.ApiQuotaService;
-import com.glumbi.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import com.glumbi.security.JwtFilter;
@@ -57,7 +56,6 @@ public class AdminController {
     private final com.glumbi.service.EmailTemplates   emailTemplates;
     private final com.glumbi.service.VendorConfigService vendorConfigService;
     private final com.glumbi.service.AdminAlertService adminAlertService;
-    private final NotificationService notificationService;
     private final NotificationRepository notificationRepo;
 
     @GetMapping("/stats")

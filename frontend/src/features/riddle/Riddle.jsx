@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, useRef } from 'react'
 import Confetti from '../../components/Confetti'
 import { riddleApi } from '../../api/client'
@@ -227,7 +228,7 @@ export default function Riddle({ child, quota, featureConfig }) {
     return !fc || fc.enabled !== false
   })()
 
-  const canGenerate = riddleAiEnabled && !offline && quota && quota.used < quota.limit
+  const canGenerate = riddleAiEnabled && !offline && !isCreditsBlocked(quota)
   const current     = riddles[currentIdx]
 
   async function handleGenerate() {

@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { readQuizApi } from '../../api/client'
@@ -246,7 +247,7 @@ export default function ReadQuiz({ child, quota }) {
                 style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '2px solid #eee', fontSize: 13, boxSizing: 'border-box', fontFamily: 'Nunito, sans-serif' }} />
             </div>
             <ErrorBox msg={error} />
-            <button type="submit" disabled={loading || !topic.trim() || quota?.used >= quota?.limit || offline}
+            <button type="submit" disabled={loading || !topic.trim() || isCreditsBlocked(quota) || offline}
               style={{
                 padding: '12px', borderRadius: 50, fontWeight: 800, fontSize: 16,
                 background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none',

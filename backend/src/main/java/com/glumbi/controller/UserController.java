@@ -40,6 +40,7 @@ public class UserController {
     private final FeatureConfigRepository       featureConfigRepo;
     private final UserFeatureOverrideRepository overrideRepo;
     private final com.glumbi.service.AccountDeletionService accountDeletionService;
+    private final com.glumbi.service.PromoCreditService promoCreditService;
     private final ResendClient  resendClient;
     private final EmailTemplates emailTemplates;
     private final AdminAlertService adminAlertService;
@@ -65,11 +66,33 @@ public class UserController {
         long used = userRepository.findById(authUser.id())
             .map(u -> (long) u.getMonthlyApiCalls()).orElse(0L);
         long usedActual = usageLogRepository.sumCreditsByUser(authUser.id(), monthStart, monthEnd);
+
+        var promoGrants = promoCreditService.getGrantsForUser(authUser.id()).stream()
+            .map(g -> {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("id",               g.getId());
+                m.put("campaignId",       g.getCampaignId());
+                m.put("label",            g.getLabel());
+                m.put("totalCredits",     g.getTotalCredits());
+                m.put("usedCredits",      g.getUsedCredits());
+                m.put("remainingCredits", g.remainingCredits());
+                m.put("expiresOn",        g.getExpiresOn().toString());
+                m.put("active",           g.isActive());
+                return m;
+            }).toList();
+
+        int totalPromoRemaining = promoGrants.stream()
+            .filter(g -> Boolean.TRUE.equals(g.get("active")))
+            .mapToInt(g -> (int) g.get("remainingCredits"))
+            .sum();
+
         return ResponseEntity.ok(Map.of(
-            "used",        used,
-            "usedActual",  usedActual,
-            "limit",       limit,
-            "month",       nowMonth.toString()
+            "used",                used,
+            "usedActual",          usedActual,
+            "limit",               limit,
+            "month",               nowMonth.toString(),
+            "promoGrants",         promoGrants,
+            "totalPromoRemaining", totalPromoRemaining
         ));
     }
 

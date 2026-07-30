@@ -24,6 +24,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import reactor.util.retry.Retry;
+
+import java.io.IOException;
+import java.net.SocketException;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
@@ -94,6 +99,8 @@ public class AuthController {
                     .uri(googleTokenInfoUrl + "?id_token=" + idToken)
                     .retrieve()
                     .bodyToMono(String.class)
+                    .retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
+                            .filter(e -> e instanceof IOException || e instanceof SocketException))
                     .block();
 
             JsonNode info = mapper.readTree(raw);

@@ -9,6 +9,11 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import reactor.util.retry.Retry;
+
+import java.io.IOException;
+import java.net.SocketException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -56,6 +61,8 @@ public class VoyageEmbeddingClient {
             .bodyValue(body)
             .retrieve()
             .bodyToMono(String.class)
+            .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
+                .filter(e -> e instanceof IOException || e instanceof SocketException))
             .block();
 
         JsonNode embedding = objectMapper.readTree(response).path("data").get(0).path("embedding");

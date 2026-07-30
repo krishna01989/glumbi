@@ -278,6 +278,39 @@ export default function ProfilePage({ onLogout, onConsentWithdrawn, parentOnly =
             {breakdown && childRows.length === 0 && (
               <div style={{ fontSize: 13, color: '#bbb', textAlign: 'center', padding: '8px 0' }}>✨ No AI usage this month</div>
             )}
+
+            {/* Promo grants */}
+            {quota.promoGrants && quota.promoGrants.length > 0 && (
+              <div style={{ marginTop: 20, borderTop: '1.5px solid #f0f0f0', paddingTop: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                  🎁 Bonus Credits
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {quota.promoGrants.map(g => {
+                    const promoPct = Math.min(g.usedCredits / g.totalCredits, 1)
+                    const promoBar = promoPct >= 1 ? '#ccc' : g.active ? '#9d8fff' : '#ddd'
+                    const expiryDate = new Date(g.expiresOn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    return (
+                      <div key={g.id} style={{ background: g.active ? '#f8f6ff' : '#fafafa', borderRadius: 12, padding: '12px 14px', border: `1.5px solid ${g.active ? '#e0d8ff' : '#f0f0f0'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: g.active ? '#5a3fc0' : '#aaa' }}>{g.label}</span>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 50, background: g.active ? '#ede8ff' : '#f0f0f0', color: g.active ? '#7c5ccc' : '#bbb' }}>
+                            {g.active ? (promoPct >= 1 ? 'Used' : 'Active') : (new Date(g.expiresOn) < new Date() ? 'Expired' : 'Used')}
+                          </span>
+                        </div>
+                        <div style={{ height: 6, background: '#ede8ff', borderRadius: 6, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ height: '100%', width: `${promoPct * 100}%`, background: promoBar, borderRadius: 6, transition: 'width 0.6s ease' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aaa' }}>
+                          <span>Expires {expiryDate}</span>
+                          <span style={{ fontWeight: 700, color: '#888' }}>{g.remainingCredits} / {g.totalCredits} remaining</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )
       })()}

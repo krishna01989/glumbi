@@ -111,6 +111,21 @@ public class EmailTemplates {
         return templateEngine.process("email/quota-warning", ctx);
     }
 
+    public String promoGrant(String label, int credits, String expiresOn) {
+        Context ctx = brandContext();
+        ctx.setVariable("label",     label);
+        ctx.setVariable("credits",   credits);
+        ctx.setVariable("expiresOn", expiresOn);
+        return templateEngine.process("email/promo-grant", ctx);
+    }
+
+    public String promoExhausted(String label, String nextResetDate) {
+        Context ctx = brandContext();
+        ctx.setVariable("label",         label);
+        ctx.setVariable("nextResetDate", nextResetDate);
+        return templateEngine.process("email/promo-exhausted", ctx);
+    }
+
     public String announcement(String headline, String bodyHtml) {
         Context ctx = brandContext();
         ctx.setVariable("headline", headline);

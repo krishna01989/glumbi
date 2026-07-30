@@ -8,6 +8,10 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import reactor.util.retry.Retry;
+
+import java.io.IOException;
+import java.net.SocketException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +50,8 @@ public class ResendClient {
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(30))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                    .filter(e -> e instanceof IOException || e instanceof SocketException))
                 .subscribe(
                     ok  -> {},
                     err -> log.error("Batch email send failed (chunk at {}): {}", chunkStart, err.getMessage())
@@ -68,7 +74,9 @@ public class ResendClient {
             ))
             .retrieve()
             .bodyToMono(String.class)
-            .timeout(Duration.ofSeconds(5))
+            .timeout(Duration.ofSeconds(10))
+            .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                .filter(e -> e instanceof IOException || e instanceof SocketException))
             .subscribe(
                 ok  -> {},
                 err -> log.error("Email send failed to {}: {}", to, err.getMessage())

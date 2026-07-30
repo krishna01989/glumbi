@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import Confetti from '../../components/Confetti'
@@ -151,7 +152,7 @@ function FlashcardsTab({ child, quota, isMobile }) {
         <input placeholder="Enter a topic… e.g. Solar System, Animals, Colors"
           value={topic} onChange={e => setTopic(e.target.value)} required />
         <ErrorBox msg={error} />
-        <button type="submit" disabled={loading || !topic.trim() || offline || quota?.used >= quota?.limit}
+        <button type="submit" disabled={loading || !topic.trim() || offline || isCreditsBlocked(quota)}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: (loading || offline) ? 'not-allowed' : 'pointer', opacity: (loading || offline) ? 0.6 : 1 }}>
           {loading ? <><span className="spinner" /> &nbsp;Generating…</> : offline ? '✈️ ✨ Generate Cards' : '✨ Generate Cards'}
         </button>
@@ -660,7 +661,7 @@ function MemoryMatchTab({ child, quota, isMobile }) {
           </div>
         </div>
         <ErrorBox msg={error} />
-        <button type="submit" disabled={loading || !theme.trim() || offline || quota?.used >= quota?.limit}
+        <button type="submit" disabled={loading || !theme.trim() || offline || isCreditsBlocked(quota)}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: (loading || offline) ? 'not-allowed' : 'pointer', opacity: (loading || offline) ? 0.6 : 1 }}>
           {loading ? <><span className="spinner" /> &nbsp;Generating…</> : offline ? '✈️ ✨ Generate Game' : '✨ Generate Game'}
         </button>

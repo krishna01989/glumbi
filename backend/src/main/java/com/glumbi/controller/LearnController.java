@@ -149,7 +149,7 @@ public class LearnController {
             }
 
             if (!quotaService.tryConsume(authUser.id(), "learn-validate", childId)) {
-                return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
+                return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
             }
             return ResponseEntity.ok(Map.of("correct", correct, "feedback", feedback));
 
@@ -256,7 +256,7 @@ public class LearnController {
             }
 
             if (!quotaService.tryConsume(authUser.id(), "learn-word", childId)) {
-                return ResponseEntity.status(429).body(Map.of("error", "Monthly limit reached"));
+                return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
             }
             return ResponseEntity.ok(result);
         } catch (Exception e) {

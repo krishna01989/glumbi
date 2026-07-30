@@ -31,6 +31,7 @@ public class ApiQuotaService {
     private final AiUsageLogRepository          usageLogRepo;
     private final ResendClient                  resendClient;
     private final EmailTemplates                emailTemplates;
+    private final PromoCreditService            promoCreditService;
 
     @Value("${app.quota.default-monthly-credits:200}")
     private int defaultMonthlyCreditsYaml;
@@ -43,16 +44,17 @@ public class ApiQuotaService {
         int cost = featureConfigRepo.findById(feature)
             .map(fc -> fc.getCreditCost())
             .orElse(1);
-        boolean ok = consumeCredits(userId, cost);
-        if (ok) {
+        String source = consumeCredits(userId, cost);
+        if (source != null) {
             AiUsageLog log = new AiUsageLog();
             log.setUserId(userId);
             log.setChildId(childId);
             log.setFeatureName(feature);
             log.setCreditsUsed(cost);
+            log.setCreditSource(source);
             usageLogRepo.save(log);
         }
-        return ok;
+        return source != null;
     }
 
     /** Overload without childId — logs with null child (feature not child-specific). */
@@ -67,15 +69,16 @@ public class ApiQuotaService {
         return tryConsume(userId, "unknown", null);
     }
 
-    private boolean consumeCredits(Long userId, int cost) {
+    /** Returns the credit source string if deducted, null if all quota exhausted. */
+    private String consumeCredits(Long userId, int cost) {
         AppUser user = userRepository.findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Admins and super-admins are exempt from quota — unlimited AI access
-        if (user.isAdminOrAbove()) return true;
+        if (user.isAdminOrAbove()) return "MONTHLY";
 
         // Parental consent is required before any AI credit is spent
-        if (!user.isConsentGiven()) return false;
+        if (!user.isConsentGiven()) return null;
 
         String thisMonth = YearMonth.now().toString();
 
@@ -93,7 +96,12 @@ public class ApiQuotaService {
 
         // Atomic check-and-increment — eliminates TOCTOU race between concurrent requests
         int updated = userRepository.atomicDeductCredits(userId, cost, thisMonth, limit);
-        if (updated == 0) return false;
+        if (updated == 0) {
+            // Monthly quota exhausted — try promo reserve (EEF order)
+            String drawnFrom = promoCreditService.tryDrawPromo(userId, cost);
+            if (drawnFrom != null) return "PROMO:" + drawnFrom;
+            return null;
+        }
 
         // Re-fetch to get the post-update value for notification thresholds
         user = userRepository.findById(userId)
@@ -122,16 +130,19 @@ public class ApiQuotaService {
         if (crossed100 && exhaustedNotSentYet) {
             user.setQuotaExhaustedMonth(thisMonth);
             userRepository.save(user);
-            notificationService.save(
-                user, null, NotificationType.QUOTA_WARNING,
-                "🚫 You've used all your monthly AI credits. AI features are paused until next month. " +
-                "Switch to Practice Mode to keep learning without credits."
-            );
+            // Check if promo credits exist — tailor the message accordingly
+            boolean hasPromo = !promoCreditService.getGrantsForUser(userId).stream()
+                .filter(com.glumbi.entity.PromoCreditGrant::isActive).toList().isEmpty();
+            String msg = hasPromo
+                ? "🚫 Monthly credits used up — your bonus credits are now active! Keep learning."
+                : "🚫 You've used all your monthly AI credits. AI features are paused until next month. " +
+                  "Switch to Practice Mode to keep learning without credits.";
+            notificationService.save(user, null, NotificationType.QUOTA_WARNING, msg);
             resendClient.send(user.getEmail(), "You've used all your Glumbi credits for this month 🚫",
                 emailTemplates.quotaWarning(100));
         }
 
-        return true;
+        return "MONTHLY";
     }
 
     public int getDefaultMonthlyCredits() {

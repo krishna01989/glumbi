@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { hasSeen, markSeen } from '../../utils/seen'
 import { drawApi, drawSaveApi } from '../../api/client'
@@ -1353,12 +1354,12 @@ export default function Draw({ child, quota, featureConfig }) {
                   value={guideInput}
                   onChange={e => setGuideInput(e.target.value)}
                   placeholder={`Hey ${child?.name || 'there'}, what do you want to draw today?`}
-                  disabled={offline || quota?.used >= quota?.limit}
+                  disabled={offline || isCreditsBlocked(quota)}
                   style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14,
                     fontFamily: 'Nunito, sans-serif', fontWeight: 600, background: 'transparent', color: '#333' }}
                 />
               </div>
-              <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
+              <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || isCreditsBlocked(quota)}
                 style={{ padding: '0 16px', borderRadius: 50, border: 'none', fontWeight: 700,
                   fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
                   background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
@@ -1760,13 +1761,13 @@ export default function Draw({ child, quota, featureConfig }) {
                 value={guideInput}
                 onChange={e => setGuideInput(e.target.value)}
                 placeholder={`Hey ${child?.name || 'there'}, what do you want to draw today?`}
-                disabled={offline || quota?.used >= quota?.limit}
+                disabled={offline || isCreditsBlocked(quota)}
                 style={{ border: 'none', outline: 'none', flex: 1, fontSize: 14,
                   fontFamily: 'Nunito, sans-serif', fontWeight: 600, background: 'transparent',
                   color: '#333' }}
               />
             </div>
-            <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || quota?.used >= quota?.limit}
+            <button type="submit" disabled={!guideInput.trim() || guideLoading || offline || isCreditsBlocked(quota)}
               style={{ padding: '0 20px', borderRadius: 50, border: 'none', fontWeight: 700,
                 fontSize: 13, cursor: guideInput.trim() && !offline ? 'pointer' : 'not-allowed',
                 background: guideInput.trim() && !offline ? 'linear-gradient(135deg,var(--primary),var(--accent))' : '#eee',
@@ -2001,7 +2002,7 @@ export default function Draw({ child, quota, featureConfig }) {
             boxSizing:'border-box', minHeight:60 }}>
             {drawAiEnabled && (
               <button onClick={handleIdentify}
-                disabled={loading || isEmpty || quota?.used >= quota?.limit || offline}
+                disabled={loading || isEmpty || isCreditsBlocked(quota) || offline}
                 style={{ padding:'10px 20px', borderRadius:50, border:'none', fontWeight:800,
                   fontSize:14, cursor:(isEmpty||offline)?'not-allowed':'pointer',
                   background:'linear-gradient(135deg,var(--primary),var(--accent))',
@@ -2012,7 +2013,7 @@ export default function Draw({ child, quota, featureConfig }) {
             )}
             {animateEnabled && (
               <button onClick={handleAnimate}
-                disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || quota?.used >= quota?.limit || offline}
+                disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || isCreditsBlocked(quota) || offline}
                 style={{ padding:'10px 20px', borderRadius:50, border:'none', fontWeight:800,
                   fontSize:14, cursor:(isEmpty||offline||animLoading||!drawnAfterAnim||animCooldown>0)?'not-allowed':'pointer',
                   background:'var(--primary)',
@@ -2112,7 +2113,7 @@ export default function Draw({ child, quota, featureConfig }) {
             ✈️ AI drawing features are currently off
           </div>
         )}
-        <button onClick={handleIdentify} disabled={!drawAiEnabled || loading || isEmpty || quota?.used >= quota?.limit || offline}
+        <button onClick={handleIdentify} disabled={!drawAiEnabled || loading || isEmpty || isCreditsBlocked(quota) || offline}
           style={{
             display: drawAiEnabled ? undefined : 'none',
             padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
@@ -2129,7 +2130,7 @@ export default function Draw({ child, quota, featureConfig }) {
         {animateEnabled && (
           <button
             onClick={handleAnimate}
-            disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || quota?.used >= quota?.limit || offline}
+            disabled={animLoading || isEmpty || !drawnAfterAnim || animCooldown > 0 || isCreditsBlocked(quota) || offline}
             style={{
               padding: '14px 28px', borderRadius: 50, fontSize: 15, fontWeight: 800,
               background: 'var(--primary)',

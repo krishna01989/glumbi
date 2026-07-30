@@ -49,6 +49,7 @@ public class Notification {
         CURIOSITY_INSIGHT,
         JOURNAL_INSIGHT,
         QUOTA_WARNING,
+        PROMO_GRANT,
         ADMIN_ALERT
     }
 }

@@ -1,5 +1,7 @@
+import { isCreditsBlocked } from '../utils/quota'
+
 export default function QuotaBanner({ quota }) {
-  if (!quota || quota.used < quota.limit) return null
+  if (!isCreditsBlocked(quota)) return null
   return (
     <div style={{
       background: 'linear-gradient(135deg,#fff0f0,#ffe4e4)',

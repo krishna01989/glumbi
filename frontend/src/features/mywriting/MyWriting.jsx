@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, useRef } from 'react'
 import Confetti from '../../components/Confetti'
 import { writingApi, storyApi } from '../../api/client'
@@ -445,12 +446,12 @@ export default function MyWriting({ child, quota }) {
                     style={{ padding: '10px 20px', borderRadius: 50, fontWeight: 700, fontSize: 13, background: '#f5f5f5', color: '#555', border: 'none', cursor: 'pointer' }}>
                     {saving ? 'Saving…' : '💾 Save'}
                   </button>
-                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || overLimit || quota?.used >= quota?.limit || offline}
+                  <button onClick={handleGetFeedback} disabled={fbLoading || !content.trim() || overLimit || isCreditsBlocked(quota) || offline}
                     style={{
                       padding: '10px 20px', borderRadius: 50, fontWeight: 800, fontSize: 13,
                       background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', border: 'none',
-                      cursor: fbLoading || !content.trim() || overLimit || quota?.used >= quota?.limit || offline ? 'not-allowed' : 'pointer',
-                      opacity: fbLoading || !content.trim() || overLimit || quota?.used >= quota?.limit || offline ? 0.6 : 1,
+                      cursor: fbLoading || !content.trim() || overLimit || isCreditsBlocked(quota) || offline ? 'not-allowed' : 'pointer',
+                      opacity: fbLoading || !content.trim() || overLimit || isCreditsBlocked(quota) || offline ? 0.6 : 1,
                       display: 'flex', alignItems: 'center', gap: 6,
                     }}>
                     {fbLoading
@@ -632,13 +633,13 @@ export default function MyWriting({ child, quota }) {
               {!continuation && chapterIndex === seriesChapters.length - 1 && (
                 <button
                   onClick={() => handleContinue(selected)}
-                  disabled={contLoading || offline || quota?.used >= quota?.limit}
+                  disabled={contLoading || offline || isCreditsBlocked(quota)}
                   style={{
                     width: '100%', padding: '14px', borderRadius: 50, fontWeight: 800, fontSize: 14,
                     background: contLoading ? '#f5f5f5' : 'linear-gradient(135deg,#8e44ad,#3498db)',
                     color: contLoading ? '#aaa' : 'white', border: 'none',
-                    cursor: contLoading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
-                    opacity: offline || quota?.used >= quota?.limit ? 0.6 : 1,
+                    cursor: contLoading || offline || isCreditsBlocked(quota) ? 'not-allowed' : 'pointer',
+                    opacity: offline || isCreditsBlocked(quota) ? 0.6 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}>
                   {contLoading

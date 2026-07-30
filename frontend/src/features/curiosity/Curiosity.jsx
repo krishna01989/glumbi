@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, memo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { curiosityApi } from '../../api/client'
@@ -328,7 +329,7 @@ export default function Curiosity({ child, quota }) {
         </div>
 
         <ErrorBox msg={error} />
-        <button type="submit" disabled={loading || !question.trim() || quota?.used >= quota?.limit || offline}
+        <button type="submit" disabled={loading || !question.trim() || isCreditsBlocked(quota) || offline}
           style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', color: 'white', fontSize: 16, padding: '12px', borderRadius: 50, fontWeight: 700, border: 'none', cursor: offline ? 'not-allowed' : 'pointer', opacity: offline ? 0.6 : 1 }}>
           {loading ? <><span className="spinner" /> &nbsp;Finding the answer…</> : offline ? `✈️ ✨ Explain to ${child.name}` : '✨ Explain to ' + child.name}
         </button>

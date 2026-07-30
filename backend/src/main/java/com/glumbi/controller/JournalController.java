@@ -52,11 +52,11 @@ public class JournalController {
             return ResponseEntity.status(403).body(Map.of("error", "Journal AI is not enabled"));
         }
         String selectedMood = body != null ? body.get("selectedMood") : null;
+        if (!quotaService.tryConsume(user.id(), "journal-ai", childId)) {
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
+        }
         var result = service.generateAiEntry(childId, selectedMood);
         if (result == null) return ResponseEntity.status(500).body(Map.of("error", "Could not generate entry"));
-        if (!quotaService.tryConsume(user.id(), "journal-ai", childId)) {
-            return ResponseEntity.status(429).body(Map.of("error", "Monthly quota reached"));
-        }
         return ResponseEntity.ok(result);
     }
 

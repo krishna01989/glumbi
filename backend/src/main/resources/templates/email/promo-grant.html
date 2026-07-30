@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Nunito',Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#ffffff;padding:24px 32px;text-align:center;border-bottom:3px solid #ff6b6b;">
+              <img th:src="${brandLogoUrl}" alt="Glumbi" width="140" style="display:block;margin:0 auto;">
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="background:#ffffff;padding:36px 32px;">
+              <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">Dear Glumbi User,</p>
+
+              <h2 style="margin:0 0 12px;font-size:22px;font-weight:900;color:#1a1a2e;">
+                🎁 You've got <span th:text="${credits}">500</span> bonus credits!
+              </h2>
+              <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+                We've added <strong th:text="${credits}">500</strong> bonus AI credits to your account as part of:
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="background:#f5f3ff;padding:18px 20px;border-left:4px solid #ff6b6b;border-radius:0 8px 8px 0;">
+                    <p style="margin:0 0 4px;font-size:17px;font-weight:900;color:#1a1a2e;" th:text="${label}">🎂 1-Year Anniversary Gift</p>
+                    <p style="margin:0;font-size:13px;color:#777777;">
+                      Valid until <strong th:text="${expiresOn}">2026-08-31</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 20px;font-size:15px;color:#555555;line-height:1.6;">
+                These credits are a <strong>reserve</strong> — they kick in automatically once your regular monthly credits run out, so your child's learning never gets interrupted. No action needed from you.
+              </p>
+
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+                <tr>
+                  <td style="background:#f8f8f8;padding:14px 18px;border-radius:8px;">
+                    <p style="margin:0 0 4px;font-size:13px;font-weight:800;color:#1a1a2e;">How it works</p>
+                    <p style="margin:0;font-size:13px;color:#555555;line-height:1.7;">
+                      1. Your regular monthly credits are used first.<br>
+                      2. When they run out, bonus credits take over automatically.<br>
+                      3. Bonus credits expire on the date shown above — use them before then!
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px auto;">
+                <tr>
+                  <td style="background:#ff6b6b;padding:12px 32px;text-align:center;border-radius:6px;">
+                    <a th:href="${brandAuthUrl}" style="color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;">Open Glumbi →</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:14px;color:#555555;line-height:1.8;">
+                Warm regards,<br>
+                <strong>The Glumbi Team</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#aaaaaa;">
+                &copy; Glumbi &nbsp;&middot;&nbsp;
+                <a th:href="${brandPrivacyUrl}" style="color:#aaaaaa;">Privacy</a>
+                &nbsp;&middot;&nbsp;
+                <a th:href="${brandContactUrl}" style="color:#aaaaaa;">Contact</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -75,7 +75,7 @@ public class WritingController {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate feedback"));
         }
         if (!quotaService.tryConsume(user.id(), "writing-coach", writingChildId))
-            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         return ResponseEntity.ok(feedback);
     }
 
@@ -113,7 +113,7 @@ public class WritingController {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not continue story"));
         }
         if (!quotaService.tryConsume(user.id(), "story", childId))
-            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         return ResponseEntity.ok(Map.of("title", storyResult.title(), "content", storyResult.content()));
     }
 

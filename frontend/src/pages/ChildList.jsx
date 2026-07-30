@@ -27,6 +27,13 @@ const FEATURE_META = {
 }
 
 /* ── Credit info modal ── */
+function fmtExpiry(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${parseInt(d)} ${months[parseInt(m) - 1]}, ${y}`
+}
+
 function CreditInfoModal({ featureConfig, onClose }) {
   const items = featureConfig.filter(f => f.featureName && FEATURE_META[f.featureName])
   return (
@@ -54,7 +61,7 @@ function CreditInfoModal({ featureConfig, onClose }) {
             )
           })}
         </div>
-        <div style={{ fontSize: 11, color: '#ccc', textAlign: 'center', marginTop: 14, flexShrink: 0 }}>Credits reset on the 1st of each month</div>
+        <div style={{ fontSize: 11, color: '#ccc', textAlign: 'center', marginTop: 14, flexShrink: 0 }}>Monthly credits reset on the 1st of each month</div>
       </div>
     </div>
   )
@@ -70,7 +77,7 @@ function QuotaPill({ quota, onInfo }) {
   const borderColor = pct >= 1 ? 'rgba(255,68,68,0.5)' : pct >= 0.8 ? 'rgba(255,217,61,0.5)' : 'rgba(255,255,255,0.3)'
   const label = overLimit ? '⛔ Over limit' : pct >= 1 ? '🚫 Limit reached' : pct >= 0.8 ? '⚠️ Almost full' : null
   return (
-    <div className="quota-pill-desktop" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: `1px solid ${borderColor}`, borderRadius: 50, padding: '6px 14px', animation: 'glm-fadein 0.5s ease both', zIndex: 10 }}>
+    <div className="quota-pill-carousel" style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(12px)', border: `1px solid ${borderColor}`, borderRadius: 50, padding: '6px 14px', animation: 'glm-fadein 0.5s ease both', zIndex: 10 }}>
       <div style={{ width: 48, height: 5, background: 'rgba(255,255,255,0.25)', borderRadius: 10, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct * 100}%`, background: barColor, borderRadius: 10, transition: 'width 0.6s ease' }} />
       </div>

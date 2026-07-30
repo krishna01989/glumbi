@@ -49,7 +49,7 @@ public class ReadQuizController {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate quiz"));
         }
         if (!quotaService.tryConsume(user.id(), "read-quiz", req.getChildId()))
-            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         return ResponseEntity.ok(result);
     }
 
@@ -77,7 +77,7 @@ public class ReadQuizController {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate quiz"));
         }
         if (!quotaService.tryConsume(user.id(), "read-quiz", childId))
-            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. Resets on the 1st!"));
+            return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
         return ResponseEntity.ok(result);
     }
 

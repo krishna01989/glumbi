@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import Confetti from '../../components/Confetti'
 import { traceApi } from '../../api/client'
@@ -219,7 +220,7 @@ export default function Maze({ child, quota, featureConfig }) {
     const fc = featureConfig.find(f => f.featureName === 'maze')
     return !fc || fc.enabled !== false
   })()
-  const canGenerate = mazeEnabled && !offline && quota && quota.used < quota.limit
+  const canGenerate = mazeEnabled && !offline && !isCreditsBlocked(quota)
 
   // ── Reset ──────────────────────────────────────────────────────────────────
   function resetDraw() {

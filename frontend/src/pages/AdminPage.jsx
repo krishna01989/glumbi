@@ -16,14 +16,15 @@ function useIsMobile() {
 
 // ─── Sidebar nav items ───────────────────────────────────────────────────────
 const NAV = [
-  { id: 'dashboard',     icon: '📊', label: 'Dashboard'      },
-  { id: 'users',         icon: '👥', label: 'Users'          },
+  { id: 'dashboard',     icon: '📊', label: 'Dashboard'       },
+  { id: 'users',         icon: '👥', label: 'Users'           },
   { id: 'credits',       icon: '💰', label: 'Feature Credits' },
-  { id: 'agents',        icon: '🤖', label: 'AI Agents'      },
-  { id: 'schedulers',    icon: '⏰', label: 'Schedulers'     },
-  { id: 'announcements', icon: '📣', label: 'Announcements'  },
-  { id: 'vendors',       icon: '🔌', label: 'Vendors'         },
-  { id: 'compliance',    icon: '🛡️', label: 'Compliance'      },
+  { id: 'promo',         icon: '🎁', label: 'Promo Credits'   },
+  { id: 'agents',        icon: '🤖', label: 'AI Agents'       },
+  { id: 'schedulers',    icon: '⏰', label: 'Schedulers'      },
+  { id: 'announcements', icon: '📣', label: 'Announcements'   },
+  { id: 'vendors',       icon: '🔌', label: 'Vendors'          },
+  { id: 'compliance',    icon: '🛡️', label: 'Compliance'       },
 ]
 
 // ─── Password reset modal ─────────────────────────────────────────────────────
@@ -1132,6 +1133,46 @@ function Dashboard() {
 function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold, onRelease, onDelete, onFeatureAccess, onPromote, onDemote }) {
   const [revealedEmail, setRevealedEmail] = useState(null)
   const [revealing, setRevealing] = useState(false)
+  const [promoGrants, setPromoGrants] = useState(null)
+  const [promoLoading, setPromoLoading] = useState(false)
+  const [promoExpanded, setPromoExpanded] = useState(false)
+  const [grantForm, setGrantForm] = useState({ label: '', credits: '', expiresOn: '' })
+  const [grantFormOpen, setGrantFormOpen] = useState(false)
+  const [grantSubmitting, setGrantSubmitting] = useState(false)
+  const [grantMsg, setGrantMsg] = useState(null)
+
+  async function togglePromo() {
+    if (promoExpanded) { setPromoExpanded(false); return }
+    setPromoExpanded(true)
+    if (promoGrants !== null) return
+    setPromoLoading(true)
+    try {
+      const data = await adminApi.getUserPromoGrants(user.id)
+      setPromoGrants(data)
+    } catch { setPromoGrants([]) } finally { setPromoLoading(false) }
+  }
+
+  async function submitGrant(e) {
+    e.preventDefault()
+    setGrantSubmitting(true)
+    setGrantMsg(null)
+    try {
+      await adminApi.manualGrantToUser(user.id, {
+        label: grantForm.label,
+        credits: Number(grantForm.credits),
+        expiresOn: grantForm.expiresOn,
+      })
+      setGrantMsg({ ok: true, text: 'Grant created! User will get an in-app notification and email.' })
+      setGrantForm({ label: '', credits: '', expiresOn: '' })
+      setGrantFormOpen(false)
+      // Refresh grants list
+      const data = await adminApi.getUserPromoGrants(user.id)
+      setPromoGrants(data)
+    } catch (err) {
+      const msg = err?.response?.data?.error ?? 'Failed to create grant'
+      setGrantMsg({ ok: false, text: msg })
+    } finally { setGrantSubmitting(false) }
+  }
   async function revealEmail() {
     if (revealedEmail) { setRevealedEmail(null); return }
     setRevealing(true)
@@ -1150,7 +1191,7 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
   const isPrivileged = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
 
   return (
-    <div style={{ background: user.onHold ? '#fff8f8' : 'white', borderRadius: 14, padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', borderLeft: `4px solid ${borderColor}` }}>
+    <div style={{ background: user.onHold ? '#fff8f8' : 'white', borderRadius: 14, padding: '14px 18px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap', borderLeft: `4px solid ${borderColor}` }}>
       <div style={{
         width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
@@ -1186,17 +1227,115 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
           const color = pct >= 1 ? '#ff4444' : pct >= 0.8 ? '#f59e0b' : pct >= 0.5 ? '#3b82f6' : '#6bcb77'
           const textColor = pct >= 1 ? '#cc0033' : pct >= 0.8 ? '#b45309' : pct >= 0.5 ? '#1d4ed8' : '#15803d'
           return (
-            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ flex: 1, height: 5, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+            <>
+              <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, height: 5, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden', minWidth: 40 }}>
+                    <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.3s' }} />
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
+                    {overLimit ? '⛔' : ''}{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} cr
+                  </span>
+                  <span style={{ fontSize: 10, color: '#aaa', whiteSpace: 'nowrap' }}>
+                    ({user.quotaUsedActual ?? 0} this month)
+                  </span>
+                </div>
+                <div>
+                  <button onClick={togglePromo} style={{ background: promoExpanded ? '#ede9fe' : 'none', border: promoExpanded ? '1px solid #c4b5fd' : 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#9333ea', fontWeight: 700, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                    🎁 Promo {promoExpanded ? '▲' : '▼'}
+                  </button>
+                </div>
               </div>
-              <span style={{ fontSize: 10, fontWeight: 800, color: textColor, whiteSpace: 'nowrap' }}>
-                {overLimit ? '⛔' : ''}{user.quotaUsed ?? 0}/{user.quotaLimit ?? 100} AI credits
-              </span>
-              <span style={{ fontSize: 10, color: '#aaa', whiteSpace: 'nowrap' }}>
-                ({user.quotaUsedActual ?? 0} used this month)
-              </span>
-            </div>
+              {promoExpanded && (
+                <div style={{ marginTop: 6, padding: '8px 10px', background: '#faf5ff', borderRadius: 8, border: '1px solid #e9d5ff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: '#7e22ce', textTransform: 'uppercase', letterSpacing: 0.5 }}>Promo Grants</span>
+                    <button onClick={() => { setPromoGrants(null); setPromoLoading(true); adminApi.getUserPromoGrants(user.id).then(setPromoGrants).catch(() => setPromoGrants([])).finally(() => setPromoLoading(false)) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: '#9333ea', padding: '0 2px' }} title="Refresh">↻</button>
+                  </div>
+                  {promoLoading && <span style={{ fontSize: 11, color: '#9333ea' }}>Loading…</span>}
+                  {callerRole === 'SUPER_ADMIN' && (
+                    <div style={{ marginBottom: 8 }}>
+                      {!grantFormOpen ? (
+                        <button onClick={() => { setGrantFormOpen(true); setGrantMsg(null) }}
+                          style={{ fontSize: 11, fontWeight: 700, color: '#7e22ce', background: '#ede9fe', border: '1px solid #c4b5fd', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}>
+                          + Give Bonus Credits
+                        </button>
+                      ) : (
+                        <form onSubmit={submitGrant} style={{ background: 'white', border: '1px solid #c4b5fd', borderRadius: 8, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: '#7e22ce', textTransform: 'uppercase', letterSpacing: 0.5 }}>New Compensation Grant</span>
+                          <input
+                            type="text" required placeholder="Label e.g. 🎁 Apology bonus"
+                            value={grantForm.label} maxLength={200}
+                            onChange={e => setGrantForm(f => ({ ...f, label: e.target.value }))}
+                            style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none' }}
+                          />
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <input
+                              type="number" required placeholder="Credits" min={1} max={10000}
+                              value={grantForm.credits}
+                              onChange={e => setGrantForm(f => ({ ...f, credits: e.target.value }))}
+                              style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none', width: 80 }}
+                            />
+                            <input
+                              type="date" required
+                              value={grantForm.expiresOn}
+                              onChange={e => setGrantForm(f => ({ ...f, expiresOn: e.target.value }))}
+                              style={{ fontSize: 12, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', outline: 'none', flex: 1 }}
+                            />
+                          </div>
+                          {grantMsg && (
+                            <span style={{ fontSize: 11, color: grantMsg.ok ? '#16a34a' : '#dc2626' }}>{grantMsg.text}</span>
+                          )}
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button type="submit" disabled={grantSubmitting}
+                              style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#7e22ce', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', opacity: grantSubmitting ? 0.6 : 1 }}>
+                              {grantSubmitting ? 'Saving…' : 'Grant'}
+                            </button>
+                            <button type="button" onClick={() => { setGrantFormOpen(false); setGrantMsg(null) }}
+                              style={{ fontSize: 11, color: '#6b7280', background: 'none', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  )}
+                  {!promoLoading && promoGrants && promoGrants.length === 0 && (
+                    <span style={{ fontSize: 11, color: '#aaa' }}>No promo grants for this user.</span>
+                  )}
+                  {!promoLoading && promoGrants && promoGrants.length > 0 && promoGrants.map(g => {
+                    const today = new Date().toISOString().slice(0, 10)
+                    const expired = g.expiresOn < today
+                    const exhausted = g.usedCredits >= g.totalCredits
+                    const status = exhausted ? 'Used' : expired ? 'Expired' : 'Active'
+                    const statusColor = exhausted ? '#6b7280' : expired ? '#ef4444' : '#16a34a'
+                    const remaining = Math.max(0, g.totalCredits - g.usedCredits)
+                    const gPct = Math.min(g.usedCredits / (g.totalCredits || 1), 1)
+                    const barColor = exhausted || expired ? '#9ca3af' : '#9333ea'
+                    const barTextColor = exhausted || expired ? '#6b7280' : '#7e22ce'
+                    const alert = null
+                    return (
+                      <div key={g.id} style={{ marginBottom: 6, paddingBottom: 6, borderBottom: '1px solid #e9d5ff' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#1a1a2e' }}>{g.label}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 50, background: exhausted ? '#f3f4f6' : expired ? '#fff0f0' : '#f0fdf4', color: statusColor, border: `1px solid ${statusColor}33` }}>{status}</span>
+                          <span style={{ fontSize: 10, color: '#aaa', marginLeft: 'auto' }}>expires {g.expiresOn}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                          <div style={{ flex: 1, height: 4, background: '#e9d5ff', borderRadius: 4, overflow: 'hidden' }}>
+                            <div style={{ width: `${gPct * 100}%`, height: '100%', background: barColor, borderRadius: 4, transition: 'width 0.3s' }} />
+                          </div>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: barTextColor, whiteSpace: 'nowrap' }}>
+                            {alert}{remaining}/{g.totalCredits} left
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )
         })()}
       </div>
@@ -1218,28 +1357,64 @@ function UserRow({ user, callerRole, onResetPw, onResetQuota, onSetQuota, onHold
 }
 
 function Users({ callerRole }) {
-  const isSuperAdmin = callerRole === 'SUPER_ADMIN'
+  // Admin/SA state (flat, loaded once)
+  const [adminUsers, setAdminUsers]     = useState([])
+  const [adminLoading, setAdminLoading] = useState(true)
 
-  const [users, setUsers]       = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState('')
-  const [search, setSearch]     = useState('')
+  // App users state (paginated, server-side search)
+  const [appUsers, setAppUsers]         = useState([])
+  const [appTotal, setAppTotal]         = useState(0)
+  const [appPages, setAppPages]         = useState(0)
+  const [appPage, setAppPage]           = useState(0)
+  const [appLoading, setAppLoading]     = useState(true)
+  const [userSearch, setUserSearch]     = useState('')
+
+  const [error, setError]               = useState('')
   const [showAddAdmin, setShowAddAdmin] = useState(false)
-  const [resetUser, setResetUser]                 = useState(null)
-  const [holdUser, setHoldUser]                   = useState(null)
-  const [quotaUser, setQuotaUser]                 = useState(null)
+  const [resetUser, setResetUser]       = useState(null)
+  const [holdUser, setHoldUser]         = useState(null)
+  const [quotaUser, setQuotaUser]       = useState(null)
   const [featureAccessUser, setFeatureAccessUser] = useState(null)
-  const [confirm, setConfirm]                     = useState(null)
+  const [confirm, setConfirm]           = useState(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
+  const debounceRef = useRef(null)
+
+  const loadAdmins = useCallback(() => {
+    setAdminLoading(true)
     adminApi.getUsers()
-      .then(setUsers)
+      .then(setAdminUsers)
       .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+      .finally(() => setAdminLoading(false))
   }, [])
 
-  useEffect(() => { load() }, [load])
+  const loadAppUsers = useCallback((search, page) => {
+    setAppLoading(true)
+    adminApi.getUsersPaginated(search, page)
+      .then(data => {
+        setAppUsers(data.content)
+        setAppTotal(data.totalElements)
+        setAppPages(data.totalPages)
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setAppLoading(false))
+  }, [])
+
+  useEffect(() => { loadAdmins() }, [loadAdmins])
+  useEffect(() => { loadAppUsers('', 0) }, [loadAppUsers])
+
+  function handleUserSearchChange(val) {
+    setUserSearch(val)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setAppPage(0)
+      loadAppUsers(val, 0)
+    }, 400)
+  }
+
+  function goToPage(p) {
+    setAppPage(p)
+    loadAppUsers(userSearch, p)
+  }
 
   async function handleDelete(user) {
     setConfirm({
@@ -1250,7 +1425,12 @@ function Users({ callerRole }) {
         setConfirm(null)
         try {
           await adminApi.deleteUser(user.id)
-          setUsers(prev => prev.filter(u => u.id !== user.id))
+          if (user.role === 'USER') {
+            setAppUsers(prev => prev.filter(u => u.id !== user.id))
+            setAppTotal(t => t - 1)
+          } else {
+            setAdminUsers(prev => prev.filter(u => u.id !== user.id))
+          }
         } catch (e) { setError(e.message) }
       }
     })
@@ -1260,14 +1440,18 @@ function Users({ callerRole }) {
     setHoldUser(null)
     try {
       await adminApi.holdUser(user.id, reason)
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, onHold: true, holdReason: reason } : u))
+      const patch = u => u.id === user.id ? { ...u, onHold: true, holdReason: reason } : u
+      if (user.role === 'USER') setAppUsers(prev => prev.map(patch))
+      else setAdminUsers(prev => prev.map(patch))
     } catch (e) { setError(e.message) }
   }
 
   async function handleRelease(user) {
     try {
       await adminApi.releaseUser(user.id)
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, onHold: false, holdReason: null } : u))
+      const patch = u => u.id === user.id ? { ...u, onHold: false, holdReason: null } : u
+      if (user.role === 'USER') setAppUsers(prev => prev.map(patch))
+      else setAdminUsers(prev => prev.map(patch))
     } catch (e) { setError(e.message) }
   }
 
@@ -1281,7 +1465,7 @@ function Users({ callerRole }) {
         setConfirm(null)
         try {
           await adminApi.promoteToSuperAdmin(user.id)
-          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: 'SUPER_ADMIN' } : u))
+          setAdminUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: 'SUPER_ADMIN' } : u))
         } catch (e) { setError(e.message) }
       }
     })
@@ -1297,7 +1481,7 @@ function Users({ callerRole }) {
         setConfirm(null)
         try {
           await adminApi.demoteToAdmin(user.id)
-          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: 'ADMIN' } : u))
+          setAdminUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: 'ADMIN' } : u))
         } catch (e) { setError(e.message) }
       }
     })
@@ -1313,7 +1497,9 @@ function Users({ callerRole }) {
         setConfirm(null)
         try {
           const updated = await adminApi.resetQuota(user.id)
-          setUsers(prev => prev.map(u => u.id === user.id ? { ...u, quotaUsed: updated.quotaUsed, quotaLimit: updated.quotaLimit } : u))
+          const patch = u => u.id === user.id ? { ...u, quotaUsed: updated.quotaUsed, quotaLimit: updated.quotaLimit } : u
+          if (user.role === 'USER') setAppUsers(prev => prev.map(patch))
+          else setAdminUsers(prev => prev.map(patch))
         } catch (e) { setError(e.message) }
       }
     })
@@ -1322,22 +1508,18 @@ function Users({ callerRole }) {
   async function handleSetQuota(user, newLimit) {
     try {
       const updated = await adminApi.setQuota(user.id, newLimit)
-      setUsers(prev => prev.map(u => u.id === user.id
-        ? { ...u, quotaUsed: updated.quotaUsed, quotaLimit: updated.quotaLimit }
-        : u
-      ))
+      const patch = u => u.id === user.id ? { ...u, quotaUsed: updated.quotaUsed, quotaLimit: updated.quotaLimit } : u
+      if (user.role === 'USER') setAppUsers(prev => prev.map(patch))
+      else setAdminUsers(prev => prev.map(patch))
       setQuotaUser(null)
     } catch (e) { throw e }
   }
 
-  const q = search.toLowerCase()
-  const superAdmins = users.filter(u => u.role === 'SUPER_ADMIN' && u.email.toLowerCase().includes(q))
-  const admins      = users.filter(u => u.role === 'ADMIN'       && u.email.toLowerCase().includes(q))
-  const appUsers    = users.filter(u => u.role === 'USER'        && u.email.toLowerCase().includes(q))
+  const superAdmins = adminUsers.filter(u => u.role === 'SUPER_ADMIN')
+  const admins      = adminUsers.filter(u => u.role === 'ADMIN')
 
   const rowProps = (user) => ({
-    user,
-    callerRole,
+    user, callerRole,
     onResetPw:       () => setResetUser(user),
     onResetQuota:    () => handleResetQuota(user),
     onSetQuota:      () => setQuotaUser(user),
@@ -1351,7 +1533,7 @@ function Users({ callerRole }) {
 
   return (
     <div>
-      {showAddAdmin && <AddAdminModal onClose={() => setShowAddAdmin(false)} onCreated={u => setUsers(prev => [{ ...u, role: 'ADMIN', authMethod: 'password', createdAt: new Date().toISOString(), childCount: 0 }, ...prev])} />}
+      {showAddAdmin && <AddAdminModal onClose={() => setShowAddAdmin(false)} onCreated={u => setAdminUsers(prev => [{ ...u, role: 'ADMIN', authMethod: 'password', createdAt: new Date().toISOString(), childCount: 0 }, ...prev])} />}
       {holdUser && <HoldModal user={holdUser} onClose={() => setHoldUser(null)} onConfirm={reason => handleHold(holdUser, reason)} />}
       {resetUser && <PasswordModal user={resetUser} onClose={() => setResetUser(null)} />}
       {quotaUser && <SetQuotaModal user={quotaUser} onClose={() => setQuotaUser(null)} onSave={limit => handleSetQuota(quotaUser, limit)} />}
@@ -1367,84 +1549,103 @@ function Users({ callerRole }) {
         <div>
           <div style={{ fontWeight: 900, fontSize: 20, color: '#1a1a2e' }}>👥 Users</div>
           <div style={{ fontSize: 13, color: '#aaa', marginTop: 2 }}>
-            {users.filter(u => u.role === 'SUPER_ADMIN').length} super admins · {users.filter(u => u.role === 'ADMIN').length} admins · {users.filter(u => u.role === 'USER').length} app users
+            {superAdmins.length} super admins · {admins.length} admins · {appTotal} app users
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            placeholder="Search by email…"
-            value={search} onChange={e => setSearch(e.target.value)}
-            style={{ padding: '8px 14px', borderRadius: 50, border: '1.5px solid #eee', fontSize: 13, width: 180, outline: 'none' }}
-          />
           <button onClick={() => setShowAddAdmin(true)}
             style={{ padding: '8px 16px', borderRadius: 50, border: 'none', background: '#6366f1', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
             + Add Admin
           </button>
-          <button onClick={load} disabled={loading} title="Refresh users"
-            style={{ width: 34, height: 34, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
-            {loading ? '…' : '🔄'}
+          <button onClick={() => { loadAdmins(); loadAppUsers(userSearch, appPage) }} disabled={adminLoading || appLoading} title="Refresh"
+            style={{ width: 34, height: 34, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: (adminLoading || appLoading) ? 0.5 : 1 }}>
+            {(adminLoading || appLoading) ? '…' : '🔄'}
           </button>
         </div>
       </div>
 
       <ErrorBox msg={error} />
 
-      {loading
-        ? <div style={{ textAlign: 'center', padding: 48, color: '#aaa' }}>Loading…</div>
-        : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-            {/* Super Admins section */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1 }}>👑 Super Admins</span>
-                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{superAdmins.length}</span>
-              </div>
-              {superAdmins.length === 0
-                ? <div style={{ padding: '16px 20px', background: '#fffbeb', borderRadius: 12, fontSize: 13, color: '#aaa' }}>{search ? 'No super admins match your search.' : 'No super admins yet.'}</div>
-                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {superAdmins.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
-                  </div>
-              }
+        {/* Super Admins section */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: 1 }}>👑 Super Admins</span>
+            <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{superAdmins.length}</span>
+          </div>
+          {adminLoading
+            ? <div style={{ color: '#aaa', fontSize: 13, padding: '12px 0' }}>Loading…</div>
+            : superAdmins.length === 0
+              ? <div style={{ padding: '16px 20px', background: '#fffbeb', borderRadius: 12, fontSize: 13, color: '#aaa' }}>No super admins yet.</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {superAdmins.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
+                </div>
+          }
+        </div>
+
+        <div style={{ borderTop: '1.5px solid #f0f0f0' }} />
+
+        {/* Admins section */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: 1 }}>🛡️ Administrators</span>
+            <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{admins.length}</span>
+          </div>
+          {adminLoading
+            ? <div style={{ color: '#aaa', fontSize: 13, padding: '12px 0' }}>Loading…</div>
+            : admins.length === 0
+              ? <div style={{ padding: '16px 20px', background: '#f8f9ff', borderRadius: 12, fontSize: 13, color: '#aaa' }}>No admins yet.</div>
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {admins.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
+                </div>
+          }
+        </div>
+
+        <div style={{ borderTop: '1.5px solid #f0f0f0' }} />
+
+        {/* App users section — server-side paginated */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: 1 }}>👤 App Users</span>
+              <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{appTotal} total</span>
             </div>
-
-            <div style={{ borderTop: '1.5px solid #f0f0f0' }} />
-
-            {/* Admins section */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', letterSpacing: 1 }}>🛡️ Administrators</span>
-                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{admins.length}</span>
-              </div>
-              {admins.length === 0
-                ? <div style={{ padding: '16px 20px', background: '#f8f9ff', borderRadius: 12, fontSize: 13, color: '#aaa' }}>No admins match your search.</div>
-                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {admins.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
-                  </div>
-              }
-            </div>
-
-            {/* Divider */}
-            <div style={{ borderTop: '1.5px solid #f0f0f0' }} />
-
-            {/* App users section */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#555', textTransform: 'uppercase', letterSpacing: 1 }}>👤 App Users</span>
-                <span style={{ fontSize: 11, color: '#aaa', fontWeight: 600 }}>{appUsers.length}</span>
-              </div>
-              {appUsers.length === 0
-                ? <div style={{ padding: '16px 20px', background: '#f8f9fa', borderRadius: 12, fontSize: 13, color: '#aaa' }}>
-                    {search ? `No users matching "${search}"` : 'No app users yet.'}
-                  </div>
-                : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <input
+              placeholder="Search by email…"
+              value={userSearch} onChange={e => handleUserSearchChange(e.target.value)}
+              style={{ padding: '7px 14px', borderRadius: 50, border: '1.5px solid #eee', fontSize: 13, width: '100%', maxWidth: 240, outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          {appLoading
+            ? <div style={{ textAlign: 'center', padding: 32, color: '#aaa' }}>Loading…</div>
+            : appUsers.length === 0
+              ? <div style={{ padding: '16px 20px', background: '#f8f9fa', borderRadius: 12, fontSize: 13, color: '#aaa' }}>
+                  {userSearch ? `No users matching "${userSearch}"` : 'No app users yet.'}
+                </div>
+              : <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {appUsers.map(u => <UserRow key={u.id} {...rowProps(u)} />)}
                   </div>
-              }
-            </div>
-          </div>
-        )
-      }
+                  {appPages > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16 }}>
+                      <button onClick={() => goToPage(appPage - 1)} disabled={appPage === 0}
+                        style={{ padding: '6px 14px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 13, cursor: appPage === 0 ? 'default' : 'pointer', opacity: appPage === 0 ? 0.4 : 1, fontWeight: 700 }}>
+                        ‹ Prev
+                      </button>
+                      <span style={{ fontSize: 13, color: '#888', fontWeight: 600 }}>
+                        Page {appPage + 1} of {appPages}
+                      </span>
+                      <button onClick={() => goToPage(appPage + 1)} disabled={appPage >= appPages - 1}
+                        style={{ padding: '6px 14px', borderRadius: 50, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 13, cursor: appPage >= appPages - 1 ? 'default' : 'pointer', opacity: appPage >= appPages - 1 ? 0.4 : 1, fontWeight: 700 }}>
+                        Next ›
+                      </button>
+                    </div>
+                  )}
+                </>
+          }
+        </div>
+      </div>
     </div>
   )
 }
@@ -2818,6 +3019,319 @@ function AdminAlertDrawer({ open, alerts, drawerRef, onClose }) {
   )
 }
 
+// ─── Promo Campaigns section ─────────────────────────────────────────────────
+function PromoCampaigns() {
+  const [campaigns, setCampaigns]     = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [showCreate, setShowCreate]   = useState(false)
+  const [editingCampaign, setEditing] = useState(null) // campaign object being edited
+  const [form, setForm]               = useState({ campaignId: '', label: '', creditsPerUser: 500, expiresOn: '' })
+  const [formErr, setFormErr]         = useState('')
+  const [creating, setCreating]       = useState(false)
+  const [msg, setMsg]                 = useState(null) // { type: 'success'|'error', text }
+  const [activating, setActivating]   = useState(null) // campaignId being activated
+  const [deleting, setDeleting]       = useState(null) // campaignId being deleted
+
+  const load = () => {
+    setLoading(true)
+    adminApi.listPromoCampaigns()
+      .then(setCampaigns)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(load, [])
+
+  function flash(type, text) {
+    setMsg({ type, text })
+    setTimeout(() => setMsg(null), 5000)
+  }
+
+  function handleEdit(c) {
+    setEditing(c)
+    setForm({ campaignId: c.campaignId, label: c.label, creditsPerUser: c.creditsPerUser, expiresOn: c.expiresOn })
+    setFormErr('')
+    setShowCreate(true)
+  }
+
+  function closeForm() {
+    setShowCreate(false)
+    setEditing(null)
+    setForm({ campaignId: '', label: '', creditsPerUser: 500, expiresOn: '' })
+    setFormErr('')
+  }
+
+  async function handleCreate(e) {
+    e.preventDefault()
+    setFormErr('')
+    if (!form.label.trim()) return setFormErr('Display label is required')
+    if (form.creditsPerUser < 1 || form.creditsPerUser > 10000) return setFormErr('Credits must be between 1 and 10,000')
+    if (!form.expiresOn) return setFormErr('Expiry date is required')
+    if (new Date(form.expiresOn) <= new Date()) return setFormErr('Expiry date must be in the future')
+
+    if (editingCampaign) {
+      // Update existing DRAFT
+      setCreating(true)
+      try {
+        await adminApi.updatePromoCampaign(editingCampaign.campaignId, {
+          label: form.label,
+          creditsPerUser: Number(form.creditsPerUser),
+          expiresOn: form.expiresOn,
+        })
+        flash('success', `✅ Draft "${editingCampaign.campaignId}" updated.`)
+        closeForm()
+        load()
+      } catch (e) {
+        setFormErr(e.response?.data?.error || e.message || 'Failed to update campaign')
+      } finally {
+        setCreating(false)
+      }
+      return
+    }
+
+    // Create new DRAFT
+    if (!form.campaignId.trim() || /\s/.test(form.campaignId))
+      return setFormErr('Campaign ID must not be empty or contain spaces')
+    setCreating(true)
+    try {
+      await adminApi.createPromoCampaign({ ...form, creditsPerUser: Number(form.creditsPerUser) })
+      flash('success', `✅ Campaign "${form.campaignId}" saved as draft. Review it below, then activate when ready.`)
+      closeForm()
+      load()
+    } catch (e) {
+      setFormErr(e.response?.data?.error || e.message || 'Failed to create campaign')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function handleActivate(c) {
+    setActivating(c.campaignId)
+    try {
+      await adminApi.activatePromoCampaign(c.campaignId)
+      flash('success', `🚀 "${c.label}" activated! Grants are being issued in the background.`)
+      load()
+    } catch (e) {
+      flash('error', e.response?.data?.error || 'Activation failed')
+    } finally {
+      setActivating(null)
+    }
+  }
+
+  async function handleDelete(c) {
+    if (!window.confirm(`Delete draft campaign "${c.label}"? This cannot be undone.`)) return
+    setDeleting(c.campaignId)
+    try {
+      await adminApi.deletePromoCampaign(c.campaignId)
+      setCampaigns(prev => prev.filter(x => x.campaignId !== c.campaignId))
+    } catch (e) {
+      flash('error', e.response?.data?.error || 'Delete failed')
+    } finally {
+      setDeleting(null)
+    }
+  }
+
+  const cell = { padding: '12px 14px', fontSize: 13, borderBottom: '1px solid #f0f0f0', verticalAlign: 'middle' }
+  const hdr  = { ...cell, fontWeight: 800, color: '#aaa', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, background: '#fafafa' }
+
+  function statusBadge(c) {
+    if (c.status === 'DRAFT')
+      return <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: '#fef9c3', color: '#854d0e' }}>✏️ DRAFT</span>
+    if (c.active)
+      return <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: '#e8fff0', color: '#1e7e34' }}>● ACTIVE</span>
+    return <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 50, background: '#f5f5f5', color: '#999' }}>○ EXPIRED</span>
+  }
+
+  return (
+    <div style={{ padding: 'clamp(16px,4vw,32px) clamp(12px,3vw,28px)', maxWidth: 1000 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>🎁 Promo Campaigns</h2>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>
+            Create a draft, review it, then activate to grant bonus credits to all current users.
+          </p>
+        </div>
+        {!showCreate && (
+          <button onClick={() => setShowCreate(true)} style={{
+            background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: 'white',
+            border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 800,
+            fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            + New Campaign
+          </button>
+        )}
+      </div>
+
+      {msg && (
+        <div style={{
+          background: msg.type === 'success' ? '#f0fff4' : '#fff0f0',
+          border: `1.5px solid ${msg.type === 'success' ? '#6bcb77' : '#fca5a5'}`,
+          borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 14,
+          fontWeight: 700, color: msg.type === 'success' ? '#1e7e34' : '#b91c1c'
+        }}>
+          {msg.text}
+        </div>
+      )}
+
+      {/* Create / Edit form */}
+      {showCreate && (
+        <div style={{ background: '#f8f6ff', border: '1.5px solid #ddd8ff', borderRadius: 14, padding: 24, marginBottom: 28 }}>
+          <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 900, color: '#3a2080' }}>
+            {editingCampaign ? `✏️ Edit Draft — ${editingCampaign.campaignId}` : 'New Campaign — Draft'}
+          </h3>
+          <form onSubmit={handleCreate}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: '#666', display: 'block', marginBottom: 6 }}>CAMPAIGN ID *</label>
+                <input value={form.campaignId}
+                  onChange={e => !editingCampaign && setForm(f => ({ ...f, campaignId: e.target.value }))}
+                  placeholder="anniversary-2026-07" required readOnly={!!editingCampaign}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box', background: editingCampaign ? '#f3f4f6' : 'white', color: editingCampaign ? '#9ca3af' : undefined }} />
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>{editingCampaign ? 'Campaign ID is fixed after creation.' : 'No spaces. Unique identifier — cannot be changed after creation.'}</div>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: '#666', display: 'block', marginBottom: 6 }}>DISPLAY LABEL *</label>
+                <input value={form.label} onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
+                  placeholder="🎂 1-Year Anniversary Gift" required
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box' }} />
+                <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>Shown to users in notifications &amp; emails.</div>
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: '#666', display: 'block', marginBottom: 6 }}>CREDITS PER USER *</label>
+                <input type="number" min={1} max={10000} value={form.creditsPerUser}
+                  onChange={e => setForm(f => ({ ...f, creditsPerUser: e.target.value }))}
+                  required style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 800, color: '#666', display: 'block', marginBottom: 6 }}>EXPIRES ON *</label>
+                <input type="date" value={form.expiresOn} onChange={e => setForm(f => ({ ...f, expiresOn: e.target.value }))}
+                  required min={new Date().toISOString().split('T')[0]}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 14, boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ background: '#ede8ff', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#5a3fc0' }}>
+              ℹ️ Campaign is saved as <strong>Draft</strong> — no credits are issued yet. You can review and delete it before activating.
+              Once activated, grants go to <strong>all active non-admin users</strong> in the background.
+            </div>
+
+            {formErr && <div style={{ color: '#e53e3e', fontSize: 13, marginBottom: 12, fontWeight: 700 }}>⚠️ {formErr}</div>}
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" disabled={creating} style={{
+                background: creating ? '#c4b5fd' : 'linear-gradient(135deg,#7c3aed,#9333ea)',
+                color: 'white', border: 'none', borderRadius: 8, padding: '11px 24px',
+                fontWeight: 800, fontSize: 14, cursor: creating ? 'not-allowed' : 'pointer',
+                boxShadow: creating ? 'none' : '0 2px 8px rgba(124,58,237,0.35)'
+              }}>
+                {creating ? 'Saving…' : editingCampaign ? '💾 Save Changes' : '💾 Save as Draft'}
+              </button>
+              <button type="button" onClick={closeForm} style={{
+                background: 'white', color: '#7c3aed', border: '1.5px solid #c4b5fd',
+                borderRadius: 8, padding: '10px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer'
+              }}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Campaign list */}
+      {loading ? (
+        <div style={{ textAlign: 'center', color: '#bbb', padding: 40 }}>Loading…</div>
+      ) : campaigns.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#bbb', padding: 40, fontSize: 14 }}>
+          No campaigns yet. Create one to get started.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {campaigns.map(c => {
+            const usedPct = c.totalIssued > 0 ? Math.round((c.totalUsed / c.totalIssued) * 100) : 0
+            const isDraft = c.status === 'DRAFT'
+            return (
+              <div key={c.campaignId} style={{
+                background: isDraft ? '#fffdf5' : 'white',
+                border: `1.5px solid ${isDraft ? '#fef08a' : '#f0f0f0'}`,
+                borderRadius: 14, padding: '16px 18px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+              }}>
+                {/* Top row: label + status + actions */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, fontSize: 15 }}>{c.label}</span>
+                      {statusBadge(c)}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 2 }}>{c.campaignId}</div>
+                  </div>
+                  {isDraft && (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                      <button onClick={() => handleEdit(c)}
+                        style={{ fontSize: 11, fontWeight: 800, padding: '5px 11px', borderRadius: 6, border: '1.5px solid #c4b5fd', background: 'white', color: '#7c3aed', cursor: 'pointer' }}>
+                        ✏️ Edit
+                      </button>
+                      <button onClick={() => handleActivate(c)} disabled={activating === c.campaignId}
+                        style={{ fontSize: 11, fontWeight: 800, padding: '5px 11px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: 'white', cursor: 'pointer', opacity: activating === c.campaignId ? 0.6 : 1 }}>
+                        {activating === c.campaignId ? '…' : '🚀 Activate'}
+                      </button>
+                      <button onClick={() => handleDelete(c)} disabled={deleting === c.campaignId}
+                        style={{ fontSize: 11, fontWeight: 800, padding: '5px 11px', borderRadius: 6, border: '1.5px solid #fca5a5', background: 'white', color: '#b91c1c', cursor: 'pointer', opacity: deleting === c.campaignId ? 0.6 : 1 }}>
+                        {deleting === c.campaignId ? '…' : '🗑️'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Stats row */}
+                <div style={{ display: 'flex', gap: 16, marginTop: 12, flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 80 }}>
+                    <div style={{ fontSize: 10, color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Credits/user</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#5a3fc0', marginTop: 2 }}>{c.creditsPerUser}</div>
+                  </div>
+                  {!isDraft && (
+                    <>
+                      <div style={{ minWidth: 60 }}>
+                        <div style={{ fontSize: 10, color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Users</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{c.userCount.toLocaleString()}</div>
+                      </div>
+                      <div style={{ minWidth: 60 }}>
+                        <div style={{ fontSize: 10, color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Issued</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{c.totalIssued.toLocaleString()}</div>
+                      </div>
+                      <div style={{ minWidth: 60 }}>
+                        <div style={{ fontSize: 10, color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Used</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>{c.totalUsed.toLocaleString()}</div>
+                      </div>
+                      <div style={{ minWidth: 80 }}>
+                        <div style={{ fontSize: 10, color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Remaining</div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#5a3fc0', marginTop: 2 }}>{c.totalRemaining.toLocaleString()}</div>
+                      </div>
+                    </>
+                  )}
+                  <div style={{ minWidth: 80 }}>
+                    <div style={{ fontSize: 10, color: '#aaa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expires</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}>{c.expiresOn}</div>
+                  </div>
+                </div>
+
+                {/* Usage bar for active campaigns */}
+                {!isDraft && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ height: 4, background: '#ede8ff', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${usedPct}%`, background: usedPct >= 80 ? '#f59e0b' : '#9333ea', borderRadius: 4 }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: '#aaa', marginTop: 3 }}>{usedPct}% of issued credits used</div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
 export default function AdminPage({ onBack, onLogout }) {
   const navigate     = useNavigate()
@@ -2851,7 +3365,7 @@ export default function AdminPage({ onBack, onLogout }) {
   const active = NAV.find(n => n.id === pathSegment) ? pathSegment : 'dashboard'
 
   const callerRole = localStorage.getItem('glm_role') || 'ADMIN'
-  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
+  const section = { dashboard: <Dashboard />, users: <Users callerRole={callerRole} />, agents: <Agents />, credits: <FeatureCredits />, promo: <PromoCampaigns />, schedulers: <Schedulers />, announcements: <Announcements />, vendors: <Vendors />, compliance: <Compliance /> }
   const current = NAV.find(n => n.id === active)
 
   return (

@@ -13,6 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
 
+import reactor.util.retry.Retry;
+
+import java.io.IOException;
+import java.net.SocketException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
@@ -80,6 +84,8 @@ public class AnthropicClient {
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
+                        .filter(e -> e instanceof IOException || e instanceof SocketException))
                 .block();
     }
 
@@ -112,6 +118,8 @@ public class AnthropicClient {
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
+                        .filter(e -> e instanceof IOException || e instanceof SocketException))
                 .block();
     }
 
@@ -135,6 +143,8 @@ public class AnthropicClient {
                 .bodyValue(body)
                 .retrieve()
                 .bodyToMono(String.class)
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
+                        .filter(e -> e instanceof IOException || e instanceof SocketException))
                 .block();
     }
 }

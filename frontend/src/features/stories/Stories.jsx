@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { storyApi, voiceApi } from '../../api/client'
@@ -542,7 +543,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
             placeholder={`What should ${child.name}'s story be about?\n\ne.g. dragon, brave girl, magic forest`}
             value={keywords} onChange={e => setKeywords(e.target.value)}
             rows={3} style={{ resize: 'none', background: 'white' }} />
-          <button type="submit" className="btn-primary" disabled={loading || !keywords.trim() || quota?.used >= quota?.limit || offline}
+          <button type="submit" className="btn-primary" disabled={loading || !keywords.trim() || isCreditsBlocked(quota) || offline}
             style={{ fontSize: 16 }}>
             {loading ? <><span className="spinner" /> &nbsp;Creating magic…</> : offline ? '✈️ ✨ Generate Story' : '✨ Generate Story'}
           </button>
@@ -717,10 +718,10 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                   {selected.favorite ? '⭐' : '☆'}
                 </button>
                 {chapterIndex === seriesChapters.length - 1 && (
-                <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
+                <button onClick={() => handleContinue(selected)} disabled={loading || offline || isCreditsBlocked(quota)}
                   title={offline ? 'AI is off — go online to continue stories' : 'Continue this story'}
                   style={{ padding:'7px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none',
-                    cursor: loading || offline || quota?.used >= quota?.limit ? 'not-allowed' : 'pointer',
+                    cursor: loading || offline || isCreditsBlocked(quota) ? 'not-allowed' : 'pointer',
                     background: isFullscreen ? 'rgba(255,255,255,0.88)' : 'var(--primary-lt)',
                     color: isFullscreen ? '#333' : 'var(--primary)',
                     opacity: loading || offline ? 0.5 : 1, whiteSpace:'nowrap',
@@ -821,7 +822,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                     {selected.favorite ? '⭐' : '☆'}
                   </button>
                   {chapterIndex === seriesChapters.length - 1 && (
-                  <button onClick={() => handleContinue(selected)} disabled={loading || offline || quota?.used >= quota?.limit}
+                  <button onClick={() => handleContinue(selected)} disabled={loading || offline || isCreditsBlocked(quota)}
                     style={{ padding:'8px 14px', fontSize:13, fontWeight:700, borderRadius:50, border:'none', cursor:loading||offline||quota?.used>=quota?.limit?'not-allowed':'pointer', background:'var(--primary-lt)', color:'var(--primary)', opacity:loading||offline?0.5:1, whiteSpace:'nowrap' }}>
                     {offline ? '✈️ ▶ Continue' : '▶ Continue'}
                   </button>

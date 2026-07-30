@@ -32,6 +32,10 @@ public class AiUsageLog {
     @Column(nullable = false)
     private int creditsUsed;
 
+    /** "MONTHLY" or "PROMO:anniversary-2026-07" */
+    @Column(length = 120)
+    private String creditSource = "MONTHLY";
+
     @Column(name = "used_at", nullable = false)
     private LocalDateTime usedAt = LocalDateTime.now(ZoneOffset.UTC);
 }

@@ -1,6 +1,8 @@
 package com.glumbi.repository;
 
 import com.glumbi.entity.AppUser;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +23,13 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     List<AppUser> findByRoleAndCreatedAtAfter(AppUser.Role role, LocalDateTime since);
 
     List<AppUser> findByRole(AppUser.Role role);
+
+    @Query("SELECT u FROM AppUser u WHERE u.role = :role " +
+           "AND (:search IS NULL OR :search = '' OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "ORDER BY u.createdAt DESC")
+    Page<AppUser> findByRoleAndEmailSearch(@Param("role") AppUser.Role role,
+                                           @Param("search") String search,
+                                           Pageable pageable);
 
     // All regular users who have not yet given consent — used for DPDP backfill
     @Query("SELECT u FROM AppUser u WHERE u.role = 'USER' AND u.consentGiven = false AND u.onHold = false")

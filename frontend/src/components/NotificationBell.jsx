@@ -11,6 +11,7 @@ const TYPE_ICON = {
   CURIOSITY_INSIGHT:    '🔍',
   JOURNAL_INSIGHT:      '📓',
   QUOTA_WARNING:        '⚠️',
+  PROMO_GRANT:          '🎁',
 }
 
 const TYPE_LABEL = {
@@ -23,6 +24,7 @@ const TYPE_LABEL = {
   CURIOSITY_INSIGHT:    'Curiosity Insight',
   JOURNAL_INSIGHT:      'Journal Insight',
   QUOTA_WARNING:        'Quota Warning',
+  PROMO_GRANT:          'Bonus Credits',
 }
 
 export default function NotificationBell({ isMobile = false }) {

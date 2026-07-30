@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useRef, useEffect } from 'react'
 import Confetti from '../../components/Confetti'
 import { hasSeen, markSeen } from '../../utils/seen'
@@ -936,7 +937,7 @@ function LetterPanel({ selected, script, child, onPlay, quota, engFontFamily, on
           onPractice={handlePractice}
           onFirstStroke={onFirstStroke}
           loading={loading}
-          disabled={quota?.used >= quota?.limit || offline}
+          disabled={isCreditsBlocked(quota) || offline}
           fullWidth
           traceChar={selected.char}
           traceFontFamily={letterFont}
@@ -1145,7 +1146,7 @@ function WordMode({ script, child, quota, onFirstStroke }) {
       </div>
 
       {/* Canvas */}
-      <DrawCanvas onSubmit={handleSubmit} onFirstStroke={onFirstStroke} loading={loading} disabled={quota?.used >= quota?.limit || offline} fullWidth />
+      <DrawCanvas onSubmit={handleSubmit} onFirstStroke={onFirstStroke} loading={loading} disabled={isCreditsBlocked(quota) || offline} fullWidth />
       {offline && <div style={{ textAlign:'center', fontSize:13, fontWeight:700, color:'#aaa', marginTop:4 }}>✈️ Practice mode — AI check is off</div>}
 
       {/* Loading / Result side */}

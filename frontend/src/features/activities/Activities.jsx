@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect } from 'react'
 import { activityApi } from '../../api/client'
 import ThemeLoader from '../../components/ThemeLoader'
@@ -186,17 +187,17 @@ export default function Activities({ child, quota }) {
         <QuotaBanner quota={quota} />
         {error && <div style={{ marginTop: 12 }}><ErrorBox msg={error} /></div>}
         <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
-          <button className="btn-primary" onClick={handleGenerate} disabled={loading || !!substituting || quota?.used >= quota?.limit || offline} style={{ flex: 1, fontSize: 16 }}>
+          <button className="btn-primary" onClick={handleGenerate} disabled={loading || !!substituting || isCreditsBlocked(quota) || offline} style={{ flex: 1, fontSize: 16 }}>
             {loading ? <><span className="spinner" />&nbsp;Finding fun ideas…</> : offline ? '✈️ 🎲 Suggest 3 Activities' : '🎲 Suggest 3 Activities'}
           </button>
           {pending.length > 0 && (
-            <button onClick={handleRefresh} disabled={loading || !!substituting || offline || quota?.used >= quota?.limit}
+            <button onClick={handleRefresh} disabled={loading || !!substituting || offline || isCreditsBlocked(quota)}
               title="Replace all pending activities with a fresh set"
               style={{
                 padding: '12px 16px', borderRadius: 50, fontSize: 14, fontWeight: 800,
                 background: 'var(--primary-lt)', color: 'var(--primary)', border: '2px solid rgba(255,107,107,0.3)',
-                cursor: (loading || offline || quota?.used >= quota?.limit) ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
-                opacity: (offline || quota?.used >= quota?.limit) ? 0.4 : 1,
+                cursor: (loading || offline || isCreditsBlocked(quota)) ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                opacity: (offline || isCreditsBlocked(quota)) ? 0.4 : 1,
               }}>
               {offline ? '✈️ ' : ''}🔄 Refresh
             </button>
@@ -238,10 +239,10 @@ export default function Activities({ child, quota }) {
                     <button className="btn-primary" style={{ flex: 1, padding: '8px 4px', fontSize: 12, textAlign: 'center' }}
                       onClick={() => handleComplete(a.id)}>✓ Done!</button>
                     {/* Swap — outlined, secondary */}
-                    <button disabled={!!substituting || offline || quota?.used >= quota?.limit}
+                    <button disabled={!!substituting || offline || isCreditsBlocked(quota)}
                       onClick={() => handleDelete(a.id)}
                       title="Remove and get a replacement"
-                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '2px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: (substituting || offline || quota?.used >= quota?.limit) ? 'not-allowed' : 'pointer', opacity: (substituting && substituting !== a.id) || offline || quota?.used >= quota?.limit ? 0.4 : 1, textAlign: 'center' }}>
+                      style={{ flex: 1, padding: '8px 4px', fontSize: 12, fontWeight: 800, fontFamily: 'Nunito,sans-serif', borderRadius: 50, border: '2px solid var(--primary)', background: 'transparent', color: 'var(--primary)', cursor: (substituting || offline || isCreditsBlocked(quota)) ? 'not-allowed' : 'pointer', opacity: (substituting && substituting !== a.id) || offline || isCreditsBlocked(quota) ? 0.4 : 1, textAlign: 'center' }}>
                       {substituting === a.id ? '…' : offline ? '✈️ ↻ Swap' : '↻ Swap'}
                     </button>
                     {/* Similar — accent-tinted, tertiary */}

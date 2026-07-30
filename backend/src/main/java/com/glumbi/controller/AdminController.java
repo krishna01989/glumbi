@@ -1,6 +1,7 @@
 package com.glumbi.controller;
 
 import com.glumbi.entity.AppUser;
+import com.glumbi.entity.PromoCampaign;
 import com.glumbi.repository.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glumbi.scheduler.NotificationScheduler;
@@ -8,21 +9,27 @@ import com.glumbi.scheduler.QuotaScheduler;
 import com.glumbi.entity.Notification;
 import com.glumbi.entity.Notification.NotificationType;
 import com.glumbi.service.ApiQuotaService;
+import com.glumbi.service.PromoCreditService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import com.glumbi.security.JwtFilter;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
 @RestController
@@ -41,6 +48,9 @@ public class AdminController {
     private final FeatureConfigRepository       featureConfigRepo;
     private final ApiQuotaService               quotaService;
     private final QuotaScheduler                quotaScheduler;
+    private final PromoCreditService promoCreditService;
+    private final PromoCreditGrantRepository promoCreditGrantRepo;
+    private final PromoCampaignRepository promoCampaignRepo;
     private final UserFeatureOverrideRepository overrideRepo;
     private final AppSettingRepository          appSettingRepo;
     private final SchedulerRunRepository        schedulerRunRepo;
@@ -57,6 +67,7 @@ public class AdminController {
     private final com.glumbi.service.VendorConfigService vendorConfigService;
     private final com.glumbi.service.AdminAlertService adminAlertService;
     private final NotificationRepository notificationRepo;
+    private final ExecutorService embeddingExecutor;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(
@@ -254,35 +265,69 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public List<Map<String, Object>> listUsers() {
+    public Object listUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size) {
+
         String thisMonth = YearMonth.now().toString();
         YearMonth nowMonth = YearMonth.now();
         LocalDateTime monthStart = nowMonth.atDay(1).atStartOfDay();
         LocalDateTime monthEnd   = nowMonth.atEndOfMonth().atTime(23, 59, 59);
 
-        // Load all per-user log totals in one query
+        // Paginated USER search
+        if ("USER".equalsIgnoreCase(role)) {
+            Page<AppUser> pageResult = userRepo.findByRoleAndEmailSearch(
+                AppUser.Role.USER, search.isBlank() ? null : search,
+                PageRequest.of(page, size));
+
+            Set<Long> ids = pageResult.getContent().stream()
+                .map(AppUser::getId).collect(Collectors.toSet());
+            Map<Long, Long> logTotals = new HashMap<>();
+            for (Object[] row : usageLogRepo.sumPerUserInPeriod(monthStart, monthEnd)) {
+                Long uid = ((Number) row[0]).longValue();
+                if (ids.contains(uid)) logTotals.put(uid, ((Number) row[1]).longValue());
+            }
+
+            List<Map<String, Object>> content = pageResult.getContent().stream()
+                .map(u -> buildUserMap(u, thisMonth, logTotals))
+                .toList();
+            return Map.of(
+                "content", content,
+                "totalElements", pageResult.getTotalElements(),
+                "totalPages", pageResult.getTotalPages(),
+                "page", page
+            );
+        }
+
+        // Flat list for ADMIN + SUPER_ADMIN (small counts)
         Map<Long, Long> logTotals = new HashMap<>();
         for (Object[] row : usageLogRepo.sumPerUserInPeriod(monthStart, monthEnd)) {
             logTotals.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
         }
+        return userRepo.findAll().stream()
+            .filter(u -> u.getRole() != AppUser.Role.USER)
+            .map(u -> buildUserMap(u, thisMonth, logTotals))
+            .toList();
+    }
 
-        return userRepo.findAll().stream().map(u -> {
-            Map<String, Object> m = new java.util.HashMap<>();
-            m.put("id",          u.getId());
-            m.put("email",       maskEmail(u.getEmail()));
-            m.put("role",        u.getRole().name());
-            m.put("createdAt",   u.getCreatedAt());
-            m.put("childCount",  (long) childRepo.findByOwnerId(u.getId()).size());
-            m.put("authMethod",  u.getGoogleSub() != null ? "google" : "password");
-            m.put("onHold",      u.isOnHold());
-            m.put("holdReason",  u.getHoldReason());
-            int used  = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
-            int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
-            m.put("quotaUsed",        used);
-            m.put("quotaLimit",       limit);
-            m.put("quotaUsedActual",  logTotals.getOrDefault(u.getId(), 0L));
-            return m;
-        }).toList();
+    private Map<String, Object> buildUserMap(AppUser u, String thisMonth, Map<Long, Long> logTotals) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id",          u.getId());
+        m.put("email",       maskEmail(u.getEmail()));
+        m.put("role",        u.getRole().name());
+        m.put("createdAt",   u.getCreatedAt());
+        m.put("childCount",  (long) childRepo.findByOwnerId(u.getId()).size());
+        m.put("authMethod",  u.getGoogleSub() != null ? "google" : "password");
+        m.put("onHold",      u.isOnHold());
+        m.put("holdReason",  u.getHoldReason());
+        int used  = thisMonth.equals(u.getApiCallMonth()) ? u.getMonthlyApiCalls() : 0;
+        int limit = u.getQuotaLimit() > 0 ? u.getQuotaLimit() : quotaService.getDefaultMonthlyCredits();
+        m.put("quotaUsed",        used);
+        m.put("quotaLimit",       limit);
+        m.put("quotaUsedActual",  logTotals.getOrDefault(u.getId(), 0L));
+        return m;
     }
 
     @PatchMapping("/users/{id}/quota/reset")
@@ -790,5 +835,247 @@ public class AdminController {
         admin.setRole(AppUser.Role.SUPER_ADMIN);
         userRepo.save(admin);
         return ResponseEntity.ok(Map.of("email", admin.getEmail(), "role", "SUPER_ADMIN"));
+    }
+
+    // ── Promo Campaigns ──────────────────────────────────────────────────────────
+
+    /** List all campaigns (from campaign table) with aggregate grant stats. */
+    @GetMapping("/promo-campaigns")
+    public ResponseEntity<?> listPromoCampaigns() {
+        // Grant stats keyed by campaignId
+        Map<String, long[]> stats = new HashMap<>(); // [userCount, totalIssued, totalUsed]
+        for (Object[] r : promoCreditService.getCampaignSummaries()) {
+            String cid = (String) r[0];
+            stats.put(cid, new long[]{
+                ((Number) r[4]).longValue(),
+                ((Number) r[5]).longValue(),
+                ((Number) r[6]).longValue()
+            });
+        }
+
+        LocalDate today = LocalDate.now();
+        var result = promoCampaignRepo.findAllByOrderByCreatedAtDesc().stream()
+            .filter(c -> c.getStatus() != PromoCampaign.Status.MANUAL)
+            .map(c -> {
+            long[] s = stats.getOrDefault(c.getCampaignId(), new long[]{0, 0, 0});
+            boolean expired = today.isAfter(c.getExpiresOn());
+            Map<String, Object> m = new HashMap<>();
+            m.put("campaignId",     c.getCampaignId());
+            m.put("label",          c.getLabel());
+            m.put("creditsPerUser", c.getCreditsPerUser());
+            m.put("expiresOn",      c.getExpiresOn().toString());
+            m.put("status",         c.getStatus().name());
+            m.put("createdBy",      c.getCreatedBy());
+            m.put("createdAt",      c.getCreatedAt().toString());
+            m.put("activatedAt",    c.getActivatedAt() != null ? c.getActivatedAt().toString() : null);
+            m.put("userCount",      s[0]);
+            m.put("totalIssued",    s[1]);
+            m.put("totalUsed",      s[2]);
+            m.put("totalRemaining", s[1] - s[2]);
+            m.put("active",         c.getStatus() == PromoCampaign.Status.ACTIVE && !expired);
+            m.put("expired",        expired);
+            return m;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Create a campaign in DRAFT status — no grants issued yet.
+     * Body: { campaignId, label, creditsPerUser, expiresOn }
+     */
+    @PostMapping("/promo-campaigns")
+    public ResponseEntity<?> createPromoCampaign(
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+
+        String campaignId   = (String) body.get("campaignId");
+        String label        = (String) body.get("label");
+        int creditsPerUser  = ((Number) body.getOrDefault("creditsPerUser", 0)).intValue();
+        String expiresStr   = (String) body.get("expiresOn");
+
+        if (campaignId == null || campaignId.isBlank() || campaignId.contains(" "))
+            return ResponseEntity.badRequest().body(Map.of("error", "campaignId is required and must not contain spaces"));
+        if (label == null || label.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "label is required"));
+        if (creditsPerUser < 1 || creditsPerUser > 10000)
+            return ResponseEntity.badRequest().body(Map.of("error", "creditsPerUser must be between 1 and 10000"));
+        if (expiresStr == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "expiresOn is required"));
+
+        LocalDate expiresOn;
+        try { expiresOn = LocalDate.parse(expiresStr); }
+        catch (Exception e) { return ResponseEntity.badRequest().body(Map.of("error", "expiresOn must be YYYY-MM-DD")); }
+        if (!expiresOn.isAfter(LocalDate.now()))
+            return ResponseEntity.badRequest().body(Map.of("error", "expiresOn must be a future date"));
+
+        if (promoCampaignRepo.existsByCampaignId(campaignId))
+            return ResponseEntity.badRequest().body(Map.of("error", "Campaign ID already exists"));
+
+        PromoCampaign campaign = new PromoCampaign();
+        campaign.setCampaignId(campaignId);
+        campaign.setLabel(label);
+        campaign.setCreditsPerUser(creditsPerUser);
+        campaign.setExpiresOn(expiresOn);
+        campaign.setCreatedBy(caller.email());
+        promoCampaignRepo.save(campaign);
+
+        return ResponseEntity.ok(Map.of(
+            "campaignId", campaignId,
+            "status",     "DRAFT",
+            "message",    "Campaign saved as draft. Activate it when ready to grant credits."
+        ));
+    }
+
+    /**
+     * Activate a DRAFT campaign — fans out grants to all eligible users in background.
+     * Once active the campaign cannot be deleted or modified.
+     */
+    @PostMapping("/promo-campaigns/{campaignId}/activate")
+    @Transactional
+    public ResponseEntity<?> activatePromoCampaign(
+            @PathVariable String campaignId,
+            @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+
+        if (!callerIsSuperAdmin(caller)) return ResponseEntity.status(403).body(Map.of("error", "Super admin only"));
+
+        PromoCampaign campaign = promoCampaignRepo.findByCampaignId(campaignId).orElse(null);
+        if (campaign == null)
+            return ResponseEntity.notFound().build();
+        if (campaign.getStatus() != PromoCampaign.Status.DRAFT)
+            return ResponseEntity.badRequest().body(Map.of("error", "Only DRAFT campaigns can be activated"));
+        if (!campaign.getExpiresOn().isAfter(LocalDate.now()))
+            return ResponseEntity.badRequest().body(Map.of("error", "Campaign has already expired — update expiresOn before activating"));
+
+        campaign.setStatus(PromoCampaign.Status.ACTIVE);
+        campaign.setActivatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        promoCampaignRepo.save(campaign);
+
+        // Fan out grants in background
+        final PromoCampaign finalCampaign = campaign;
+        CompletableFuture.runAsync(() ->
+            promoCreditService.grantToAllUsers(finalCampaign), embeddingExecutor);
+
+        return ResponseEntity.ok(Map.of(
+            "campaignId", campaignId,
+            "status",     "ACTIVE",
+            "message",    "Campaign activated — grants are being issued in the background."
+        ));
+    }
+
+    /** Update a DRAFT campaign — label, creditsPerUser, expiresOn. campaignId is immutable. */
+    @PutMapping("/promo-campaigns/{campaignId}")
+    public ResponseEntity<?> updatePromoCampaign(
+            @PathVariable String campaignId,
+            @RequestBody Map<String, Object> body,
+            @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+
+        if (!callerIsSuperAdmin(caller)) return ResponseEntity.status(403).body(Map.of("error", "Super admin only"));
+
+        PromoCampaign campaign = promoCampaignRepo.findByCampaignId(campaignId).orElse(null);
+        if (campaign == null) return ResponseEntity.notFound().build();
+        if (campaign.getStatus() != PromoCampaign.Status.DRAFT)
+            return ResponseEntity.badRequest().body(Map.of("error", "Only DRAFT campaigns can be edited"));
+
+        String label   = (String) body.get("label");
+        int credits    = ((Number) body.getOrDefault("creditsPerUser", campaign.getCreditsPerUser())).intValue();
+        String expStr  = (String) body.get("expiresOn");
+
+        if (label != null && !label.isBlank()) campaign.setLabel(label.trim());
+        if (credits >= 1 && credits <= 10000) campaign.setCreditsPerUser(credits);
+        if (expStr != null) {
+            try {
+                LocalDate expiresOn = LocalDate.parse(expStr);
+                if (!expiresOn.isAfter(LocalDate.now()))
+                    return ResponseEntity.badRequest().body(Map.of("error", "Expiry date must be in the future"));
+                campaign.setExpiresOn(expiresOn);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(Map.of("error", "expiresOn must be YYYY-MM-DD"));
+            }
+        }
+
+        promoCampaignRepo.save(campaign);
+        return ResponseEntity.ok(Map.of("campaignId", campaignId, "status", "DRAFT"));
+    }
+
+    /** Delete a DRAFT campaign. Active campaigns cannot be deleted. */
+    @DeleteMapping("/promo-campaigns/{campaignId}")
+    public ResponseEntity<?> deletePromoCampaign(
+            @PathVariable String campaignId,
+            @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+
+        if (!callerIsSuperAdmin(caller)) return ResponseEntity.status(403).body(Map.of("error", "Super admin only"));
+
+        PromoCampaign campaign = promoCampaignRepo.findByCampaignId(campaignId).orElse(null);
+        if (campaign == null) return ResponseEntity.notFound().build();
+        if (campaign.getStatus() != PromoCampaign.Status.DRAFT)
+            return ResponseEntity.badRequest().body(Map.of("error", "Only DRAFT campaigns can be deleted"));
+
+        promoCampaignRepo.delete(campaign);
+        return ResponseEntity.ok(Map.of("deleted", campaignId));
+    }
+
+    /** Per-user promo grants (for user detail panel). */
+    @GetMapping("/users/{id}/promo-grants")
+    public ResponseEntity<?> getUserPromoGrants(@PathVariable Long id) {
+        var grants = promoCreditService.getGrantsForUser(id).stream()
+            .map(g -> Map.of(
+                "id",              (Object) g.getId(),
+                "campaignId",      g.getCampaignId(),
+                "label",           g.getLabel(),
+                "totalCredits",    g.getTotalCredits(),
+                "usedCredits",     g.getUsedCredits(),
+                "remainingCredits",g.remainingCredits(),
+                "expiresOn",       g.getExpiresOn().toString(),
+                "grantedAt",       g.getGrantedAt().toString(),
+                "grantedBy",       g.getGrantedBy(),
+                "active",          g.isActive()
+            )).toList();
+        return ResponseEntity.ok(grants);
+    }
+
+    /** Manual one-off grant to a specific user (e.g. support resolution). */
+    @PostMapping("/users/{id}/promo-grants")
+    public ResponseEntity<?> manualGrantToUser(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        String label      = (String) body.get("label");
+        int credits       = ((Number) body.getOrDefault("credits", 0)).intValue();
+        String expiresStr = (String) body.get("expiresOn");
+
+        if (label == null || label.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "label is required"));
+        if (credits < 1 || credits > 10000)
+            return ResponseEntity.badRequest().body(Map.of("error", "credits must be between 1 and 10000"));
+        if (expiresStr == null)
+            return ResponseEntity.badRequest().body(Map.of("error", "expiresOn is required"));
+
+        LocalDate expiresOn;
+        try { expiresOn = LocalDate.parse(expiresStr); }
+        catch (Exception e) { return ResponseEntity.badRequest().body(Map.of("error", "expiresOn must be YYYY-MM-DD")); }
+
+        // Each manual compensation gets its own MANUAL campaign row so the FK is always satisfied.
+        // campaignId encodes date + userId so the same admin can grant multiple compensations to the same user.
+        String campaignId = "manual-" + LocalDate.now() + "-u" + id;
+        int suffix = 2;
+        while (promoCampaignRepo.existsByCampaignId(campaignId)) {
+            campaignId = "manual-" + LocalDate.now() + "-u" + id + "-" + suffix++;
+        }
+
+        JwtFilter.AuthUser caller = (JwtFilter.AuthUser) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+
+        PromoCampaign campaign = new PromoCampaign();
+        campaign.setCampaignId(campaignId);
+        campaign.setLabel(label);
+        campaign.setCreditsPerUser(credits);
+        campaign.setExpiresOn(expiresOn);
+        campaign.setStatus(PromoCampaign.Status.MANUAL);
+        campaign.setCreatedBy(caller.email());
+        campaign.setActivatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        promoCampaignRepo.save(campaign);
+
+        boolean ok = promoCreditService.grantToUser(id, campaign, "manual-support");
+        if (!ok) return ResponseEntity.badRequest().body(Map.of("error", "Grant already exists for this campaign and user"));
+        return ResponseEntity.ok(Map.of("message", "Grant created", "campaignId", campaignId));
     }
 }

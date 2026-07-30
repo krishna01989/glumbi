@@ -1,3 +1,4 @@
+import { isCreditsBlocked } from '../../utils/quota'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { traceApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
@@ -159,7 +160,7 @@ export default function Trace({ child, quota, featureConfig }) {
     const fc = featureConfig.find(f=>f.featureName==='trace')
     return !fc || fc.enabled!==false
   })()
-  const canGenerate = aiEnabled && !offline && quota && quota.used < quota.limit
+  const canGenerate = aiEnabled && !offline && !isCreditsBlocked(quota)
 
   const maze = MAZES[mazeIdx % MAZES.length]
   const activePath = maze.paths.find(p=>p.id===activeId)

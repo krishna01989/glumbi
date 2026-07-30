@@ -1476,7 +1476,7 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
   const sorted = [...pdata].sort((a, b) => a.depth - b.depth)
   const sunSz  = isMobile ? 26 : 40
   const gc     = galaxy.color
-  const BASE   = isMobile ? 72 : 112
+  const BASE   = isMobile ? 105 : 148
 
   return (
     <div

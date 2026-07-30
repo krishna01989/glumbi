@@ -7,6 +7,10 @@ function injectBgStyles() {
   stylesInjected = true
   const s = document.createElement('style')
   s.textContent = `
+    @media (prefers-reduced-motion: reduce) {
+      [style*="animation"] { animation: none !important; }
+    }
+
     /* ─── Float / sway ─── */
     @keyframes bg-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
     @keyframes bg-float-sm{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
@@ -100,7 +104,7 @@ function injectBgStyles() {
 }
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
-const Stars = ({ n = 40, color = 'white' }) => Array.from({ length: n }, (_, i) => {
+const Stars = ({ n = 16, color = 'white' }) => Array.from({ length: n }, (_, i) => {
   const x = (i * 73 + 17) % 800
   const y = (i * 113 + 31) % 300
   const r = i % 3 === 0 ? 1.5 : 0.8
@@ -109,7 +113,7 @@ const Stars = ({ n = 40, color = 'white' }) => Array.from({ length: n }, (_, i) 
   return <circle key={i} cx={x} cy={y} r={r} fill={color} style={{ animation: `bg-twinkle ${dur}s ${del}s ease-in-out infinite` }} />
 })
 
-const Rain = ({ n = 22, delay = 0, heavy = false }) => Array.from({ length: n }, (_, i) => {
+const Rain = ({ n = 10, delay = 0, heavy = false }) => Array.from({ length: n }, (_, i) => {
   const x = (i * 47 + 13) % 850 - 25
   const dur = heavy ? (0.5 + (i % 4) * 0.1) : (0.8 + (i % 5) * 0.12)
   const del = delay + (i * 0.09) % 1.5
@@ -118,7 +122,7 @@ const Rain = ({ n = 22, delay = 0, heavy = false }) => Array.from({ length: n },
   return <line key={i} x1={x} y1={0} x2={x - (heavy ? 18 : 10)} y2={h} stroke={heavy ? 'rgba(180,200,255,0.7)' : 'rgba(180,210,255,0.5)'} strokeWidth={heavy ? 1.2 : 0.8} style={{ animation: `bg-rain-h ${dur}s ${del}s linear infinite`, opacity: op }} />
 })
 
-const Snowflakes = ({ n = 18 }) => Array.from({ length: n }, (_, i) => {
+const Snowflakes = ({ n = 8 }) => Array.from({ length: n }, (_, i) => {
   const x = (i * 53 + 29) % 800
   const size = 4 + (i % 4) * 3
   const dur = 6 + (i % 5) * 1.5
@@ -3224,6 +3228,8 @@ export function ThemeBackground({ themeKey }) {
       position: 'absolute', inset: 0, zIndex: 1,
       overflow: 'hidden', pointerEvents: 'none',
       opacity: 0.4,
+      willChange: 'transform',
+      contain: 'paint layout',
     }}>
       <Scene />
     </div>

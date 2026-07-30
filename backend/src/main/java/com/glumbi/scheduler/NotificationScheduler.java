@@ -72,7 +72,6 @@ public class NotificationScheduler {
     private final EmailTemplates           emailTemplates;
     private final AdminAlertService        adminAlertService;
     private final ApiQuotaService          quotaService;
-    private final AiUsageLogRepository     usageLogRepo;
 
     private final ObjectMapper objectMapper;
 

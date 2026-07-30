@@ -1458,7 +1458,7 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
     if (!dragRef.current.active) return
     const dx = cx(e) - dragRef.current.x0
     dragRef.current.dist = Math.abs(dx)
-    rotRef.current = dragRef.current.rot0 + dx / (rX * 1.4)
+    rotRef.current = dragRef.current.rot0 - dx / (rX * 1.4)
     setRot(rotRef.current)
   }
   function onUp() {

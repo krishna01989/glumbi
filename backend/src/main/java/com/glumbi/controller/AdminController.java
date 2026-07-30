@@ -1006,6 +1006,32 @@ public class AdminController {
         ));
     }
 
+    /** Re-run an ACTIVE campaign to fill in any users who were missed on the original fan-out. Idempotent — already-granted users are skipped. */
+    @PostMapping("/promo-campaigns/{campaignId}/rerun")
+    public ResponseEntity<?> rerunPromoCampaign(
+            @PathVariable String campaignId,
+            @AuthenticationPrincipal JwtFilter.AuthUser caller) {
+
+        if (!callerIsSuperAdmin(caller)) return ResponseEntity.status(403).body(Map.of("error", "Super admin only"));
+
+        PromoCampaign campaign = promoCampaignRepo.findByCampaignId(campaignId).orElse(null);
+        if (campaign == null)
+            return ResponseEntity.notFound().build();
+        if (campaign.getStatus() != PromoCampaign.Status.ACTIVE)
+            return ResponseEntity.badRequest().body(Map.of("error", "Only ACTIVE campaigns can be re-run"));
+        if (!campaign.getExpiresOn().isAfter(LocalDate.now()))
+            return ResponseEntity.badRequest().body(Map.of("error", "Campaign has expired — extend expiresOn before re-running"));
+
+        final PromoCampaign finalCampaign = campaign;
+        CompletableFuture.runAsync(() ->
+            promoCreditService.grantToAllUsers(finalCampaign), embeddingExecutor);
+
+        return ResponseEntity.ok(Map.of(
+            "campaignId", campaignId,
+            "message",    "Re-run started — grants are being issued to any users who were missed."
+        ));
+    }
+
     /** Update a DRAFT campaign — label, creditsPerUser, expiresOn. campaignId is immutable. */
     @PutMapping("/promo-campaigns/{campaignId}")
     public ResponseEntity<?> updatePromoCampaign(

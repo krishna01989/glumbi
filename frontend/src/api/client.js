@@ -318,6 +318,7 @@ export const adminApi = {
   createPromoCampaign:       (payload)                   => api.post('/admin/promo-campaigns', payload).then(r => r.data),
   updatePromoCampaign:       (campaignId, payload)       => api.put(`/admin/promo-campaigns/${campaignId}`, payload).then(r => r.data),
   activatePromoCampaign:     (campaignId)                => api.post(`/admin/promo-campaigns/${campaignId}/activate`).then(r => r.data),
+  rerunPromoCampaign:        (campaignId)                => api.post(`/admin/promo-campaigns/${campaignId}/rerun`).then(r => r.data),
   deletePromoCampaign:       (campaignId)                => api.delete(`/admin/promo-campaigns/${campaignId}`).then(r => r.data),
   getCampaignGrants:         (campaignId)                => api.get(`/admin/promo-campaigns/${campaignId}/grants`).then(r => r.data),
   getUserPromoGrants:        (userId)                    => api.get(`/admin/users/${userId}/promo-grants`).then(r => r.data),

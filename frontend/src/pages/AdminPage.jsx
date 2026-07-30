@@ -3073,6 +3073,7 @@ function PromoCampaigns() {
   const [msg, setMsg]                 = useState(null)
   const [activating, setActivating]   = useState(null)
   const [deleting, setDeleting]       = useState(null)
+  const [rerunning, setRerunning]     = useState(null)
   const [filter, setFilter]           = useState('ALL')
   const [sort, setSort]               = useState('createdAt')
   const [page, setPage]               = useState(0)
@@ -3166,6 +3167,18 @@ function PromoCampaigns() {
     }
   }
 
+  async function handleRerun(c) {
+    setRerunning(c.campaignId)
+    try {
+      await adminApi.rerunPromoCampaign(c.campaignId)
+      flash('success', `🔄 Re-run started for "${c.label}" — missed users are being granted in the background.`)
+    } catch (e) {
+      flash('error', e.response?.data?.error || 'Re-run failed')
+    } finally {
+      setRerunning(null)
+    }
+  }
+
   async function handleDelete(c) {
     if (!window.confirm(`Delete draft campaign "${c.label}"? This cannot be undone.`)) return
     setDeleting(c.campaignId)
@@ -3199,16 +3212,18 @@ function PromoCampaigns() {
             Create a draft, review it, then activate to grant bonus credits to all current users.
           </p>
         </div>
-        {!showCreate && (
-          <button onClick={() => setShowCreate(true)} style={{
-            background: 'linear-gradient(135deg,#7c3aed,#9333ea)', color: 'white',
-            border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 800,
-            fontSize: 14, cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.35)',
-            whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            + New Campaign
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          {!showCreate && (
+            <button onClick={() => setShowCreate(true)}
+              style={{ padding: '8px 16px', borderRadius: 50, border: 'none', background: '#6366f1', color: 'white', fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              + New Campaign
+            </button>
+          )}
+          <button onClick={() => load(page, filter, sort)} disabled={loading} title="Refresh"
+            style={{ width: 34, height: 34, borderRadius: 8, border: '1.5px solid #e0e0e0', background: '#fafafa', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: loading ? 0.5 : 1 }}>
+            {loading ? '…' : '🔄'}
           </button>
-        )}
+        </div>
       </div>
 
       {msg && (
@@ -3362,6 +3377,14 @@ function PromoCampaigns() {
                       <button onClick={() => handleDelete(c)} disabled={deleting === c.campaignId}
                         style={{ fontSize: 11, fontWeight: 800, padding: '5px 11px', borderRadius: 6, border: '1.5px solid #fca5a5', background: 'white', color: '#b91c1c', cursor: 'pointer', opacity: deleting === c.campaignId ? 0.6 : 1 }}>
                         {deleting === c.campaignId ? '…' : '🗑️'}
+                      </button>
+                    </div>
+                  )}
+                  {c.active && (
+                    <div style={{ flexShrink: 0 }}>
+                      <button onClick={() => handleRerun(c)} disabled={rerunning === c.campaignId}
+                        style={{ fontSize: 11, fontWeight: 800, padding: '5px 11px', borderRadius: 6, border: '1.5px solid #6ee7b7', background: 'white', color: '#065f46', cursor: 'pointer', opacity: rerunning === c.campaignId ? 0.6 : 1 }}>
+                        {rerunning === c.campaignId ? '…' : '🔄 Re-run'}
                       </button>
                     </div>
                   )}

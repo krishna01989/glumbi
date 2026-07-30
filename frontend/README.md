@@ -147,7 +147,8 @@ All API calls go through the Axios instance in `client.js`. It:
 - Sets `baseURL` from `VITE_API_URL` env var (falls back to localhost)
 - Attaches the JWT `Authorization: Bearer` header from `localStorage` on every request
 - Exposes typed helper functions for each feature (`storyApi`, `activityApi`, `quizApi`, `mazeApi`, `riddleApi`, etc.)
-- Intercepts all errors and sanitises them — raw server messages, stack traces, and host details are never surfaced to the user; 401 → `/error/401`, 403 → `/error/403`, 502/503 → `/error/502`, no-response (server down) → `/error/502`
+- Intercepts all errors and sanitises them — raw server messages, stack traces, and host details are never surfaced to the user; 401 → `/error/401`, 403 → `/error/403`, 502 → `/error/502`, no-response (server down) → `/error/502`
+- 503 responses are checked for `code: "SIGNUP_PAUSED"` before redirecting — a signup-paused 503 surfaces as an inline form error rather than the error page; a genuine 503 still redirects
 
 ### Error pages
 
@@ -387,6 +388,12 @@ Parents manage up to 5 named voices from My Account → Story Voices:
 - AI validation is lenient: any visible strokes = correct, blank canvas = incorrect
 - Correct attempts are saved to the Timeline (`category = "learn"`)
 - TTS pronunciation available for each letter/word via `/api/learn/audio`
+
+### Signup Kill Switch (`AuthPage.jsx` + `AdminPage.jsx`)
+
+- `GET /api/auth/signup-status` is called on `AuthPage` mount (no auth required). If signups are paused and the user is on the Create Account tab, a friendly orange banner appears before they type anything.
+- Admin dashboard signup card initialises as `null` (not `true`) so it stays hidden until the fetch resolves — prevents a momentary flash of the wrong open/paused state.
+- `adminApi.getSignupEnabled()` / `adminApi.setSignupEnabled(enabled)` toggle the kill switch via `/api/admin/settings/signup`.
 
 ### Admin panel (`AdminPage.jsx` + `AdminProfilePage.jsx`)
 

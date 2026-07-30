@@ -102,7 +102,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 
 | Controller | Base Path | Notes |
 |---|---|---|
-| `AuthController` | `/api/auth` | Register, login, Google OAuth, health check, password reset flow (`forgot-password`, `validate-reset-token`, `reset-password`). Sets `quotaLimit` to current global default on new user creation. |
+| `AuthController` | `/api/auth` | Register, login, Google OAuth, health check, password reset flow (`forgot-password`, `validate-reset-token`, `reset-password`), `GET /signup-status` (public — returns `{ enabled }` for the auth page preflight check). Sets `quotaLimit` to current global default on new user creation. Register and Google new-user paths are gated by `SignupGuardService`; returns `503` + `Retry-After: 86400` + `{ code: "SIGNUP_PAUSED" }` when paused. |
 | `StoryController` | `/api/stories` | CRUD + `/listen` endpoint with HTTP Range, `?part=1|2` and `?branch=a|b` for Glumbi branched audio. Cache key suffixes: `:p1`, `:p2a`, `:p2b`. R2 cleanup on delete covers all branch keys via `audioUrls` JSON column. |
 | `ActivityController` | `/api/activities` | Generate and list activities; `GET /{id}/similar` returns semantically similar completed activities via pgvector |
 | `CuriosityController` | `/api/curiosity` | Daily curiosity questions; `GET /{id}/similar` returns semantically related questions via pgvector |
@@ -115,7 +115,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 | `TraceController` | `/api/trace` | `POST /generate` — calls `TraceAgent` to produce a maze theme (emojis, story, bg colour) for the Maze feature. Feature key: `maze`. |
 | `RiddleController` | `/api/riddle` | `POST /generate` — calls `RiddleAgent` to produce 5 age-appropriate riddles. Feature key: `riddle`. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
-| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. Sends transactional emails on hold/release/delete. Promo: `GET/POST /promo-campaigns` (MANUAL filtered out of list), `PUT /promo-campaigns/{id}` (DRAFT only), `POST /users/{id}/promo-grants` (creates MANUAL campaign + grant), `GET /users/{id}/promo-grants`. |
+| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. `GET /settings/signup` + `PUT /settings/signup` — signup kill switch read/write via `SignupGuardService`. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. Sends transactional emails on hold/release/delete. Promo: `GET/POST /promo-campaigns` (MANUAL filtered out of list), `PUT /promo-campaigns/{id}` (DRAFT only), `POST /users/{id}/promo-grants` (creates MANUAL campaign + grant), `GET /users/{id}/promo-grants`. |
 
 ---
 

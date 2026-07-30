@@ -205,6 +205,12 @@ export default function ReadQuiz({ child, quota }) {
       onCancel={() => setConfirmDelete(null)}
     />
     <FeatureBanner feature="readquiz" child={child} isMobile={isMobile} />
+    <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 4 }}>
+      <span style={{ fontSize: 20, flexShrink: 0 }}>📖</span>
+      <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+        <strong>Parent tip:</strong> For early readers, read the passage aloud together before the quiz. The questions work best as a conversation — let your child think out loud rather than guessing alone.
+      </div>
+    </div>
     <div style={{ display: isMobile ? 'block' : 'flex', gap: 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: isMobile ? 6 : 16 }}>
 
       {/* Mobile back button */}

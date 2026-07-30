@@ -15,7 +15,12 @@ export default function AuthPage({ onAuth }) {
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
   const [noticeAgreed, setNoticeAgreed] = useState(false)
+  const [signupOpen, setSignupOpen] = useState(true)
   const googleBtnRef          = useRef(null)
+
+  useEffect(() => {
+    authApi.signupStatus().then(r => setSignupOpen(r.enabled)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return
@@ -125,6 +130,16 @@ export default function AuthPage({ onAuth }) {
               <div style={{ flex: 1, height: 1, background: '#eee' }} />
             </div>
           </>
+        )}
+
+        {/* Signup paused banner */}
+        {mode === 'register' && !signupOpen && (
+          <div style={{ background: '#fff7ed', border: '1.5px solid #fed7aa', borderRadius: 12, padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>🌱</span>
+            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+              <strong>We're pausing new sign-ups for now.</strong> Glumbi is growing fast and we want to make sure every family gets the best experience. Check back soon — we'd love to have you!
+            </div>
+          </div>
         )}
 
         {/* Tab switch */}

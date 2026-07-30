@@ -49,6 +49,7 @@ public class AuthController {
     private final ResendClient                resendClient;
     private final EmailTemplates              emailTemplates;
     private final AdminAlertService           adminAlertService;
+    private final com.glumbi.service.SignupGuardService signupGuard;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${app.google.token-info-url}") private String googleTokenInfoUrl;
@@ -56,6 +57,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
+        if (!signupGuard.isSignupEnabled()) {
+            return ResponseEntity.status(503)
+                    .header("Retry-After", "86400")
+                    .body(Map.of("code", "SIGNUP_PAUSED", "error", "We're pausing new sign-ups for now. Glumbi is growing fast and we want to make sure every family gets the best experience. Check back soon — we'd love to have you!"));
+        }
         if (userRepo.existsByEmail(req.getEmail())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Email already registered"));
         }
@@ -118,6 +124,11 @@ public class AuthController {
                     .orElseGet(() -> userRepo.findByEmail(email).orElse(null));
 
             boolean isNewUser = (user == null);
+            if (isNewUser && !signupGuard.isSignupEnabled()) {
+                return ResponseEntity.status(503)
+                        .header("Retry-After", "86400")
+                        .body(Map.of("code", "SIGNUP_PAUSED", "error", "We're pausing new sign-ups for now. Glumbi is growing fast and we want to make sure every family gets the best experience. Check back soon — we'd love to have you!"));
+            }
             if (isNewUser) {
                 user = new AppUser();
                 user.setEmail(email);
@@ -259,6 +270,11 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("ok");
+    }
+
+    @GetMapping("/signup-status")
+    public ResponseEntity<?> signupStatus() {
+        return ResponseEntity.ok(Map.of("enabled", signupGuard.isSignupEnabled()));
     }
 
     // Railway sits behind a proxy — prefer X-Forwarded-For, fall back to remoteAddr

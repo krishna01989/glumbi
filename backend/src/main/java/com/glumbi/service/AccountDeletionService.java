@@ -32,6 +32,7 @@ public class AccountDeletionService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final FamilyVoiceRepository        familyVoiceRepository;
     private final UserRepository               userRepository;
+    private final PromoCreditGrantRepository   promoCreditGrantRepository;
     private final ElevenLabsService            elevenLabsService;
     private final R2Service                    r2Service;
     private final ObjectMapper                 objectMapper;
@@ -98,7 +99,10 @@ public class AccountDeletionService {
         // 4. Delete remaining user-level notifications (child notifications already deleted per-child above)
         notificationRepository.deleteByUserId(userId);
 
-        // 5. Delete the user account
+        // 5. Delete promo credit grants (FK references app_users.id)
+        promoCreditGrantRepository.deleteByUserId(userId);
+
+        // 6. Delete the user account
         userRepository.deleteById(userId);
     }
 }

@@ -1376,6 +1376,14 @@ export default function LearnPage({ child, quota }) {
       <div style={{ marginTop: 6 }}>
       <QuotaBanner quota={quota} />
 
+      {/* Parent tip banner */}
+      <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+        <span style={{ fontSize: 20, flexShrink: 0 }}>👨‍👩‍👧</span>
+        <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+          <strong>Parent tip:</strong> This is a parent-guided activity — sit with your child and say each letter aloud as they trace it. Letter audio may not be available for all scripts, so your voice makes all the difference!
+        </div>
+      </div>
+
       {/* Language selector — compact chip, expands to picker on demand */}
       <div style={{ marginBottom:14 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom: showLangPicker ? 10 : 0 }}>

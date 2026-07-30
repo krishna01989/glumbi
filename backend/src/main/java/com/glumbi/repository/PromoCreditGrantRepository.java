@@ -27,6 +27,11 @@ public interface PromoCreditGrantRepository extends JpaRepository<PromoCreditGra
 
     Optional<PromoCreditGrant> findByUserIdAndCampaignCampaignId(Long userId, String campaignId);
 
+    /** Delete all grants for a user (used during account deletion). */
+    @Modifying
+    @Query("DELETE FROM PromoCreditGrant g WHERE g.user.id = :uid")
+    void deleteByUserId(@Param("uid") Long uid);
+
     /** All grants for a campaign (admin view). */
     @Query("SELECT g FROM PromoCreditGrant g WHERE g.campaign.campaignId = :campaignId ORDER BY g.grantedAt DESC")
     List<PromoCreditGrant> findByCampaignId(@Param("campaignId") String campaignId);

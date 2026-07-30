@@ -88,6 +88,12 @@ export default function Journal({ child, featureConfig, quota }) {
     <>
     <FeatureBanner feature="journal" child={child} isMobile={window.innerWidth < 1024} />
     <QuotaBanner quota={quota} />
+    <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 4 }}>
+      <span style={{ fontSize: 20, flexShrink: 0 }}>👨‍👩‍👧</span>
+      <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+        <strong>Parent tip:</strong> Sit with your child and help them put their thoughts into words. For little ones, you can write while they tell you what happened — it's their story, just with your help!
+      </div>
+    </div>
     <div style={{ maxWidth: 920, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 24, paddingTop: 16 }}>
       {aiLoading && <ThemeLoader theme={child.theme} />}
 

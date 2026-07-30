@@ -951,6 +951,25 @@ function Dashboard() {
   const [error, setError]         = useState('')
   const [autoInterval, setAutoInterval] = useState(0)
   const timerRef = useRef(null)
+  const [signupEnabled, setSignupEnabled] = useState(null)
+  const [signupSaving, setSignupSaving]   = useState(false)
+
+  useEffect(() => {
+    adminApi.getSignupEnabled().then(r => setSignupEnabled(r.enabled)).catch(() => {})
+  }, [])
+
+  async function handleSignupToggle() {
+    setSignupSaving(true)
+    try {
+      const next = !signupEnabled
+      await adminApi.setSignupEnabled(next)
+      setSignupEnabled(next)
+    } catch (e) {
+      // ignore
+    } finally {
+      setSignupSaving(false)
+    }
+  }
 
   const fetchAll = useCallback((r) => {
     const resolved = r || range
@@ -998,6 +1017,29 @@ function Dashboard() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+      {/* Signup guard */}
+      {signupEnabled !== null && <div style={{ background: signupEnabled ? 'white' : 'linear-gradient(135deg,#fff5f5,#ffe4e4)', borderRadius: 16, padding: '16px 20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: signupEnabled ? '1.5px solid #e5e7eb' : '1.5px solid #fca5a5', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: signupEnabled ? '#1a1a2e' : '#b91c1c', marginBottom: 2 }}>
+            {signupEnabled ? '🟢 New Sign-ups Open' : '🔴 New Sign-ups Paused'}
+          </div>
+          <div style={{ fontSize: 12, color: '#666' }}>
+            {signupEnabled
+              ? 'New users can register via email or Google. Toggle to pause.'
+              : 'New registrations are blocked. Existing users are unaffected. Toggle to re-open.'}
+          </div>
+        </div>
+        <button onClick={handleSignupToggle} disabled={signupSaving} style={{
+          padding: '8px 20px', borderRadius: 50, border: 'none', cursor: signupSaving ? 'not-allowed' : 'pointer',
+          fontWeight: 800, fontSize: 13, transition: 'all 0.2s',
+          background: signupEnabled ? '#fee2e2' : '#dcfce7',
+          color: signupEnabled ? '#b91c1c' : '#15803d',
+          opacity: signupSaving ? 0.6 : 1,
+        }}>
+          {signupSaving ? '…' : signupEnabled ? 'Pause' : 'Re-open'}
+        </button>
+      </div>}
 
       {/* AI Credits — always current month, not filter-controlled */}
       {stats && (

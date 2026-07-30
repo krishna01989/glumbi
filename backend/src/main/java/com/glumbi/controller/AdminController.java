@@ -67,6 +67,7 @@ public class AdminController {
     private final com.glumbi.service.AdminAlertService adminAlertService;
     private final NotificationRepository notificationRepo;
     private final ExecutorService embeddingExecutor;
+    private final com.glumbi.service.SignupGuardService signupGuard;
 
     @GetMapping("/stats")
     public Map<String, Object> stats(
@@ -696,6 +697,21 @@ public class AdminController {
                 return Map.<String, Object>of();
             }
         }).orElse(Map.of());
+    }
+
+    // ── Signup guard ─────────────────────────────────────────────────────────
+
+    @GetMapping("/settings/signup")
+    public ResponseEntity<?> getSignupEnabled() {
+        return ResponseEntity.ok(Map.of("enabled", signupGuard.isSignupEnabled()));
+    }
+
+    @PutMapping("/settings/signup")
+    public ResponseEntity<?> setSignupEnabled(@RequestBody Map<String, Boolean> body) {
+        Boolean enabled = body.get("enabled");
+        if (enabled == null) return ResponseEntity.badRequest().body(Map.of("error", "Missing 'enabled' field"));
+        signupGuard.setSignupEnabled(enabled);
+        return ResponseEntity.ok(Map.of("enabled", enabled));
     }
 
     // ── AI Agent config ──────────────────────────────────────────────────────

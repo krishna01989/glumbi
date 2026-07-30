@@ -67,8 +67,14 @@ api.interceptors.response.use(
       const data = err.response?.data
       return Promise.reject(new Error(data?.error || 'Monthly limit reached. Resets on the 1st!'))
     }
-    if (status === 502 || status === 503) {
-      if (!alreadyOnErrorPage) window.location.href = `/error/${status}`
+    if (status === 503) {
+      const data = err.response?.data
+      if (data?.code === 'SIGNUP_PAUSED') return Promise.reject(new Error(data.error))
+      if (!alreadyOnErrorPage) window.location.href = '/error/503'
+      return new Promise(() => {})
+    }
+    if (status === 502) {
+      if (!alreadyOnErrorPage) window.location.href = '/error/502'
       return new Promise(() => {})
     }
     // No response at all = network error / server not reachable
@@ -82,6 +88,7 @@ api.interceptors.response.use(
 )
 
 export const authApi = {
+  signupStatus:    ()                => api.get('/auth/signup-status').then(r => r.data),
   register:        (data)            => api.post('/auth/register', data).then(r => r.data),
   login:           (data)            => api.post('/auth/login',    data).then(r => r.data),
   google:          (idToken)         => api.post('/auth/google', { idToken }).then(r => r.data),
@@ -327,4 +334,6 @@ export const adminApi = {
   setVendorEnabled:          (vendor, enabled)           => api.patch(`/admin/vendors/${vendor}`, { enabled }).then(r => r.data),
   getAdminAlerts:            ()                          => api.get('/admin/alerts').then(r => r.data),
   markAdminAlertsRead:       ()                          => api.post('/admin/alerts/mark-read').then(r => r.data),
+  getSignupEnabled:          ()                          => api.get('/admin/settings/signup').then(r => r.data),
+  setSignupEnabled:          (enabled)                   => api.put('/admin/settings/signup', { enabled }).then(r => r.data),
 }

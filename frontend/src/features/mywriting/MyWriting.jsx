@@ -348,6 +348,12 @@ export default function MyWriting({ child, quota }) {
     />
     <FeatureBanner feature="mywriting" child={child} isMobile={isMobile} />
     <QuotaBanner quota={quota} />
+    <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 4 }}>
+      <span style={{ fontSize: 20, flexShrink: 0 }}>✍️</span>
+      <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
+        <strong>Parent tip:</strong> After your child writes, review the AI feedback together. Discuss the suggestions as a team — it's a great way to build confidence and turn critique into a learning moment.
+      </div>
+    </div>
     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : undefined, gap: isMobile ? 16 : 24, height: '100%', fontFamily: 'Nunito, sans-serif', marginTop: isMobile ? 6 : 16 }}>
 
       {/* Mobile top bar */}

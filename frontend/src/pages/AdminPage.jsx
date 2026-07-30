@@ -2773,7 +2773,7 @@ function Vendors() {
   const enabledCount = vendors.filter(v => effectiveEnabled(v.vendor)).length
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: '24px 16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ fontWeight: 800, fontSize: 20, marginBottom: 4 }}>Vendor Controls</div>
       <div style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>
         Kill switches for external service vendors. Changes take effect within 30 seconds — no restart needed.
@@ -2867,7 +2867,7 @@ function Compliance() {
   }
 
   return (
-    <div style={{ padding: '32px 28px', maxWidth: 700 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ fontWeight: 900, fontSize: 20, color: '#1a1a2e', marginBottom: 4 }}>🛡️ Compliance</div>
       <p style={{ fontSize: 13, color: '#666', marginBottom: 28 }}>DPDP Act 2023 &amp; COPPA compliance tools.</p>
 
@@ -3143,7 +3143,7 @@ function PromoCampaigns() {
   }
 
   return (
-    <div style={{ padding: 'clamp(16px,4vw,32px) clamp(12px,3vw,28px)', maxWidth: 1000 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>🎁 Promo Campaigns</h2>

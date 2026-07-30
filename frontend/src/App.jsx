@@ -545,7 +545,7 @@ export default function App() {
 
         <main className="main-scroll" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0,
           ...(location.pathname.endsWith('/hub')
-            ? { padding: 0 }
+            ? { padding: 0, overflowY: 'auto' }
             : { padding: isMobile ? '16px 12px' : isTV ? '32px 40px' : '24px', overflowY: 'auto' }) }}>
           <ChildRoutes
             child={child}

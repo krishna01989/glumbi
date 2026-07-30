@@ -78,7 +78,7 @@ function ZoneScene({ themeKey, h, color, clipId }) {
         <rect key={i} x={h*x/60} y={s-h*ht/60} width={h*w/60} height={h*ht/60} fill="#020618"/>
       ))}
       <circle cx={h} cy={h*.52} r={h*.28} fill="rgba(255,215,0,.1)"/>
-      <path d={`M${h-h*.13},${h*.35} Q${h-h*.13},${h*.27} ${h},${h*.27} Q${h+h*.13},${h*.27} ${h+h*.13},${h*.4} Q${h+h*.13},${h*.5} ${h},${h*.5} Q${h-h*.13},${h*.5} ${h-h*.13},${h*.62} Q${h-h*.13},${h*.7} ${h},${h*.7} Q${h+h*.13},${h*.7} ${h+h*.13},${h*.64}`}
+      <path d={`M${h+h*.13},${h*.35} Q${h+h*.13},${h*.27} ${h},${h*.27} Q${h-h*.13},${h*.27} ${h-h*.13},${h*.4} Q${h-h*.13},${h*.5} ${h},${h*.5} Q${h+h*.13},${h*.5} ${h+h*.13},${h*.62} Q${h+h*.13},${h*.7} ${h},${h*.7} Q${h-h*.13},${h*.7} ${h-h*.13},${h*.64}`}
         stroke="rgba(255,215,0,.65)" strokeWidth={h*.04} fill="none" strokeLinecap="round"/>
     </g>
   )

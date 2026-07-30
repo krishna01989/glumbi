@@ -1310,8 +1310,8 @@ function GalaxySwiper({ galaxies, onSelect, isMobile, primary, initialPos = 0, w
 
   return (
     <div id="tour-hub-swiper"
-      style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-        position: 'relative', userSelect: 'none', touchAction: 'none', overflow: 'hidden' }}
+      style={{ flex: 1, minHeight: 320, display: 'flex', flexDirection: 'column',
+        position: 'relative', userSelect: 'none', touchAction: 'pan-y', overflow: 'visible' }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
 
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
@@ -1476,12 +1476,12 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
   const sorted = [...pdata].sort((a, b) => a.depth - b.depth)
   const sunSz  = isMobile ? 26 : 40
   const gc     = galaxy.color
-  const BASE   = isMobile ? 54 : 84
+  const BASE   = isMobile ? 72 : 112
 
   return (
     <div
-      style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
-        position: 'relative', userSelect: 'none', touchAction: 'none', overflow: 'hidden',
+      style={{ flex: 1, minHeight: 520, display: 'flex', flexDirection: 'column',
+        position: 'relative', userSelect: 'none', touchAction: 'pan-y', overflow: 'visible',
         animation: 'hub-view-in .35s ease both' }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
 
@@ -1706,7 +1706,7 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
     const lastPlanetIdx  = lastPlanetPath ? planets.findIndex(p => p.path === lastPlanetPath) : 0
     const initialRot = Math.PI / 2 - (2 * Math.PI / planets.length) * lastPlanetIdx
     return (
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+      <div style={{ flex: 1, minHeight: 520, display: 'flex', flexDirection: 'column',
         background: world.bg, fontFamily: 'Nunito, sans-serif', position: 'relative' }}>
         <ThemeBackground themeKey={themeKey} />
         <WorldParticles world={world} count={55} />
@@ -1728,7 +1728,7 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
 
   // ── Universe view ────────────────────────────────────────────────────────────
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
+    <div style={{ flex: 1, minHeight: 520, display: 'flex', flexDirection: 'column',
       background: world.bg, fontFamily: 'Nunito, sans-serif', position: 'relative',
       animation: 'hub-view-in .35s ease both' }}>
       <ThemeBackground themeKey={themeKey} />

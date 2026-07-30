@@ -1258,8 +1258,8 @@ function WorldPlanetVisual({ planet, size, world }) {
 // ── Galaxy swiper ─────────────────────────────────────────────────────────────
 function GalaxySwiper({ galaxies, onSelect, isMobile, primary, initialPos = 0, world, themeKey }) {
   const N = galaxies.length
-  const spacing    = isMobile ? 195 : 290
-  const galaxySize = isMobile ? 105 : 148
+  const spacing    = isMobile ? 220 : 290
+  const galaxySize = 148
 
   const posRef  = useRef(initialPos)
   const [pos, setPos] = useState(initialPos)
@@ -1334,9 +1334,9 @@ function GalaxySwiper({ galaxies, onSelect, isMobile, primary, initialPos = 0, w
                 transition: dragRef.current.active ? 'none' : 'transform .32s cubic-bezier(.25,.1,.25,1), opacity .32s ease',
                 cursor: 'pointer', zIndex: isFocus ? 10 : 5,
               }}
-              onPointerDown={e => e.stopPropagation()}
               onClick={e => {
                 e.stopPropagation()
+                if (dragRef.current.dist > 8) return
                 if (isFocus) onSelect(g)
                 else {
                   let target = Math.round(posRef.current) + d
@@ -1476,7 +1476,7 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
   const sorted = [...pdata].sort((a, b) => a.depth - b.depth)
   const sunSz  = isMobile ? 26 : 40
   const gc     = galaxy.color
-  const BASE   = isMobile ? 105 : 148
+  const BASE   = 148
 
   return (
     <div
@@ -1535,9 +1535,9 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
                 opacity,
                 cursor: 'pointer',
               }}
-              onPointerDown={e => e.stopPropagation()}
               onClick={e => {
                 e.stopPropagation()
+                if (dragRef.current.dist > 8) return
                 if (isFocus) goTo(p.path)
                 else snapToIdx(p.i)
               }}>

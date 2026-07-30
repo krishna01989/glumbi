@@ -49,7 +49,6 @@ public class AdminController {
     private final ApiQuotaService               quotaService;
     private final QuotaScheduler                quotaScheduler;
     private final PromoCreditService promoCreditService;
-    private final PromoCreditGrantRepository promoCreditGrantRepo;
     private final PromoCampaignRepository promoCampaignRepo;
     private final UserFeatureOverrideRepository overrideRepo;
     private final AppSettingRepository          appSettingRepo;

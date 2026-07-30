@@ -43,8 +43,16 @@ export function useAuth({ addToast }) {
   useEffect(() => {
     if (!quota) return
     const pct = quota.used / quota.limit
-    if (pct >= 1) addToast('🚫 Monthly limit reached — usage resets on the 1st', 'error')
-    else if (pct >= 0.8 && quota.used % 10 === 0) addToast(`⚠️ ${quota.used}/${quota.limit} monthly AI credits used`, 'warning')
+    if (pct >= 1) {
+      const hasPromo = (quota.totalPromoRemaining ?? 0) > 0
+      if (hasPromo) {
+        addToast(`Monthly credits used — your bonus credits are keeping you going! 🎁`, 'info')
+      } else {
+        addToast('🚫 Monthly limit reached — usage resets on the 1st', 'error')
+      }
+    } else if (pct >= 0.8 && quota.used % 10 === 0) {
+      addToast(`⚠️ ${quota.used}/${quota.limit} monthly AI credits used`, 'warning')
+    }
   }, [quota])
 
   // Expose quota refresh globally so AI feature pages can trigger it after usage

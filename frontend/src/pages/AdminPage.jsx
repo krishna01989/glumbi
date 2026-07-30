@@ -3063,31 +3063,37 @@ function AdminAlertDrawer({ open, alerts, drawerRef, onClose }) {
 
 // ─── Promo Campaigns section ─────────────────────────────────────────────────
 function PromoCampaigns() {
-  const [campaigns, setCampaigns]     = useState([])
+  const [result, setResult]           = useState({ content: [], totalElements: 0, totalPages: 0, page: 0 })
   const [loading, setLoading]         = useState(true)
   const [showCreate, setShowCreate]   = useState(false)
-  const [editingCampaign, setEditing] = useState(null) // campaign object being edited
+  const [editingCampaign, setEditing] = useState(null)
   const [form, setForm]               = useState({ campaignId: '', label: '', creditsPerUser: 500, expiresOn: '' })
   const [formErr, setFormErr]         = useState('')
   const [creating, setCreating]       = useState(false)
-  const [msg, setMsg]                 = useState(null) // { type: 'success'|'error', text }
-  const [activating, setActivating]   = useState(null) // campaignId being activated
-  const [deleting, setDeleting]       = useState(null) // campaignId being deleted
+  const [msg, setMsg]                 = useState(null)
+  const [activating, setActivating]   = useState(null)
+  const [deleting, setDeleting]       = useState(null)
+  const [filter, setFilter]           = useState('ALL')
+  const [sort, setSort]               = useState('createdAt')
+  const [page, setPage]               = useState(0)
 
-  const load = () => {
+  const load = (p = page, f = filter, s = sort) => {
     setLoading(true)
-    adminApi.listPromoCampaigns()
-      .then(setCampaigns)
+    adminApi.listPromoCampaigns({ page: p, size: 10, filter: f === 'ALL' ? undefined : f, sort: s })
+      .then(data => setResult(data))
       .catch(() => {})
       .finally(() => setLoading(false))
   }
 
-  useEffect(load, [])
+  useEffect(() => { load(page, filter, sort) }, [page, filter, sort])
 
   function flash(type, text) {
     setMsg({ type, text })
     setTimeout(() => setMsg(null), 5000)
   }
+
+  function changeFilter(f) { setFilter(f); setPage(0) }
+  function changeSort(s)   { setSort(s);   setPage(0) }
 
   function handleEdit(c) {
     setEditing(c)
@@ -3165,7 +3171,7 @@ function PromoCampaigns() {
     setDeleting(c.campaignId)
     try {
       await adminApi.deletePromoCampaign(c.campaignId)
-      setCampaigns(prev => prev.filter(x => x.campaignId !== c.campaignId))
+      load()
     } catch (e) {
       flash('error', e.response?.data?.error || 'Delete failed')
     } finally {
@@ -3278,16 +3284,53 @@ function PromoCampaigns() {
         </div>
       )}
 
+      {/* Filter + sort bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        {[
+          { key: 'ALL',      label: 'All' },
+          { key: 'DRAFT',    label: '✏️ Draft' },
+          { key: 'ACTIVE',   label: '● Active' },
+          { key: 'EXPIRING', label: '⚠️ Expiring soon' },
+          { key: 'EXPIRED',  label: '○ Expired' },
+        ].map(f => (
+          <button key={f.key} onClick={() => changeFilter(f.key)} style={{
+            padding: '6px 14px', borderRadius: 50, border: 'none', cursor: 'pointer',
+            fontWeight: 700, fontSize: 12,
+            background: filter === f.key ? '#7c3aed' : '#f3f4f6',
+            color: filter === f.key ? 'white' : '#555',
+          }}>{f.label}</button>
+        ))}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, color: '#aaa', fontWeight: 700 }}>Sort:</span>
+          {[
+            { key: 'createdAt', label: 'Newest' },
+            { key: 'expiresOn', label: 'Expiring soon' },
+            { key: 'label',     label: 'A–Z' },
+          ].map(s => (
+            <button key={s.key} onClick={() => changeSort(s.key)} style={{
+              padding: '6px 12px', borderRadius: 50, border: 'none', cursor: 'pointer',
+              fontWeight: 700, fontSize: 12,
+              background: sort === s.key ? '#ede8ff' : '#f3f4f6',
+              color: sort === s.key ? '#7c3aed' : '#555',
+            }}>{s.label}</button>
+          ))}
+        </div>
+      </div>
+
       {/* Campaign list */}
       {loading ? (
         <div style={{ textAlign: 'center', color: '#bbb', padding: 40 }}>Loading…</div>
-      ) : campaigns.length === 0 ? (
+      ) : result.totalElements === 0 && filter === 'ALL' ? (
         <div style={{ textAlign: 'center', color: '#bbb', padding: 40, fontSize: 14 }}>
           No campaigns yet. Create one to get started.
         </div>
+      ) : result.content.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#bbb', padding: 40, fontSize: 14 }}>
+          No campaigns match this filter.
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {campaigns.map(c => {
+          {result.content.map(c => {
             const usedPct = c.totalIssued > 0 ? Math.round((c.totalUsed / c.totalIssued) * 100) : 0
             const isDraft = c.status === 'DRAFT'
             return (
@@ -3368,6 +3411,24 @@ function PromoCampaigns() {
               </div>
             )
           })}
+          {/* Pagination */}
+          {result.totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+              <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} style={{
+                padding: '6px 14px', borderRadius: 50, border: '1.5px solid #e5e7eb',
+                background: 'white', fontWeight: 800, fontSize: 13, cursor: page === 0 ? 'not-allowed' : 'pointer',
+                color: page === 0 ? '#ccc' : '#555',
+              }}>‹</button>
+              <span style={{ fontSize: 13, color: '#666', fontWeight: 700 }}>
+                Page {page + 1} of {result.totalPages} · {result.totalElements} campaigns
+              </span>
+              <button onClick={() => setPage(p => Math.min(result.totalPages - 1, p + 1))} disabled={page >= result.totalPages - 1} style={{
+                padding: '6px 14px', borderRadius: 50, border: '1.5px solid #e5e7eb',
+                background: 'white', fontWeight: 800, fontSize: 13, cursor: page >= result.totalPages - 1 ? 'not-allowed' : 'pointer',
+                color: page >= result.totalPages - 1 ? '#ccc' : '#555',
+              }}>›</button>
+            </div>
+          )}
         </div>
       )}
     </div>

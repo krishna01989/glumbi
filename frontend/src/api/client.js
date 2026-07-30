@@ -314,7 +314,7 @@ export const adminApi = {
   setFeatureEnabled:         (featureName, enabled)      => api.put(`/admin/feature-config/${featureName}/enabled`, { enabled }).then(r => r.data),
   getQuotaDefaults:          ()                          => api.get('/admin/quota/default').then(r => r.data),
   updateQuotaDefault:        (credits)                   => api.put('/admin/quota/default', { defaultMonthlyCredits: credits }).then(r => r.data),
-  listPromoCampaigns:        ()                          => api.get('/admin/promo-campaigns').then(r => r.data),
+  listPromoCampaigns:        (params)                    => api.get('/admin/promo-campaigns', { params }).then(r => r.data),
   createPromoCampaign:       (payload)                   => api.post('/admin/promo-campaigns', payload).then(r => r.data),
   updatePromoCampaign:       (campaignId, payload)       => api.put(`/admin/promo-campaigns/${campaignId}`, payload).then(r => r.data),
   activatePromoCampaign:     (campaignId)                => api.post(`/admin/promo-campaigns/${campaignId}/activate`).then(r => r.data),

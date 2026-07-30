@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -854,11 +856,16 @@ public class AdminController {
 
     // ── Promo Campaigns ──────────────────────────────────────────────────────────
 
-    /** List all campaigns (from campaign table) with aggregate grant stats. */
+    /** List campaigns with pagination, filter, and sort. */
     @GetMapping("/promo-campaigns")
-    public ResponseEntity<?> listPromoCampaigns() {
+    public ResponseEntity<?> listPromoCampaigns(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort, // createdAt | expiresOn | label
+            @RequestParam(required = false) String filter) {       // DRAFT | ACTIVE | EXPIRED | EXPIRING | null=ALL
+
         // Grant stats keyed by campaignId
-        Map<String, long[]> stats = new HashMap<>(); // [userCount, totalIssued, totalUsed]
+        Map<String, long[]> stats = new HashMap<>();
         for (Object[] r : promoCreditService.getCampaignSummaries()) {
             String cid = (String) r[0];
             stats.put(cid, new long[]{
@@ -868,10 +875,25 @@ public class AdminController {
             });
         }
 
+        Sort springSort = switch (sort) {
+            case "expiresOn" -> Sort.by(Sort.Direction.ASC,  "expiresOn");
+            case "label"     -> Sort.by(Sort.Direction.ASC,  "label");
+            default          -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
+        Pageable pageable = PageRequest.of(page, Math.min(size, 50), springSort);
+
         LocalDate today = LocalDate.now();
-        var result = promoCampaignRepo.findAllByOrderByCreatedAtDesc().stream()
-            .filter(c -> c.getStatus() != PromoCampaign.Status.MANUAL)
-            .map(c -> {
+        LocalDate in30  = today.plusDays(30);
+
+        Page<PromoCampaign> campaignPage = switch (filter != null ? filter : "ALL") {
+            case "DRAFT"    -> promoCampaignRepo.findAllNonManual(PromoCampaign.Status.DRAFT,  pageable);
+            case "ACTIVE"   -> promoCampaignRepo.findAllNonManual(PromoCampaign.Status.ACTIVE, pageable);
+            case "EXPIRED"  -> promoCampaignRepo.findExpired(today, pageable);
+            case "EXPIRING" -> promoCampaignRepo.findExpiringSoon(in30, pageable);
+            default         -> promoCampaignRepo.findAllNonManual(null, pageable);
+        };
+
+        var content = campaignPage.getContent().stream().map(c -> {
             long[] s = stats.getOrDefault(c.getCampaignId(), new long[]{0, 0, 0});
             boolean expired = today.isAfter(c.getExpiresOn());
             Map<String, Object> m = new HashMap<>();
@@ -891,7 +913,14 @@ public class AdminController {
             m.put("expired",        expired);
             return m;
         }).toList();
-        return ResponseEntity.ok(result);
+
+        return ResponseEntity.ok(Map.of(
+            "content",       content,
+            "totalElements", campaignPage.getTotalElements(),
+            "totalPages",    campaignPage.getTotalPages(),
+            "page",          campaignPage.getNumber(),
+            "size",          campaignPage.getSize()
+        ));
     }
 
     /**

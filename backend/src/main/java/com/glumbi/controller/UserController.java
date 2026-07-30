@@ -127,7 +127,8 @@ public class UserController {
             "joinedAt",                user.getCreatedAt().toString(),
             "marketingEmailsEnabled",  user.isMarketingEmailsEnabled(),
             "consentGiven",            user.isConsentGiven(),
-            "consentVersion",          user.getConsentVersion() != null ? user.getConsentVersion() : ""
+            "consentVersion",          user.getConsentVersion() != null ? user.getConsentVersion() : "",
+            "currentConsentVersion",   currentConsentVersion
         ));
     }
 

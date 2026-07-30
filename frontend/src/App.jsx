@@ -280,7 +280,7 @@ export default function App() {
 
   // ── Hooks ──
   const auth = useAuth({ addToast })
-  const { authed, role, restoring, setRestoring, quota, featureConfig, consentGiven, setConsentGiven, consentLoaded, handleAuth, logoutAuth } = auth
+  const { authed, role, restoring, setRestoring, quota, featureConfig, consentGiven, setConsentGiven, consentVersion, setConsentVersion, currentConsentVersion, setCurrentConsentVersion, consentLoaded, handleAuth, logoutAuth } = auth
 
   const session = useChildSession({ authed, role, featureConfig, setRestoring, quota })
   const { child, setChild, offlineMode, sidebarWotd, prevChildId, handleChildSelected, handleThemeChange, toggleOffline, resetChild } = session
@@ -375,13 +375,17 @@ export default function App() {
   }
 
   if (isChildManagementRoute || !child) {
+    const needsConsent = !consentGiven || (currentConsentVersion && consentVersion !== currentConsentVersion)
     const onConsentAccept = () => {
-      userApi.recordConsent().then(() => setConsentGiven(true)).catch(() => {})
+      userApi.recordConsent().then(r => {
+        setConsentGiven(true)
+        setConsentVersion(r.consentVersion || currentConsentVersion)
+      }).catch(() => {})
       setConsentGiven(true)
     }
     return (
       <ManagementLayout lockModalEl={lockModalEl} quota={quota} handleLogout={handleLogout}>
-        {role === 'USER' && consentLoaded && !consentGiven && location.pathname === '/child' && (
+        {role === 'USER' && consentLoaded && needsConsent && location.pathname === '/child' && (
           <ConsentModal onAccept={onConsentAccept} />
         )}
         <Routes>
@@ -408,9 +412,12 @@ export default function App() {
     <ThemeContext.Provider value={theme}>
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
 
-      {authed && role === 'USER' && consentLoaded && !consentGiven && (
+      {authed && role === 'USER' && consentLoaded && (!consentGiven || (currentConsentVersion && consentVersion !== currentConsentVersion)) && (
         <ConsentModal onAccept={() => {
-          userApi.recordConsent().then(() => setConsentGiven(true)).catch(() => {})
+          userApi.recordConsent().then(r => {
+            setConsentGiven(true)
+            setConsentVersion(r.consentVersion || currentConsentVersion)
+          }).catch(() => {})
           setConsentGiven(true)
         }} />
       )}

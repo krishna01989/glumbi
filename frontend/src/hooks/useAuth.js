@@ -13,8 +13,10 @@ export function useAuth({ addToast }) {
   const [role, setRole]                   = useState(getStoredRole())
   const [quota, setQuota]                 = useState(null)
   const [featureConfig, setFeatureConfig] = useState([])
-  const [consentGiven, setConsentGiven]   = useState(false)
-  const [consentLoaded, setConsentLoaded] = useState(false) // stays false until first profile fetch resolves
+  const [consentGiven, setConsentGiven]           = useState(false)
+  const [consentVersion, setConsentVersion]       = useState('')
+  const [currentConsentVersion, setCurrentConsentVersion] = useState('')
+  const [consentLoaded, setConsentLoaded]         = useState(false) // stays false until first profile fetch resolves
   const [restoring, setRestoring]         = useState(
     () => !!getStoredToken() && (
       /^\/child\/\d+\//.test(window.location.pathname) ||
@@ -27,7 +29,12 @@ export function useAuth({ addToast }) {
     if (!authed || role !== 'USER') return
     function fetchQuota() { userApi.quota().then(setQuota).catch(() => {}) }
     userApi.featureCredits().then(setFeatureConfig).catch(() => {})
-    userApi.getProfile().then(p => { setConsentGiven(p.consentGiven === true); setConsentLoaded(true) }).catch(() => { setConsentLoaded(true) })
+    userApi.getProfile().then(p => {
+      setConsentGiven(p.consentGiven === true)
+      setConsentVersion(p.consentVersion || '')
+      setCurrentConsentVersion(p.currentConsentVersion || '')
+      setConsentLoaded(true)
+    }).catch(() => { setConsentLoaded(true) })
     fetchQuota()
     const interval = setInterval(fetchQuota, 5 * 60 * 1000)
     return () => clearInterval(interval)
@@ -74,6 +81,8 @@ export function useAuth({ addToast }) {
       try {
         const p = await userApi.getProfile()
         setConsentGiven(p.consentGiven === true)
+        setConsentVersion(p.consentVersion || '')
+        setCurrentConsentVersion(p.currentConsentVersion || '')
       } catch (_) {}
       setConsentLoaded(true)
     }
@@ -113,7 +122,8 @@ export function useAuth({ addToast }) {
     restoring, setRestoring,
     quota, setQuota,
     featureConfig,
-    consentGiven, setConsentGiven, consentLoaded,
+    consentGiven, setConsentGiven, consentVersion, setConsentVersion,
+    currentConsentVersion, setCurrentConsentVersion, consentLoaded,
     handleAuth,
     logoutAuth,
   }

@@ -115,7 +115,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 | `TraceController` | `/api/trace` | `POST /generate` — calls `TraceAgent` to produce a maze theme (emojis, story, bg colour) for the Maze feature. Feature key: `maze`. |
 | `RiddleController` | `/api/riddle` | `POST /generate` — calls `RiddleAgent` to produce 5 age-appropriate riddles. Feature key: `riddle`. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
-| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. Sends transactional emails on hold (`PATCH /users/{id}/hold`), release (`PATCH /users/{id}/release`), and delete (`DELETE /users/{id}`). |
+| `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. Sends transactional emails on hold/release/delete. Promo: `GET/POST /promo-campaigns` (MANUAL filtered out of list), `PUT /promo-campaigns/{id}` (DRAFT only), `POST /users/{id}/promo-grants` (creates MANUAL campaign + grant), `GET /users/{id}/promo-grants`. |
 
 ---
 
@@ -448,9 +448,48 @@ Password policy regex: `^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{}|;':",
 
 ---
 
+### Promo Credits
+
+`PromoCampaign` — `Status` enum: `DRAFT`, `ACTIVE`, `MANUAL`. MANUAL campaigns are auto-created per-user for manual support grants and are hidden from the admin campaign list.
+
+`PromoCreditGrant` — `@ManyToOne(fetch=LAZY) PromoCampaign campaign` FK on `campaign_id`. Fields `label`, `totalCredits`, `expiresOn` are denormalized for self-contained EEF queries. Helper `getCampaignId()` delegates to `campaign.getCampaignId()`. Repository methods use Spring Data derived names: `existsByUserIdAndCampaignCampaignId`, `findByUserIdAndCampaignCampaignId`.
+
+EEF draw order: `findActiveForUser` orders by `expiresOn ASC`; `atomicDraw` updates `usedCredits`. Promo credits are consumed before monthly quota.
+
+**Railway SQL required for MANUAL status and FK** (run once when first deploying):
+```sql
+ALTER TABLE promo_campaigns DROP CONSTRAINT promo_campaigns_status_check;
+ALTER TABLE promo_campaigns ADD CONSTRAINT promo_campaigns_status_check
+  CHECK (status IN ('DRAFT', 'ACTIVE', 'MANUAL'));
+ALTER TABLE promo_credit_grants ADD CONSTRAINT fk_grant_campaign
+  FOREIGN KEY (campaign_id) REFERENCES promo_campaigns(campaign_id);
+```
+
+`ddl-auto: update` never modifies existing DB CHECK constraints — any enum value addition always needs a manual SQL update on Railway.
+
+### Quota Check Ordering
+
+All controllers check quota **before** making the AI call — prevents wasting API credits when quota is exhausted. Exception: `ReadQuizController` and `WritingController` run the AI first because their `SafetyGuard.SafetyException` catch must still deduct a credit for blocked content.
+
+Standard 429 error message across all controllers: `"You've reached your monthly limit. It resets at the start of next month!"`
+
+### External API Retry Strategy
+
+All `WebClient`-based external API calls retry on `IOException` / `SocketException` (transient connection reset) using `Retry.backoff(n, Duration.ofSeconds(s))`:
+
+| Client | Retries | Initial backoff | Notes |
+|---|---|---|---|
+| `ResendClient.send()` | 3 | 2s | Timeout bumped to 10s |
+| `ResendClient.sendBatch()` | 3 | 2s | 30s timeout unchanged |
+| `AnthropicClient` (all methods) | 2 | 2s | Synchronous `.block()` on request path |
+| `VoyageEmbeddingClient` | 2 | 2s | Idempotent embedding call |
+| `AuthController` (Google token verify) | 2 | 1s | Login path — shorter backoff |
+
+`R2Service` (AWS SDK `S3Client`) and `ElevenLabsService` (Java `HttpClient`) have their own built-in retry — not changed.
+
 ### Transactional Emails
 
-All emails sent via `ResendClient` (fire-and-forget WebClient). `send()` uses 5s timeout; `sendBatch()` uses Resend's `/emails/batch` endpoint (100 per call, 30s timeout) for bulk sends. Templates rendered by `EmailTemplates` using Thymeleaf. All use email-safe HTML (table layout, no CSS gradients/border-radius), coral theme (`#ff6b6b`), Nunito font, Glumbi logo from `https://glumbi.com/logo.svg`. Global kill switch: `resend.enabled=false` (env: `RESEND_ENABLED=false`). Endpoints configurable via `resend.send-url` / `resend.batch-url`.
+All emails sent via `ResendClient` (fire-and-forget WebClient). `send()` uses 10s timeout; `sendBatch()` uses Resend's `/emails/batch` endpoint (100 per call, 30s timeout) for bulk sends. Templates rendered by `EmailTemplates` using Thymeleaf. All use email-safe HTML (table layout, no CSS gradients/border-radius), coral theme (`#ff6b6b`), Nunito font, Glumbi logo from `https://glumbi.com/logo.svg`. Global kill switch: `resend.enabled=false` (env: `RESEND_ENABLED=false`). Endpoints configurable via `resend.send-url` / `resend.batch-url`.
 
 | Template | Trigger | Fired from |
 |---|---|---|

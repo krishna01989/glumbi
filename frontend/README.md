@@ -305,6 +305,26 @@ An interactive companion layer woven into Stories, Read & Quiz, and Curiosity. A
 4. On submit, `authApi.resetPassword(token, password)` validates password policy server-side and marks the token used
 5. Both pages use `PublicHeader` + `Footer` (SPA, no full reload) and the coral theme (`#ff6b6b` gradient background)
 
+### AI Credit Quota Display
+
+The quota pill lives in the **ManagementLayout desktop and mobile header** — not on the ChildList carousel. Key rules:
+
+- Background: neutral `#f5f5f5` (never coral/gradient — that made text unreadable against the themed header)
+- `ℹ️` button fires `window.dispatchEvent(new CustomEvent('glumbi:credit-info'))` → opens monthly credit breakdown modal. It does **not** show promo usage.
+- `🎁` button opens `PromoPopup` — a scrollable card showing all promo grants with usage bars. Color scale: exhausted/expired `#d1d5db`, ≥100% `#ff4444`, ≥80% `#ffd93d`, ≥50% `#3b82f6`, else `#6bcb77`.
+- `hasPromo` = `(quota?.totalPromoRemaining ?? 0) > 0 || (quota?.promoGrants?.length ?? 0) > 0` — 🎁 button visible when either is true
+- `.quota-pill-carousel { display: none !important }` is injected globally to suppress the old ChildList carousel pill on all screen sizes
+
+`isCreditsBlocked(quota)` in `src/utils/quota.js` is the single gate for both `QuotaBanner` and feature guards:
+```js
+export function isCreditsBlocked(quota) {
+  if (!quota) return false
+  if (quota.used < quota.limit) return false
+  return !((quota.totalPromoRemaining ?? 0) > 0)
+}
+```
+Returns `true` only when monthly limit is hit **and** no active promo credits remain. `QuotaBanner` returns `null` (hidden) whenever this returns false.
+
 ### Theming
 
 Each child has a colour theme (e.g. Ocean, Forest, Sunset). `applyTheme(key)` in `themes.js` immediately sets CSS custom properties (`--primary`, `--accent`, `--primary-lt`, `--header-grad`, etc.) on `document.documentElement` — no re-render required for any component using `var(--primary)` etc. in inline styles.

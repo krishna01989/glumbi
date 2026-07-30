@@ -34,6 +34,7 @@ Live at **[glumbi.com](https://glumbi.com)**
 | 🔐 **Password Reset** | Forgot-password flow with expirable UUID tokens (1 hour, UTC). Email sent via Resend. Token is validated on page load before showing the reset form — invalid or expired tokens get an error screen, not a blank form. No user enumeration: the API always returns 200 regardless of whether the email exists. |
 | 📧 **Transactional Emails** | Full lifecycle email coverage via Resend API and Thymeleaf templates: onboarding welcome on signup, password reset link, password-changed notification (self / admin / reset link), weekly recap, quiet-week nudge (8 rotating messages), no-child-added nudge (7 rotating messages), credit quota warnings at 80% and 100% (once per month each), account suspended / reinstated / deleted confirmations. All templates use email-safe HTML (table-based layout, no CSS gradients), coral theme, Nunito font, Glumbi logo. Global kill switch via `RESEND_ENABLED` env var. Per-user opt-out via `marketingEmailsEnabled` (weekly + announcements only — account emails always fire). |
 | 📣 **Announcements** | Admin-triggered broadcast email to all app users. Rich-text editor with floating selection toolbar (bold, italic, underline, H2, H3, link, strikethrough) and insert bar (bullet list, numbered list, divider). Live email preview mirrors the exact template layout. Sent in batches of 100 via Resend batch API in a background thread — returns queued count immediately. |
+| 🎁 **Promo Credits** | Admins can create promo campaigns (DRAFT → ACTIVE lifecycle) that grant bonus credits to all users. Credits draw EEF (earliest-expiry-first) and are consumed before monthly quota. Admins can also grant manual bonus credits to individual users directly from the Users panel. The quota pill and feature guards are promo-aware — they never block access when active promo credits remain. |
 
 ---
 
@@ -167,11 +168,12 @@ Guards: admins cannot touch other admin or super admin accounts. Super admins ca
 | Section | Description |
 |---|---|
 | 📊 **Dashboard** | Usage metrics across users and children. Manual 🔄 refresh button + auto-refresh interval dropdown (1 min / 5 min / 15 min / 30 min). AI Credits this month sourced from `ai_usage_log` (never zeroed by quota reset). |
-| 👥 **Users** | Three sections — 👑 Super Admins, 🛡️ Administrators, 👤 App Users. Reset passwords, adjust quotas, manage feature overrides, hold/release (app users only), delete. Quota bar colour reflects urgency: green → blue → amber → red. |
+| 👥 **Users** | Three sections — 👑 Super Admins, 🛡️ Administrators, 👤 App Users. Reset passwords, adjust quotas, manage feature overrides, hold/release (app users only), delete. 🎁 Promo button grants manual bonus credits to individual users. Quota bar colour reflects urgency: green → blue → amber → red. |
 | 🤖 **AI Agents** | Toggle individual weekly-notification agents on/off per agent type (Progress Report, Milestone, Story Recommendation, Learning Insight, Learn to Write). |
 | ⚙️ **Feature Credits** | Enable/disable features globally and set per-feature credit costs. Budget simulator shows how a usage mix maps to credits. |
 | 🕒 **Schedulers** | Manually trigger background jobs. Live run history from the `scheduler_runs` table — shows RUNNING ⏳ / SUCCESS ✅ / FAILED ❌ state, children processed, agents ran/skipped, errors, and duration. |
 | 📣 **Announcements** | Compose and broadcast a rich-text email to all app users. Rich-text editor with floating selection toolbar and live email preview. Sent in background batches of 100 via Resend. |
+| 🎁 **Promo Campaigns** | Create credit campaigns (DRAFT → ACTIVE). DRAFT campaigns are editable; activating grants credits to all current users. MANUAL campaigns (support grants to individual users) are auto-created and hidden from this list. |
 | 🛡️ **Compliance** | Trigger DPDP/COPPA consent backfill — sends a parent data notice email to all non-consented accounts. Safe to re-run; already-consented users are excluded. Run history table shows timestamp, emails sent, skipped, and result. |
 
 ---

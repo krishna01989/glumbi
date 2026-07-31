@@ -383,6 +383,7 @@ export default function FlipbookStudio({ child, quota }) {
           const ctx = canvasRef.current.getContext('2d')
           ctx.clearRect(0, 0, W, H)
           ctx.drawImage(img, 0, 0)
+          historyRef.current = []
           saveSnapshot()
           capturePreview()
         }

@@ -201,6 +201,7 @@ export default function Draw({ child, quota, featureConfig }) {
       const ctx = getCtx()
       ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
       ctx.drawImage(img, 0, 0)
+      historyRef.current = []
       saveSnapshot()
       setIsEmpty(false)
       setCurrentSaveId(full.id)

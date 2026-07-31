@@ -2,6 +2,28 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { childApi } from '../api/client'
 
+// Exponential backoff for wrong PIN attempts (stored in localStorage per child)
+const PIN_BACKOFF_DELAYS = [0, 0, 0, 10_000, 30_000, 120_000, 300_000] // ms; last entry is the cap
+const PIN_BACKOFF_KEY = id => `glm_pin_backoff_${id}`
+
+function getPinBackoff(childId) {
+  try { return JSON.parse(localStorage.getItem(PIN_BACKOFF_KEY(childId))) || { count: 0, nextAllowedAt: 0 } }
+  catch { return { count: 0, nextAllowedAt: 0 } }
+}
+
+function recordWrongPin(childId) {
+  const { count } = getPinBackoff(childId)
+  const next = count + 1
+  const delay = PIN_BACKOFF_DELAYS[Math.min(next, PIN_BACKOFF_DELAYS.length - 1)]
+  localStorage.setItem(PIN_BACKOFF_KEY(childId), JSON.stringify({ count: next, nextAllowedAt: Date.now() + delay }))
+  return delay
+}
+
+function clearPinBackoff(childId) {
+  localStorage.removeItem(PIN_BACKOFF_KEY(childId))
+}
+
+
 export function useLockSession({ child, setChild, prevChildId }) {
   const navigate = useNavigate()
 
@@ -17,6 +39,9 @@ export function useLockSession({ child, setChild, prevChildId }) {
   const [sessionMinutes, setSessionMinutes]   = useState(0)
   const [screenTimeAlert, setScreenTimeAlert] = useState(false)
   const [snoozeCount, setSnoozeCount]         = useState(0)
+  const [pinBackoffUntil, setPinBackoffUntil] = useState(() => {
+    try { const id = localStorage.getItem('glm_locked_child_id'); return id ? (getPinBackoff(id).nextAllowedAt || 0) : 0 } catch { return 0 }
+  })
 
   const sessionStartRef     = useRef(null)
   const lastTickRef         = useRef(null)
@@ -30,6 +55,23 @@ export function useLockSession({ child, setChild, prevChildId }) {
   useEffect(() => { sessionStartRef.current = sessionStart }, [sessionStart])
   useEffect(() => { lockMaxSnoozeRef.current = lockMaxSnooze }, [lockMaxSnooze])
   useEffect(() => { screenTimeAlertRef.current = !!screenTimeAlert }, [screenTimeAlert])
+
+  // Live countdown when PIN is in backoff
+  useEffect(() => {
+    if (pinBackoffUntil <= Date.now()) return
+    const formatMsg = (ms) => {
+      const secs = Math.ceil(ms / 1000)
+      if (secs >= 60) { const m = Math.floor(secs / 60), s = secs % 60; return `Too many attempts. Try again in ${m}:${String(s).padStart(2, '0')}` }
+      return `Too many attempts. Try again in ${secs}s`
+    }
+    setLockPinError(formatMsg(pinBackoffUntil - Date.now()))
+    const tick = setInterval(() => {
+      const ms = pinBackoffUntil - Date.now()
+      if (ms <= 0) { setLockPinError(''); clearInterval(tick) }
+      else setLockPinError(formatMsg(ms))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [pinBackoffUntil])
 
   // Start/restore session timer when child changes
   useEffect(() => {
@@ -225,8 +267,15 @@ export function useLockSession({ child, setChild, prevChildId }) {
   const handleLockVerify = useCallback(async () => {
     const childId = child?.id
     if (!childId) return
+    if (pinBackoffUntil > Date.now()) return
     const result = await childApi.verifyPin(childId, lockPin)
-    if (!result.ok) { setLockPinError('Wrong PIN, try again'); return }
+    if (!result.ok) {
+      const delay = recordWrongPin(childId)
+      if (delay > 0) setPinBackoffUntil(Date.now() + delay)
+      else setLockPinError('Wrong PIN, try again')
+      return
+    }
+    clearPinBackoff(childId); setPinBackoffUntil(0)
     localStorage.setItem('glm_child_locked', '1')
     localStorage.setItem('glm_locked_child_id', String(childId))
     localStorage.setItem(`glm_session_limit_${childId}`, String(lockTimeLimit))
@@ -239,8 +288,15 @@ export function useLockSession({ child, setChild, prevChildId }) {
   const handleUnlock = useCallback(async () => {
     const childId = child?.id
     if (!childId) return
+    if (pinBackoffUntil > Date.now()) return
     const result = await childApi.verifyPin(childId, lockPin)
-    if (!result.ok) { setLockPinError('Wrong PIN, try again'); return }
+    if (!result.ok) {
+      const delay = recordWrongPin(childId)
+      if (delay > 0) setPinBackoffUntil(Date.now() + delay)
+      else setLockPinError('Wrong PIN, try again')
+      return
+    }
+    clearPinBackoff(childId); setPinBackoffUntil(0)
     localStorage.removeItem('glm_child_locked')
     localStorage.removeItem('glm_locked_child_id')
     localStorage.removeItem(`glm_session_limit_${childId}`)

@@ -123,6 +123,27 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
   const [lockPin, setLockPin]         = useState('')
   const [lockPinError, setLockPinError] = useState('')
   const [locking, setLocking]         = useState(false)
+  const [backoffUntil, setBackoffUntil] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`glm_pin_backoff_${child.id}`) || '{}').nextAllowedAt || 0 }
+    catch { return 0 }
+  })
+
+  // Live backoff countdown — re-runs whenever backoffUntil is set
+  useEffect(() => {
+    if (backoffUntil <= Date.now()) return
+    const formatMsg = (ms) => {
+      const secs = Math.ceil(ms / 1000)
+      if (secs >= 60) { const m = Math.floor(secs / 60), s = secs % 60; return `Too many attempts. Try again in ${m}:${String(s).padStart(2, '0')}` }
+      return `Too many attempts. Try again in ${secs}s`
+    }
+    setLockPinError(formatMsg(backoffUntil - Date.now()))
+    const tick = setInterval(() => {
+      const ms = backoffUntil - Date.now()
+      if (ms <= 0) { setLockPinError(''); clearInterval(tick) }
+      else setLockPinError(formatMsg(ms))
+    }, 1000)
+    return () => clearInterval(tick)
+  }, [backoffUntil])
 
   const isNight = phase === 'sleeping' || (phase === null && offline)
 
@@ -145,10 +166,28 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
   async function handleLock(e) {
     e.preventDefault()
     if (lockPin.length !== 4) { setLockPinError('Enter your 4-digit PIN'); return }
+    const backoffKey = `glm_pin_backoff_${child.id}`
+    try {
+      const { nextAllowedAt = 0 } = JSON.parse(localStorage.getItem(backoffKey) || '{}')
+      if (nextAllowedAt - Date.now() > 0) return // countdown already shown by useEffect
+    } catch {}
     setLocking(true)
     try {
       const result = await childApi.verifyPin(child.id, lockPin)
-      if (!result.ok) { setLockPinError('Wrong PIN, try again'); return }
+      if (!result.ok) {
+        const delays = [0, 0, 0, 10_000, 30_000, 120_000, 300_000]
+        try {
+          const { count = 0 } = JSON.parse(localStorage.getItem(backoffKey) || '{}')
+          const next = count + 1
+          const delay = delays[Math.min(next, delays.length - 1)]
+          const nextAllowedAt = Date.now() + delay
+          localStorage.setItem(backoffKey, JSON.stringify({ count: next, nextAllowedAt }))
+          if (delay > 0) { setBackoffUntil(nextAllowedAt) }
+          else setLockPinError('Wrong PIN, try again')
+        } catch { setLockPinError('Wrong PIN, try again') }
+        return
+      }
+      localStorage.removeItem(backoffKey)
       onLockConfirmed(child, timeLimit, maxSnooze)
     } catch { setLockPinError('Something went wrong') } finally { setLocking(false) }
   }

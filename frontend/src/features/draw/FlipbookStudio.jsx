@@ -1877,7 +1877,7 @@ export default function FlipbookStudio({ child, quota }) {
 
           {/* Draw canvas */}
           <canvas ref={canvasRef} width={W} height={H}
-            style={{ width: '100%', height: '100%', display: 'block',
+            style={{ width: '100%', height: 'auto', display: 'block',
               touchAction: 'none', cursor: canvasCursor,
               visibility: showPlayback ? 'hidden' : 'visible' }}
             onMouseDown={startDraw} onMouseMove={doDraw}

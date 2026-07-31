@@ -267,10 +267,6 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
     }
 
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("ok");
-    }
 
     @GetMapping("/signup-status")
     public ResponseEntity<?> signupStatus() {

@@ -54,6 +54,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- Actuator — health check endpoint for Railway -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Lombok — reduces boilerplate -->
         <dependency>
             <groupId>org.projectlombok</groupId>

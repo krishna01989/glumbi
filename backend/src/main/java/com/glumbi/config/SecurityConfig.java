@@ -26,6 +26,7 @@ public class SecurityConfig {
             .cors(cors -> {})  // delegate to CorsConfig bean
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/demo/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()

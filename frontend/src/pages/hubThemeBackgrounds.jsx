@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 
 // ── One-time CSS injection ────────────────────────────────────────────────────
 let stylesInjected = false
@@ -11,6 +11,14 @@ function injectBgStyles() {
       [style*="animation"] { animation: none !important; }
     }
 
+    /* ─── Scene SVG base positioning ─── */
+    .bg-scene-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
     /* ─── Float / sway ─── */
     @keyframes bg-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
     @keyframes bg-float-sm{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
@@ -19,6 +27,10 @@ function injectBgStyles() {
     @keyframes bg-sway-sm{0%,100%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
     @keyframes bg-sway-tree{0%,100%{transform:translateX(-7px)}50%{transform:translateX(7px)}}
     @keyframes bg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+    /* ─── Cross-screen elements: apply the 0% keyframe during delay so they start
+           off-screen instead of flashing at their drawn SVG coordinates ─── */
+    svg *{animation-fill-mode:backwards}
 
     /* ─── Drift / cross screen ─── */
     @keyframes bg-drift-l{from{transform:translateX(120vw)}to{transform:translateX(-30vw)}}
@@ -59,6 +71,8 @@ function injectBgStyles() {
 
     /* ─── Bats flying ─── */
     @keyframes bg-bat-cross{0%{transform:translateX(1050px) translateY(0) scaleX(-1)}40%{transform:translateX(500px) translateY(-35px) scaleX(-1)}100%{transform:translateX(-200px) translateY(0) scaleX(-1)}}
+    @keyframes bg-launch{from{transform:translateY(130vh)}to{transform:translateY(-30vh)}}
+    @keyframes bg-booster{0%,100%{transform:scaleY(1) scaleX(1);opacity:1}30%{transform:scaleY(1.4) scaleX(.8);opacity:.9}60%{transform:scaleY(.7) scaleX(1.2);opacity:.85}80%{transform:scaleY(1.2) scaleX(.9);opacity:1}}
     @keyframes bg-wing-flap{0%,100%{transform:scaleY(1)}50%{transform:scaleY(-0.4)}}
 
     /* ─── Firework burst ─── */
@@ -104,6 +118,26 @@ function injectBgStyles() {
 }
 
 // ── Shared helpers ─────────────────────────────────────────────────────────────
+// Cloud path: flat bottom, smooth two-bump top silhouette, width=150 units
+// Usage: <Cloud x={cx} y={bottomY} w={width} fill="..." style={{animation:...}} />
+const CloudShape = ({ x = 0, y = 0, w = 150, fill = 'white', opacity = 1, style }) => {
+  const s = w / 150
+  // Outer <g> carries the CSS animation; inner <g> carries the SVG position transform.
+  // Keeping them separate prevents the CSS animation transform from overriding the SVG
+  // positioning transform (which causes clouds to jump to 0,0 when the animation fires).
+  return (
+    <g style={style}>
+      <g transform={`translate(${x - w / 2}, ${y}) scale(${s}, ${s})`}>
+        <path
+          d="M4,58 C4,42 12,30 28,30 C22,6 42,-8 64,4 C68,-12 90,-12 94,4 C114,-8 136,6 130,30 C146,30 154,42 154,58 Z"
+          fill={fill}
+          opacity={opacity}
+        />
+      </g>
+    </g>
+  )
+}
+
 const Stars = ({ n = 16, color = 'white' }) => Array.from({ length: n }, (_, i) => {
   const x = (i * 73 + 17) % 800
   const y = (i * 113 + 31) % 300
@@ -134,7 +168,7 @@ const Snowflakes = ({ n = 8 }) => Array.from({ length: n }, (_, i) => {
 
 function Scene_coral() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="c-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#ff6b6b" />
@@ -146,14 +180,14 @@ function Scene_coral() {
           <stop offset="100%" stopColor="#cc4444" />
         </linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#c-sky)" />
+      <rect width={800} height={450} fill="url(#c-sky)" />
       {/* Sun */}
       <circle cx={650} cy={130} r={55} fill="#ffe04a" style={{ animation: 'bg-pulse-sm 4s ease-in-out infinite' }} />
       <circle cx={650} cy={130} r={70} fill="#ffe04a" opacity={0.25} style={{ animation: 'bg-pulse 5s ease-in-out infinite' }} />
       {/* Clouds */}
-      <ellipse cx={120} cy={80} rx={80} ry={30} fill="rgba(255,255,255,.35)" style={{ animation: 'bg-cloud-drift 8s ease-in-out infinite alternate' }} />
-      <ellipse cx={180} cy={65} rx={60} ry={25} fill="rgba(255,255,255,.3)" style={{ animation: 'bg-cloud-drift 8s ease-in-out infinite alternate' }} />
-      <ellipse cx={340} cy={110} rx={70} ry={28} fill="rgba(255,255,255,.25)" style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate-reverse' }} />
+      <CloudShape x={120} y={98} w={160} fill="rgba(255,255,255,.35)" style={{ animation: 'bg-cloud-drift 8s ease-in-out infinite alternate' }} />
+      <CloudShape x={280} y={82} w={120} fill="rgba(255,255,255,.3)" style={{ animation: 'bg-cloud-drift 8s ease-in-out infinite alternate' }} />
+      <CloudShape x={490} y={118} w={140} fill="rgba(255,255,255,.25)" style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate-reverse' }} />
       {/* Waves */}
       <ellipse cx={400} cy={380} rx={500} ry={60} fill="rgba(255,100,80,.5)" />
       <ellipse cx={400} cy={420} rx={600} ry={80} fill="rgba(200,60,50,.6)" />
@@ -177,6 +211,23 @@ function Scene_coral() {
         <path d="M0,0 Q4,-5 8,0 Q12,-5 16,0" stroke="rgba(80,20,0,.5)" strokeWidth={1.5} fill="none" transform="translate(425,130)" />
         <path d="M0,0 Q4,-5 8,0 Q12,-5 16,0" stroke="rgba(80,20,0,.5)" strokeWidth={1.5} fill="none" transform="translate(445,118)" />
       </g>
+      {/* Sailboat on the sea */}
+      <g style={{ animation: 'bg-drift-r 25s 2s linear infinite normal backwards' }}>
+        <g transform="translate(0,380)">
+          {/* Hull */}
+          <path d="M-30,10 Q0,22 30,10 L28,-2 L-28,-2 Z" fill="#c84010" />
+          {/* Mast */}
+          <rect x={-1} y={-55} width={2} height={55} fill="#6a3a10" />
+          {/* Sail */}
+          <path d="M1,-52 L26,-10 L1,-10 Z" fill="rgba(255,255,255,.85)" />
+          <path d="M-1,-48 L-22,-12 L-1,-12 Z" fill="rgba(255,240,200,.75)" />
+        </g>
+      </g>
+      {/* Seagull gliding */}
+      <g style={{ animation: 'bg-drift-l 22s 5s linear infinite normal backwards' }}>
+        <path d="M640,170 Q648,164 656,170 Q664,164 672,170" stroke="rgba(80,30,0,.6)" strokeWidth={2} fill="none" />
+        <path d="M660,175 Q668,169 676,175 Q684,169 692,175" stroke="rgba(80,30,0,.5)" strokeWidth={1.8} fill="none" />
+      </g>
       {/* Starfish on beach */}
       {[{x:200,y:432},{x:580,y:428},{x:700,y:435}].map((s,i)=>(
         <text key={i} x={s.x} y={s.y} fontSize={18} fill="#ff6644" opacity={0.7} style={{ animation: `bg-float-sm ${3+i}s ${i}s ease-in-out infinite` }}>✦</text>
@@ -198,13 +249,13 @@ function Scene_coral() {
 
 function Scene_sunshine() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="s-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#87ceeb" /><stop offset="100%" stopColor="#fffacd" />
         </linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#s-sky)" />
+      <rect width={800} height={450} fill="url(#s-sky)" />
       {/* Big sun with rays */}
       <circle cx={400} cy={130} r={70} fill="#FFD700" opacity={0.9} style={{ animation: 'bg-pulse 6s ease-in-out infinite' }} />
       <circle cx={400} cy={130} r={95} fill="#FFD700" opacity={0.15} style={{ animation: 'bg-pulse 4s ease-in-out infinite' }} />
@@ -212,9 +263,9 @@ function Scene_sunshine() {
         <line key={i} x1={400} y1={130} x2={400+Math.cos(a*Math.PI/180)*120} y2={130+Math.sin(a*Math.PI/180)*120} stroke="#FFD700" strokeWidth={3} opacity={0.35} style={{ animation: `bg-spin-slow ${8+i%3}s linear infinite`, transformOrigin: '400px 130px' }} />
       ))}
       {/* Rolling hills */}
-      <ellipse cx={150} cy={460} rx={220} ry={110} fill="#7ec850" />
-      <ellipse cx={500} cy={480} rx={250} ry={100} fill="#6db840" />
-      <ellipse cx={760} cy={470} rx={180} ry={90} fill="#8dd860" />
+      <ellipse cx={150} cy={410} rx={220} ry={110} fill="#7ec850" />
+      <ellipse cx={500} cy={430} rx={250} ry={100} fill="#6db840" />
+      <ellipse cx={760} cy={420} rx={180} ry={90} fill="#8dd860" />
       {/* Sunflowers */}
       {[100,260,420,580,720].map((x,i) => (
         <g key={i} style={{ animation: `bg-sway-sm ${3+i*.3}s ${i*.4}s ease-in-out infinite` }}>
@@ -231,14 +282,27 @@ function Scene_sunshine() {
         </g>
       ))}
       {/* Clouds */}
-      <ellipse cx={150} cy={90} rx={80} ry={32} fill="rgba(255,255,255,.85)" />
-      <ellipse cx={200} cy={76} rx={65} ry={28} fill="rgba(255,255,255,.9)" />
-      <ellipse cx={620} cy={110} rx={90} ry={35} fill="rgba(255,255,255,.8)" />
+      <CloudShape x={150} y={108} w={170} fill="rgba(255,255,255,.85)" />
+      <CloudShape x={310} y={92} w={140} fill="rgba(255,255,255,.9)" />
+      <CloudShape x={620} y={128} w={190} fill="rgba(255,255,255,.8)" />
       {/* Rainbow */}
       {['#ff4444','#ff8800','#ffee00','#44cc44','#4488ff','#8844ff'].map((c,i)=>(
         <path key={i} d={`M ${100+i*8},500 A ${300-i*8} ${200-i*5} 0 0 1 ${700-i*8},500`}
           fill="none" stroke={c} strokeWidth={12} opacity={0.25} />
       ))}
+      {/* Kite flying */}
+      <g transform="translate(500,150)">
+        <g style={{ animation: 'bg-float 4s ease-in-out infinite' }}>
+          <polygon points="0,-40 30,0 0,40 -30,0" fill="#ff4040" opacity={0.85} />
+          <polygon points="0,-40 30,0 0,0" fill="#ffee40" opacity={0.85} />
+          <polygon points="0,0 30,0 0,40" fill="#4080ff" opacity={0.85} />
+          <polygon points="0,-40 -30,0 0,0" fill="#40c040" opacity={0.85} />
+          {/* Tail */}
+          <path d="M0,40 Q10,60 -5,80 Q10,100 0,120" stroke="#ff8800" strokeWidth={2} fill="none" strokeLinecap="round" />
+          {/* String */}
+          <path d="M0,40 Q20,80 60,140" stroke="rgba(0,0,0,.3)" strokeWidth={1} fill="none" />
+        </g>
+      </g>
       {/* Bee */}
       <g transform="translate(320,0)"><g style={{ animation: 'bg-float 2.5s ease-in-out infinite' }}>
         <ellipse cx={0} cy={280} rx={10} ry={7} fill="#ffee00" />
@@ -256,13 +320,13 @@ function Scene_sunshine() {
 
 function Scene_lion() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="l-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#e05c00" /><stop offset="50%" stopColor="#f5a030" /><stop offset="100%" stopColor="#ffd060" />
         </linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#l-sky)" />
+      <rect width={800} height={450} fill="url(#l-sky)" />
       {/* Sun setting */}
       <circle cx={700} cy={340} r={80} fill="#FFD060" opacity={.9} style={{ animation: 'bg-glow 5s ease-in-out infinite' }} />
       <circle cx={700} cy={340} r={110} fill="#FF9920" opacity={.2} />
@@ -357,6 +421,39 @@ function Scene_lion() {
         <line x1={12} y1={4} x2={48} y2={0} stroke="#d4a860" strokeWidth={1.2} opacity={0.8} />
         <line x1={12} y1={10} x2={48} y2={14} stroke="#d4a860" strokeWidth={1.2} opacity={0.8} />
       </g></g>
+      {/* Giraffe neck peeking in from right */}
+      <g transform="translate(730,180)">
+        <g style={{ animation: 'bg-sway-sm 5s ease-in-out infinite' }}>
+          {/* Neck */}
+          <rect x={-14} y={0} width={28} height={180} rx={12} fill="#e8a030" />
+          {/* Patches */}
+          {[[0,20],[5,55],[-4,90],[3,125]].map(([dx,dy],i)=>(
+            <ellipse key={i} cx={dx} cy={dy} rx={10} ry={14} fill="#7a4010" opacity={0.5} />
+          ))}
+          {/* Head */}
+          <ellipse cx={0} cy={-15} rx={18} ry={14} fill="#e8a030" />
+          {/* Eye */}
+          <circle cx={-8} cy={-18} r={5} fill="#1a0c00" />
+          <circle cx={-7} cy={-19} r={2} fill="white" opacity={0.6} />
+          {/* Ossicones */}
+          <rect x={-6} y={-32} width={4} height={14} rx={2} fill="#c07020" />
+          <rect x={6} y={-30} width={4} height={12} rx={2} fill="#c07020" />
+        </g>
+      </g>
+      {/* Zebra silhouette in background */}
+      <g transform="translate(550,340)" opacity={0.6}>
+        <ellipse cx={0} cy={0} rx={40} ry={22} fill="#e0d8d0" />
+        <circle cx={-35} cy={-12} r={16} fill="#e0d8d0" />
+        {/* Stripes */}
+        {[-15,-5,5,15].map((x,i)=>(
+          <line key={i} x1={x} y1={-20} x2={x+2} y2={20} stroke="#2a2420" strokeWidth={3} opacity={0.7} />
+        ))}
+        {/* Legs */}
+        <rect x={-28} y={18} width={7} height={22} rx={3} fill="#e0d8d0" />
+        <rect x={-12} y={18} width={7} height={22} rx={3} fill="#e0d8d0" />
+        <rect x={4} y={18} width={7} height={22} rx={3} fill="#e0d8d0" />
+        <rect x={18} y={18} width={7} height={22} rx={3} fill="#e0d8d0" />
+      </g>
       {/* Grass blades */}
       {Array.from({length:12},(_,i)=>(
         <line key={i} x1={i*70+20} y1={370} x2={i*70+30} y2={340} stroke="#4a6010" strokeWidth={2} style={{ animation: `bg-sway-sm ${2+i*.2}s ${i*.15}s ease-in-out infinite` }} />
@@ -367,7 +464,7 @@ function Scene_lion() {
 
 function Scene_galaxy() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="gal-g" cx="50%" cy="50%">
           <stop offset="0%" stopColor="#e8b0ff" stopOpacity={0.4} />
@@ -378,7 +475,7 @@ function Scene_galaxy() {
           <stop offset="0%" stopColor="#1a0838" /><stop offset="100%" stopColor="#050010" />
         </radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#gal-bg)" />
+      <rect width={800} height={450} fill="url(#gal-bg)" />
       <Stars n={80} />
       {/* Spiral galaxy */}
       <g style={{ animation: 'bg-galaxy-spin 40s linear infinite', transformOrigin: '400px 230px' }}>
@@ -396,18 +493,58 @@ function Scene_galaxy() {
       <ellipse cx={150} cy={380} rx={140} ry={70} fill="#4020a0" opacity={0.2} />
       <ellipse cx={680} cy={100} rx={120} ry={60} fill="#a02060" opacity={0.18} />
       <ellipse cx={550} cy={420} rx={130} ry={55} fill="#204080" opacity={0.2} />
+      {/* Rocket — launches bottom to top */}
+      <g style={{ animation: 'bg-launch 14s 2s linear infinite normal backwards' }}>
+        <g transform="translate(380, 0)">
+          {/* Body */}
+          <rect x={-11} y={-55} width={22} height={66} rx={7} fill="#d8e0f0" />
+          {/* Nose cone */}
+          <polygon points="-11,-55 0,-86 11,-55" fill="#cc2222" />
+          {/* Side fins */}
+          <polygon points="-11,6 -28,32 -11,32" fill="#cc2222" />
+          <polygon points="11,6 28,32 11,32" fill="#cc2222" />
+          {/* Porthole */}
+          <circle cx={0} cy={-28} r={8} fill="#80c8ff" opacity={0.85} />
+          <circle cx={0} cy={-28} r={5} fill="#c0e8ff" opacity={0.5} />
+          {/* Flag stripe */}
+          <rect x={-11} y={-18} width={22} height={5} fill="#cc2222" opacity={0.5} />
+          {/* Booster — multi-layer flickering flame */}
+          <g style={{ animation: 'bg-booster 0.12s ease-in-out infinite' }}>
+            <ellipse cx={0} cy={52} rx={14} ry={22} fill="#ffaa00" opacity={0.95} />
+            <ellipse cx={0} cy={48} rx={9} ry={15} fill="#ff6600" opacity={1} />
+            <ellipse cx={0} cy={45} rx={5} ry={9} fill="#ffee00" opacity={1} />
+          </g>
+          <g style={{ animation: 'bg-booster 0.19s 0.06s ease-in-out infinite' }}>
+            <ellipse cx={0} cy={58} rx={9} ry={16} fill="#ff4400" opacity={0.7} />
+          </g>
+        </g>
+      </g>
+      {/* UFO hovering */}
+      <g transform="translate(580,260)">
+        <g style={{ animation: 'bg-float 4s 1s ease-in-out infinite' }}>
+          <ellipse cx={0} cy={0} rx={50} ry={16} fill="#c0c8d8" />
+          <ellipse cx={0} cy={-8} rx={28} ry={18} fill="#a0b0c8" />
+          <ellipse cx={0} cy={-10} rx={18} ry={12} fill="#80f0ff" opacity={0.5} />
+          {/* Lights */}
+          {[-25,-12,0,12,25].map((x,i)=>(
+            <circle key={i} cx={x} cy={6} r={3} fill={['#ff4040','#ffee40','#40ff80','#40c0ff','#ff80ff'][i]} style={{ animation: `bg-twinkle ${0.8+i*.2}s ${i*.15}s ease-in-out infinite` }} />
+          ))}
+          {/* Beam */}
+          <polygon points="-15,14 15,14 30,60 -30,60" fill="rgba(160,240,255,.12)" />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_moon() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="moon-bg" cx="30%" cy="20%"><stop offset="0%" stopColor="#0c1a3a" /><stop offset="100%" stopColor="#020610" /></radialGradient>
         <radialGradient id="earth-g" cx="40%" cy="35%"><stop offset="0%" stopColor="#4080ff" /><stop offset="60%" stopColor="#2060c0" /><stop offset="100%" stopColor="#0a2060" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#moon-bg)" />
+      <rect width={800} height={450} fill="url(#moon-bg)" />
       <Stars n={90} />
       {/* Earth rising */}
       <circle cx={680} cy={100} r={65} fill="url(#earth-g)" style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
@@ -415,8 +552,8 @@ function Scene_moon() {
       <ellipse cx={692} cy={105} rx={20} ry={12} fill="#50c050" opacity={0.6} />
       <ellipse cx={680} cy={100} rx={65} ry={65} fill="white" opacity={0.05} />
       {/* Lunar ground */}
-      <ellipse cx={400} cy={490} rx={550} ry={120} fill="#c8c0b0" />
-      <ellipse cx={400} cy={470} rx={500} ry={80} fill="#d8d0c0" />
+      <ellipse cx={400} cy={440} rx={550} ry={120} fill="#c8c0b0" />
+      <ellipse cx={400} cy={420} rx={500} ry={80} fill="#d8d0c0" />
       {/* Craters */}
       {[{cx:200,cy:450,rx:40,ry:15},{cx:500,cy:460,rx:55,ry:18},{cx:650,cy:445,rx:30,ry:10}].map((c,i)=>(
         <ellipse key={i} {...c} fill="none" stroke="#b8b0a0" strokeWidth={3} opacity={0.6} />
@@ -438,17 +575,41 @@ function Scene_moon() {
       <rect x={440} y={335} width={4} height={55} fill="#ccc" />
       <rect x={444} y={335} width={34} height={22} fill="#cc2222" style={{ animation: 'bg-flag-wave 2s ease-in-out infinite', transformOrigin: 'left center', transformBox: 'fill-box' }} />
       <text x={448} y={350} fontSize={10} fill="white" opacity={0.8}>★</text>
+      {/* Rocket — launches bottom to top */}
+      <g style={{ animation: 'bg-launch 18s 5s linear infinite normal backwards' }}>
+        <g transform="translate(400, 0)">
+          {/* Body */}
+          <rect x={-9} y={-44} width={18} height={54} rx={6} fill="#e8eef8" />
+          {/* Nose cone */}
+          <polygon points="-9,-44 0,-70 9,-44" fill="#ff4040" />
+          {/* Side fins */}
+          <polygon points="-9,5 -24,28 -9,28" fill="#ff4040" />
+          <polygon points="9,5 24,28 9,28" fill="#ff4040" />
+          {/* Porthole */}
+          <circle cx={0} cy={-22} r={7} fill="#60c8ff" opacity={0.85} />
+          <circle cx={0} cy={-22} r={4} fill="#a0e0ff" opacity={0.5} />
+          {/* Booster */}
+          <g style={{ animation: 'bg-booster 0.14s ease-in-out infinite' }}>
+            <ellipse cx={0} cy={44} rx={11} ry={18} fill="#ffaa00" opacity={0.95} />
+            <ellipse cx={0} cy={40} rx={7} ry={12} fill="#ff6600" opacity={1} />
+            <ellipse cx={0} cy={38} rx={4} ry={7} fill="#ffee00" opacity={1} />
+          </g>
+          <g style={{ animation: 'bg-booster 0.21s 0.07s ease-in-out infinite' }}>
+            <ellipse cx={0} cy={50} rx={7} ry={13} fill="#ff4400" opacity={0.65} />
+          </g>
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_stardust() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="sd-bg" cx="50%" cy="50%"><stop offset="0%" stopColor="#1a0850" /><stop offset="100%" stopColor="#060218" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#sd-bg)" />
+      <rect width={800} height={450} fill="url(#sd-bg)" />
       <Stars n={100} />
       {/* Colorful nebula blobs */}
       {[{cx:200,cy:150,rx:180,ry:100,c:'#8040ff',o:.18},{cx:600,cy:350,rx:200,ry:120,c:'#ff4080',o:.16},{cx:400,cy:250,rx:220,ry:130,c:'#40a0ff',o:.15}].map((n,i)=>(
@@ -456,10 +617,12 @@ function Scene_stardust() {
       ))}
       {/* Stardust trails */}
       {[{x:100,y:200,rot:45},{x:500,y:100,rot:-30},{x:650,y:320,rot:60}].map((t,i)=>(
-        <g key={i} transform={`rotate(${t.rot},${t.x},${t.y})`} style={{ animation: `bg-drift-l ${12+i*3}s ${i*2}s linear infinite` }}>
+        <g key={i} style={{ animation: `bg-drift-l ${12+i*3}s ${i*2}s linear infinite normal backwards` }}>
+          <g transform={`rotate(${t.rot},${t.x},${t.y})`}>
           {Array.from({length:8},(_,j)=>(
             <circle key={j} cx={t.x+j*18} cy={t.y} r={3-j*0.3} fill={['#ff80ff','#80ffff','#ffe080'][i%3]} opacity={0.8-j*0.1} style={{ animation: `bg-twinkle ${1.5+j*.2}s ${j*.1}s ease-in-out infinite` }} />
           ))}
+          </g>
         </g>
       ))}
       {/* Shooting stars */}
@@ -473,11 +636,11 @@ function Scene_stardust() {
 
 function Scene_robot() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="rob-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a1a2a" /><stop offset="100%" stopColor="#051015" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#rob-bg)" />
+      <rect width={800} height={450} fill="url(#rob-bg)" />
       {/* Circuit board lines */}
       {Array.from({length:10},(_,i)=>(
         <g key={i} stroke="#00ff8820" strokeWidth={1}>
@@ -552,11 +715,11 @@ function Scene_robot() {
 
 function Scene_curiositylab() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="lab-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a1a30" /><stop offset="100%" stopColor="#162840" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#lab-bg)" />
+      <rect width={800} height={450} fill="url(#lab-bg)" />
       {/* Spinning atom */}
       <g style={{ animation: 'bg-spin 8s linear infinite', transformOrigin: '400px 200px' }}>
         <ellipse cx={400} cy={200} rx={100} ry={40} fill="none" stroke="#60ccff" strokeWidth={2} opacity={0.6} />
@@ -597,17 +760,17 @@ function Scene_curiositylab() {
 
 function Scene_avengers() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="av-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a0a1a" /><stop offset="60%" stopColor="#1a0a30" /><stop offset="100%" stopColor="#0a1020" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#av-bg)" />
+      <rect width={800} height={450} fill="url(#av-bg)" />
       {/* NYC skyline silhouette */}
       {[{x:0,w:60,h:220},{x:55,w:45,h:280},{x:95,w:70,h:200},{x:160,w:50,h:320},{x:205,w:35,h:260},{x:235,w:55,h:180},{x:620,w:55,h:250},{x:670,w:40,h:310},{x:705,w:65,h:220},{x:765,w:40,h:280}].map((b,i)=>(
         <rect key={i} x={b.x} y={500-b.h} width={b.w} height={b.h} fill="#111118" />
       ))}
       {/* Iron Man flying — proper armored suit silhouette */}
-      <g style={{ animation: 'bg-fly 12s 1s ease-in-out infinite' }}>
+      <g style={{ animation: 'bg-fly 12s 1s ease-in-out infinite normal backwards' }}>
         {/* Helmet — angular with faceplate */}
         <path d="
           M400,148 C393,148 385,152 383,160 C381,167 383,175 388,178
@@ -652,7 +815,7 @@ function Scene_avengers() {
       <polyline points="430,50 415,110 435,110 420,180" stroke="#ffee00" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round"
         style={{ animation: 'bg-flash 6s 2s ease-in-out infinite' }} />
       {/* Shield */}
-      <g transform="translate(200,250)"><g style={{ animation: 'bg-drift-l 15s 0.5s linear infinite' }}>
+      <g transform="translate(200,250)"><g style={{ animation: 'bg-drift-l 15s 0.5s linear infinite normal backwards' }}>
         <circle cx={0} cy={0} r={28} fill="#3355cc" />
         <circle cx={0} cy={0} r={21} fill="#cc2222" />
         <circle cx={0} cy={0} r={13} fill="#3355cc" />
@@ -670,11 +833,11 @@ function Scene_avengers() {
 
 function Scene_superman() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="sm-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#003080" /><stop offset="50%" stopColor="#1060c0" /><stop offset="100%" stopColor="#c06000" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#sm-bg)" />
+      <rect width={800} height={450} fill="url(#sm-bg)" />
       {/* Art-deco Metropolis skyline */}
       {[{x:0,w:70,h:280},{x:65,w:40,h:320},{x:100,w:55,h:260},{x:150,w:80,h:350},{x:225,w:35,h:300},{x:255,w:60,h:240},{x:580,w:60,h:300},{x:635,w:45,h:350},{x:675,w:70,h:270},{x:740,w:65,h:310}].map((b,i)=>(
         <g key={i}>
@@ -749,11 +912,11 @@ function Scene_superman() {
 
 function Scene_forest() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="for-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#020c08" /><stop offset="100%" stopColor="#041808" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#for-bg)" />
+      <rect width={800} height={450} fill="url(#for-bg)" />
       {/* Moon */}
       <circle cx={400} cy={90} r={55} fill="#e8e0c0" style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
       <circle cx={380} cy={80} r={42} fill="#c8c0a0" opacity={0.4} /> {/* crater shadow */}
@@ -766,9 +929,9 @@ function Scene_forest() {
         </g>
       ))}
       {/* Mist on ground */}
-      <ellipse cx={400} cy={470} rx={500} ry={50} fill="#144020" opacity={0.3} />
-      <ellipse cx={200} cy={460} rx={300} ry={35} fill="#1a5028" opacity={0.2} />
-      <ellipse cx={650} cy={465} rx={280} ry={38} fill="#143a18" opacity={0.25} />
+      <ellipse cx={400} cy={420} rx={500} ry={50} fill="#144020" opacity={0.3} />
+      <ellipse cx={200} cy={410} rx={300} ry={35} fill="#1a5028" opacity={0.2} />
+      <ellipse cx={650} cy={415} rx={280} ry={38} fill="#143a18" opacity={0.25} />
       {/* Fireflies */}
       {Array.from({length:22},(_,i)=>(
         <circle key={i} cx={(i*113+50)%800} cy={250+(i%8)*30} r={2.5} fill="#aaff60" style={{ animation: `bg-twinkle ${1.5+i%.5}s ${i*.2}s ease-in-out infinite` }} />
@@ -777,17 +940,66 @@ function Scene_forest() {
       {Array.from({length:8},(_,i)=>(
         <circle key={i} cx={(i*137+80)%800} cy={280+(i%5)*25} r={4} fill="#80ff30" opacity={0.4} style={{ animation: `bg-float ${3+i*.4}s ${i*.5}s ease-in-out infinite` }} />
       ))}
+      {/* Deer silhouette */}
+      <g transform="translate(580,390)" opacity={0.7}>
+        {/* Body */}
+        <ellipse cx={0} cy={0} rx={30} ry={16} fill="#3a1e08" />
+        {/* Neck */}
+        <rect x={-25} y={-24} width={12} height={24} rx={5} fill="#3a1e08" />
+        {/* Head */}
+        <ellipse cx={-28} cy={-30} rx={12} ry={10} fill="#3a1e08" />
+        {/* Antlers */}
+        <path d="M-32,-38 L-36,-56 M-36,-56 L-40,-66 M-36,-56 L-30,-62" stroke="#2a1006" strokeWidth={2.5} fill="none" />
+        <path d="M-24,-40 L-20,-58 M-20,-58 L-16,-66 M-20,-58 L-26,-64" stroke="#2a1006" strokeWidth={2} fill="none" />
+        {/* Ear */}
+        <ellipse cx={-22} cy={-36} rx={6} ry={9} fill="#3a1e08" />
+        {/* Eye */}
+        <circle cx={-34} cy={-32} r={2.5} fill="#0a0604" />
+        {/* Legs */}
+        <rect x={-18} y={12} width={5} height={22} rx={2} fill="#3a1e08" />
+        <rect x={-6} y={12} width={5} height={22} rx={2} fill="#3a1e08" />
+        <rect x={8} y={12} width={5} height={22} rx={2} fill="#3a1e08" />
+        <rect x={20} y={12} width={5} height={22} rx={2} fill="#3a1e08" />
+        {/* White tail */}
+        <ellipse cx={28} cy={-5} rx={8} ry={6} fill="#f0ece0" opacity={0.6} />
+      </g>
+      {/* Owl on branch */}
+      <g transform="translate(200,240)">
+        <g style={{ animation: 'bg-float-sm 5s 1s ease-in-out infinite' }}>
+          {/* Branch */}
+          <rect x={-30} y={20} width={80} height={8} rx={4} fill="#1a0a04" />
+          {/* Body */}
+          <ellipse cx={0} cy={0} rx={16} ry={20} fill="#3a2808" />
+          {/* Head */}
+          <circle cx={0} cy={-22} r={14} fill="#4a3410" />
+          {/* Ear tufts */}
+          <polygon points="-8,-34 -4,-46 0,-34" fill="#3a2808" />
+          <polygon points="8,-34 4,-46 0,-34" fill="#3a2808" />
+          {/* Eyes */}
+          <circle cx={-6} cy={-22} r={6} fill="#f5d848" />
+          <circle cx={6} cy={-22} r={6} fill="#f5d848" />
+          <circle cx={-6} cy={-22} r={4} fill="#1a0a00" />
+          <circle cx={6} cy={-22} r={4} fill="#1a0a00" />
+          <circle cx={-5} cy={-23} r={1.5} fill="white" opacity={0.7} />
+          <circle cx={7} cy={-23} r={1.5} fill="white" opacity={0.7} />
+          {/* Beak */}
+          <polygon points="-2,-17 2,-17 0,-12" fill="#c88030" />
+          {/* Wing detail */}
+          <path d="M-15,0 Q-12,10 -8,16" stroke="#2a1c06" strokeWidth={2} fill="none" opacity={0.6} />
+          <path d="M15,0 Q12,10 8,16" stroke="#2a1c06" strokeWidth={2} fill="none" opacity={0.6} />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_panda() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="pa-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c8e8e0" /><stop offset="100%" stopColor="#80c8b0" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#pa-bg)" />
+      <rect width={800} height={450} fill="url(#pa-bg)" />
       {/* Misty mountains */}
       <polygon points="0,350 200,150 400,350" fill="#a0c8b8" opacity={0.5} />
       <polygon points="200,350 450,100 700,350" fill="#90b8a8" opacity={0.4} />
@@ -824,18 +1036,31 @@ function Scene_panda() {
         <ellipse cx={42} cy={-22} rx={15} ry={7} fill="#6ab058" />
       </g>
       </g>
+      {/* Butterflies floating through bamboo */}
+      {[{x:340,y:200,c:'#ff80cc'},{x:480,y:280,c:'#80ccff'}].map((b,i)=>(
+        <g key={i} transform={`translate(${b.x},${b.y})`}>
+          <g style={{ animation: `bg-float ${5+i}s ${i}s ease-in-out infinite` }}>
+            <ellipse cx={-10} cy={0} rx={12} ry={8} fill={b.c} opacity={0.75} transform="rotate(-25,-10,0)" />
+            <ellipse cx={10} cy={0} rx={12} ry={8} fill={b.c} opacity={0.75} transform="rotate(25,10,0)" />
+            <ellipse cx={-8} cy={4} rx={8} ry={5} fill={b.c} opacity={0.55} transform="rotate(20,-8,4)" />
+            <ellipse cx={8} cy={4} rx={8} ry={5} fill={b.c} opacity={0.55} transform="rotate(-20,8,4)" />
+            <line x1={0} y1={-10} x2={-4} y2={-18} stroke="#1a0a00" strokeWidth={1} />
+            <line x1={0} y1={-10} x2={4} y2={-18} stroke="#1a0a00" strokeWidth={1} />
+          </g>
+        </g>
+      ))}
     </svg>
   )
 }
 
 function Scene_frog() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="fr-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a2010" /><stop offset="100%" stopColor="#183028" /></linearGradient>
         <radialGradient id="moon-fr" cx="50%" cy="50%"><stop offset="0%" stopColor="#f5f0dc" /><stop offset="100%" stopColor="#e0d8b0" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#fr-bg)" />
+      <rect width={800} height={450} fill="url(#fr-bg)" />
       {/* Moon reflected */}
       <circle cx={400} cy={80} r={50} fill="url(#moon-fr)" style={{ animation: 'bg-glow 7s ease-in-out infinite' }} />
       {/* Pond */}
@@ -900,17 +1125,34 @@ function Scene_frog() {
       {[{cx:340,cy:430},{cx:480,cy:445}].map((r,i)=>(
         <ellipse key={i} cx={r.cx} cy={r.cy} rx={20} ry={10} fill="none" stroke="#3a8060" strokeWidth={1.5} opacity={0.5} style={{ animation: `bg-ripple ${3+i}s ${i}s ease-out infinite` }} />
       ))}
+      {/* Dragonfly */}
+      <g transform="translate(550,300)">
+        <g style={{ animation: 'bg-float 2.5s ease-in-out infinite' }}>
+          {/* Body — segmented */}
+          <rect x={-2} y={-18} width={4} height={36} rx={2} fill="#408040" />
+          <ellipse cx={0} cy={-22} rx={5} ry={5} fill="#408040" />
+          {/* Upper wings */}
+          <ellipse cx={-18} cy={-10} rx={20} ry={7} fill="rgba(160,240,200,.6)" transform="rotate(-15,-18,-10)" />
+          <ellipse cx={18} cy={-10} rx={20} ry={7} fill="rgba(160,240,200,.6)" transform="rotate(15,18,-10)" />
+          {/* Lower wings */}
+          <ellipse cx={-16} cy={2} rx={17} ry={6} fill="rgba(160,240,220,.5)" transform="rotate(10,-16,2)" />
+          <ellipse cx={16} cy={2} rx={17} ry={6} fill="rgba(160,240,220,.5)" transform="rotate(-10,16,2)" />
+          {/* Eyes */}
+          <circle cx={-4} cy={-24} r={3} fill="#1a2a00" />
+          <circle cx={4} cy={-24} r={3} fill="#1a2a00" />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_enchanted() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="ench-bg" cx="50%" cy="40%"><stop offset="0%" stopColor="#1a0840" /><stop offset="100%" stopColor="#060215" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ench-bg)" />
+      <rect width={800} height={450} fill="url(#ench-bg)" />
       <Stars n={40} color="#d0c0ff" />
       {/* Magical portal ring */}
       <circle cx={400} cy={240} r={90} fill="none" stroke="#a040ff" strokeWidth={4} opacity={0.6} style={{ animation: 'bg-pulse 3s ease-in-out infinite' }} />
@@ -950,6 +1192,26 @@ function Scene_enchanted() {
       {Array.from({length:18},(_,i)=>(
         <text key={i} x={(i*97+80)%800} y={150+(i%5)*60} fontSize={10} fill={['#ffee40','#ff80ff','#60ffcc'][i%3]} style={{ animation: `bg-twinkle ${1+i*.2}s ${i*.18}s ease-in-out infinite` }}>✦</text>
       ))}
+      {/* Mushroom fairy ring on ground */}
+      {[0,40,80,120,160,200,240,300].map((a,i)=>{
+        const r=90, cx=400, cy=460
+        const x=cx+r*Math.cos(a*Math.PI/180), y=cy+r*0.35*Math.sin(a*Math.PI/180)
+        const c=['#ff80ff','#80ffcc','#ffaa40','#80c0ff'][i%4]
+        return (
+          <g key={i} transform={`translate(${x},${y})`}>
+            <rect x={-4} y={-14} width={8} height={14} rx={3} fill="#f5e8d0" />
+            <ellipse cx={0} cy={-14} rx={12} ry={7} fill={c} opacity={0.85} style={{ animation: `bg-glow ${2+i*.3}s ${i*.25}s ease-in-out infinite` }} />
+          </g>
+        )
+      })}
+      {/* Extra fairy */}
+      <g transform="translate(550,0)">
+        <g style={{ animation: 'bg-float 3s 1s ease-in-out infinite normal backwards, bg-drift-l 25s 5s linear infinite normal backwards' }}>
+          <circle cx={0} cy={350} r={5} fill="#ffee40" opacity={0.9} />
+          <ellipse cx={-9} cy={346} rx={10} ry={6} fill="#ffe0ff" opacity={0.7} transform="rotate(-30,-9,346)" />
+          <ellipse cx={9} cy={346} rx={10} ry={6} fill="#ffe0ff" opacity={0.7} transform="rotate(30,9,346)" />
+        </g>
+      </g>
     </svg>
   )
 }
@@ -957,11 +1219,11 @@ function Scene_enchanted() {
 function Scene_minecraft() {
   const BLOCK = 32
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="mc-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4466cc" /><stop offset="100%" stopColor="#88aaee" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#mc-sky)" />
+      <rect width={800} height={450} fill="url(#mc-sky)" />
       {/* Pixelated sun */}
       <rect x={680} y={60} width={BLOCK*2} height={BLOCK*2} fill="#FFE040" style={{ animation: 'bg-pulse-sm 3s ease-in-out infinite' }} />
       {/* Ground blocks */}
@@ -997,16 +1259,16 @@ function Scene_minecraft() {
 
 function Scene_autumnleaves() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="au-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#cc6620" /><stop offset="50%" stopColor="#e88030" /><stop offset="100%" stopColor="#a04010" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#au-bg)" />
+      <rect width={800} height={450} fill="url(#au-bg)" />
       {/* Setting sun */}
       <circle cx={680} cy={350} r={70} fill="#FFD040" opacity={0.85} style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
       {/* Rolling hills */}
-      <ellipse cx={200} cy={480} rx={300} ry={100} fill="#4a2008" />
-      <ellipse cx={600} cy={490} rx={320} ry={110} fill="#3a1808" />
+      <ellipse cx={200} cy={430} rx={300} ry={100} fill="#4a2008" />
+      <ellipse cx={600} cy={440} rx={320} ry={110} fill="#3a1808" />
       {/* Tree silhouettes */}
       {[100,250,500,680].map((x,i)=>(
         <g key={i}>
@@ -1029,12 +1291,12 @@ function Scene_autumnleaves() {
 
 function Scene_dinosaur() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="di-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#4a1800" /><stop offset="50%" stopColor="#aa3800" /><stop offset="100%" stopColor="#c85020" /></linearGradient>
         <radialGradient id="di-lava" cx="50%" cy="50%"><stop offset="0%" stopColor="#ffcc00" /><stop offset="50%" stopColor="#ff4400" /><stop offset="100%" stopColor="#880000" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#di-bg)" />
+      <rect width={800} height={450} fill="url(#di-bg)" />
       {/* Distant haze / smoke horizon */}
       <ellipse cx={400} cy={390} rx={420} ry={60} fill="rgba(180,60,0,0.25)" />
       {/* Volcano — left background */}
@@ -1151,35 +1413,65 @@ function Scene_dinosaur() {
       </g></g>
       {/* Dust cloud at feet */}
       <ellipse cx={415} cy={418} rx={80} ry={12} fill="rgba(180,100,30,0.3)" style={{ animation: 'bg-pulse-sm 3.5s ease-in-out infinite' }} />
+      {/* Pterodactyl flying across */}
+      <g style={{ animation: 'bg-drift-l 12s 2s linear infinite normal backwards' }}>
+        <g transform="translate(0,130)">
+          {/* Body */}
+          <ellipse cx={700} cy={0} rx={20} ry={10} fill="#5a3820" />
+          {/* Head crest */}
+          <path d="M685,-8 L680,-28 L695,-8" fill="#5a3820" />
+          {/* Beak */}
+          <path d="M685,0 L660,-4 L685,5 Z" fill="#6a4428" />
+          {/* Eye */}
+          <circle cx={682} cy={-3} r={3} fill="#1a0800" />
+          {/* Wings spread */}
+          <path d="M700,-5 C720,-20 750,-30 780,-25 C760,-15 730,-5 710,2 Z" fill="#5a3820" />
+          <path d="M700,-5 C680,-20 650,-30 620,-25 C640,-15 670,-5 690,2 Z" fill="#5a3820" />
+          {/* Tail */}
+          <path d="M720,5 C735,0 745,-5 740,-12" stroke="#5a3820" strokeWidth={5} fill="none" strokeLinecap="round" />
+          {/* Wing veins */}
+          <line x1="700" y1="-4" x2="760" y2="-22" stroke="#4a2c18" strokeWidth={1.5} opacity={0.6} />
+          <line x1="700" y1="-4" x2="650" y2="-22" stroke="#4a2c18" strokeWidth={1.5} opacity={0.6} />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_ocean() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="oc-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#001840" /><stop offset="100%" stopColor="#004080" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#oc-bg)" />
+      <rect width={800} height={450} fill="url(#oc-bg)" />
       {/* Light rays from surface */}
       {[120,250,400,550,680].map((x,i)=>(
         <polygon key={i} points={`${x-20},0 ${x+20},0 ${x+60},500 ${x-60},500`} fill="#4488ff" opacity={0.05+i%2*.03} style={{ animation: `bg-glow ${4+i}s ${i*.5}s ease-in-out infinite` }} />
       ))}
       {/* Whale — faces LEFT, swims LEFT via bg-drift-l (no flip) */}
       <g style={{ animation: 'bg-drift-l 25s linear infinite' }}>
-        <ellipse cx={400} cy={180} rx={110} ry={52} fill="#2a3060" />
-        <ellipse cx={380} cy={168} rx={40} ry={20} fill="#e8e0d0" opacity={0.6} />
-        {/* Tail fin on the RIGHT side */}
-        <path d="M510,180 Q540,155 540,200 Q540,225 510,210Z" fill="#2a3060" />
-        {/* Eye on the LEFT side (snout) */}
-        <circle cx={308} cy={168} r={10} fill="#1a2050" />
-        <circle cx={310} cy={166} r={4} fill="white" />
-        {/* Snout — left tip */}
-        <path d="M290,180 C282,172 278,180 282,188 C286,192 292,188 290,180 Z" fill="#2a3060" />
-        {/* Spout from blowhole (top-left area) */}
-        <path d="M330,140 Q325,110 335,88" stroke="#88bbff" strokeWidth={4} fill="none" opacity={0.6} style={{ animation: 'bg-glow 3s ease-in-out infinite' }} />
-        <ellipse cx={332} cy={86} rx={10} ry={6} fill="#88bbff" opacity={0.4} />
+        {/* Main body — streamlined, tapers toward the tail */}
+        <path d="M278,192 C272,172 294,144 342,134 C386,125 455,130 490,150 C510,162 520,176 520,192 C520,208 510,222 490,234 C455,254 386,259 342,250 C294,240 272,212 278,192Z" fill="#2a3060" />
+        {/* Belly — lighter ventral patch */}
+        <path d="M294,194 C292,210 312,242 350,250 C388,258 458,252 492,234 C512,222 520,208 520,200 C514,212 502,226 482,234 C452,246 386,250 350,242 C316,234 298,214 294,194Z" fill="#c8cce8" opacity={0.45} />
+        {/* Pectoral fin — long and curved, like a humpback */}
+        <path d="M375,140 C392,100 432,88 448,95 C435,115 408,132 380,148Z" fill="#1e2848" />
+        {/* Flukes — proper forked tail */}
+        <path d="M519,184 C542,162 568,138 574,126 C564,145 546,166 526,182Z" fill="#243058" />
+        <path d="M519,200 C542,222 568,246 574,258 C564,239 546,218 526,202Z" fill="#243058" />
+        {/* Peduncle notch between flukes */}
+        <ellipse cx={522} cy={192} rx={7} ry={5} fill="#1a2050" />
+        {/* Eye */}
+        <circle cx={304} cy={170} r={10} fill="#1a2050" />
+        <circle cx={306} cy={168} r={4} fill="white" />
+        <circle cx={307} cy={167} r={1.5} fill="#000" />
+        {/* Mouth line */}
+        <path d="M276,192 C272,196 272,200 278,200" stroke="#1a2050" strokeWidth={2} fill="none" opacity={0.6} />
+        {/* Blowhole spout — two-stream like a real baleen whale */}
+        <path d="M348,133 Q340,100 344,72" stroke="#88ccff" strokeWidth={5} fill="none" opacity={0.65} strokeLinecap="round" style={{ animation: 'bg-glow 3s ease-in-out infinite' }} />
+        <path d="M356,131 Q352,98 360,70" stroke="#aaddff" strokeWidth={3.5} fill="none" opacity={0.5} strokeLinecap="round" style={{ animation: 'bg-glow 3s 0.4s ease-in-out infinite' }} />
+        <ellipse cx={352} cy={68} rx={18} ry={8} fill="#88ccff" opacity={0.3} />
       </g>
       {/* Coral reef */}
       {[{x:80,c:'#ff6060'},{x:180,c:'#ff9940'},{x:600,c:'#ff4080'},{x:700,c:'#40e090'}].map((r,i)=>(
@@ -1189,21 +1481,23 @@ function Scene_ocean() {
           <polygon points={`${r.x+12},455 ${r.x-3},500 ${r.x+28},500`} fill={r.c} opacity={0.8} />
         </g>
       ))}
-      {/* Fish schools — each centered on (0,0) with translate for position, tail attached at +rx */}
+      {/* Fish schools — outer <g> drives cross-screen animation, inner <g> sets vertical position */}
       {[
-        {tx:620,ty:280,c:'#ffa040',dur:'8s',delay:'0s'},
-        {tx:500,ty:310,c:'#ff7060',dur:'9s',delay:'0.7s'},
-        {tx:680,ty:295,c:'#ffc060',dur:'7.5s',delay:'1.4s'},
-        {tx:440,ty:260,c:'#ffa040',dur:'10s',delay:'0.3s'},
-        {tx:560,ty:320,c:'#ff8050',dur:'8.5s',delay:'1s'},
-        {tx:720,ty:275,c:'#ffb040',dur:'9.5s',delay:'1.8s'},
-        {tx:480,ty:340,c:'#ffa040',dur:'7s',delay:'2s'},
-        {tx:640,ty:305,c:'#ffc040',dur:'11s',delay:'0.5s'},
+        {ty:280,c:'#ffa040',dur:'8s',delay:'0s'},
+        {ty:310,c:'#ff7060',dur:'9s',delay:'0.7s'},
+        {ty:295,c:'#ffc060',dur:'7.5s',delay:'1.4s'},
+        {ty:260,c:'#ffa040',dur:'10s',delay:'0.3s'},
+        {ty:320,c:'#ff8050',dur:'8.5s',delay:'1s'},
+        {ty:275,c:'#ffb040',dur:'9.5s',delay:'1.8s'},
+        {ty:340,c:'#ffa040',dur:'7s',delay:'2s'},
+        {ty:305,c:'#ffc040',dur:'11s',delay:'0.5s'},
       ].map((f,i)=>(
-        <g key={i} transform={`translate(${f.tx},${f.ty})`} style={{ animation: `bg-drift-l ${f.dur} ${f.delay} linear infinite` }}>
-          <ellipse cx={0} cy={0} rx={12} ry={6} fill={f.c} opacity={0.85} />
-          <polygon points="12,0 22,-6 22,6" fill={f.c} opacity={0.85} />
-          <circle cx={-5} cy={-1} r={2} fill="#553010" opacity={0.7} />
+        <g key={i} style={{ animation: `bg-drift-l ${f.dur} ${f.delay} linear infinite normal backwards` }}>
+          <g transform={`translate(0,${f.ty})`}>
+            <ellipse cx={0} cy={0} rx={12} ry={6} fill={f.c} opacity={0.85} />
+            <polygon points="12,0 22,-6 22,6" fill={f.c} opacity={0.85} />
+            <circle cx={-5} cy={-1} r={2} fill="#553010" opacity={0.7} />
+          </g>
         </g>
       ))}
       {/* Bubbles */}
@@ -1211,31 +1505,99 @@ function Scene_ocean() {
         <circle key={i} cx={(i*113+50)%800} cy={480} r={3+i%3} fill="none" stroke="#60aaff" strokeWidth={1} opacity={0.5} style={{ animation: `bg-bubble ${4+i*.4}s ${i*.5}s linear infinite` }} />
       ))}
       {/* Whale tail breaching */}
-      <g transform="translate(680,0)"><g style={{ animation: 'bg-float 6s 2s ease-in-out infinite' }}>
+      <g transform="translate(680,0)"><g style={{ animation: 'bg-float 6s 2s ease-in-out infinite normal backwards' }}>
         <path d="M0,340 Q-20,300 -10,280 Q0,300 10,280 Q20,300 0,340Z" fill="#2a3060" opacity={0.8} />
         <ellipse cx={0} cy={340} rx={18} ry={6} fill="#1a2050" opacity={0.4} />
       </g>
       </g>
-      {/* Jellyfish drifting down from top */}
+      {/* Jellyfish — outer <g> sets x column, inner <g> drives fall animation */}
       {[{x:120,c:'#ff80cc'},{x:350,c:'#80ccff'},{x:620,c:'#ffcc80'}].map((j,i)=>(
-        <g key={i} style={{ animation: `bg-fall ${12+i*3}s ${i*4}s linear infinite` }} transform={`translate(${j.x},-80)`}>
-          <ellipse cx={0} cy={0} rx={18} ry={12} fill={j.c} opacity={0.5} />
-          {[-10,-4,4,10].map((dx,k)=>(
-            <path key={k} d={`M${dx},10 Q${dx+3},25 ${dx},40`} stroke={j.c} strokeWidth={1.5} fill="none" opacity={0.4} />
-          ))}
+        <g key={i} transform={`translate(${j.x},0)`}>
+          <g style={{ animation: `bg-fall ${12+i*3}s ${i*4}s linear infinite normal backwards` }}>
+            <ellipse cx={0} cy={0} rx={18} ry={12} fill={j.c} opacity={0.5} />
+            {[-10,-4,4,10].map((dx,k)=>(
+              <path key={k} d={`M${dx},10 Q${dx+3},25 ${dx},40`} stroke={j.c} strokeWidth={1.5} fill="none" opacity={0.4} />
+            ))}
+          </g>
         </g>
       ))}
+      {/* Sea turtle — slow drift left, mid-water */}
+      <g style={{ animation: 'bg-drift-l 38s 3s linear infinite normal backwards' }}>
+        <g transform="translate(580,300)">
+          <path d="M-20,-30 C-32,-52 -56,-58 -64,-48 C-54,-34 -36,-26 -20,-22Z" fill="#4a7a30" />
+          <path d="M-20,30 C-32,52 -56,60 -64,50 C-54,36 -36,28 -20,24Z" fill="#4a7a30" />
+          <path d="M24,-22 C36,-38 54,-40 56,-30 C48,-20 34,-18 24,-16Z" fill="#4a7a30" />
+          <path d="M24,22 C36,40 54,42 56,32 C48,22 34,20 24,18Z" fill="#4a7a30" />
+          <ellipse cx={0} cy={0} rx={40} ry={30} fill="#3d6828" />
+          <ellipse cx={0} cy={0} rx={28} ry={20} fill="#527a32" />
+          <path d="M0,-20 L0,20M-28,0 L28,0M-20,-14 L20,14M20,-14 L-20,14" stroke="#3a6020" strokeWidth={1.5} opacity={0.5} />
+          <ellipse cx={-48} cy={0} rx={13} ry={9} fill="#6a9a40" />
+          <circle cx={-57} cy={-3} r={3} fill="#1a3008" />
+          <circle cx={-56} cy={-4} r={1.2} fill="white" />
+        </g>
+      </g>
+      {/* Seahorse — gentle bob near left coral */}
+      <g transform="translate(155,310)"><g style={{ animation: 'bg-float 5s 1s ease-in-out infinite normal backwards' }}>
+        <path d="M0,0 C6,14 12,30 6,46 C0,62 -4,76 2,90" stroke="#ff8844" strokeWidth={13} fill="none" strokeLinecap="round" />
+        <path d="M0,0 C6,14 12,30 6,46 C0,62 -4,76 2,90" stroke="#ffaa66" strokeWidth={8} fill="none" strokeLinecap="round" opacity={0.5} />
+        <ellipse cx={0} cy={-10} rx={11} ry={13} fill="#ff8844" />
+        <path d="M0,-18 L-20,-26" stroke="#ff8844" strokeWidth={5} strokeLinecap="round" />
+        <circle cx={-5} cy={-14} r={4} fill="#2a1000" />
+        <circle cx={-4} cy={-15} r={1.5} fill="white" />
+        <path d="M-6,-22 L-10,-30 M0,-24 L0,-33 M6,-22 L9,-30" stroke="#ff8844" strokeWidth={2.5} strokeLinecap="round" />
+        <path d="M8,5 Q22,-2 20,14 Q8,10 8,6Z" fill="rgba(255,160,90,0.55)" />
+      </g></g>
+      {/* Octopus — bottom right, animated sway */}
+      <g transform="translate(670,340)"><g style={{ animation: 'bg-sway-sm 4s ease-in-out infinite' }}>
+        <path d="M-10,28 Q-42,52 -58,82" stroke="#a040b8" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <path d="M-4,32 Q-26,60 -30,90" stroke="#a040b8" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <path d="M4,34 Q6,62 2,92" stroke="#a040b8" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <path d="M12,33 Q28,60 26,90" stroke="#a040b8" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <path d="M18,30 Q48,54 52,82" stroke="#a040b8" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <path d="M22,25 Q58,44 68,68" stroke="#a040b8" strokeWidth={7} fill="none" strokeLinecap="round" />
+        <path d="M-18,24 Q-56,40 -72,62" stroke="#a040b8" strokeWidth={7} fill="none" strokeLinecap="round" />
+        <ellipse cx={0} cy={0} rx={34} ry={32} fill="#c050d8" />
+        <ellipse cx={0} cy={-18} rx={22} ry={18} fill="#d060e8" />
+        <circle cx={-13} cy={-6} r={9} fill="#1a0820" />
+        <circle cx={13} cy={-6} r={9} fill="#1a0820" />
+        <circle cx={-11} cy={-8} r={3.5} fill="white" />
+        <circle cx={15} cy={-8} r={3.5} fill="white" />
+        <path d="M-8,8 Q0,14 8,8" stroke="#e080f0" strokeWidth={2} fill="none" />
+      </g></g>
+      {/* Starfish on sea floor */}
+      {[{x:80,y:428,r:18,fill:'#ff6030',rot:.3},{x:280,y:432,r:14,fill:'#ff8820',rot:.9},{x:490,y:430,r:20,fill:'#ff4455',rot:.1},{x:750,y:430,r:15,fill:'#ff7040',rot:.6}].map((s,i)=>{
+        const pts = Array.from({length:10},(_,j)=>{const a=j*Math.PI/5-Math.PI/2+s.rot;const r=j%2===0?s.r:s.r*.42;return `${s.x+r*Math.cos(a)},${s.y+r*Math.sin(a)}`}).join(' ')
+        return <polygon key={i} points={pts} fill={s.fill} opacity={0.9} />
+      })}
+      {/* Crab at bottom center */}
+      <g transform="translate(390,420)"><g style={{ animation: 'bg-sway-sm 1.8s ease-in-out infinite' }}>
+        {[-14,-8,8,14].map((x,i)=>(
+          <g key={i}>
+            <line x1={x>0?20:-20} y1={-4+i%2*6} x2={x>0?32+i*2:-32-i*2} y2={10+i*3} stroke="#cc3010" strokeWidth={2.5} strokeLinecap="round" />
+          </g>
+        ))}
+        <path d="M-24,-2 C-38,-12 -44,-6 -42,2 C-40,10 -32,10 -24,6Z" fill="#e84020" />
+        <path d="M24,-2 C38,-12 44,-6 42,2 C40,10 32,10 24,6Z" fill="#e84020" />
+        <ellipse cx={0} cy={0} rx={24} ry={15} fill="#e84020" />
+        <ellipse cx={0} cy={-2} rx={16} ry={10} fill="#f05030" opacity={0.5} />
+        <line x1={-9} y1={-13} x2={-12} y2={-22} stroke="#e84020" strokeWidth={3} />
+        <circle cx={-12} cy={-23} r={4} fill="#1a0800" />
+        <circle cx={-11} cy={-24} r={1.5} fill="white" />
+        <line x1={9} y1={-13} x2={12} y2={-22} stroke="#e84020" strokeWidth={3} />
+        <circle cx={12} cy={-23} r={4} fill="#1a0800" />
+        <circle cx={13} cy={-24} r={1.5} fill="white" />
+      </g></g>
     </svg>
   )
 }
 
 function Scene_shark() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="sh-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#000818" /><stop offset="100%" stopColor="#001828" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#sh-bg)" />
+      <rect width={800} height={450} fill="url(#sh-bg)" />
       {/* Faint surface light rays */}
       <ellipse cx={400} cy={0} rx={300} ry={80} fill="#2060a0" opacity={0.12} />
       {[200,400,600].map((x,i)=>(
@@ -1273,20 +1635,22 @@ function Scene_shark() {
       </g>
       {/* Small fish — each centered on (0,0), positioned by translate, swimming LEFT with bg-drift-l */}
       {[
-        {tx:620,ty:185,c:'#ffe090',delay:'0s',dur:'6s'},
-        {tx:480,ty:210,c:'#ff9080',delay:'0.5s',dur:'7s'},
-        {tx:680,ty:220,c:'#90e0ff',delay:'1s',dur:'5.5s'},
-        {tx:560,ty:165,c:'#a0ff90',delay:'1.5s',dur:'8s'},
-        {tx:420,ty:195,c:'#ffe090',delay:'0.8s',dur:'6.5s'},
-        {tx:720,ty:240,c:'#ffb0e0',delay:'1.8s',dur:'7.5s'},
+        {ty:185,c:'#ffe090',dur:'6s',  delay:'-1s'},
+        {ty:210,c:'#ff9080',dur:'7s',  delay:'-3s'},
+        {ty:220,c:'#90e0ff',dur:'5.5s',delay:'-2s'},
+        {ty:165,c:'#a0ff90',dur:'8s',  delay:'-5s'},
+        {ty:195,c:'#ffe090',dur:'6.5s',delay:'-4s'},
+        {ty:240,c:'#ffb0e0',dur:'7.5s',delay:'-6.5s'},
       ].map((f,i)=>(
-        <g key={i} transform={`translate(${f.tx},${f.ty})`} style={{ animation: `bg-drift-l ${f.dur} ${f.delay} linear infinite` }}>
+        <g key={i} style={{ animation: `bg-drift-l ${f.dur} ${f.delay} linear infinite` }}>
+          <g transform={`translate(0,${f.ty})`}>
           {/* Body centered at (0,0), fish faces LEFT — tail on the right */}
           <ellipse cx={0} cy={0} rx={11} ry={5} fill={f.c} opacity={0.85} />
           {/* Tail fin attached to right edge of body (x=+11) */}
           <polygon points="11,0 20,-6 20,6" fill={f.c} opacity={0.85} />
           {/* Eye on left of body */}
           <circle cx={-5} cy={-1} r={2} fill="#333" />
+          </g>
         </g>
       ))}
       {/* Bubbles rising */}
@@ -1298,8 +1662,33 @@ function Scene_shark() {
         <path key={i} d={`M${x},500 Q${x+16},458 ${x},428 Q${x+18},398 ${x},370`} stroke="#104020" strokeWidth={6} fill="none" strokeLinecap="round" style={{ animation: `bg-sway-sm ${3+i*.3}s ease-in-out infinite` }} />
       ))}
       {/* Distant shark fin — moves right to left */}
-      <g style={{ animation: 'bg-drift-l 35s 8s linear infinite' }}>
+      <g style={{ animation: 'bg-drift-l 35s 8s linear infinite normal backwards' }}>
         <polygon points="680,160 692,118 704,160" fill="#405060" opacity={0.55} />
+      </g>
+      {/* Treasure chest on seafloor */}
+      <g transform="translate(350,420)">
+        <g style={{ animation: 'bg-glow 4s ease-in-out infinite' }}>
+          {/* Chest body */}
+          <rect x={-28} y={-18} width={56} height={28} rx={3} fill="#6a3a08" />
+          {/* Lid */}
+          <path d="M-28,-18 Q0,-32 28,-18" fill="#7a4810" />
+          {/* Bands */}
+          <rect x={-28} y={-8} width={56} height={4} rx={1} fill="#886628" />
+          <rect x={-4} y={-18} width={8} height={28} rx={1} fill="#886628" />
+          {/* Lock */}
+          <rect x={-5} y={-6} width={10} height={8} rx={2} fill="#cc9920" />
+          {/* Gold coins spilling out */}
+          <ellipse cx={-18} cy={10} rx={10} ry={5} fill="#ddaa10" opacity={0.8} />
+          <ellipse cx={20} cy={12} rx={8} ry={4} fill="#ddaa10" opacity={0.7} />
+          <circle cx={-30} cy={14} r={5} fill="#ccaa00" opacity={0.7} />
+          <circle cx={28} cy={16} r={4} fill="#ccaa00" opacity={0.65} />
+        </g>
+      </g>
+      {/* Shipwreck silhouette */}
+      <g transform="translate(100,430)" opacity={0.4}>
+        <path d="M-60,40 Q0,0 60,40" fill="#1a1008" />
+        <rect x={-5} y={-30} width={8} height={50} rx={2} fill="#1a1008" />
+        <path d="M3,-25 L35,5 L3,5 Z" fill="#1a1008" opacity={0.7} />
       </g>
     </svg>
   )
@@ -1307,12 +1696,12 @@ function Scene_shark() {
 
 function Scene_mermaid() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="mr-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#001060" /><stop offset="100%" stopColor="#003090" /></linearGradient>
         <radialGradient id="mr-glow" cx="50%" cy="50%"><stop offset="0%" stopColor="#60e0ff" stopOpacity={0.15} /><stop offset="100%" stopColor="#60e0ff" stopOpacity={0} /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#mr-bg)" />
+      <rect width={800} height={450} fill="url(#mr-bg)" />
       {/* Light shafts from surface */}
       {[150,300,450,600].map((x,i)=>(
         <polygon key={i} points={`${x-15},0 ${x+15},0 ${x+50},500 ${x-50},500`} fill="#80d0ff" opacity={0.04} style={{ animation: `bg-pulse ${5+i}s ${i*.5}s ease-in-out infinite` }} />
@@ -1430,8 +1819,9 @@ function Scene_mermaid() {
         ))}
       </g>
       {/* Tropical fish — centered on (0,0), face LEFT, swim LEFT via bg-drift-l */}
-      {[{tx:580,ty:200,c:'#ff6040'},{tx:240,ty:310,c:'#40e0b0'},{tx:720,ty:370,c:'#ffcc20'},{tx:380,ty:240,c:'#ff90c0'}].map((f,i)=>(
-        <g key={i} transform={`translate(${f.tx},${f.ty})`} style={{ animation: `bg-drift-l ${8+i*2}s ${i*.8}s linear infinite` }}>
+      {[{ty:200,c:'#ff6040',delay:'-2s'},{ty:310,c:'#40e0b0',delay:'-5s'},{ty:370,c:'#ffcc20',delay:'-3s'},{ty:240,c:'#ff90c0',delay:'-8s'}].map((f,i)=>(
+        <g key={i} style={{ animation: `bg-drift-l ${8+i*2}s ${f.delay} linear infinite` }}>
+          <g transform={`translate(0,${f.ty})`}>
           {/* Body */}
           <ellipse cx={0} cy={0} rx={14} ry={8} fill={f.c} />
           {/* Tail on the RIGHT (behind for leftward swimmer) */}
@@ -1441,6 +1831,7 @@ function Scene_mermaid() {
           {/* Eye on the LEFT (front) */}
           <circle cx={-6} cy={-2} r={2.5} fill="#111" />
           <circle cx={-7} cy={-3} r={1} fill="white" opacity={0.6} />
+          </g>
         </g>
       ))}
       {/* Bubbles */}
@@ -1448,7 +1839,7 @@ function Scene_mermaid() {
         <circle key={i} cx={(i*93+60)%800} cy={480} r={2+i%4} fill="none" stroke="#80e0ff" strokeWidth={1} opacity={0.4} style={{ animation: `bg-bubble ${3+i*.4}s ${i*.35}s linear infinite` }} />
       ))}
       {/* Treasure chest on seafloor */}
-      <g transform="translate(100,460)"><g style={{ animation: 'bg-glow 4s ease-in-out infinite' }}>
+      <g transform="translate(100,420)"><g style={{ animation: 'bg-glow 4s ease-in-out infinite' }}>
         <rect x={-25} y={-20} width={50} height={30} rx={4} fill="#8B4513" />
         <rect x={-25} y={-20} width={50} height={14} rx={4} fill="#6B3010" />
         <rect x={-5} y={-14} width={10} height={8} rx={2} fill="#FFD700" />
@@ -1460,6 +1851,20 @@ function Scene_mermaid() {
         <ellipse cx={0} cy={0} rx={40} ry={20} fill="#FFD700" opacity={0.08} style={{ animation: 'bg-pulse 3s ease-in-out infinite' }} />
       </g>
       </g>
+      {/* Oysters with pearls */}
+      {[{x:620,y:425},{x:480,y:430}].map((o,i)=>(
+        <g key={i} transform={`translate(${o.x},${o.y})`}>
+          <g style={{ animation: `bg-pulse-sm ${4+i}s ${i}s ease-in-out infinite` }}>
+            {/* Shell halves */}
+            <ellipse cx={0} cy={0} rx={20} ry={12} fill="#b0a090" />
+            <path d="M-20,0 Q0,-16 20,0" fill="#c8b8a8" />
+            {/* Pearl */}
+            <circle cx={0} cy={-3} r={7} fill="#f0eef4" />
+            <circle cx={-3} cy={-5} r={2.5} fill="white" opacity={0.7} />
+            <ellipse cx={0} cy={-3} rx={7} ry={7} fill="#e8e4f0" opacity={0.3} style={{ animation: `bg-glow ${2+i}s ease-in-out infinite` }} />
+          </g>
+        </g>
+      ))}
     </svg>
   )
 }
@@ -1470,17 +1875,17 @@ function Scene_monsoon() {
       {/* Full-screen lightning flash overlay */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(220,235,255,1)', pointerEvents: 'none', animation: 'bg-screen-flash 8s 1s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: 9, background: 'rgba(180,210,255,1)', pointerEvents: 'none', animation: 'bg-screen-flash2 7s 4.5s ease-in-out infinite' }} />
-      <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
+      <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
         <defs>
           <linearGradient id="mo-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a0a18" /><stop offset="100%" stopColor="#101828" /></linearGradient>
         </defs>
-        <rect width={800} height={500} fill="url(#mo-bg)" />
+        <rect width={800} height={450} fill="url(#mo-bg)" />
         {/* Dark storm clouds — multiple moving layers */}
-        <ellipse cx={200} cy={100} rx={200} ry={80} fill="#1a1a28" style={{ animation: 'bg-cloud-drift 12s ease-in-out infinite alternate' }} />
-        <ellipse cx={280} cy={75} rx={170} ry={70} fill="#222230" style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate' }} />
-        <ellipse cx={550} cy={90} rx={220} ry={85} fill="#181828" style={{ animation: 'bg-cloud-drift 14s ease-in-out infinite alternate-reverse' }} />
-        <ellipse cx={650} cy={65} rx={180} ry={70} fill="#202030" style={{ animation: 'bg-cloud-drift 9s ease-in-out infinite alternate-reverse' }} />
-        <ellipse cx={400} cy={120} rx={250} ry={90} fill="#141422" style={{ animation: 'bg-cloud-drift 11s ease-in-out infinite alternate' }} />
+        <CloudShape x={200} y={155} w={400} fill="#1a1a28" style={{ animation: 'bg-cloud-drift 12s ease-in-out infinite alternate' }} />
+        <CloudShape x={300} y={130} w={340} fill="#222230" style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate' }} />
+        <CloudShape x={570} y={165} w={440} fill="#181828" style={{ animation: 'bg-cloud-drift 14s ease-in-out infinite alternate-reverse' }} />
+        <CloudShape x={660} y={128} w={360} fill="#202030" style={{ animation: 'bg-cloud-drift 9s ease-in-out infinite alternate-reverse' }} />
+        <CloudShape x={400} y={185} w={500} fill="#141422" style={{ animation: 'bg-cloud-drift 11s ease-in-out infinite alternate' }} />
         {/* Lightning bolt drawn on screen */}
         <polyline points="450,80 432,145 452,145 434,225" stroke="#c8d8ff" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round"
           strokeDasharray="200 200" style={{ animation: 'bg-lightning-draw 8s 1.2s linear infinite' }} />
@@ -1494,20 +1899,22 @@ function Scene_monsoon() {
           <ellipse cx={100} cy={300} rx={35} ry={55} fill="#1e3a12" transform="rotate(15,100,300)" />
         </g>
         {/* Ground / puddle ripples */}
-        <rect x={0} y={460} width={800} height={40} fill="#0a1020" />
+        <rect x={0} y={410} width={800} height={40} fill="#0a1020" />
         {[150,350,550,700].map((x,i)=>(
           <ellipse key={i} cx={x} cy={475} rx={25} ry={8} fill="none" stroke="#3060a0" strokeWidth={1.5} opacity={0.5} style={{ animation: `bg-ripple ${1.5+i*.3}s ${i*.3}s ease-out infinite` }} />
         ))}
         {/* Floating boats on flooded street */}
         {[{x:80},{x:500}].map((b,i)=>(
-          <g key={i} style={{ animation: `bg-bob ${3+i}s ${i}s ease-in-out infinite` }} transform={`translate(${b.x},458)`}>
+          <g key={i} transform={`translate(${b.x},458)`}>
+            <g style={{ animation: `bg-bob ${3+i}s ${i}s ease-in-out infinite` }}>
             <path d="M-22,0 L-18,-10 L18,-10 L22,0Z" fill="#6a3a10" />
             <rect x={-4} y={-18} width={8} height={10} fill="#8a5030" />
+            </g>
           </g>
         ))}
         {/* Floating leaf */}
-        <g transform="translate(-30,0)"><g style={{ animation: 'bg-drift-r 15s 3s linear infinite' }}>
-          <ellipse cx={300} cy={467} rx={12} ry={6} fill="#2a5010" opacity={0.7} transform="rotate(-15,300,467)" />
+        <g transform="translate(-30,0)"><g style={{ animation: 'bg-drift-r 15s 3s linear infinite normal backwards' }}>
+          <ellipse cx={300} cy={417} rx={12} ry={6} fill="#2a5010" opacity={0.7} transform="rotate(-15,300,417)" />
         </g>
         </g>
         {/* Lightning striking ground */}
@@ -1522,19 +1929,15 @@ function Scene_monsoon() {
 
 function Scene_candy() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="ca-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ff70cc" /><stop offset="100%" stopColor="#ffbbee" /></linearGradient>
         <radialGradient id="lollipop-shine" cx="35%" cy="35%"><stop offset="0%" stopColor="rgba(255,255,255,0.55)" /><stop offset="100%" stopColor="rgba(255,255,255,0)" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ca-bg)" />
+      <rect width={800} height={450} fill="url(#ca-bg)" />
       {/* Cotton candy clouds */}
-      {[{cx:120,cy:75},{cx:420,cy:55},{cx:690,cy:80}].map((c,i)=>(
-        <g key={i} style={{ animation: `bg-cloud-drift ${9+i*2}s ease-in-out infinite alternate` }}>
-          <ellipse cx={c.cx} cy={c.cy} rx={85} ry={42} fill="rgba(255,200,235,0.85)" />
-          <ellipse cx={c.cx+28} cy={c.cy-14} rx={65} ry={35} fill="rgba(255,215,245,0.9)" />
-          <ellipse cx={c.cx-22} cy={c.cy-8} rx={55} ry={28} fill="rgba(255,200,240,0.8)" />
-        </g>
+      {[{x:120,y:92},{x:420,y:75},{x:690,y:96}].map((c,i)=>(
+        <CloudShape key={i} x={c.x} y={c.y} w={170} fill="rgba(255,210,240,0.88)" style={{ animation: `bg-cloud-drift ${9+i*2}s ease-in-out infinite alternate` }} />
       ))}
       {/* Rainbow stripes across ground */}
       {['#ff4040','#ff8800','#ffee00','#40cc40','#4080ff','#8040ff'].map((c,i)=>(
@@ -1602,6 +2005,30 @@ function Scene_candy() {
         <ellipse cx={119} cy={-53} rx={14} ry={8} fill="#8B5210" />
         <circle cx={119} cy={-55} r={5} fill="#ff6600" opacity={0.7} style={{ animation: 'bg-pulse-sm 2s ease-in-out infinite' }} />
       </g>
+      {/* Gummy bears */}
+      {[{x:150,y:440,c:'#ff4080'},{x:420,y:455,c:'#40c0ff'},{x:650,y:445,c:'#80ff60'}].map((b,i)=>(
+        <g key={i} transform={`translate(${b.x},${b.y})`}>
+          <g style={{ animation: `bg-float-sm ${4+i}s ${i*.5}s ease-in-out infinite` }}>
+            {/* Body */}
+            <ellipse cx={0} cy={0} rx={14} ry={18} fill={b.c} opacity={0.85} />
+            {/* Head */}
+            <circle cx={0} cy={-20} r={12} fill={b.c} opacity={0.85} />
+            {/* Ears */}
+            <circle cx={-8} cy={-30} r={6} fill={b.c} opacity={0.85} />
+            <circle cx={8} cy={-30} r={6} fill={b.c} opacity={0.85} />
+            {/* Eyes */}
+            <circle cx={-4} cy={-22} r={2.5} fill="#1a0a10" />
+            <circle cx={4} cy={-22} r={2.5} fill="#1a0a10" />
+            {/* Nose */}
+            <circle cx={0} cy={-17} r={2} fill="#1a0a10" opacity={0.6} />
+            {/* Arms */}
+            <ellipse cx={-16} cy={-4} rx={7} ry={5} fill={b.c} opacity={0.85} transform="rotate(30,-16,-4)" />
+            <ellipse cx={16} cy={-4} rx={7} ry={5} fill={b.c} opacity={0.85} transform="rotate(-30,16,-4)" />
+            {/* Shine */}
+            <circle cx={-5} cy={-24} r={2} fill="rgba(255,255,255,.5)" />
+          </g>
+        </g>
+      ))}
       {/* Sprinkle rain */}
       {Array.from({length:22},(_,i)=>(
         <rect key={i} x={(i*83+15)%800} y={(i*57)%200-30} width={5} height={12} rx={2.5}
@@ -1615,11 +2042,11 @@ function Scene_candy() {
 
 function Scene_bubblegum() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="bg2-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0c0e8" /><stop offset="100%" stopColor="#f8e0f5" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#bg2-bg)" />
+      <rect width={800} height={450} fill="url(#bg2-bg)" />
       {/* Gumball machine */}
       <g transform="translate(380,230)">
         <ellipse cx={0} cy={0} rx={90} ry={95} fill="rgba(255,100,160,.25)" stroke="#ff60a0" strokeWidth={3} />
@@ -1633,13 +2060,13 @@ function Scene_bubblegum() {
       {/* Rising bubbles */}
       {Array.from({length:16},(_,i)=>(
         <g key={i} style={{ animation: `bg-bubble ${4+i*.4}s ${i*.35}s linear infinite` }}>
-          <circle cx={(i*113+30)%800} cy={480} r={8+i%5*5} fill="none" stroke={['#ff80c0','#80c0ff','#80ffc0','#ffc080'][i%4]} strokeWidth={2} opacity={0.5} />
-          <ellipse cx={(i*113+33)%800-5} cy={480-6} rx={4} ry={2} fill="white" opacity={0.4} />
+          <circle cx={(i*113+30)%800} cy={430} r={8+i%5*5} fill="none" stroke={['#ff80c0','#80c0ff','#80ffc0','#ffc080'][i%4]} strokeWidth={2} opacity={0.5} />
+          <ellipse cx={(i*113+33)%800-5} cy={424} rx={4} ry={2} fill="white" opacity={0.4} />
         </g>
       ))}
       {/* Cotton candy clouds */}
-      {[100,400,650].map((x,i)=>(
-        <ellipse key={i} cx={x} cy={80+i*20} rx={80} ry={38} fill="rgba(255,180,220,.6)" style={{ animation: `bg-cloud-drift ${8+i*2}s ease-in-out infinite alternate` }} />
+      {[{x:100,y:88},{x:400,y:78},{x:650,y:92}].map((c,i)=>(
+        <CloudShape key={i} x={c.x} y={c.y} w={160} fill="rgba(255,180,220,.7)" style={{ animation: `bg-cloud-drift ${8+i*2}s ease-in-out infinite alternate` }} />
       ))}
       {/* Sprinkles raining down */}
       {Array.from({length:14},(_,i)=>(
@@ -1651,14 +2078,14 @@ function Scene_bubblegum() {
 
 function Scene_icecream() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="ic-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fffbe8" /><stop offset="100%" stopColor="#fff0e8" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ic-bg)" />
+      <rect width={800} height={450} fill="url(#ic-bg)" />
       {/* Rainbow */}
       {['#ff4040','#ff8800','#ffee00','#40cc40','#4080ff','#8040ff'].map((c,i)=>(
-        <ellipse key={i} cx={400} cy={500} rx={380-i*25} ry={280-i*18} fill="none" stroke={c} strokeWidth={14} opacity={0.45} />
+        <ellipse key={i} cx={400} cy={450} rx={380-i*25} ry={280-i*18} fill="none" stroke={c} strokeWidth={14} opacity={0.45} />
       ))}
       {/* Ice cream mountains */}
       {[{x:100,scoops:['#ff80a0','#ffccaa']},{x:400,scoops:['#80c0ff','#c080ff','#ffaa80']},{x:680,scoops:['#90e090','#ffe090']}].map((m,i)=>(
@@ -1682,11 +2109,11 @@ function Scene_icecream() {
 
 function Scene_pizza() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="pz-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ff8800" /><stop offset="100%" stopColor="#cc5500" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#pz-bg)" />
+      <rect width={800} height={450} fill="url(#pz-bg)" />
       {/* Giant pizza slice landscape */}
       <polygon points="400,80 -50,500 850,500" fill="#f5d080" />
       <polygon points="400,80 -50,500 850,500" fill="#cc3300" opacity={0.7} /> {/* sauce layer */}
@@ -1707,17 +2134,40 @@ function Scene_pizza() {
       {[250,400,550].map((x,i)=>(
         <path key={i} d={`M${x},250 Q${x+10},230 ${x},210 Q${x-10},190 ${x},170`} stroke="rgba(255,255,255,.5)" strokeWidth={4} fill="none" strokeLinecap="round" style={{ animation: `bg-steam ${3+i*.5}s ${i*.5}s ease-in-out infinite` }} />
       ))}
+      {/* Pizza slices raining from sky */}
+      {[{x:80,rot:20},{x:200,rot:-15},{x:600,rot:35},{x:720,rot:-25}].map((p,i)=>(
+        <g key={i} style={{ animation: `bg-fall ${5+i*.5}s ${i*.8}s linear infinite` }}>
+          <g transform={`translate(${p.x},${-20+i*15}) rotate(${p.rot})`}>
+          <polygon points="0,0 -22,44 22,44" fill="#f5c858" />
+          <polygon points="0,0 -22,44 22,44" fill="#cc3300" opacity={0.6} />
+          <circle cx={0} cy={30} r={6} fill="#cc2200" opacity={0.8} />
+          <path d="M-18,38 Q0,44 18,38" fill="white" opacity={0.3} />
+          </g>
+        </g>
+      ))}
+      {/* Chef hat floating */}
+      <g transform="translate(680,80)">
+        <g style={{ animation: 'bg-float 5s ease-in-out infinite' }}>
+          {/* Brim */}
+          <ellipse cx={0} cy={0} rx={32} ry={8} fill="white" />
+          {/* Hat crown */}
+          <rect x={-24} y={-45} width={48} height={48} rx={5} fill="white" />
+          <ellipse cx={0} cy={-45} rx={28} ry={14} fill="white" />
+          {/* Band */}
+          <rect x={-24} y={-8} width={48} height={8} rx={2} fill="#e0e0e0" />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_donut() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="do-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ffe0f0" /><stop offset="100%" stopColor="#ffd0e8" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#do-bg)" />
+      <rect width={800} height={450} fill="url(#do-bg)" />
       {/* Floating donuts */}
       {[{cx:150,cy:200,c:'#ff80a0',f:'#f5c090',d:5},{cx:400,cy:160,c:'#80c0ff',f:'#f5e0c0',d:7},{cx:650,cy:220,c:'#80ff80',f:'#f5c8a0',d:6},{cx:280,cy:360,c:'#c080ff',f:'#f5d0b0',d:8},{cx:560,cy:340,c:'#ff9040',f:'#f5c898',d:5}].map((d,i)=>(
         <g key={i} style={{ animation: `bg-float ${d.d}s ${i*.6}s ease-in-out infinite, bg-spin-slow ${15+i*3}s ${i}s linear infinite`, transformOrigin: `${d.cx}px ${d.cy}px` }}>
@@ -1744,14 +2194,14 @@ function Scene_donut() {
 
 function Scene_unicorn() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="un-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c080ff" /><stop offset="50%" stopColor="#ff80cc" /><stop offset="100%" stopColor="#80c8ff" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#un-bg)" />
+      <rect width={800} height={450} fill="url(#un-bg)" />
       {/* Bold rainbow */}
       {['#ff4040','#ff8800','#ffee00','#40cc40','#4080ff','#8040ff'].map((c,i)=>(
-        <ellipse key={i} cx={400} cy={500} rx={400-i*28} ry={310-i*20} fill="none" stroke={c} strokeWidth={16} opacity={0.6} />
+        <ellipse key={i} cx={400} cy={450} rx={400-i*28} ry={310-i*20} fill="none" stroke={c} strokeWidth={16} opacity={0.6} />
       ))}
       {/* Cloud islands */}
       {[{cx:150,cy:120},{cx:650,cy:100}].map((c,i)=>(
@@ -1841,11 +2291,11 @@ function Scene_unicorn() {
 
 function Scene_storymagic() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="sm2-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a1040" /><stop offset="100%" stopColor="#181858" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#sm2-bg)" />
+      <rect width={800} height={450} fill="url(#sm2-bg)" />
       <Stars n={50} color="#d0c8ff" />
       {/* Giant open book */}
       <g transform="translate(400,360)">
@@ -1887,11 +2337,11 @@ function Scene_storymagic() {
 
 function Scene_wordwizard() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="ww-bg" cx="50%" cy="50%"><stop offset="0%" stopColor="#1a0860" /><stop offset="100%" stopColor="#060218" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ww-bg)" />
+      <rect width={800} height={450} fill="url(#ww-bg)" />
       <Stars n={60} color="#d8c8ff" />
       {/* Letter constellations */}
       {[{l:'A',x:120,y:100},{l:'B',x:680,y:130},{l:'Z',x:400,y:80}].map((c,i)=>(
@@ -1923,11 +2373,11 @@ function Scene_wordwizard() {
 
 function Scene_goldstar() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="gs-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#2a1800" /><stop offset="100%" stopColor="#4a2c00" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#gs-bg)" />
+      <rect width={800} height={450} fill="url(#gs-bg)" />
       {/* Spotlight beams */}
       {[150,400,650].map((x,i)=>(
         <polygon key={i} points={`${x-15},0 ${x+15},0 ${x+80},500 ${x-80},500`} fill="#ffe080" opacity={0.06} style={{ animation: `bg-pulse ${4+i}s ${i}s ease-in-out infinite` }} />
@@ -1957,11 +2407,11 @@ function Scene_goldstar() {
 
 function Scene_rangoli() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="ra-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a0a2a" /><stop offset="100%" stopColor="#0a0518" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ra-bg)" />
+      <rect width={800} height={450} fill="url(#ra-bg)" />
       {/* Central mandala */}
       {[80,70,60,50,40,30,20,10].map((r,i)=>(
         <circle key={i} cx={400} cy={260} r={r*3} fill="none" stroke={['#ff6040','#ff9020','#ffee40','#40c060','#4080ff','#c040ff','#ff80a0','white'][i]} strokeWidth={2} opacity={0.5+i*.05} style={{ animation: `bg-spin-slow ${20+i*3}s ${i%2===0?'':'reverse'} linear infinite`, transformOrigin: '400px 260px' }} />
@@ -1992,11 +2442,11 @@ function Scene_rangoli() {
 
 function Scene_kolam() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="ko-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a1808" /><stop offset="100%" stopColor="#060e04" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ko-bg)" />
+      <rect width={800} height={450} fill="url(#ko-bg)" />
       {/* Dot grid */}
       {Array.from({length:9},(_,row)=>Array.from({length:15},(_,col)=>(
         <circle key={`${row}-${col}`} cx={50+col*52} cy={50+row*50} r={3} fill="white" opacity={0.35+row%3*.1} style={{ animation: `bg-twinkle ${2+row*.3+col*.1}s ${col*.08+row*.12}s ease-in-out infinite` }} />
@@ -2021,11 +2471,11 @@ function Scene_kolam() {
 
 function Scene_fairygarden() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="fg-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c8f0e8" /><stop offset="100%" stopColor="#a0e0c8" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#fg-bg)" />
+      <rect width={800} height={450} fill="url(#fg-bg)" />
       {/* Mushroom circle */}
       {[0,60,120,180,240,300].map((a,i)=>(
         <g key={i} transform={`translate(${400+120*Math.cos(a*Math.PI/180)},${320+60*Math.sin(a*Math.PI/180)})`}>
@@ -2070,11 +2520,11 @@ function Scene_fairygarden() {
 
 function Scene_cherryblossom() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="cb-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f0d8e8" /><stop offset="100%" stopColor="#f8e8f0" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#cb-bg)" />
+      <rect width={800} height={450} fill="url(#cb-bg)" />
       {/* Cherry blossom trees */}
       {[{x:120,col:'#f090b0'},{x:680,col:'#f0a0c0'}].map((t,i)=>(
         <g key={i}>
@@ -2092,7 +2542,7 @@ function Scene_cherryblossom() {
         <ellipse key={i} cx={(i*97+10)%800} cy={0} rx={5} ry={8} fill={i%2===0?'#f090b0':'#ffc0d8'} opacity={0.8} style={{ animation: `bg-petal-fall ${6+i*.4}s ${i*.28}s linear infinite` }} />
       ))}
       {/* Path */}
-      <ellipse cx={400} cy={490} rx={500} ry={35} fill="#e8c8d0" opacity={0.5} />
+      <ellipse cx={400} cy={440} rx={500} ry={35} fill="#e8c8d0" opacity={0.5} />
       {/* Ground petals */}
       {Array.from({length:12},(_,i)=>(
         <ellipse key={i} cx={(i*77+30)%800} cy={470+i%3*8} rx={6} ry={4} fill="#f090b0" opacity={0.5} />
@@ -2103,11 +2553,11 @@ function Scene_cherryblossom() {
 
 function Scene_princess() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="pr-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#180840" /><stop offset="50%" stopColor="#4020a0" /><stop offset="100%" stopColor="#a04080" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#pr-bg)" />
+      <rect width={800} height={450} fill="url(#pr-bg)" />
       <Stars n={50} color="#ffd0ff" />
       {/* Castle */}
       <g>
@@ -2165,11 +2615,11 @@ function Scene_princess() {
 
 function Scene_holi() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="ho-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a1020" /><stop offset="100%" stopColor="#281820" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ho-bg)" />
+      <rect width={800} height={450} fill="url(#ho-bg)" />
       {/* Color explosion bursts */}
       {[{cx:150,cy:200,c:'#ff4040',d:3},{cx:350,cy:150,c:'#ffcc00',d:5},{cx:550,cy:220,c:'#40c0ff',d:4},{cx:680,cy:160,c:'#ff80a0',d:6},{cx:200,cy:350,c:'#80ff60',d:3.5},{cx:600,cy:380,c:'#c040ff',d:5}].map((b,i)=>(
         <g key={i}>
@@ -2190,12 +2640,14 @@ function Scene_holi() {
       ))}
       {/* People silhouettes celebrating */}
       {[100,300,500,700].map((x,i)=>(
-        <g key={i} transform={`translate(${x},400)`} style={{ animation: `bg-bob ${1.5+i*.2}s ${i*.3}s ease-in-out infinite` }}>
+        <g key={i} transform={`translate(${x},400)`}>
+          <g style={{ animation: `bg-bob ${1.5+i*.2}s ${i*.3}s ease-in-out infinite` }}>
           <circle cx={0} cy={-60} r={15} fill="#1a1020" />
           <rect x={-12} y={-44} width={24} height={44} rx={6} fill="#1a1020" />
           {/* Arms raised */}
           <line x1={-12} y1={-35} x2={-32} y2={-60} stroke="#1a1020" strokeWidth={8} strokeLinecap="round" />
           <line x1={12} y1={-35} x2={32} y2={-60} stroke="#1a1020" strokeWidth={8} strokeLinecap="round" />
+          </g>
         </g>
       ))}
     </svg>
@@ -2204,11 +2656,11 @@ function Scene_holi() {
 
 function Scene_pirate() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="pi-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#001830" /><stop offset="50%" stopColor="#0a2a50" /><stop offset="100%" stopColor="#1a3a60" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#pi-bg)" />
+      <rect width={800} height={450} fill="url(#pi-bg)" />
       <Stars n={40} />
       {/* Moon */}
       <circle cx={650} cy={100} r={55} fill="#f5f0e0" style={{ animation: 'bg-glow 7s ease-in-out infinite' }} />
@@ -2248,18 +2700,37 @@ function Scene_pirate() {
       </g>
       {/* Cannon flash */}
       <circle cx={400} cy={370} r={8} fill="#ff8800" opacity={0.7} style={{ animation: 'bg-glow-fast 3s 2s ease-in-out infinite' }} />
+      {/* Cannon on ship */}
+      <rect x={178} y={355} width={44} height={16} rx={5} fill="#3a2010" />
+      <circle cx={180} cy={363} r={10} fill="#2a1808" />
+      {/* Cannonball flying */}
+      <g style={{ animation: 'bg-drift-r 4s 1s ease-in-out infinite normal backwards' }}>
+        <circle cx={220} cy={340} r={6} fill="#1a1010" />
+      </g>
+      {/* Compass rose in corner */}
+      <g transform="translate(60,80)">
+        <g style={{ animation: 'bg-float-sm 6s ease-in-out infinite' }}>
+          <circle cx={0} cy={0} r={26} fill="rgba(20,40,80,.6)" stroke="#886644" strokeWidth={2} />
+          {/* N S E W */}
+          <polygon points="0,-22 -4,-8 4,-8" fill="#cc2222" />
+          <polygon points="0,22 -4,8 4,8" fill="#e8e0d0" />
+          <polygon points="-22,0 -8,-4 -8,4" fill="#e8e0d0" />
+          <polygon points="22,0 8,-4 8,4" fill="#e8e0d0" />
+          <circle cx={0} cy={0} r={4} fill="#886644" />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_dragonfire() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="df-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#180000" /><stop offset="100%" stopColor="#300800" /></linearGradient>
         <radialGradient id="lava-g" cx="50%" cy="100%"><stop offset="0%" stopColor="#ff6600" /><stop offset="100%" stopColor="#cc2200" stopOpacity={0} /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#df-bg)" />
+      <rect width={800} height={450} fill="url(#df-bg)" />
       {/* Lava glow at horizon */}
       <ellipse cx={400} cy={500} rx={500} ry={100} fill="url(#lava-g)" opacity={0.6} style={{ animation: 'bg-pulse 3s ease-in-out infinite' }} />
       {/* Mountain peaks */}
@@ -2410,17 +2881,53 @@ function Scene_dragonfire() {
       {Array.from({length:10},(_,i)=>(
         <circle key={i} cx={(i*130+50)%800} cy={500} r={3+i%3*2} fill={i%2===0?'#ff4400':'#ff8800'} style={{ animation: `bg-volcano ${2+i*.3}s ${i*.25}s ease-out infinite` }} />
       ))}
+      {/* Castle silhouette in background */}
+      <g transform="translate(650,360)" opacity={0.55}>
+        {/* Main tower */}
+        <rect x={-22} y={-120} width={44} height={120} fill="#1a0808" />
+        {/* Battlements */}
+        {[-20,-8,4,16].map((x,i)=>(
+          <rect key={i} x={x} y={-132} width={8} height={14} fill="#1a0808" />
+        ))}
+        {/* Left tower */}
+        <rect x={-50} y={-80} width={28} height={80} fill="#180606" />
+        {[-48,-40,-32].map((x,i)=>(
+          <rect key={i} x={x} y={-90} width={6} height={12} fill="#180606" />
+        ))}
+        {/* Right tower */}
+        <rect x={22} y={-80} width={28} height={80} fill="#180606" />
+        {[24,32,40].map((x,i)=>(
+          <rect key={i} x={x} y={-90} width={6} height={12} fill="#180606" />
+        ))}
+        {/* Gate arch */}
+        <path d="M-12,0 Q0,-20 12,0" fill="#0a0404" />
+        <rect x={-12} y={-20} width={24} height={20} fill="#0a0404" />
+        {/* Lava glow on walls */}
+        <ellipse cx={0} cy={0} rx={50} ry={15} fill="#ff4400" opacity={0.1} style={{ animation: 'bg-pulse 3s ease-in-out infinite' }} />
+      </g>
+      {/* Dragon eggs nestled on ground */}
+      {[{x:550,y:415,c:'#8b2200'},{x:575,y:410,c:'#5a0e00'},{x:562,y:422,c:'#6b1800'}].map((e,i)=>(
+        <g key={i} transform={`translate(${e.x},${e.y})`}>
+          <ellipse cx={0} cy={0} rx={16} ry={20} fill={e.c} />
+          {/* Scale texture */}
+          {[[-5,-8],[5,-8],[-5,0],[5,0],[-5,8],[5,8]].map(([dx,dy],j)=>(
+            <path key={j} d={`M${dx},${dy} C${dx+4},${dy-4} ${dx+8},${dy} ${dx+4},${dy+4} Z`} fill="#400e00" opacity={0.5} />
+          ))}
+          {/* Glow crack — hatching? */}
+          <path d="M-2,-12 L0,-5 L3,-10" stroke="#ff6600" strokeWidth={1.5} fill="none" opacity={0.7} style={{ animation: `bg-glow ${1.5+i*.3}s ease-in-out infinite` }} />
+        </g>
+      ))}
     </svg>
   )
 }
 
 function Scene_racecar() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="rc-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#050508" /><stop offset="100%" stopColor="#0a0a14" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#rc-bg)" />
+      <rect width={800} height={450} fill="url(#rc-bg)" />
       {/* Race track with dotted center line */}
       <rect x={0} y={330} width={800} height={120} fill="#1a1a20" />
       <rect x={0} y={448} width={800} height={8} fill="#555" />
@@ -2507,11 +3014,11 @@ function Scene_racecar() {
 
 function Scene_spiderman() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="sp-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#040810" /><stop offset="50%" stopColor="#0a1828" /><stop offset="100%" stopColor="#050a15" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#sp-bg)" />
+      <rect width={800} height={450} fill="url(#sp-bg)" />
       <Stars n={30} />
       {/* NYC night skyline */}
       {[{x:0,w:75,h:290},{x:70,w:50,h:340},{x:115,w:65,h:270},{x:175,w:45,h:380},{x:215,w:60,h:310},{x:600,w:70,h:300},{x:665,w:45,h:360},{x:705,w:80,h:280},{x:780,w:50,h:330}].map((b,i)=>(
@@ -2533,14 +3040,14 @@ function Scene_spiderman() {
         strokeDasharray="730 730" style={{ animation: 'bg-web-shoot2 7s 0.8s ease-out infinite' }} />
       {/* Web pattern in corner */}
       {[1,2,3].map(i=>(
-        <circle key={i} cx={0} cy={500} r={i*80} fill="none" stroke="#888" strokeWidth={1} opacity={0.2} />
+        <circle key={i} cx={0} cy={450} r={i*80} fill="none" stroke="#888" strokeWidth={1} opacity={0.2} />
       ))}
       {/* Radial lines from corner */}
       {[20,40,60,80,100,120].map((a,i)=>(
         <line key={i} x1={0} y1={500} x2={250*Math.cos(a*Math.PI/180)} y2={500-250*Math.sin(a*Math.PI/180)} stroke="#888" strokeWidth={1} opacity={0.15} />
       ))}
       {/* Spider-Man swinging — proper dynamic figure */}
-      <g style={{ animation: 'bg-fly 10s 1.5s ease-in-out infinite' }}>
+      <g style={{ animation: 'bg-fly 10s 1.5s ease-in-out infinite normal backwards' }}>
         {/* Web line from hand up to building anchor */}
         <path d="M348,125 C355,105 370,90 400,80" stroke="#d0d0d0" strokeWidth={1.8} fill="none" opacity={0.7} />
         {/* Head — round with mask */}
@@ -2584,7 +3091,7 @@ function Scene_batman() {
     <>
       {/* Periodic bat signal blink — entire sky flash */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 8, background: 'rgba(230,240,255,1)', pointerEvents: 'none', animation: 'bg-screen-flash 12s 2s ease-in-out infinite' }} />
-      <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
+      <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
         <defs>
           <linearGradient id="bat-bg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#020205" /><stop offset="100%" stopColor="#04080f" />
@@ -2594,7 +3101,7 @@ function Scene_batman() {
             <stop offset="100%" stopColor="#d8e8ff" stopOpacity={0} />
           </radialGradient>
         </defs>
-        <rect width={800} height={500} fill="url(#bat-bg)" />
+        <rect width={800} height={450} fill="url(#bat-bg)" />
         {/* Gothic Gotham skyline — tall dark towers */}
         {[{x:0,w:80,h:320},{x:75,w:45,h:400},{x:115,w:60,h:360},{x:170,w:40,h:280},{x:205,w:65,h:440},{x:265,w:35,h:310},{x:610,w:70,h:380},{x:675,w:50,h:430},{x:720,w:60,h:360},{x:775,w:40,h:400}].map((b,i)=>(
           <g key={i}>
@@ -2616,7 +3123,7 @@ function Scene_batman() {
         <ellipse cx={400} cy={90} rx={90} ry={48} fill="rgba(200,215,255,.22)" style={{ animation: 'bg-signal-blink 6s ease-in-out infinite' }} />
         <circle cx={400} cy={90} r={56} fill="rgba(200,220,255,0.10)" stroke="rgba(200,215,255,.55)" strokeWidth={4} style={{ animation: 'bg-signal-blink 6s ease-in-out infinite' }} />
         {/* Bat symbol — proper Batman logo silhouette */}
-        <g transform="translate(400,92) scale(1.3)" style={{ animation: 'bg-signal-blink 6s ease-in-out infinite' }}>
+        <g transform="translate(400,92) scale(1.3)"><g style={{ animation: 'bg-signal-blink 6s ease-in-out infinite' }}>
           {/* Single unified Batman logo path — tall ears, dramatic swooping wings, scalloped lower edge */}
           <path d="
             M0,-26
@@ -2631,12 +3138,12 @@ function Scene_batman() {
             C34,-30 26,-24 16,-26
             L7,-44 Z
           " fill="#000" />
-        </g>
+        </g></g>
         {/* Storm clouds */}
-        <ellipse cx={180} cy={110} rx={160} ry={65} fill="#0c0c16" style={{ animation: 'bg-cloud-drift 15s ease-in-out infinite alternate' }} />
-        <ellipse cx={250} cy={88} rx={130} ry={55} fill="#101020" style={{ animation: 'bg-cloud-drift 12s ease-in-out infinite alternate' }} />
-        <ellipse cx={580} cy={120} rx={180} ry={70} fill="#0a0a14" style={{ animation: 'bg-cloud-drift 18s ease-in-out infinite alternate-reverse' }} />
-        <ellipse cx={660} cy={95} rx={140} ry={60} fill="#0c0c18" style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate-reverse' }} />
+        <CloudShape x={180} y={158} w={320} fill="#0c0c16" style={{ animation: 'bg-cloud-drift 15s ease-in-out infinite alternate' }} />
+        <CloudShape x={280} y={130} w={260} fill="#101020" style={{ animation: 'bg-cloud-drift 12s ease-in-out infinite alternate' }} />
+        <CloudShape x={580} y={170} w={360} fill="#0a0a14" style={{ animation: 'bg-cloud-drift 18s ease-in-out infinite alternate-reverse' }} />
+        <CloudShape x={660} y={140} w={280} fill="#0c0c18" style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate-reverse' }} />
         {/* Rain */}
         <Rain n={28} heavy={true} />
         {/* BATS FLYING across in formation — proper silhouette paths */}
@@ -2670,11 +3177,11 @@ function Scene_halloween() {
       {/* Periodic full-screen lightning flash */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(200,200,150,1)', pointerEvents: 'none', animation: 'bg-screen-flash 9s 3s ease-in-out infinite' }} />
       <div style={{ position: 'absolute', inset: 0, zIndex: 9, background: 'rgba(180,160,100,1)', pointerEvents: 'none', animation: 'bg-screen-flash2 7.5s 7s ease-in-out infinite' }} />
-      <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
+      <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2 }}>
         <defs>
           <radialGradient id="hw-bg" cx="50%" cy="30%"><stop offset="0%" stopColor="#1a0820" /><stop offset="100%" stopColor="#050208" /></radialGradient>
         </defs>
-        <rect width={800} height={500} fill="url(#hw-bg)" />
+        <rect width={800} height={450} fill="url(#hw-bg)" />
         <Stars n={35} />
         {/* Full orange moon */}
         <circle cx={400} cy={110} r={65} fill="#ff9920" opacity={0.9} style={{ animation: 'bg-glow 5s ease-in-out infinite' }} />
@@ -2695,7 +3202,8 @@ function Scene_halloween() {
           strokeDasharray="180 180" style={{ animation: 'bg-lightning-draw 9s 3.2s linear infinite' }} />
         {/* Jack-o-lanterns */}
         {[{x:80,y:440,s:1},{x:720,y:435,s:0.9},{x:180,y:445,s:0.8}].map((p,i)=>(
-          <g key={i} transform={`translate(${p.x},${p.y}) scale(${p.s})`} style={{ animation: `bg-diya-glow ${2+i*.5}s ${i*.4}s ease-in-out infinite` }}>
+          <g key={i} transform={`translate(${p.x},${p.y}) scale(${p.s})`}>
+            <g style={{ animation: `bg-diya-glow ${2+i*.5}s ${i*.4}s ease-in-out infinite` }}>
             <ellipse cx={0} cy={0} rx={32} ry={28} fill="#cc4400" />
             <rect x={-6} y={-34} width={12} height={10} rx={3} fill="#5a2008" />
             {/* Face */}
@@ -2704,10 +3212,11 @@ function Scene_halloween() {
             <path d="M-14,8 Q-5,16 0,12 Q5,16 14,8" stroke="#ff8800" strokeWidth={2.5} fill="none" strokeLinecap="round" />
             {/* Glow */}
             <ellipse cx={0} cy={5} rx={20} ry={18} fill="#ff6600" opacity={0.25} style={{ animation: 'bg-flicker 1.2s ease-in-out infinite' }} />
+            </g>
           </g>
         ))}
         {/* Ghost floating through */}
-        <g style={{ animation: 'bg-drift-l 20s 2s linear infinite' }}>
+        <g style={{ animation: 'bg-drift-l 20s 2s linear infinite normal backwards' }}>
           <ellipse cx={650} cy={260} rx={30} ry={42} fill="rgba(255,255,255,.6)" />
           <path d="M620,295 Q630,310 640,300 Q650,315 660,305 Q668,318 680,305" stroke="rgba(255,255,255,.6)" strokeWidth={15} fill="none" />
           <circle cx={642} cy={252} r={6} fill="#222" opacity={0.7} />
@@ -2722,6 +3231,60 @@ function Scene_halloween() {
             <path d={`M${x+25},200 Q${x+70},175 ${x+80},145`} stroke="#0d0508" strokeWidth={8} fill="none" strokeLinecap="round" />
           </g>
         ))}
+        {/* Witch on broomstick flying across */}
+        <g style={{ animation: 'bg-drift-r 15s 1s linear infinite normal backwards' }}>
+          <g transform="translate(0,180)">
+            {/* Broom handle */}
+            <line x1={-40} y1={10} x2={50} y2={0} stroke="#6a3a08" strokeWidth={4} strokeLinecap="round" />
+            {/* Broom bristles */}
+            <path d="M50,0 Q60,10 55,20 Q50,10 45,18 Q50,8 40,16 Q48,5 50,0 Z" fill="#8a6020" />
+            {/* Witch body */}
+            <ellipse cx={10} cy={-10} rx={14} ry={18} fill="#1a1a2a" />
+            {/* Head */}
+            <circle cx={10} cy={-32} r={12} fill="#a08060" />
+            {/* Hat */}
+            <path d="M-4,-42 Q10,-68 24,-42" fill="#1a1a2a" />
+            <rect x={-8} y={-44} width={36} height={6} rx={3} fill="#1a1a2a" />
+            {/* Hat band */}
+            <rect x={-4} y={-44} width={28} height={4} rx={1} fill="#884400" opacity={0.7} />
+            {/* Hair */}
+            <path d="M-2,-28 C-8,-22 -10,-14 -8,-8" stroke="#2a1a00" strokeWidth={3} fill="none" />
+            <path d="M22,-28 C28,-22 30,-14 28,-8" stroke="#2a1a00" strokeWidth={3} fill="none" />
+            {/* Eyes — tiny glowing */}
+            <circle cx={6} cy={-34} r={2.5} fill="#ffee40" style={{ animation: 'bg-glow-fast 1s ease-in-out infinite' }} />
+            <circle cx={14} cy={-34} r={2.5} fill="#ffee40" style={{ animation: 'bg-glow-fast 1s 0.2s ease-in-out infinite' }} />
+            {/* Cape/arm */}
+            <path d="M-4,-15 C-16,-8 -24,4 -20,16" stroke="#1a1a2a" strokeWidth={8} fill="none" strokeLinecap="round" />
+          </g>
+        </g>
+        {/* Spider web in corner */}
+        <g transform="translate(720,60)" opacity={0.5}>
+          {[0,30,60,90,120,150].map((a,i)=>(
+            <line key={i} x1={0} y1={0} x2={70*Math.cos(a*Math.PI/180)} y2={70*Math.sin(a*Math.PI/180)} stroke="#c0c0d0" strokeWidth={1} />
+          ))}
+          {[20,40,60].map((r,i)=>(
+            <path key={i} d={`M${r},0 ${[0,30,60,90,120,150].map(a=>`L${r*Math.cos(a*Math.PI/180)},${r*Math.sin(a*Math.PI/180)}`).join(' ')} Z`} fill="none" stroke="#c0c0d0" strokeWidth={0.8} />
+          ))}
+          {/* Spider */}
+          <circle cx={30} cy={35} r={5} fill="#0a0608" />
+          {[-8,-4,4,8].map((dx,i)=>(
+            <line key={i} x1={30+dx} y1={35} x2={30+dx*3} y2={35+10} stroke="#0a0608" strokeWidth={1} />
+          ))}
+        </g>
+        {/* Cauldron bubbling */}
+        <g transform="translate(400,410)">
+          <path d="M-32,-10 Q0,10 32,-10 L28,20 Q0,30 -28,20 Z" fill="#1a1a2a" />
+          <ellipse cx={0} cy={-10} rx={32} ry={12} fill="#2a2a3a" />
+          <ellipse cx={0} cy={-12} rx={28} ry={9} fill="#204030" style={{ animation: 'bg-pulse-sm 1.5s ease-in-out infinite' }} />
+          {/* Bubble puffs */}
+          {[-10,0,10].map((x,i)=>(
+            <circle key={i} cx={x} cy={-18} r={4+i%2*3} fill="#40ff80" opacity={0.4} style={{ animation: `bg-bubble ${2+i*.3}s ${i*.4}s linear infinite` }} />
+          ))}
+          {/* Legs */}
+          <rect x={-30} y={18} width={6} height={14} rx={2} fill="#1a1a2a" />
+          <rect x={-8} y={18} width={6} height={14} rx={2} fill="#1a1a2a" />
+          <rect x={14} y={18} width={6} height={14} rx={2} fill="#1a1a2a" />
+        </g>
       </svg>
     </>
   )
@@ -2729,11 +3292,11 @@ function Scene_halloween() {
 
 function Scene_diwali() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="di2-bg" cx="50%" cy="40%"><stop offset="0%" stopColor="#0a0520" /><stop offset="100%" stopColor="#020108" /></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#di2-bg)" />
+      <rect width={800} height={450} fill="url(#di2-bg)" />
       <Stars n={60} />
       {/* FIREWORKS bursting in sequence */}
       {[{cx:150,cy:130,c1:'#ff4040',c2:'#ffaa40',d:4},{cx:400,cy:90,c1:'#ff80ff',c2:'#ffee40',d:5},{cx:650,cy:140,c1:'#40ffaa',c2:'#40aaff',d:6},{cx:280,cy:200,c1:'#ffee40',c2:'#ff8040',d:4.5},{cx:550,cy:180,c1:'#c040ff',c2:'#ff4080',d:5.5}].map((fw,i)=>(
@@ -2754,7 +3317,8 @@ function Scene_diwali() {
       ))}
       {/* Diyas (oil lamps) row */}
       {[80,180,280,380,480,580,680].map((x,i)=>(
-        <g key={i} transform={`translate(${x},450)`} style={{ animation: `bg-diya-glow ${2+i*.2}s ${i*.15}s ease-in-out infinite` }}>
+        <g key={i} transform={`translate(${x},450)`}>
+          <g style={{ animation: `bg-diya-glow ${2+i*.2}s ${i*.15}s ease-in-out infinite` }}>
           {/* Diya base */}
           <ellipse cx={0} cy={0} rx={20} ry={10} fill="#cc6620" />
           <path d="M-18,-5 Q0,-18 18,-5 Q18,2 0,8 Q-18,2 -18,-5Z" fill="#dd7730" />
@@ -2764,6 +3328,7 @@ function Scene_diwali() {
           <ellipse cx={0} cy={-25} rx={1.5} ry={4} fill="#ffffff" opacity={0.6} />
           {/* Glow */}
           <ellipse cx={0} cy={-10} rx={15} ry={12} fill="#ff8800" opacity={0.12} style={{ animation: 'bg-pulse 2s ease-in-out infinite' }} />
+          </g>
         </g>
       ))}
       {/* Floating lanterns */}
@@ -2776,17 +3341,34 @@ function Scene_diwali() {
           <line x1={l.x} y1={l.y-28} x2={l.x} y2={l.y-38} stroke={l.c} strokeWidth={1.5} />
         </g>
       ))}
+      {/* Rangoli pattern on ground */}
+      <g transform="translate(400,430)" opacity={0.7}>
+        {/* Petals */}
+        {[0,45,90,135,180,225,270,315].map((a,i)=>(
+          <ellipse key={i} cx={30*Math.cos(a*Math.PI/180)} cy={30*Math.sin(a*Math.PI/180)} rx={14} ry={7}
+            fill={['#ff4080','#ffee40','#40c0ff','#ff8040','#ff4080','#ffee40','#40c0ff','#ff8040'][i]}
+            opacity={0.85} transform={`rotate(${a},${30*Math.cos(a*Math.PI/180)},${30*Math.sin(a*Math.PI/180)})`} />
+        ))}
+        {/* Inner ring */}
+        {[0,60,120,180,240,300].map((a,i)=>(
+          <circle key={i} cx={16*Math.cos(a*Math.PI/180)} cy={16*Math.sin(a*Math.PI/180)} r={5}
+            fill={['#ff4040','#ffee40','#40ff80','#40c0ff','#c040ff','#ff8040'][i]} opacity={0.9}
+            style={{ animation: `bg-glow ${2+i*.3}s ${i*.2}s ease-in-out infinite` }} />
+        ))}
+        {/* Center */}
+        <circle cx={0} cy={0} r={7} fill="#ffee40" style={{ animation: 'bg-pulse 2s ease-in-out infinite' }} />
+      </g>
     </svg>
   )
 }
 
 function Scene_hotcocoa() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="hc-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#060410" /><stop offset="100%" stopColor="#0a0818" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#hc-bg)" />
+      <rect width={800} height={450} fill="url(#hc-bg)" />
       <Stars n={40} />
       <Snowflakes n={14} />
       {/* Cozy cabin */}
@@ -2837,21 +3419,21 @@ function Scene_hotcocoa() {
       </g>
       </g>
       {/* Snow on ground */}
-      <ellipse cx={400} cy={490} rx={500} ry={45} fill="white" opacity={0.25} />
-      <ellipse cx={400} cy={496} rx={600} ry={35} fill="white" opacity={0.15} />
+      <ellipse cx={400} cy={440} rx={500} ry={45} fill="white" opacity={0.25} />
+      <ellipse cx={400} cy={446} rx={600} ry={35} fill="white" opacity={0.15} />
     </svg>
   )
 }
 
 function Scene_christmas() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="ch-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#010310" /><stop offset="100%" stopColor="#041220" /></linearGradient>
         <radialGradient id="ch-moon" cx="50%" cy="50%"><stop offset="0%" stopColor="#fffde8" /><stop offset="100%" stopColor="#e8e0c8" /></radialGradient>
         <radialGradient id="ch-snow" cx="50%" cy="0%"><stop offset="0%" stopColor="#ddeeff" stopOpacity={0.35}/><stop offset="100%" stopColor="#ddeeff" stopOpacity={0}/></radialGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#ch-bg)" />
+      <rect width={800} height={450} fill="url(#ch-bg)" />
       <Stars n={80} />
 
       {/* Big full moon */}
@@ -2859,7 +3441,7 @@ function Scene_christmas() {
       <circle cx={400} cy={130} r={72} fill="none" stroke="rgba(255,250,220,0.15)" strokeWidth={10} />
 
       {/* SANTA SLEIGH + REINDEER flying across the moon */}
-      <g style={{ animation: 'bg-drift-lr 18s 1s ease-in-out infinite' }}>
+      <g style={{ animation: 'bg-drift-lr 18s 1s ease-in-out infinite normal backwards' }}>
         {/* Reindeer (8 + Rudolph) left to right, connected by harness */}
         {[0,1,2,3,4,5,6,7].map(i => {
           const rx = -280 + i * 38
@@ -2914,8 +3496,8 @@ function Scene_christmas() {
       </g>
 
       {/* Snowy ground */}
-      <ellipse cx={400} cy={498} rx={600} ry={60} fill="url(#ch-snow)" />
-      <path d="M0,460 Q100,440 200,455 Q300,470 400,450 Q500,430 600,450 Q700,470 800,455 L800,500 L0,500Z" fill="rgba(200,225,255,0.18)" />
+      <ellipse cx={400} cy={448} rx={600} ry={60} fill="url(#ch-snow)" />
+      <path d="M0,410 Q100,390 200,405 Q300,420 400,400 Q500,380 600,400 Q700,420 800,405 L800,450 L0,450Z" fill="rgba(200,225,255,0.18)" />
 
       {/* Cozy house with chimney — left side */}
       <g transform="translate(100,380)">
@@ -2940,7 +3522,7 @@ function Scene_christmas() {
       </g>
 
       {/* Big Christmas tree — centre */}
-      <g transform="translate(400,430)">
+      <g transform="translate(400,380)">
         <polygon points="0,-200 -55,-95 55,-95" fill="#0a5c1e" />
         <polygon points="0,-130 -70,-28 70,-28" fill="#0d7224" />
         <polygon points="0,-55 -88,35 88,35" fill="#0f8228" />
@@ -2954,7 +3536,7 @@ function Scene_christmas() {
       </g>
 
       {/* SNOWMAN — right side */}
-      <g transform="translate(650,400)">
+      <g transform="translate(650,340)">
         {/* Base ball */}
         <circle cx={0} cy={60} r={44} fill="rgba(220,238,255,0.75)" />
         {/* Middle ball */}
@@ -2992,18 +3574,33 @@ function Scene_christmas() {
       </g>
 
       <Snowflakes n={22} />
+      {/* Gift boxes under tree */}
+      {[{x:340,y:420,c:'#cc2222',rc:'#ffee40'},{x:365,y:422,c:'#22aa44',rc:'#ff4080'},{x:388,y:425,c:'#2244cc',rc:'#ffee40'},{x:412,y:423,c:'#cc6622',rc:'#40ccff'}].map((g,i)=>(
+        <g key={i} transform={`translate(${g.x},${g.y})`}>
+          <g style={{ animation: `bg-glow ${3+i*.5}s ${i*.3}s ease-in-out infinite` }}>
+            <rect x={-12} y={-18} width={24} height={22} rx={2} fill={g.c} />
+            {/* Ribbon horizontal */}
+            <rect x={-12} y={-10} width={24} height={4} fill={g.rc} opacity={0.85} />
+            {/* Ribbon vertical */}
+            <rect x={-3} y={-18} width={6} height={22} fill={g.rc} opacity={0.85} />
+            {/* Bow */}
+            <ellipse cx={-5} cy={-19} rx={5} ry={3} fill={g.rc} opacity={0.9} transform="rotate(-30,-5,-19)" />
+            <ellipse cx={5} cy={-19} rx={5} ry={3} fill={g.rc} opacity={0.9} transform="rotate(30,5,-19)" />
+          </g>
+        </g>
+      ))}
     </svg>
   )
 }
 
 function Scene_frozen() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="fr2-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#020610" /><stop offset="100%" stopColor="#041018" /></linearGradient>
         <linearGradient id="ice-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#88ccff" stopOpacity={0.4} /><stop offset="100%" stopColor="#88ccff" stopOpacity={0} /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#fr2-bg)" />
+      <rect width={800} height={450} fill="url(#fr2-bg)" />
       <Stars n={80} color="#c0e0ff" />
       {/* AURORA BOREALIS — sweeping ribbons */}
       {[{y:80,h:60,c:'#00ff88',d:5},{y:120,h:80,c:'#0080ff',d:7},{y:60,h:50,c:'#ff40ff',d:6},{y:150,h:45,c:'#40ffcc',d:8}].map((a,i)=>(
@@ -3033,7 +3630,7 @@ function Scene_frozen() {
         ))}
       </g>
       {/* Snow ground */}
-      <ellipse cx={400} cy={495} rx={550} ry={50} fill="white" opacity={0.12} />
+      <ellipse cx={400} cy={445} rx={550} ry={50} fill="white" opacity={0.12} />
       <Snowflakes n={16} />
     </svg>
   )
@@ -3041,20 +3638,16 @@ function Scene_frozen() {
 
 function Scene_sky() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="sky-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a80d0" /><stop offset="100%" stopColor="#80c8ff" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#sky-bg)" />
+      <rect width={800} height={450} fill="url(#sky-bg)" />
       {/* Bright sun */}
       <circle cx={680} cy={90} r={55} fill="#FFE040" style={{ animation: 'bg-pulse-sm 5s ease-in-out infinite' }} />
       {/* Fluffy clouds */}
-      {[{cx:150,cy:80},{cx:400,cy:55},{cx:620,cy:200}].map((c,i)=>(
-        <g key={i} style={{ animation: `bg-cloud-drift ${10+i*3}s ease-in-out infinite alternate` }}>
-          <ellipse cx={c.cx} cy={c.cy} rx={95} ry={42} fill="white" opacity={0.95} />
-          <ellipse cx={c.cx+28} cy={c.cy-18} rx={70} ry={38} fill="white" opacity={0.9} />
-          <ellipse cx={c.cx-25} cy={c.cy-12} rx={65} ry={32} fill="white" opacity={0.88} />
-        </g>
+      {[{x:150,y:100},{x:400,y:78},{x:620,y:218}].map((c,i)=>(
+        <CloudShape key={i} x={c.x} y={c.y} w={190} fill="white" opacity={0.93} style={{ animation: `bg-cloud-drift ${10+i*3}s ease-in-out infinite alternate` }} />
       ))}
       {/* Hot air balloons */}
       {[{x:180,y:220,c1:'#ff4040',c2:'#ffee40',d:7},{x:420,y:180,c1:'#4080ff',c2:'#ff80ff',d:9},{x:650,y:250,c1:'#40c060',c2:'#ff8040',d:8}].map((b,i)=>(
@@ -3080,17 +3673,33 @@ function Scene_sky() {
           <path key={i} d={`M${440+b.x},${300+b.y} Q${450+b.x},${292+b.y} ${460+b.x},${300+b.y} Q${470+b.x},${292+b.y} ${480+b.x},${300+b.y}`} stroke="#1a6090" strokeWidth={2} fill="none" />
         ))}
       </g>
+      {/* Diamond kite */}
+      <g transform="translate(300,150)">
+        <g style={{ animation: 'bg-float 5s 1s ease-in-out infinite' }}>
+          <polygon points="0,-50 35,0 0,50 -35,0" fill="#ff4040" opacity={0.85} />
+          <polygon points="0,-50 35,0 0,0" fill="#ffee40" opacity={0.85} />
+          <polygon points="0,0 35,0 0,50" fill="#4080ff" opacity={0.85} />
+          <polygon points="0,-50 -35,0 0,0" fill="#40c040" opacity={0.85} />
+          {/* Cross struts */}
+          <line x1={0} y1={-50} x2={0} y2={50} stroke="rgba(0,0,0,.2)" strokeWidth={1.5} />
+          <line x1={-35} y1={0} x2={35} y2={0} stroke="rgba(0,0,0,.2)" strokeWidth={1.5} />
+          {/* Tail */}
+          <path d="M0,50 Q12,75 -4,100 Q12,125 0,150" stroke="#ff8800" strokeWidth={2.5} fill="none" strokeLinecap="round" />
+          {/* String */}
+          <path d="M0,50 Q30,110 70,180" stroke="rgba(0,0,0,.25)" strokeWidth={1} fill="none" />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_rainbow() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="rb-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b0d8ff" /><stop offset="100%" stopColor="#e0f0ff" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#rb-bg)" />
+      <rect width={800} height={450} fill="url(#rb-bg)" />
       {/* BOLD rainbow arcs */}
       {['#ff3030','#ff8800','#ffee00','#30c030','#3060ff','#9030ff'].map((c,i)=>(
         <ellipse key={i} cx={400} cy={500} rx={440-i*32} ry={360-i*26} fill="none" stroke={c} strokeWidth={22} opacity={0.65} style={{ animation: `bg-pulse-sm ${4+i*.5}s ${i*.2}s ease-in-out infinite` }} />
@@ -3109,23 +3718,49 @@ function Scene_rainbow() {
       {/* Color bubbles */}
       {Array.from({length:14},(_,i)=>(
         <g key={i} style={{ animation: `bg-bubble ${4+i*.35}s ${i*.3}s linear infinite` }}>
-          <circle cx={(i*113+50)%800} cy={480} r={10+i%5*6} fill="none" stroke={['#ff4040','#ff8800','#ffee00','#30c030','#3060ff'][i%5]} strokeWidth={2} opacity={0.45} />
+          <circle cx={(i*113+50)%800} cy={430} r={10+i%5*6} fill="none" stroke={['#ff4040','#ff8800','#ffee00','#30c030','#3060ff'][i%5]} strokeWidth={2} opacity={0.45} />
           <ellipse cx={(i*113+55)%800-5} cy={480-7} rx={5} ry={3} fill="white" opacity={0.35} />
         </g>
       ))}
       {/* Sun peeking */}
       <circle cx={400} cy={75} r={45} fill="#FFD030" opacity={0.7} style={{ animation: 'bg-pulse 6s ease-in-out infinite' }} />
+      {/* Pot of gold at rainbow end */}
+      <g transform="translate(80,380)">
+        <g style={{ animation: 'bg-glow 3s ease-in-out infinite' }}>
+          {/* Pot */}
+          <path d="M-28,0 Q-30,30 0,35 Q30,30 28,0 Z" fill="#1a1a2a" />
+          <ellipse cx={0} cy={0} rx={28} ry={10} fill="#2a2a3a" />
+          {/* Gold coins */}
+          {[-14,-7,0,7,14].map((x,i)=>(
+            <ellipse key={i} cx={x} cy={-4+i%2*3} rx={7} ry={5} fill="#ddaa10" opacity={0.9} />
+          ))}
+          {/* Gold shine */}
+          <ellipse cx={0} cy={-5} rx={24} ry={8} fill="#ffcc20" opacity={0.15} style={{ animation: 'bg-pulse-sm 2s ease-in-out infinite' }} />
+          {/* Handle */}
+          <path d="M-22,0 Q0,-20 22,0" fill="none" stroke="#1a1a2a" strokeWidth={6} />
+        </g>
+      </g>
+      {/* Leprechaun hat */}
+      <g transform="translate(720,360)">
+        <g style={{ animation: 'bg-float-sm 4s ease-in-out infinite' }}>
+          <ellipse cx={0} cy={0} rx={30} ry={8} fill="#1a5a20" />
+          <rect x={-20} y={-52} width={40} height={54} rx={4} fill="#1a5a20" />
+          <rect x={-24} y={-12} width={48} height={10} fill="#c8a020" />
+          <rect x={-8} y={-12} width={16} height={10} fill="#1a1a2a" />
+          <circle cx={0} cy={-7} r={5} fill="#c8a020" style={{ animation: 'bg-glow 2s ease-in-out infinite' }} />
+        </g>
+      </g>
     </svg>
   )
 }
 
 function Scene_artStudio() {
   return (
-    <svg viewBox="0 0 800 500" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <linearGradient id="art-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a0a20" /><stop offset="100%" stopColor="#100616" /></linearGradient>
       </defs>
-      <rect width={800} height={500} fill="url(#art-bg)" />
+      <rect width={800} height={450} fill="url(#art-bg)" />
       {/* Giant paint splashes */}
       {[{cx:200,cy:150,r:90,c:'#ff4040'},{cx:500,cy:130,r:80,c:'#ffee40'},{cx:650,cy:280,r:95,c:'#4080ff'},{cx:120,cy:350,r:75,c:'#ff80a0'},{cx:680,cy:160,r:60,c:'#40ff80'}].map((s,i)=>(
         <g key={i}>
@@ -3219,7 +3854,7 @@ const SCENE_MAP = {
 
 // ── Public component ──────────────────────────────────────────────────────────
 export function ThemeBackground({ themeKey }) {
-  useEffect(() => { injectBgStyles() }, [])
+  useLayoutEffect(() => { injectBgStyles() }, [])
 
   const Scene = SCENE_MAP[themeKey] || Scene_coral
 

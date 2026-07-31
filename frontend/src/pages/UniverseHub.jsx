@@ -1401,8 +1401,8 @@ function GalaxySwiper({ galaxies, onSelect, isMobile, primary, initialPos = 0, w
 // ── Planet orbital ─────────────────────────────────────────────────────────────
 function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = Math.PI / 2, world, themeKey }) {
   const N = planets.length
-  const rX = isMobile ? 118 : 208
-  const rY = isMobile ? 44  : 74
+  const rX = isMobile ? 150 : 208
+  const rY = isMobile ? 58  : 74
 
   const rotRef  = useRef(initialRot)
   const [rot, setRot] = useState(initialRot)
@@ -1527,7 +1527,7 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
         {/* Planets */}
         {sorted.map(p => {
           const isFocus = p.id === focus.id
-          const scale   = .44 + p.depth * .56
+          const scale   = isMobile ? .36 + p.depth * .48 : .44 + p.depth * .56
           const opacity = .28 + p.depth * .72
           return (
             <div key={p.id}

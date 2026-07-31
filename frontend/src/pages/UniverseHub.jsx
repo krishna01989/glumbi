@@ -1517,7 +1517,7 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
 
         {/* Sun */}
         <div style={{
-          position: 'absolute', width: sunSz, height: sunSz, borderRadius: '50%', zIndex: 50,
+          position: 'absolute', width: sunSz, height: sunSz, borderRadius: '50%', zIndex: 1,
           background: `radial-gradient(circle at 36% 32%, white 0%, ${galaxy.coreColor} 35%, ${gc} 80%)`,
           boxShadow: `0 0 ${sunSz}px ${gc}, 0 0 ${sunSz*2}px ${gc}88, 0 0 ${sunSz*4}px ${gc}33`,
           animation: 'hub-sun-pulse 3s ease-in-out infinite',

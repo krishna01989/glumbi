@@ -21,16 +21,16 @@ function injectBgStyles() {
     @keyframes bg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 
     /* ─── Drift / cross screen ─── */
-    @keyframes bg-drift-l{from{transform:translateX(950px)}to{transform:translateX(-300px)}}
-    @keyframes bg-drift-r{from{transform:translateX(-300px)}to{transform:translateX(950px)}}
-    @keyframes bg-drift-lr{0%{transform:translateX(1050px) translateY(0)}40%{transform:translateX(525px) translateY(-20px)}100%{transform:translateX(-200px) translateY(0)}}
-    @keyframes bg-drift-up{0%{transform:translateY(0);opacity:0}8%{opacity:.75}88%{opacity:.5}100%{transform:translateY(-560px);opacity:0}}
-    @keyframes bg-fall{0%{transform:translateY(-40px) rotate(0deg);opacity:0}6%{opacity:.8}90%{opacity:.6}100%{transform:translateY(560px) rotate(380deg);opacity:0}}
-    @keyframes bg-rain{from{transform:translate(0,-80px)}to{transform:translate(-100px,600px)}}
-    @keyframes bg-rain-h{from{transform:translate(0,-80px)}to{transform:translate(-140px,600px)}}
-    @keyframes bg-swim{0%{transform:translateX(950px) scaleX(-1)}100%{transform:translateX(-200px) scaleX(-1)}}
-    @keyframes bg-swim-r{0%{transform:translateX(-200px)}100%{transform:translateX(950px)}}
-    @keyframes bg-fly{0%{transform:translateX(1050px) translateY(0)}35%{transform:translateX(525px) translateY(-40px)}100%{transform:translateX(-200px) translateY(0)}}
+    @keyframes bg-drift-l{from{transform:translateX(120vw)}to{transform:translateX(-30vw)}}
+    @keyframes bg-drift-r{from{transform:translateX(-30vw)}to{transform:translateX(120vw)}}
+    @keyframes bg-drift-lr{0%{transform:translateX(120vw) translateY(0)}40%{transform:translateX(50vw) translateY(-20px)}100%{transform:translateX(-25vw) translateY(0)}}
+    @keyframes bg-drift-up{0%{transform:translateY(0);opacity:0}8%{opacity:.75}88%{opacity:.5}100%{transform:translateY(-110vh);opacity:0}}
+    @keyframes bg-fall{0%{transform:translateY(-40px) rotate(0deg);opacity:0}6%{opacity:.8}90%{opacity:.6}100%{transform:translateY(110vh) rotate(380deg);opacity:0}}
+    @keyframes bg-rain{from{transform:translate(0,-80px)}to{transform:translate(-100px,110vh)}}
+    @keyframes bg-rain-h{from{transform:translate(0,-80px)}to{transform:translate(-140px,110vh)}}
+    @keyframes bg-swim{0%{transform:translateX(120vw) scaleX(-1)}100%{transform:translateX(-25vw) scaleX(-1)}}
+    @keyframes bg-swim-r{0%{transform:translateX(-25vw)}100%{transform:translateX(120vw)}}
+    @keyframes bg-fly{0%{transform:translateX(120vw) translateY(0)}35%{transform:translateX(50vw) translateY(-40px)}100%{transform:translateX(-25vw) translateY(0)}}
 
     /* ─── Twinkle / glow / pulse ─── */
     @keyframes bg-twinkle{0%,100%{opacity:.07}50%{opacity:.95}}

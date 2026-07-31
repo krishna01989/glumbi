@@ -300,7 +300,7 @@ export default function ManagementLayout({ children, lockModalEl, quota, handleL
         }
       `}</style>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {children}
       </div>
       <AppFooter />

@@ -51,7 +51,7 @@ function CreditInfoModal({ featureConfig, onClose }) {
                 <span style={{ fontSize: 18, width: 26, textAlign: 'center' }}>{meta.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>{meta.label}</div>
-                  {f.description && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.description}</div>}
+                  {f.description && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1, lineHeight: 1.5 }}>{f.description}</div>}
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontWeight: 900, fontSize: 14, color: '#ff6b6b' }}>{f.creditCost} cr</div>
@@ -664,7 +664,7 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   const bgGrad = activeChild ? activeTheme.headerGrad : 'linear-gradient(135deg,#667eea,#764ba2)'
 
   if (loading) return (
-    <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontFamily: 'Nunito, sans-serif', fontSize: 18, background: CORAL.headerGrad }}>
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontFamily: 'Nunito, sans-serif', fontSize: 18, background: CORAL.headerGrad }}>
       ✨ Loading…
     </div>
   )
@@ -762,7 +762,7 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
         style={{
-          minHeight: 'calc(100vh - 60px)',
+          flex: 1,
           background: bgGrad,
           transition: 'background 0.7s ease',
           display: 'flex', flexDirection: 'column', alignItems: 'center',

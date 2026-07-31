@@ -2087,16 +2087,22 @@ function Scene_icecream() {
       {['#ff4040','#ff8800','#ffee00','#40cc40','#4080ff','#8040ff'].map((c,i)=>(
         <ellipse key={i} cx={400} cy={450} rx={380-i*25} ry={280-i*18} fill="none" stroke={c} strokeWidth={14} opacity={0.45} />
       ))}
-      {/* Ice cream mountains */}
+      {/* Ice cream cones */}
       {[{x:100,scoops:['#ff80a0','#ffccaa']},{x:400,scoops:['#80c0ff','#c080ff','#ffaa80']},{x:680,scoops:['#90e090','#ffe090']}].map((m,i)=>(
         <g key={i}>
-          <polygon points={`${m.x-50},450 ${m.x},270 ${m.x+50},450`} fill="#f5e4d0" />
+          {/* Cone: wide opening at top (y=310), tip at bottom (y=440) */}
+          <polygon points={`${m.x-55},310 ${m.x+55},310 ${m.x},440`} fill="#f5c87a" />
+          {/* Waffle cross-hatch lines */}
+          {[-3,-1,1,3].map(k=>(
+            <line key={k} x1={m.x+k*14} y1={310} x2={m.x+k*5} y2={440} stroke="#e0a040" strokeWidth={1} opacity={0.5} />
+          ))}
+          {/* Bottom scoop sits in the cone opening */}
           {m.scoops.map((c,j)=>(
-            <circle key={j} cx={m.x} cy={270-j*55} r={45} fill={c} opacity={0.85} style={{ animation: `bg-float-sm ${3+j}s ${j*.4}s ease-in-out infinite` }} />
+            <circle key={j} cx={m.x} cy={265-j*58} r={48} fill={c} opacity={0.9} style={{ animation: `bg-float-sm ${3+j}s ${j*.4}s ease-in-out infinite` }} />
           ))}
           {/* Cherry on top */}
-          <circle cx={m.x} cy={270-m.scoops.length*55+5} r={10} fill="#ff2244" />
-          <path d={`M${m.x},${260-m.scoops.length*55} Q${m.x+15},${240-m.scoops.length*55} ${m.x+8},${250-m.scoops.length*55}`} stroke="#20a020" strokeWidth={2} fill="none" />
+          <circle cx={m.x} cy={265-m.scoops.length*58+5} r={11} fill="#ff2244" />
+          <path d={`M${m.x},${255-m.scoops.length*58} Q${m.x+16},${235-m.scoops.length*58} ${m.x+8},${248-m.scoops.length*58}`} stroke="#20a020" strokeWidth={2.5} fill="none" />
         </g>
       ))}
       {/* Sprinkle rain */}
@@ -3186,17 +3192,22 @@ function Scene_halloween() {
         {/* Full orange moon */}
         <circle cx={400} cy={110} r={65} fill="#ff9920" opacity={0.9} style={{ animation: 'bg-glow 5s ease-in-out infinite' }} />
         <circle cx={375} cy={95} r={50} fill="#dd7710" opacity={0.3} />
-        {/* Cloud wisps crossing moon */}
-        <ellipse cx={380} cy={112} rx={90} ry={28} fill="#0d0510" opacity={0.5} style={{ animation: 'bg-drift-lr 18s ease-in-out infinite' }} />
+        {/* Fluffy clouds drifting across moon */}
+        <g style={{ animation: 'bg-drift-lr 18s ease-in-out infinite' }}>
+          <CloudShape x={340} y={120} w={160} fill="#0d0510" opacity={0.55} />
+        </g>
+        <g style={{ animation: 'bg-drift-lr 26s 8s ease-in-out infinite' }}>
+          <CloudShape x={200} y={100} w={120} fill="#0d0510" opacity={0.4} />
+        </g>
         {/* Haunted house on hill */}
         <polygon points="280,500 280,320 400,200 520,320 520,500" fill="#080508" />
         <polygon points="280,320 400,200 520,320" fill="#050305" /> {/* roof */}
         <polygon points="375,200 400,150 425,200" fill="#030203" /> {/* spire */}
         <rect x={372} y={145} width={6} height={60} fill="#040304" />
         {/* Windows glow orange */}
-        <rect x={305} y={340} width={40} height={50} rx={20} fill="#ff8800" opacity={0.5} style={{ animation: 'bg-flicker 2s ease-in-out infinite' }} />
-        <rect x={455} y={340} width={40} height={50} rx={20} fill="#ff8800" opacity={0.5} style={{ animation: 'bg-flicker 2s 0.4s ease-in-out infinite' }} />
-        <rect x={385} y={280} width={30} height={38} rx={15} fill="#ff6600" opacity={0.45} style={{ animation: 'bg-flicker 1.5s ease-in-out infinite' }} />
+        <rect x={305} y={340} width={40} height={50} rx={20} fill="#ff8800" opacity={0.5} style={{ animation: 'bg-glow 3s ease-in-out infinite' }} />
+        <rect x={455} y={340} width={40} height={50} rx={20} fill="#ff8800" opacity={0.5} style={{ animation: 'bg-glow 3s 0.6s ease-in-out infinite' }} />
+        <rect x={385} y={280} width={30} height={38} rx={15} fill="#ff6600" opacity={0.45} style={{ animation: 'bg-glow 4s 0.3s ease-in-out infinite' }} />
         {/* Lightning bolt */}
         <polyline points="600,80 582,140 598,140 580,210" stroke="#ffee80" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round"
           strokeDasharray="180 180" style={{ animation: 'bg-lightning-draw 9s 3.2s linear infinite' }} />
@@ -3384,16 +3395,17 @@ function Scene_hotcocoa() {
         <clipPath id="snow-cap2"><rect x={190} y={170} width={420} height={20} /></clipPath>
         {/* Chimney */}
         <rect x={480} y={160} width={40} height={85} fill="#2a1008" />
-        {/* Chimney smoke */}
+        {/* Chimney smoke — puffs rising straight up */}
         {[0,1,2].map(i=>(
-          <path key={i} d={`M500,162 Q${500+8*i},${148-i*20} ${500},${132-i*30}`} stroke="rgba(200,200,220,.35)" strokeWidth={8+i*4} fill="none" strokeLinecap="round" style={{ animation: `bg-steam ${3+i*.6}s ${i*.5}s ease-in-out infinite` }} />
+          <ellipse key={i} cx={500} cy={150-i*28} rx={10+i*5} ry={9+i*4} fill="rgba(200,200,220,.38)"
+            style={{ animation: `bg-steam ${3+i*.6}s ${i*.5}s ease-in-out infinite` }} />
         ))}
         {/* Glowing window — warm orange light */}
         <rect x={250} y={300} width={120} height={100} rx={6} fill="#ff9920" opacity={0.6} style={{ animation: 'bg-glow 3s ease-in-out infinite' }} />
         <rect x={310} y={300} width={6} height={100} fill="#2a1008" />
         <rect x={250} y={348} width={120} height={6} fill="#2a1008" />
         {/* Visible fireplace glow through window */}
-        <rect x={255} y={340} width={108} height={55} rx={3} fill="#ff6600" opacity={0.2} style={{ animation: 'bg-flicker 1.5s ease-in-out infinite' }} />
+        <rect x={255} y={340} width={108} height={55} rx={3} fill="#ff6600" opacity={0.2} style={{ animation: 'bg-glow 2s ease-in-out infinite' }} />
         {/* Door */}
         <rect x={380} y={380} width={70} height={120} rx={6} fill="#1e0c04" />
         <circle cx={444} cy={440} r={5} fill="#cc8820" />
@@ -3441,6 +3453,7 @@ function Scene_christmas() {
       <circle cx={400} cy={130} r={72} fill="none" stroke="rgba(255,250,220,0.15)" strokeWidth={10} />
 
       {/* SANTA SLEIGH + REINDEER flying across the moon */}
+      <g transform="translate(0,128)">
       <g style={{ animation: 'bg-drift-lr 18s 1s ease-in-out infinite normal backwards' }}>
         {/* Reindeer (8 + Rudolph) left to right, connected by harness */}
         {[0,1,2,3,4,5,6,7].map(i => {
@@ -3493,6 +3506,7 @@ function Scene_christmas() {
         {/* Arm waving */}
         <line x1={115} y1={-20} x2={128} y2={-32} stroke="#cc1111" strokeWidth={6} strokeLinecap="round" />
         <circle cx={130} cy={-34} r={5} fill="#f5c499" />
+      </g>
       </g>
 
       {/* Snowy ground */}
@@ -3705,12 +3719,8 @@ function Scene_rainbow() {
         <ellipse key={i} cx={400} cy={500} rx={440-i*32} ry={360-i*26} fill="none" stroke={c} strokeWidth={22} opacity={0.65} style={{ animation: `bg-pulse-sm ${4+i*.5}s ${i*.2}s ease-in-out infinite` }} />
       ))}
       {/* Fluffy clouds at ends */}
-      {[{cx:80,cy:350},{cx:720,cy:350}].map((c,i)=>(
-        <g key={i}>
-          <ellipse cx={c.cx} cy={c.cy} rx={90} ry={50} fill="white" opacity={0.9} />
-          <ellipse cx={c.cx+25} cy={c.cy-20} rx={70} ry={42} fill="white" opacity={0.85} />
-        </g>
-      ))}
+      <CloudShape x={80}  y={370} w={200} fill="white" opacity={0.9} />
+      <CloudShape x={720} y={370} w={200} fill="white" opacity={0.9} />
       {/* Prism shapes */}
       {[{x:200,y:200},{x:550,y:180},{x:380,y:100}].map((p,i)=>(
         <polygon key={i} points={`${p.x},${p.y} ${p.x-20},${p.y+40} ${p.x+20},${p.y+40}`} fill="rgba(255,255,255,.6)" style={{ animation: `bg-twinkle ${2+i}s ${i*.4}s ease-in-out infinite` }} />
@@ -3862,7 +3872,7 @@ export function ThemeBackground({ themeKey }) {
     <div style={{
       position: 'absolute', inset: 0, zIndex: 1,
       overflow: 'hidden', pointerEvents: 'none',
-      opacity: 0.4,
+      opacity: 0.85,
       willChange: 'transform',
       contain: 'paint layout',
     }}>

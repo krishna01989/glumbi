@@ -1075,8 +1075,6 @@ function Scene_superman() {
       {[{x:0,w:70,h:280},{x:65,w:40,h:320},{x:100,w:55,h:260},{x:150,w:80,h:350},{x:225,w:35,h:300},{x:255,w:60,h:240},{x:580,w:60,h:300},{x:635,w:45,h:350},{x:675,w:70,h:270},{x:740,w:65,h:310}].map((b,i)=>(
         <g key={i}>
           <rect x={b.x} y={500-b.h} width={b.w} height={b.h} fill="#112244" />
-          {/* Art-deco spire */}
-          <polygon points={`${b.x+b.w/2-6},${500-b.h} ${b.x+b.w/2},${500-b.h-22} ${b.x+b.w/2+6},${500-b.h}`} fill="#0d1a36"/>
           {/* Windows glowing */}
           {Array.from({length:8},(_,j)=>(
             <rect key={j} x={Math.min(b.x+b.w-16, b.x+6+j%3*14)} y={500-b.h+18+Math.floor(j/3)*28} width={10} height={12} rx={1}
@@ -1093,17 +1091,34 @@ function Scene_superman() {
       <line x1={512} y1={84} x2={512} y2={132} stroke="#3a5aaa" strokeWidth={1} opacity={0.5}/>
       {/* Globe glow */}
       <circle cx={512} cy={108} r={28} fill="#3060ff" opacity={0.08} style={{ animation: 'bg-glow 4s ease-in-out infinite' }}/>
-      {/* Lois Lane — silhouette on rooftop of building at x~255 */}
-      <g transform="translate(285,258)">
-        <circle cx={0} cy={-22} r={7} fill="#0d1a36"/>
-        <rect x={-5} y={-15} width={10} height={18} rx={3} fill="#0d1a36"/>
-        <line x1={-5} y1={-10} x2={-14} y2={-4} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
-        <line x1={5} y1={-10} x2={12} y2={-2} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
-        <line x1={-3} y1={3} x2={-4} y2={18} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
-        <line x1={3} y1={3} x2={4} y2={18} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
-        {/* Camera — journalist */}
-        <rect x={12} y={-6} width={10} height={8} rx={2} fill="#0d1a36"/>
-        <circle cx={22} cy={-2} r={3} fill="#1a2e58"/>
+      {/* Lois Lane — journalist on rooftop */}
+      <g transform="translate(285,240)">
+        {/* Hair */}
+        <path d="M-7 -28 Q0 -35 8 -27 L8 -17 Q4 -13 -7 -17 Z" fill="#3b2416"/>
+        {/* Face */}
+        <circle cx="0" cy="-22" r="6" fill="#f2c6a0"/>
+        {/* Neck */}
+        <rect x="-2" y="-16" width="4" height="4" fill="#f2c6a0"/>
+        {/* Blazer body */}
+        <path d="M-8 -13 Q0 -17 8 -13 L10 7 L-10 7 Z" fill="#234b8a"/>
+        {/* Shirt */}
+        <path d="M-3 -14 L3 -14 L0 -7 Z" fill="#ffffff"/>
+        {/* Arms */}
+        <line x1="-7" y1="-10" x2="-14" y2="0" stroke="#234b8a" strokeWidth="3" strokeLinecap="round"/>
+        <line x1="7" y1="-10" x2="15" y2="-2" stroke="#234b8a" strokeWidth="3" strokeLinecap="round"/>
+        {/* Hands */}
+        <circle cx="-14" cy="1" r="2" fill="#f2c6a0"/>
+        <circle cx="15" cy="-2" r="2" fill="#f2c6a0"/>
+        {/* Pants */}
+        <path d="M-8 7 L8 7 L6 18 L1 18 L0 10 L-1 18 L-6 18 Z" fill="#101828"/>
+        {/* Shoes */}
+        <ellipse cx="-5" cy="19" rx="4" ry="2" fill="#05070b"/>
+        <ellipse cx="5" cy="19" rx="4" ry="2" fill="#05070b"/>
+        {/* Camera */}
+        <rect x="15" y="-9" width="9" height="7" rx="1.5" fill="#222"/>
+        <circle cx="20" cy="-5.5" r="2" fill="#8bd3ff"/>
+        {/* Camera strap */}
+        <path d="M-2 -12 Q10 -16 19 -9" fill="none" stroke="#333" strokeWidth="1.2"/>
       </g>
       {/* News helicopter in background */}
       <g style={{ animation: 'bg-drift-l 30s 3s linear infinite normal backwards' }}>

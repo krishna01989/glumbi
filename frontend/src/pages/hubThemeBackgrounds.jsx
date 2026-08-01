@@ -650,29 +650,133 @@ function Scene_stardust() {
   return (
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
-        <radialGradient id="sd-bg" cx="50%" cy="50%"><stop offset="0%" stopColor="#1a0850" /><stop offset="100%" stopColor="#060218" /></radialGradient>
+        <radialGradient id="sd-bg" cx="40%" cy="35%">
+          <stop offset="0%" stopColor="#1e0a5a"/>
+          <stop offset="55%" stopColor="#0e0430"/>
+          <stop offset="100%" stopColor="#020110"/>
+        </radialGradient>
+        {/* Nebula layers */}
+        <radialGradient id="sd-neb1" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#9040ff" stopOpacity="0.28"/>
+          <stop offset="100%" stopColor="#9040ff" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="sd-neb2" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#ff3888" stopOpacity="0.22"/>
+          <stop offset="100%" stopColor="#ff3888" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="sd-neb3" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#20aaff" stopOpacity="0.2"/>
+          <stop offset="100%" stopColor="#20aaff" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="sd-neb4" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#ff9020" stopOpacity="0.18"/>
+          <stop offset="100%" stopColor="#ff9020" stopOpacity="0"/>
+        </radialGradient>
+        {/* Milky way arc gradient */}
+        <linearGradient id="sd-mw" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#b0a0ff" stopOpacity="0"/>
+          <stop offset="30%" stopColor="#d0c8ff" stopOpacity="0.12"/>
+          <stop offset="55%" stopColor="#e0d8ff" stopOpacity="0.18"/>
+          <stop offset="80%" stopColor="#c0b8ff" stopOpacity="0.1"/>
+          <stop offset="100%" stopColor="#b0a0ff" stopOpacity="0"/>
+        </linearGradient>
+        <filter id="sd-blur"><feGaussianBlur stdDeviation="18"/></filter>
+        <filter id="sd-blur-sm"><feGaussianBlur stdDeviation="6"/></filter>
       </defs>
       <rect width={800} height={450} fill="url(#sd-bg)" />
-      <Stars n={100} />
-      {/* Colorful nebula blobs */}
-      {[{cx:200,cy:150,rx:180,ry:100,c:'#8040ff',o:.18},{cx:600,cy:350,rx:200,ry:120,c:'#ff4080',o:.16},{cx:400,cy:250,rx:220,ry:130,c:'#40a0ff',o:.15}].map((n,i)=>(
-        <ellipse key={i} cx={n.cx} cy={n.cy} rx={n.rx} ry={n.ry} fill={n.c} opacity={n.o} style={{ animation: `bg-pulse ${5+i}s ${i}s ease-in-out infinite` }} />
+
+      {/* Milky way band — diagonal arc of soft luminosity */}
+      <ellipse cx={400} cy={225} rx={520} ry={90} fill="url(#sd-mw)" transform="rotate(-28,400,225)" filter="url(#sd-blur)"/>
+      <ellipse cx={400} cy={225} rx={380} ry={55} fill="url(#sd-mw)" transform="rotate(-28,400,225)" filter="url(#sd-blur)" opacity={0.7}/>
+
+      {/* Nebula clouds — large soft colour washes */}
+      <ellipse cx={160} cy={130} rx={220} ry={140} fill="url(#sd-neb1)" filter="url(#sd-blur)" style={{ animation: 'bg-pulse 8s ease-in-out infinite' }}/>
+      <ellipse cx={660} cy={320} rx={240} ry={150} fill="url(#sd-neb2)" filter="url(#sd-blur)" style={{ animation: 'bg-pulse 10s 2s ease-in-out infinite' }}/>
+      <ellipse cx={420} cy={80} rx={200} ry={110} fill="url(#sd-neb3)" filter="url(#sd-blur)" style={{ animation: 'bg-pulse 7s 1s ease-in-out infinite' }}/>
+      <ellipse cx={680} cy={100} rx={160} ry={100} fill="url(#sd-neb4)" filter="url(#sd-blur)" style={{ animation: 'bg-pulse 9s 3s ease-in-out infinite' }}/>
+
+      {/* Dense star field */}
+      <Stars n={130} />
+
+      {/* Bright coloured star clusters */}
+      {[
+        {cx:155,cy:125,r:2.8,c:'#c090ff'},{cx:668,cy:310,r:3.2,c:'#ff80c0'},
+        {cx:420,cy:72,r:2.5,c:'#80d0ff'},{cx:290,cy:200,r:2.2,c:'#ffd080'},
+        {cx:580,cy:155,r:2.6,c:'#90ffcc'},{cx:740,cy:260,r:2,c:'#ff90a0'},
+      ].map((s,i)=>(
+        <g key={i}>
+          <circle cx={s.cx} cy={s.cy} r={s.r*3} fill={s.c} opacity={0.18} filter="url(#sd-blur-sm)"/>
+          <circle cx={s.cx} cy={s.cy} r={s.r} fill={s.c} opacity={0.9} style={{ animation: `bg-twinkle ${2+i*.4}s ${i*.3}s ease-in-out infinite` }}/>
+        </g>
       ))}
-      {/* Stardust trails */}
-      {[{x:100,y:200,rot:45},{x:500,y:100,rot:-30},{x:650,y:320,rot:60}].map((t,i)=>(
-        <g key={i} style={{ animation: `bg-drift-l ${12+i*3}s ${i*2}s linear infinite normal backwards` }}>
+
+      {/* Shooting stars — fast diagonal streaks with glow tail */}
+      {[
+        {x:80, y:60,  dx:180,dy:80,  delay:'0s',  dur:'6s'},
+        {x:500,y:30,  dx:160,dy:70,  delay:'3.5s', dur:'7s'},
+        {x:650,y:180, dx:120,dy:55,  delay:'1.8s', dur:'9s'},
+        {x:200,y:350, dx:140,dy:60,  delay:'5s',   dur:'8s'},
+      ].map((s,i)=>(
+        <g key={i}>
+          <line x1={s.x} y1={s.y} x2={s.x+s.dx} y2={s.y+s.dy}
+            stroke="#fff8d0" strokeWidth={2.5} strokeLinecap="round"
+            strokeDasharray="100 400"
+            style={{ animation: `bg-shooting-star ${s.dur} ${s.delay} linear infinite` }} opacity={0.9}/>
+          <line x1={s.x} y1={s.y} x2={s.x+s.dx} y2={s.y+s.dy}
+            stroke="#ffe080" strokeWidth={6} strokeLinecap="round"
+            strokeDasharray="60 440"
+            style={{ animation: `bg-shooting-star ${s.dur} ${s.delay} linear infinite` }} opacity={0.3}/>
+        </g>
+      ))}
+
+      {/* Comet — large slow-moving with proper ion tail */}
+      <g style={{ animation: 'bg-drift-l 40s 2s linear infinite normal backwards' }}>
+        <g transform="translate(820,140)">
+          {/* Ion tail — long narrow gradient */}
+          <path d="M0,0 Q-120,-8 -320,-25 Q-220,-2 -320,20 Q-120,8 0,0Z" fill="#a0e0ff" opacity={0.18}/>
+          <path d="M0,0 Q-80,-4 -200,-14 Q-140,-1 -200,12 Q-80,4 0,0Z" fill="#c0eeff" opacity={0.28}/>
+          <path d="M0,0 Q-40,-2 -100,-6 Q-70,0 -100,6 Q-40,2 0,0Z" fill="#e0f8ff" opacity={0.4}/>
+          {/* Coma glow */}
+          <circle cx={0} cy={0} r={18} fill="#d0f0ff" opacity={0.3} filter="url(#sd-blur-sm)"/>
+          {/* Nucleus */}
+          <circle cx={0} cy={0} r={6} fill="white" opacity={0.95}/>
+          <circle cx={-2} cy={-2} r={3} fill="#e0f8ff" opacity={0.7}/>
+        </g>
+      </g>
+
+      {/* Stardust particle trails — tiny glittering chains */}
+      {[
+        {x:100,y:180,rot:38, c:'#ffb0ff'},
+        {x:480,y:90, rot:-22,c:'#80ffee'},
+        {x:640,y:290,rot:55, c:'#ffe8a0'},
+        {x:260,y:310,rot:-40,c:'#a0b8ff'},
+      ].map((t,i)=>(
+        <g key={i} style={{ animation: `bg-drift-l ${14+i*3}s ${i*2.5}s linear infinite normal backwards` }}>
           <g transform={`rotate(${t.rot},${t.x},${t.y})`}>
-          {Array.from({length:8},(_,j)=>(
-            <circle key={j} cx={t.x+j*18} cy={t.y} r={3-j*0.3} fill={['#ff80ff','#80ffff','#ffe080'][i%3]} opacity={0.8-j*0.1} style={{ animation: `bg-twinkle ${1.5+j*.2}s ${j*.1}s ease-in-out infinite` }} />
-          ))}
+            {Array.from({length:10},(_,j)=>(
+              <circle key={j} cx={t.x+j*14} cy={t.y+(j%3-1)*3} r={Math.max(0.5,2.5-j*.2)}
+                fill={t.c} opacity={0.85-j*.08}
+                style={{ animation: `bg-twinkle ${1.2+j*.15}s ${j*.08}s ease-in-out infinite` }}/>
+            ))}
           </g>
         </g>
       ))}
-      {/* Shooting stars */}
-      {[{x1:50,y1:80,x2:200,y2:140},{x1:600,y1:50,x2:740,y2:100},{x1:300,y1:400,x2:450,y2:440}].map((s,i)=>(
-        <line key={i} x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke="#ffe080" strokeWidth={2}
-          strokeDasharray="80 80" style={{ animation: `bg-shooting-star ${5+i}s ${i*3}s linear infinite` }} />
-      ))}
+
+      {/* Galaxy swirl — top right corner */}
+      <g transform="translate(700,80)">
+        {Array.from({length:3},(_,arm)=>(
+          <g key={arm} transform={`rotate(${arm*120})`}>
+            {Array.from({length:14},(_,j)=>{
+              const a=j*.25, r=j*9+5;
+              return <circle key={j} cx={r*Math.cos(a)} cy={r*Math.sin(a)} r={2.5-j*.12}
+                fill={['#c0b0ff','#ffa0cc','#a0d8ff'][arm]} opacity={0.6-j*.04}
+                style={{ animation: `bg-twinkle ${2+j*.2}s ${j*.15+arm}s ease-in-out infinite` }}/>;
+            })}
+          </g>
+        ))}
+        <circle cx={0} cy={0} r={8} fill="white" opacity={0.7} filter="url(#sd-blur-sm)"/>
+        <circle cx={0} cy={0} r={3} fill="white" opacity={0.95}/>
+      </g>
     </svg>
   )
 }
@@ -1377,33 +1481,88 @@ function Scene_minecraft() {
 }
 
 function Scene_autumnleaves() {
+  const leafColors = ['#cc3810','#e05010','#f07020','#d04418','#e86820','#c83008','#f09030'];
+  // Maple-style leaf shape as a path (centered at 0,0)
+  const mapleLeaf = "M0,-12 Q3,-8 8,-9 Q6,-4 10,-2 Q7,0 10,4 Q5,2 4,7 Q1,4 0,8 Q-1,4 -4,7 Q-5,2 -10,4 Q-7,0 -10,-2 Q-6,-4 -8,-9 Q-3,-8 0,-12Z";
   return (
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
-        <linearGradient id="au-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#cc6620" /><stop offset="50%" stopColor="#e88030" /><stop offset="100%" stopColor="#a04010" /></linearGradient>
+        {/* Warm sunset sky — golden at horizon, dusty amber above */}
+        <linearGradient id="au-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7a3010" />
+          <stop offset="40%" stopColor="#c85820" />
+          <stop offset="75%" stopColor="#f0a030" />
+          <stop offset="100%" stopColor="#f8c840" />
+        </linearGradient>
+        {/* Ground gradient — dark earth fading to grass */}
+        <linearGradient id="au-ground" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#5a2a08" />
+          <stop offset="100%" stopColor="#3a1808" />
+        </linearGradient>
+        {/* Sun glow */}
+        <radialGradient id="au-sun" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#fff8a0"/>
+          <stop offset="40%" stopColor="#ffd040"/>
+          <stop offset="100%" stopColor="#ff8820" stopOpacity="0"/>
+        </radialGradient>
       </defs>
       <rect width={800} height={450} fill="url(#au-bg)" />
-      {/* Setting sun */}
-      <circle cx={680} cy={350} r={70} fill="#FFD040" opacity={0.85} style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
-      {/* Rolling hills */}
-      <ellipse cx={200} cy={430} rx={300} ry={100} fill="#4a2008" />
-      <ellipse cx={600} cy={440} rx={320} ry={110} fill="#3a1808" />
-      {/* Tree silhouettes */}
-      {[100,250,500,680].map((x,i)=>(
-        <g key={i}>
-          <rect x={x+15} y={260+i%2*20} width={12} height={240} rx={4} fill="#3a1808" />
-          <ellipse cx={x+21} cy={260+i%2*20} rx={55} ry={55} fill={['#cc4420','#dd6010','#bb3010','#ee7020'][i]} />
-          <ellipse cx={x+10} cy={290+i%2*20} rx={45} ry={40} fill={['#aa3010','#cc5010','#993010','#dd6020'][i]} />
+      {/* Sun low on horizon with glow halo */}
+      <circle cx={660} cy={340} r={120} fill="url(#au-sun)" opacity={0.55} />
+      <circle cx={660} cy={340} r={52} fill="#ffd840" opacity={0.92} style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
+      {/* Distant hills — layered for depth */}
+      <path d="M0,340 Q120,290 220,320 Q320,350 400,305 Q500,260 580,310 Q660,340 800,310 L800,450 L0,450Z" fill="#6a2e10" opacity={0.7}/>
+      <path d="M0,370 Q100,340 200,360 Q320,380 440,350 Q560,320 680,355 Q740,370 800,350 L800,450 L0,450Z" fill="#4a1e08" opacity={0.9}/>
+      {/* Ground */}
+      <rect x={0} y={410} width={800} height={40} fill="url(#au-ground)" />
+      {/* Fallen leaves carpet on ground */}
+      {Array.from({length:18},(_,i)=>(
+        <g key={i} transform={`translate(${(i*73+20)%800},${418+i%3*6}) rotate(${i*47})`}>
+          <path d={mapleLeaf} fill={leafColors[i%leafColors.length]} opacity={0.75} transform="scale(1.8)"/>
         </g>
       ))}
-      {/* Falling leaves */}
-      {Array.from({length:20},(_,i)=>(
-        <ellipse key={i} cx={(i*113+30)%800} cy={0} rx={6} ry={9} fill={['#cc4420','#dd6010','#ee8020','#bb3010','#ff6030'][i%5]} style={{ animation: `bg-leaf-fall ${5+i*.4}s ${i*.3}s linear infinite` }} transform={`rotate(${i*30})`} />
+      {/* Trees — back row, smaller/darker for depth */}
+      {[60,190,560,700].map((x,i)=>{
+        const h = 180+i%2*30, trunkW=10, col=['#8b2e08','#a03010','#7a2808','#903808'][i];
+        return (
+          <g key={i}>
+            {/* Trunk */}
+            <path d={`M${x},410 Q${x-4},${410-h*.4} ${x},${410-h}`} stroke="#3a1408" strokeWidth={trunkW} fill="none" strokeLinecap="round"/>
+            {/* Main boughs */}
+            <path d={`M${x},${410-h*.55} Q${x-50},${410-h*.7} ${x-70},${410-h*.6}`} stroke="#3a1408" strokeWidth={6} fill="none" strokeLinecap="round"/>
+            <path d={`M${x},${410-h*.65} Q${x+40},${410-h*.78} ${x+60},${410-h*.68}`} stroke="#3a1408" strokeWidth={5} fill="none" strokeLinecap="round"/>
+            {/* Canopy — 3 overlapping irregular blobs */}
+            <ellipse cx={x} cy={410-h} rx={58} ry={48} fill={col} opacity={0.95}/>
+            <ellipse cx={x-38} cy={410-h+18} rx={42} ry={36} fill={col} opacity={0.85}/>
+            <ellipse cx={x+36} cy={410-h+22} rx={38} ry={32} fill={col} opacity={0.8}/>
+            {/* Highlight top */}
+            <ellipse cx={x+8} cy={410-h-12} rx={30} ry={20} fill={['#e05818','#f07020','#d04818','#e86820'][i]} opacity={0.6}/>
+          </g>
+        );
+      })}
+      {/* Wooden fence across foreground */}
+      {Array.from({length:14},(_,i)=>(
+        <g key={i} transform={`translate(${i*58+10},390)`}>
+          <rect x={0} y={0} width={7} height={42} rx={2} fill="#5a2e10"/>
+          <polygon points="-1,0 3,-10 8,0" fill="#4a2208"/>
+        </g>
       ))}
-      {/* Ground leaves */}
-      {Array.from({length:10},(_,i)=>(
-        <ellipse key={i} cx={(i*87+40)%800} cy={450+i%3*10} rx={8} ry={5} fill={['#cc4420','#dd6010','#ee8020'][i%3]} opacity={0.7} />
+      <line x1={10} y1={402} x2={790} y2={402} stroke="#4a2208" strokeWidth={5} strokeLinecap="round"/>
+      <line x1={10} y1={416} x2={790} y2={416} stroke="#4a2208" strokeWidth={4} strokeLinecap="round"/>
+      {/* Falling maple leaves — varied spin and drift */}
+      {Array.from({length:22},(_,i)=>(
+        <g key={i} style={{ animation: `bg-leaf-fall ${4.5+i*.35}s ${i*.28}s linear infinite` }}>
+          <g transform={`translate(${(i*97+15)%820-20},${-20-i*8}) rotate(${i*55})`}>
+            <path d={mapleLeaf} fill={leafColors[i%leafColors.length]} opacity={0.88} transform="scale(2.2)"/>
+          </g>
+        </g>
       ))}
+      {/* Flock of birds silhouettes flying across sunset */}
+      <g style={{ animation: 'bg-drift-l 28s 1s linear infinite normal backwards' }}>
+        {[{x:760,y:180},{x:790,y:195},{x:820,y:182},{x:848,y:170},{x:875,y:185},{x:855,y:205},{x:830,y:212}].map((b,i)=>(
+          <path key={i} d={`M${b.x},${b.y} Q${b.x+8},${b.y-7} ${b.x+16},${b.y} Q${b.x+24},${b.y-7} ${b.x+32},${b.y}`} stroke="#3a1808" strokeWidth={2} fill="none" opacity={0.7}/>
+        ))}
+      </g>
     </svg>
   )
 }
@@ -3763,53 +3922,186 @@ function Scene_sky() {
   return (
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
-        <linearGradient id="sky-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a80d0" /><stop offset="100%" stopColor="#80c8ff" /></linearGradient>
+        {/* Sky — deep azure at top, hazy pale blue at horizon */}
+        <linearGradient id="sky-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0a5ab0"/>
+          <stop offset="55%" stopColor="#2e8fd8"/>
+          <stop offset="100%" stopColor="#a8d8f8"/>
+        </linearGradient>
+        {/* Sun radial glow */}
+        <radialGradient id="sky-sun" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#fff8c0"/>
+          <stop offset="35%" stopColor="#ffe840"/>
+          <stop offset="70%" stopColor="#ffcc20" stopOpacity="0.3"/>
+          <stop offset="100%" stopColor="#ffaa00" stopOpacity="0"/>
+        </radialGradient>
+        {/* Hazy horizon */}
+        <linearGradient id="sky-haze" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c8e8ff" stopOpacity="0"/>
+          <stop offset="100%" stopColor="#d8eeff" stopOpacity="0.55"/>
+        </linearGradient>
+        {/* Balloon clip paths */}
+        <clipPath id="sky-bal0"><ellipse cx={160} cy={200} rx={44} ry={58}/></clipPath>
+        <clipPath id="sky-bal1"><ellipse cx={400} cy={160} rx={50} ry={64}/></clipPath>
+        <clipPath id="sky-bal2"><ellipse cx={620} cy={230} rx={40} ry={52}/></clipPath>
       </defs>
+
       <rect width={800} height={450} fill="url(#sky-bg)" />
-      {/* Bright sun */}
-      <circle cx={680} cy={90} r={55} fill="#FFE040" style={{ animation: 'bg-pulse-sm 5s ease-in-out infinite' }} />
-      {/* Fluffy clouds */}
-      {[{x:150,y:100},{x:400,y:78},{x:620,y:218}].map((c,i)=>(
-        <CloudShape key={i} x={c.x} y={c.y} w={190} fill="white" opacity={0.93} style={{ animation: `bg-cloud-drift ${10+i*3}s ease-in-out infinite alternate` }} />
-      ))}
-      {/* Hot air balloons */}
-      {[{x:180,y:220,c1:'#ff4040',c2:'#ffee40',d:7},{x:420,y:180,c1:'#4080ff',c2:'#ff80ff',d:9},{x:650,y:250,c1:'#40c060',c2:'#ff8040',d:8}].map((b,i)=>(
-        <g key={i} style={{ animation: `bg-float ${b.d}s ${i*2}s ease-in-out infinite` }}>
-          {/* Balloon */}
-          <ellipse cx={b.x} cy={b.y} rx={42} ry={55} fill={b.c1} />
-          {/* Stripes */}
-          {[0,1,2].map(j=>(
-            <clipPath key={j} id={`bal-clip-${i}-${j}`}><ellipse cx={b.x} cy={b.y} rx={42} ry={55} /></clipPath>
+      {/* Haze at horizon */}
+      <rect x={0} y={300} width={800} height={150} fill="url(#sky-haze)"/>
+
+      {/* Rolling green meadow at bottom */}
+      <path d="M0,400 Q120,370 240,390 Q360,410 480,378 Q600,346 720,380 Q760,392 800,375 L800,450 L0,450Z" fill="#4a9830"/>
+      <path d="M0,420 Q200,400 400,415 Q600,430 800,410 L800,450 L0,450Z" fill="#3a7828"/>
+
+      {/* Sun with realistic glow rays */}
+      <circle cx={90} cy={80} r={90} fill="url(#sky-sun)" opacity={0.6}/>
+      <circle cx={90} cy={80} r={48} fill="#ffe840" style={{ animation: 'bg-pulse-sm 5s ease-in-out infinite' }}/>
+      <circle cx={90} cy={80} r={38} fill="#fff5a0" opacity={0.8}/>
+      {/* Sun rays */}
+      {Array.from({length:12},(_,i)=>{
+        const a=i*30*(Math.PI/180), r1=52, r2=72+i%3*8;
+        return <line key={i} x1={90+r1*Math.cos(a)} y1={80+r1*Math.sin(a)} x2={90+r2*Math.cos(a)} y2={80+r2*Math.sin(a)} stroke="#ffe040" strokeWidth={i%2===0?3:1.5} opacity={0.55} strokeLinecap="round"/>;
+      })}
+
+      {/* Large background cumulonimbus clouds */}
+      <CloudShape x={500} y={60} w={280} fill="white" opacity={0.45} style={{ animation: 'bg-cloud-drift 14s ease-in-out infinite alternate-reverse' }}/>
+
+      {/* Hot air balloon 1 — red & gold */}
+      <g style={{ animation: 'bg-float 7s ease-in-out infinite' }}>
+        <ellipse cx={160} cy={200} rx={44} ry={58} fill="#e82020"/>
+        {/* 6 vertical panels alternating */}
+        {[-28,-14,0,14,28].map((dx,j)=>(
+          <rect key={j} x={160+dx-7} y={142} width={14} height={116} fill={j%2===0?'#ffe030':'#e82020'} opacity={0.75} clipPath="url(#sky-bal0)"/>
+        ))}
+        <ellipse cx={160} cy={145} rx={44} ry={14} fill="#cc1810" opacity={0.5}/>
+        <ellipse cx={160} cy={254} rx={40} ry={10} fill="#cc1810" opacity={0.4}/>
+        {/* Ropes */}
+        <line x1={138} y1={256} x2={128} y2={274} stroke="#7a4010" strokeWidth={1.5}/>
+        <line x1={182} y1={256} x2={192} y2={274} stroke="#7a4010" strokeWidth={1.5}/>
+        <line x1={152} y1={258} x2={148} y2={274} stroke="#7a4010" strokeWidth={1.2}/>
+        <line x1={168} y1={258} x2={172} y2={274} stroke="#7a4010" strokeWidth={1.2}/>
+        {/* Wicker basket */}
+        <rect x={128} y={274} width={64} height={30} rx={6} fill="#a06820"/>
+        <line x1={140} y1={274} x2={140} y2={304} stroke="#7a4a10" strokeWidth={1.5} opacity={0.6}/>
+        <line x1={155} y1={274} x2={155} y2={304} stroke="#7a4a10" strokeWidth={1.5} opacity={0.6}/>
+        <line x1={170} y1={274} x2={170} y2={304} stroke="#7a4a10" strokeWidth={1.5} opacity={0.6}/>
+        <line x1={185} y1={274} x2={185} y2={304} stroke="#7a4a10" strokeWidth={1.5} opacity={0.6}/>
+        {/* Passenger silhouette */}
+        <circle cx={160} cy={272} r={8} fill="#2a1008"/>
+        <rect x={153} y={280} width={14} height={10} rx={2} fill="#2a1008"/>
+        {/* Burner glow */}
+        <ellipse cx={160} cy={260} rx={8} ry={4} fill="#ff8020" opacity={0.7} style={{ animation: 'bg-glow-fast 0.6s ease-in-out infinite' }}/>
+      </g>
+
+      {/* Hot air balloon 2 — blue & pink, bigger */}
+      <g style={{ animation: 'bg-float 9s 2s ease-in-out infinite' }}>
+        <ellipse cx={400} cy={160} rx={50} ry={64} fill="#2060e0"/>
+        {[-35,-18,0,18,35].map((dx,j)=>(
+          <rect key={j} x={400+dx-9} y={96} width={18} height={128} fill={j%2===0?'#ff60d0':'#2060e0'} opacity={0.7} clipPath="url(#sky-bal1)"/>
+        ))}
+        <ellipse cx={400} cy={98} rx={50} ry={15} fill="#1848c0" opacity={0.45}/>
+        <ellipse cx={400} cy={220} rx={46} ry={12} fill="#1848c0" opacity={0.4}/>
+        <line x1={374} y1={222} x2={362} y2={242} stroke="#7a4010" strokeWidth={1.5}/>
+        <line x1={426} y1={222} x2={438} y2={242} stroke="#7a4010" strokeWidth={1.5}/>
+        <line x1={392} y1={224} x2={388} y2={242} stroke="#7a4010" strokeWidth={1.2}/>
+        <line x1={408} y1={224} x2={412} y2={242} stroke="#7a4010" strokeWidth={1.2}/>
+        <rect x={362} y={242} width={76} height={34} rx={7} fill="#b07828"/>
+        {[374,390,406,422].map((lx,j)=>(
+          <line key={j} x1={lx} y1={242} x2={lx} y2={276} stroke="#8a5810" strokeWidth={1.5} opacity={0.6}/>
+        ))}
+        <circle cx={400} cy={240} r={9} fill="#1a0808"/>
+        <rect x={391} y={248} width={18} height={12} rx={2} fill="#1a0808"/>
+        <circle cx={416} cy={242} r={7} fill="#1a0808"/>
+        <ellipse cx={400} cy={228} rx={9} ry={5} fill="#ff8020" opacity={0.65} style={{ animation: 'bg-glow-fast 0.7s 0.2s ease-in-out infinite' }}/>
+      </g>
+
+      {/* Hot air balloon 3 — green & orange */}
+      <g style={{ animation: 'bg-float 8s 4s ease-in-out infinite' }}>
+        <ellipse cx={620} cy={230} rx={40} ry={52} fill="#20a040"/>
+        {[-26,-12,0,12,26].map((dx,j)=>(
+          <rect key={j} x={620+dx-7} y={178} width={14} height={104} fill={j%2===0?'#ff7020':'#20a040'} opacity={0.72} clipPath="url(#sky-bal2)"/>
+        ))}
+        <ellipse cx={620} cy={180} rx={40} ry={12} fill="#188030" opacity={0.45}/>
+        <ellipse cx={620} cy={280} rx={36} ry={10} fill="#188030" opacity={0.4}/>
+        <line x1={598} y1={282} x2={588} y2={298} stroke="#7a4010" strokeWidth={1.5}/>
+        <line x1={642} y1={282} x2={652} y2={298} stroke="#7a4010" strokeWidth={1.5}/>
+        <rect x={588} y={298} width={64} height={26} rx={5} fill="#986018"/>
+        {[600,614,628,642].map((lx,j)=>(
+          <line key={j} x1={lx} y1={298} x2={lx} y2={324} stroke="#785010" strokeWidth={1.4} opacity={0.6}/>
+        ))}
+        <circle cx={620} cy={296} r={7} fill="#1a0808"/>
+        <rect x={613} y={303} width={14} height={9} rx={2} fill="#1a0808"/>
+        <ellipse cx={620} cy={286} rx={7} ry={4} fill="#ff8020" opacity={0.65} style={{ animation: 'bg-glow-fast 0.65s 0.4s ease-in-out infinite' }}/>
+      </g>
+
+      {/* Foreground fluffy clouds — in front of everything */}
+      <CloudShape x={240} y={105} w={210} fill="white" opacity={0.96} style={{ animation: 'bg-cloud-drift 10s ease-in-out infinite alternate' }}/>
+      <CloudShape x={560} y={138} w={170} fill="white" opacity={0.88} style={{ animation: 'bg-cloud-drift 13s 1s ease-in-out infinite alternate-reverse' }}/>
+      <CloudShape x={50} y={170} w={150} fill="white" opacity={0.82} style={{ animation: 'bg-cloud-drift 11s 2s ease-in-out infinite alternate' }}/>
+
+      {/* Diamond kite with ribbon tail */}
+      <g transform="translate(310,290)">
+        <g style={{ animation: 'bg-float 5s 1s ease-in-out infinite' }}>
+          <polygon points="0,-55 40,0 0,55 -40,0" fill="#ff3030" opacity={0.9}/>
+          <polygon points="0,-55 40,0 0,0" fill="#ffe030" opacity={0.9}/>
+          <polygon points="0,0 40,0 0,55" fill="#3060ff" opacity={0.9}/>
+          <polygon points="0,-55 -40,0 0,0" fill="#30cc40" opacity={0.9}/>
+          <line x1={0} y1={-55} x2={0} y2={55} stroke="rgba(0,0,0,.25)" strokeWidth={1.5}/>
+          <line x1={-40} y1={0} x2={40} y2={0} stroke="rgba(0,0,0,.25)" strokeWidth={1.5}/>
+          {/* Ribbon tail with bows */}
+          <path d="M0,55 Q15,80 -5,105 Q10,130 0,158 Q12,180 -4,205" stroke="#ff8800" strokeWidth={2.5} fill="none" strokeLinecap="round"/>
+          {[78,130,185].map((ty,j)=>(
+            <g key={j} transform={`translate(${j%2===0?2:-4},${ty})`}>
+              <ellipse cx={-5} cy={0} rx={7} ry={4} fill={['#ff4040','#40cc40','#4060ff'][j]} opacity={0.8}/>
+              <ellipse cx={5} cy={0} rx={7} ry={4} fill={['#ff4040','#40cc40','#4060ff'][j]} opacity={0.8}/>
+            </g>
           ))}
-          <rect x={b.x-12} y={b.y-55} width={24} height={110} fill={b.c2} opacity={0.7} clipPath={`url(#bal-clip-${i}-0)`} />
-          <rect x={b.x+12} y={b.y-55} width={24} height={110} fill={b.c1} opacity={0.4} clipPath={`url(#bal-clip-${i}-1)`} />
-          {/* Basket */}
-          <rect x={b.x-16} y={b.y+55} width={32} height={22} rx={5} fill="#8a5820" />
-          {/* Ropes */}
-          <line x1={b.x-14} y1={b.y+50} x2={b.x-14} y2={b.y+55} stroke="#8a5820" strokeWidth={1.5} />
-          <line x1={b.x+14} y1={b.y+50} x2={b.x+14} y2={b.y+55} stroke="#8a5820" strokeWidth={1.5} />
+          {/* String to ground */}
+          <path d="M0,55 Q50,140 90,240" stroke="rgba(0,0,0,.2)" strokeWidth={1} fill="none"/>
         </g>
-      ))}
-      {/* Bird formation */}
-      <g style={{ animation: 'bg-drift-l 20s ease-in-out infinite' }}>
-        {[{x:0,y:0},{x:30,y:15},{x:-30,y:15},{x:60,y:5},{x:-60,y:5}].map((b,i)=>(
-          <path key={i} d={`M${440+b.x},${300+b.y} Q${450+b.x},${292+b.y} ${460+b.x},${300+b.y} Q${470+b.x},${292+b.y} ${480+b.x},${300+b.y}`} stroke="#1a6090" strokeWidth={2} fill="none" />
+      </g>
+
+      {/* V-formation of birds soaring high */}
+      <g style={{ animation: 'bg-drift-l 22s linear infinite normal backwards' }}>
+        {[
+          {x:800,y:118},{x:825,y:130},{x:775,y:130},
+          {x:850,y:145},{x:750,y:145},{x:875,y:162},{x:725,y:162},
+        ].map((b,i)=>(
+          <path key={i} d={`M${b.x},${b.y} Q${b.x+9},${b.y-8} ${b.x+18},${b.y} Q${b.x+27},${b.y-8} ${b.x+36},${b.y}`}
+            stroke="#0a3870" strokeWidth={i===0?2.5:2} fill="none" opacity={0.75}/>
         ))}
       </g>
-      {/* Diamond kite */}
-      <g transform="translate(300,150)">
-        <g style={{ animation: 'bg-float 5s 1s ease-in-out infinite' }}>
-          <polygon points="0,-50 35,0 0,50 -35,0" fill="#ff4040" opacity={0.85} />
-          <polygon points="0,-50 35,0 0,0" fill="#ffee40" opacity={0.85} />
-          <polygon points="0,0 35,0 0,50" fill="#4080ff" opacity={0.85} />
-          <polygon points="0,-50 -35,0 0,0" fill="#40c040" opacity={0.85} />
-          {/* Cross struts */}
-          <line x1={0} y1={-50} x2={0} y2={50} stroke="rgba(0,0,0,.2)" strokeWidth={1.5} />
-          <line x1={-35} y1={0} x2={35} y2={0} stroke="rgba(0,0,0,.2)" strokeWidth={1.5} />
-          {/* Tail */}
-          <path d="M0,50 Q12,75 -4,100 Q12,125 0,150" stroke="#ff8800" strokeWidth={2.5} fill="none" strokeLinecap="round" />
-          {/* String */}
-          <path d="M0,50 Q30,110 70,180" stroke="rgba(0,0,0,.25)" strokeWidth={1} fill="none" />
+
+      {/* Biplane — proper side view, nose left, drifts right-to-left */}
+      <g style={{ animation: 'bg-drift-l 38s 8s linear infinite normal backwards' }}>
+        <g transform="translate(0,295)">
+          {/* Contrail behind tail (right side) */}
+          <path d="M72,2 Q130,8 210,14" stroke="white" strokeWidth={4} fill="none" opacity={0.4} strokeLinecap="round"/>
+          <path d="M72,4 Q140,12 230,20" stroke="white" strokeWidth={2} fill="none" opacity={0.2} strokeLinecap="round"/>
+          {/* Fuselage — long streamlined body, dominant shape */}
+          <path d="M-68,0 Q-52,-12 -10,-9 Q18,-7 52,-3 Q66,0 72,2 Q66,5 52,6 Q18,10 -10,12 Q-52,14 -68,0Z" fill="#e03020"/>
+          {/* Upper wing — edge-on = very thin, clearly above fuselage */}
+          <rect x={-18} y={-26} width={68} height={4} rx={2} fill="#f04030"/>
+          {/* Lower wing — edge-on, below fuselage belly */}
+          <rect x={-10} y={12} width={56} height={3} rx={1.5} fill="#f04030"/>
+          {/* Vertical struts connecting wings */}
+          <line x1={2} y1={-22} x2={2} y2={12} stroke="#c01808" strokeWidth={2.5} strokeLinecap="round"/>
+          <line x1={32} y1={-22} x2={32} y2={12} stroke="#c01808" strokeWidth={2.5} strokeLinecap="round"/>
+          {/* Tail — vertical fin pointing UP */}
+          <path d="M62,0 L74,-28 L76,0Z" fill="#c01808"/>
+          {/* Tail horizontal stabilizer — both sides */}
+          <rect x={62} y={3} width={20} height={4} rx={2} fill="#c01808"/>
+          {/* Engine cowl at nose */}
+          <circle cx={-68} cy={0} r={14} fill="#901008"/>
+          <circle cx={-68} cy={0} r={8} fill="#6a0808"/>
+          {/* Propeller — spinning vertical disc at very nose tip */}
+          <ellipse cx={-80} cy={0} rx={2.5} ry={24} fill="#5a2808" opacity={0.5} style={{ animation: 'bg-spin 0.08s linear infinite' }}/>
+          {/* Cockpit bubble on TOP of fuselage */}
+          <path d="M-2,-9 Q10,-24 28,-20 Q36,-12 28,-9Z" fill="#50b8f0" opacity={0.9}/>
+          {/* Pilot head visible inside cockpit */}
+          <circle cx={14} cy={-18} r={6} fill="#2a1008"/>
+          <circle cx={14} cy={-18} r={3.5} fill="#3a1808"/>
         </g>
       </g>
     </svg>

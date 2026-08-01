@@ -43,6 +43,12 @@ function injectBgStyles() {
     @keyframes bg-swim{0%{transform:translateX(120vw) scaleX(-1)}100%{transform:translateX(-25vw) scaleX(-1)}}
     @keyframes bg-swim-r{0%{transform:translateX(-25vw)}100%{transform:translateX(120vw)}}
     @keyframes bg-fly{0%{transform:translateX(120vw) translateY(0)}35%{transform:translateX(50vw) translateY(-40px)}100%{transform:translateX(-25vw) translateY(0)}}
+    @keyframes bg-fly-r{0%{transform:translateX(-30vw) translateY(0)}65%{transform:translateX(20vw) translateY(-40px)}100%{transform:translateX(120vw) translateY(0)}}
+    @keyframes bg-drone-break{0%{transform:translateY(0) rotate(0deg);opacity:1}12%{transform:translateY(-8px) rotate(0deg);opacity:1}25%{transform:translateY(0) rotate(0deg);opacity:1}38%{transform:translateY(-8px) rotate(0deg);opacity:1}51%{transform:translateY(0) rotate(0deg);opacity:1}62%{transform:translateY(-5px) rotate(0deg);opacity:1}63.5%{transform:translateY(4px) rotate(12deg);opacity:1}65%{transform:translateY(-6px) rotate(-18deg);opacity:1}66%{transform:translateY(6px) rotate(22deg);opacity:0.85}68%{transform:translateY(10px) rotate(30deg);opacity:0.8}78%{transform:translateY(200px) rotate(110deg);opacity:0.45}86%{transform:translateY(420px) rotate(200deg);opacity:0}87%{transform:translateY(0) rotate(0deg);opacity:0}99%{transform:translateY(0) rotate(0deg);opacity:0}100%{transform:translateY(0) rotate(0deg);opacity:1}}
+    @keyframes bg-drone-debris-l{0%,63%{transform:translate(0,0) rotate(0deg);opacity:0}64%{transform:translate(0,0) rotate(0deg);opacity:1}80%{transform:translate(-70px,190px) rotate(210deg);opacity:0.55}87%{transform:translate(-90px,390px) rotate(370deg);opacity:0}88%,100%{transform:translate(0,0) rotate(0deg);opacity:0}}
+    @keyframes bg-drone-debris-r{0%,63%{transform:translate(0,0) rotate(0deg);opacity:0}64%{transform:translate(0,0) rotate(0deg);opacity:1}80%{transform:translate(60px,180px) rotate(-190deg);opacity:0.55}87%{transform:translate(80px,380px) rotate(-350deg);opacity:0}88%,100%{transform:translate(0,0) rotate(0deg);opacity:0}}
+    @keyframes bg-drone-debris-c{0%,63%{transform:translate(0,0) rotate(0deg);opacity:0}64%{transform:translate(0,0) rotate(0deg);opacity:1}80%{transform:translate(-10px,220px) rotate(280deg);opacity:0.45}87%{transform:translate(-15px,430px) rotate(500deg);opacity:0}88%,100%{transform:translate(0,0) rotate(0deg);opacity:0}}
+    @keyframes bg-drone-flash{0%,62%{opacity:0;transform:scale(0.2)}63%{opacity:0}64%{opacity:1;transform:scale(1.4)}65.5%{opacity:0.7;transform:scale(1)}67%{opacity:0;transform:scale(0.6)}68%,100%{opacity:0;transform:scale(0.2)}}
 
     /* ─── Twinkle / glow / pulse ─── */
     @keyframes bg-twinkle{0%,100%{opacity:.07}50%{opacity:.95}}
@@ -958,22 +964,85 @@ function Scene_avengers() {
         <path d="M388,180 L400,184 L412,180" stroke="#ffaa00" strokeWidth={2} fill="none" opacity={0.8} />
         <path d="M381,196 L388,200 L381,204" stroke="#ffaa00" strokeWidth={1.5} fill="none" opacity={0.6} />
       </g>
-      {/* Lightning bolt */}
+      {/* Stars */}
+      <Stars n={50} />
+      {/* Thor storm clouds — dark purple, crackling */}
+      <CloudShape x={60} y={60} w={280} fill="#1a0830" opacity={0.85} style={{ animation: 'bg-cloud-drift 12s ease-in-out infinite alternate' }}/>
+      <CloudShape x={500} y={40} w={320} fill="#200838" opacity={0.8} style={{ animation: 'bg-cloud-drift 16s ease-in-out infinite alternate-reverse' }}/>
+      {/* Mjolnir (Thor's hammer) spinning across */}
+      <g style={{ animation: 'bg-drift-r 18s 2s linear infinite normal backwards' }}>
+        <g transform="translate(-60,100)">
+          <g style={{ animation: 'bg-spin 1.2s linear infinite', transformBox:'fill-box', transformOrigin:'center center' }}>
+            {/* Hammer head */}
+            <rect x={-18} y={-12} width={36} height={24} rx={4} fill="#888898"/>
+            <rect x={-16} y={-10} width={32} height={8} rx={2} fill="#aaaabc" opacity={0.6}/>
+            {/* Handle */}
+            <rect x={-4} y={12} width={8} height={30} rx={3} fill="#6a4820"/>
+            {/* Strap */}
+            <ellipse cx={0} cy={44} rx={5} ry={3} fill="#8a6030"/>
+            {/* Lightning glow around it */}
+            <ellipse cx={0} cy={0} rx={28} ry={20} fill="#8844ff" opacity={0.15} style={{ animation: 'bg-glow 1s ease-in-out infinite' }}/>
+          </g>
+          {/* Lightning trail */}
+          <path d="M0,0 Q40,10 90,5" stroke="#cc88ff" strokeWidth={2} fill="none" opacity={0.5} strokeLinecap="round"/>
+        </g>
+      </g>
+      {/* Thor lightning bolts — purple-white */}
+      <polyline points="140,0 122,55 138,55 120,125" stroke="#cc88ff" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round"
+        strokeDasharray="140 300" style={{ animation: 'bg-lightning-draw 5s 1s linear infinite' }} opacity={0.9}/>
+      <polyline points="650,0 635,48 650,48 636,110" stroke="#aa66ff" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round"
+        strokeDasharray="120 300" style={{ animation: 'bg-lightning-draw 6s 2.5s linear infinite' }} opacity={0.8}/>
+      {/* Classic yellow lightning bolt too */}
       <polyline points="430,50 415,110 435,110 420,180" stroke="#ffee00" strokeWidth={4} strokeLinejoin="round" strokeLinecap="round"
         style={{ animation: 'bg-flash 6s 2s ease-in-out infinite' }} />
+      <polyline points="580,30 566,90 582,90 568,170" stroke="#ffee00" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round"
+        strokeDasharray="150 150" style={{ animation: 'bg-lightning-draw 8s 3.5s linear infinite' }} />
+      {/* HULK — massive green fist punching through building on right */}
+      <g transform="translate(680,280)">
+        {/* Building chunk breaking apart */}
+        <rect x={-30} y={-80} width={60} height={100} fill="#111118"/>
+        <rect x={-30} y={-80} width={60} height={100} fill="none" stroke="#1a1a24" strokeWidth={2}/>
+        {/* Crack lines */}
+        <path d="M-10,-80 L-4,-50 L-18,-20 L-6,20" stroke="#080810" strokeWidth={3} fill="none"/>
+        <path d="M14,-70 L8,-40 L20,-10" stroke="#080810" strokeWidth={2} fill="none"/>
+        {/* Debris chunks flying out */}
+        {[[-45,-60,12],[50,-50,8],[-50,-20,10],[55,-30,7],[-40,10,9],[48,5,6]].map(([dx,dy,s],i)=>(
+          <rect key={i} x={dx} y={dy} width={s} height={s} rx={1} fill="#181820" transform={`rotate(${i*25})`} opacity={0.85}/>
+        ))}
+        {/* HULK FIST — massive green knuckles */}
+        <path d="M-50,20 Q-60,0 -55,-20 Q-48,-35 -30,-32 Q-10,-30 10,-32 Q28,-34 32,-18 Q35,0 28,18 Q18,28 0,30 Q-20,32 -36,26 Z" fill="#30a030"/>
+        {/* Knuckle definition */}
+        {[-38,-18,2,20].map((x,i)=>(
+          <ellipse key={i} cx={x} cy={-20} rx={9} ry={7} fill="#28882a" opacity={0.7}/>
+        ))}
+        {/* Thumb */}
+        <path d="M28,10 Q42,6 44,-8 Q42,-20 32,-18" fill="#30a030"/>
+        {/* Wrist */}
+        <path d="M-50,20 Q-52,40 -48,55 Q-30,62 10,60 Q35,58 32,40 Q30,28 28,18Z" fill="#289028"/>
+        {/* Vein detail */}
+        <path d="M-30,35 Q-10,32 15,36" stroke="#20781e" strokeWidth={2} fill="none" opacity={0.5}/>
+        {/* Impact shockwave */}
+        <ellipse cx={-10} cy={-10} rx={65} ry={50} fill="none" stroke="#50cc50" strokeWidth={2} opacity={0.2} style={{ animation: 'bg-pulse 0.6s ease-in-out infinite' }}/>
+      </g>
+      {/* Energy explosion burst — mid-scene */}
+      <g transform="translate(320,220)" style={{ animation: 'bg-pulse 1.5s ease-in-out infinite' }}>
+        {[0,30,60,90,120,150,180,210,240,270,300,330].map((a,i)=>(
+          <line key={i} x1={0} y1={0} x2={Math.cos(a*Math.PI/180)*(25+i%3*8)} y2={Math.sin(a*Math.PI/180)*(25+i%3*8)}
+            stroke={i%3===0?'#ff6600':i%3===1?'#ffee00':'#ff2200'} strokeWidth={i%2===0?3:1.5} opacity={0.6} strokeLinecap="round"/>
+        ))}
+        <circle cx={0} cy={0} r={16} fill="#ff8800" opacity={0.5}/>
+        <circle cx={0} cy={0} r={8} fill="#ffee00" opacity={0.7}/>
+      </g>
       {/* Shield */}
       <g transform="translate(200,250)"><g style={{ animation: 'bg-drift-l 15s 0.5s linear infinite normal backwards' }}>
         <circle cx={0} cy={0} r={28} fill="#3355cc" />
         <circle cx={0} cy={0} r={21} fill="#cc2222" />
         <circle cx={0} cy={0} r={13} fill="#3355cc" />
         <circle cx={0} cy={0} r={6} fill="#e0e0e0" />
+        {/* Star on shield */}
+        <path d="M0,-4 L1.2,0 L5,0 L2,2.5 L3.1,6.5 L0,4.2 L-3.1,6.5 L-2,2.5 L-5,0 L-1.2,0Z" fill="white" opacity={0.9}/>
       </g>
       </g>
-      {/* Stars */}
-      <Stars n={50} />
-      {/* Lightning flash */}
-      <polyline points="580,30 566,90 582,90 568,170" stroke="#ffee00" strokeWidth={5} strokeLinejoin="round" strokeLinecap="round"
-        strokeDasharray="150 150" style={{ animation: 'bg-lightning-draw 8s 3.5s linear infinite' }} />
     </svg>
   )
 }
@@ -982,86 +1051,143 @@ function Scene_superman() {
   return (
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
-        <linearGradient id="sm-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#003080" /><stop offset="50%" stopColor="#1060c0" /><stop offset="100%" stopColor="#c06000" /></linearGradient>
+        <linearGradient id="sm-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#001840"/>
+          <stop offset="40%" stopColor="#003080"/>
+          <stop offset="75%" stopColor="#1060c0"/>
+          <stop offset="100%" stopColor="#c06000"/>
+        </linearGradient>
+        <radialGradient id="sm-sun" cx="50%" cy="100%">
+          <stop offset="0%" stopColor="#ff9020" stopOpacity="0.7"/>
+          <stop offset="60%" stopColor="#ff6000" stopOpacity="0.2"/>
+          <stop offset="100%" stopColor="#ff4000" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="sm-boom" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0)"/>
+          <stop offset="70%" stopColor="rgba(200,220,255,0.15)"/>
+          <stop offset="100%" stopColor="rgba(150,180,255,0)"/>
+        </radialGradient>
       </defs>
       <rect width={800} height={450} fill="url(#sm-bg)" />
+      {/* Sunrise dramatic glow */}
+      <ellipse cx={400} cy={450} rx={500} ry={200} fill="url(#sm-sun)" style={{ animation: 'bg-pulse 8s ease-in-out infinite' }}/>
       {/* Art-deco Metropolis skyline */}
       {[{x:0,w:70,h:280},{x:65,w:40,h:320},{x:100,w:55,h:260},{x:150,w:80,h:350},{x:225,w:35,h:300},{x:255,w:60,h:240},{x:580,w:60,h:300},{x:635,w:45,h:350},{x:675,w:70,h:270},{x:740,w:65,h:310}].map((b,i)=>(
         <g key={i}>
           <rect x={b.x} y={500-b.h} width={b.w} height={b.h} fill="#112244" />
+          {/* Art-deco spire */}
+          <polygon points={`${b.x+b.w/2-6},${500-b.h} ${b.x+b.w/2},${500-b.h-22} ${b.x+b.w/2+6},${500-b.h}`} fill="#0d1a36"/>
           {/* Windows glowing */}
-          {Array.from({length:6},(_,j)=>(
-            <rect key={j} x={Math.min(b.x+b.w-16, b.x+8+j%2*12)} y={500-b.h+20+Math.floor(j/2)*25} width={8} height={10} rx={1}
-              fill="#ffee80" opacity={0.4+j%2*0.3} style={{ animation: `bg-twinkle ${3+j*.5}s ${j*.3+i*.2}s ease-in-out infinite` }} />
+          {Array.from({length:8},(_,j)=>(
+            <rect key={j} x={Math.min(b.x+b.w-16, b.x+6+j%3*14)} y={500-b.h+18+Math.floor(j/3)*28} width={10} height={12} rx={1}
+              fill={j%3===0?'#ffee80':'#ffe0a0'} opacity={0.35+j%2*0.25} style={{ animation: `bg-twinkle ${3+j*.5}s ${j*.3+i*.2}s ease-in-out infinite` }} />
           ))}
         </g>
       ))}
+      {/* Daily Planet building — distinctive dome top at x~490 area */}
+      <rect x={480} y={140} width={64} height={320} fill="#1a2e58"/>
+      <polygon points="480,140 512,108 544,140" fill="#152244"/>
+      {/* Globe dome */}
+      <circle cx={512} cy={108} r={24} fill="#1e3878" stroke="#2a4a90" strokeWidth={2}/>
+      <ellipse cx={512} cy={108} rx={24} ry={8} fill="none" stroke="#3a5aaa" strokeWidth={1} opacity={0.6}/>
+      <line x1={512} y1={84} x2={512} y2={132} stroke="#3a5aaa" strokeWidth={1} opacity={0.5}/>
+      {/* Globe glow */}
+      <circle cx={512} cy={108} r={28} fill="#3060ff" opacity={0.08} style={{ animation: 'bg-glow 4s ease-in-out infinite' }}/>
+      {/* Lois Lane — silhouette on rooftop of building at x~255 */}
+      <g transform="translate(285,258)">
+        <circle cx={0} cy={-22} r={7} fill="#0d1a36"/>
+        <rect x={-5} y={-15} width={10} height={18} rx={3} fill="#0d1a36"/>
+        <line x1={-5} y1={-10} x2={-14} y2={-4} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
+        <line x1={5} y1={-10} x2={12} y2={-2} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
+        <line x1={-3} y1={3} x2={-4} y2={18} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
+        <line x1={3} y1={3} x2={4} y2={18} stroke="#0d1a36" strokeWidth={3} strokeLinecap="round"/>
+        {/* Camera — journalist */}
+        <rect x={12} y={-6} width={10} height={8} rx={2} fill="#0d1a36"/>
+        <circle cx={22} cy={-2} r={3} fill="#1a2e58"/>
+      </g>
+      {/* News helicopter in background */}
+      <g style={{ animation: 'bg-drift-l 30s 3s linear infinite normal backwards' }}>
+        <g transform="translate(650,180)">
+          {/* Fuselage */}
+          <ellipse cx={0} cy={0} rx={36} ry={12} fill="#223366"/>
+          {/* Tail boom */}
+          <rect x={30} y={-3} width={28} height={5} rx={2} fill="#1a2850"/>
+          {/* Tail rotor */}
+          <ellipse cx={58} cy={-1} rx={1.5} ry={10} fill="#2a3a70" opacity={0.6} style={{ animation: 'bg-spin 0.1s linear infinite' }}/>
+          {/* Main rotor disc */}
+          <ellipse cx={0} cy={-12} rx={52} ry={4} fill="#2a3a70" opacity={0.4} style={{ animation: 'bg-spin 0.12s linear infinite' }}/>
+          {/* Cockpit bubble */}
+          <ellipse cx={-14} cy={-2} rx={16} ry={10} fill="#3a6090" opacity={0.7}/>
+          {/* Landing skids */}
+          <line x1={-18} y1={12} x2={18} y2={12} stroke="#1a2850" strokeWidth={3}/>
+          <line x1={-20} y1={10} x2={-20} y2={13} stroke="#1a2850" strokeWidth={2}/>
+          <line x1={20} y1={10} x2={20} y2={13} stroke="#1a2850" strokeWidth={2}/>
+          {/* Searchlight beam */}
+          <path d="M-8,12 L-28,70 L12,70Z" fill="#ffe8a0" opacity={0.15} style={{ animation: 'bg-glow 2s ease-in-out infinite' }}/>
+        </g>
+      </g>
       {/* Superman flying — proper caped hero pose, arm outstretched */}
       <g style={{ animation: 'bg-fly 10s ease-in-out infinite' }}>
+        {/* Sonic boom shockwave ring — ahead of Superman */}
+        <ellipse cx={340} cy={180} rx={42} ry={28} fill="none" stroke="rgba(200,220,255,0.4)" strokeWidth={3} style={{ animation: 'bg-pulse 2s ease-in-out infinite' }}/>
+        <ellipse cx={340} cy={180} rx={55} ry={36} fill="none" stroke="rgba(200,220,255,0.2)" strokeWidth={2} style={{ animation: 'bg-pulse 2s 0.3s ease-in-out infinite' }}/>
         {/* CAPE — billowing dramatically behind body */}
-        <path d="
-          M395,168
-          C400,178 408,196 412,210
-          C424,200 438,186 444,170
-          C440,160 432,158 426,162
-          C420,166 412,174 408,178
-          C404,174 400,168 395,168 Z
-        " fill="#cc2222" opacity={0.95} />
+        <path d="M395,168 C400,178 408,196 412,210 C424,200 438,186 444,170 C440,160 432,158 426,162 C420,166 412,174 408,178 C404,174 400,168 395,168 Z" fill="#cc2222" opacity={0.95} />
+        {/* Cape shadow fold */}
+        <path d="M408,178 C412,190 416,200 412,210 C420,204 428,194 432,184Z" fill="#aa1818" opacity={0.5}/>
         {/* Head */}
         <circle cx={382} cy={156} r={16} fill="#f0c090" />
         {/* Hair — dark swept back */}
         <path d="M369,150 C372,142 378,138 382,138 C386,138 392,142 396,148 C392,144 386,142 382,142 C378,142 372,146 369,150 Z" fill="#1a0c08" />
-        {/* Curl of hair on forehead */}
         <path d="M380,144 C376,146 374,150 376,152" stroke="#1a0c08" strokeWidth={2.5} fill="none" strokeLinecap="round" />
-        {/* Mask — red eye-cover across bridge of nose */}
+        {/* Mask */}
         <rect x={371} y={147} width={24} height={9} rx={4} fill="#cc2222" />
-        {/* Eye holes — white with pupils */}
         <ellipse cx={376} cy={151} rx={5} ry={4} fill="white" />
         <ellipse cx={389} cy={151} rx={5} ry={4} fill="white" />
         <circle cx={377} cy={152} r={2.5} fill="#111" />
         <circle cx={390} cy={152} r={2.5} fill="#111" />
-        <circle cx={376} cy={151} r={1} fill="white" opacity={0.7} />
-        <circle cx={389} cy={151} r={1} fill="white" opacity={0.7} />
-        {/* Body — torso in classic blue */}
-        <path d="
-          M372,170 C368,174 366,182 367,192
-          C368,200 372,208 378,212
-          C383,214 390,214 395,212
-          L395,168
-          C390,166 380,168 372,170 Z
-        " fill="#1040cc" />
-        {/* Right side body (hidden behind cape) */}
-        <path d="
-          M395,168 L395,212
-          C398,214 402,214 406,212
-          C410,208 412,200 411,192 Z
-        " fill="#0c30a0" opacity={0.7} />
-        {/* S shield on chest — centered on the visible blue body panel (x≈381) */}
+        {/* HEAT VISION — twin red laser beams from eyes */}
+        <line x1={373} y1={151} x2={310} y2={170} stroke="#ff2200" strokeWidth={2.5} opacity={0.85} style={{ animation: 'bg-glow-fast 0.4s ease-in-out infinite' }}/>
+        <line x1={386} y1={151} x2={323} y2={170} stroke="#ff2200" strokeWidth={2} opacity={0.75} style={{ animation: 'bg-glow-fast 0.4s 0.05s ease-in-out infinite' }}/>
+        <line x1={373} y1={151} x2={310} y2={170} stroke="#ff8060" strokeWidth={5} opacity={0.2} style={{ animation: 'bg-glow-fast 0.4s ease-in-out infinite' }}/>
+        {/* Heat vision impact glow */}
+        <circle cx={308} cy={171} r={8} fill="#ff4400" opacity={0.35} style={{ animation: 'bg-glow-fast 0.4s ease-in-out infinite' }}/>
+        {/* Body */}
+        <path d="M372,170 C368,174 366,182 367,192 C368,200 372,208 378,212 C383,214 390,214 395,212 L395,168 C390,166 380,168 372,170 Z" fill="#1040cc" />
+        <path d="M395,168 L395,212 C398,214 402,214 406,212 C410,208 412,200 411,192 Z" fill="#0c30a0" opacity={0.7} />
+        {/* S shield */}
         <path d="M374,179 L387,179 C391,181 392,185 390,190 C388,195 383,198 381,198 C379,198 374,195 372,190 C370,185 371,181 374,179 Z" fill="#ffee00" />
-        {/* S letter — text renders correctly; bg-fly uses translateX only, no flip */}
         <text x="381" y="194" textAnchor="middle" fontSize="14" fontWeight="900" fill="#cc2222" fontFamily="Arial Black, Arial, sans-serif" style={{userSelect:'none'}}>S</text>
-        {/* Lead arm outstretched forward — fist first */}
-        <path d="
-          M372,176 C362,174 350,170 338,164
-          C334,162 330,160 326,158
-        " stroke="#1040cc" strokeWidth={13} fill="none" strokeLinecap="round" />
-        {/* Fist */}
+        {/* Lead arm outstretched */}
+        <path d="M372,176 C362,174 350,170 338,164 C334,162 330,160 326,158" stroke="#1040cc" strokeWidth={13} fill="none" strokeLinecap="round" />
         <circle cx={324} cy={157} r={9} fill="#f0c090" />
-        {/* Trailing arm beside body */}
+        {/* Trailing arm */}
         <path d="M406,186 C412,192 418,200 420,210" stroke="#1040cc" strokeWidth={10} fill="none" strokeLinecap="round" />
-        {/* Legs streamlined behind */}
+        {/* Legs */}
         <path d="M375,212 C372,224 370,238 370,250" stroke="#1040cc" strokeWidth={12} fill="none" strokeLinecap="round" />
         <path d="M393,212 C394,224 396,238 398,250" stroke="#1040cc" strokeWidth={10} fill="none" strokeLinecap="round" />
         {/* Red boots */}
         <path d="M368,250 C366,256 364,260 366,264 C368,266 374,266 376,262 C376,258 374,254 370,251 Z" fill="#cc2222" />
         <path d="M396,250 C396,256 396,260 398,264 C400,266 406,264 408,260 C408,256 406,252 400,251 Z" fill="#cc2222" />
-        {/* Speed lines */}
-        {[152,162,172,182].map((y,i)=>(
-          <line key={i} x1={415+i*2} y1={y} x2={448+i*6} y2={y} stroke="rgba(255,255,255,.25)" strokeWidth={1.5} />
+        {/* Speed lines trailing */}
+        {[150,160,170,180,190].map((y,i)=>(
+          <line key={i} x1={416+i*2} y1={y} x2={460+i*8} y2={y} stroke="rgba(255,255,255,.22)" strokeWidth={2-i*.2} strokeLinecap="round"/>
         ))}
+        {/* Speed blur streaks */}
+        <path d="M420,165 Q480,168 540,172" stroke="rgba(255,255,255,0.1)" strokeWidth={4} fill="none"/>
+        <path d="M422,185 Q475,188 530,193" stroke="rgba(255,255,255,0.08)" strokeWidth={6} fill="none"/>
       </g>
-      {/* Sunrise */}
-      <circle cx={400} cy={500} r={200} fill="rgba(255,150,0,.2)" style={{ animation: 'bg-pulse 8s ease-in-out infinite' }} />
+      {/* Kryptonite meteor drifting across */}
+      <g style={{ animation: 'bg-drift-l 22s 6s linear infinite normal backwards' }}>
+        <g transform="translate(720,100)">
+          <polygon points="0,-14 10,-5 8,10 -8,10 -10,-5" fill="#30cc40"/>
+          <polygon points="0,-14 6,-8 0,-6 -6,-8" fill="#50ee60" opacity={0.7}/>
+          <ellipse cx={0} cy={0} rx={14} ry={14} fill="#20aa30" opacity={0.2} style={{ animation: 'bg-glow 2s ease-in-out infinite' }}/>
+          {/* Green glow trail */}
+          <path d="M8,5 Q30,15 60,22" stroke="#40dd50" strokeWidth={3} fill="none" opacity={0.4} strokeLinecap="round"/>
+          <path d="M10,0 Q40,5 75,8" stroke="#30bb40" strokeWidth={1.5} fill="none" opacity={0.25} strokeLinecap="round"/>
+        </g>
+      </g>
     </svg>
   )
 }
@@ -3290,7 +3416,15 @@ function Scene_spiderman() {
   return (
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
-        <linearGradient id="sp-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#040810" /><stop offset="50%" stopColor="#0a1828" /><stop offset="100%" stopColor="#050a15" /></linearGradient>
+        <linearGradient id="sp-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#020608"/>
+          <stop offset="50%" stopColor="#081420"/>
+          <stop offset="100%" stopColor="#040810"/>
+        </linearGradient>
+        <radialGradient id="sp-spot" cx="50%" cy="0%">
+          <stop offset="0%" stopColor="#fffce0" stopOpacity="0.6"/>
+          <stop offset="100%" stopColor="#fffce0" stopOpacity="0"/>
+        </radialGradient>
       </defs>
       <rect width={800} height={450} fill="url(#sp-bg)" />
       <Stars n={30} />
@@ -3304,54 +3438,123 @@ function Scene_spiderman() {
           ))}
         </g>
       ))}
-      {/* WEB SHOOTS across screen - from bottom-left corner to upper-right */}
+      {/* Web net between buildings — static decorative web */}
+      {/* Anchor points: left building top (~x220,y120) to right building top (~x600,y200) */}
+      {[0,1,2,3,4].map(i=>(
+        <line key={i} x1={220+i*30} y1={118} x2={600+i*12} y2={200} stroke="#888" strokeWidth={0.8} opacity={0.18}/>
+      ))}
+      {/* Cross-connectors on the web net */}
+      {[0,1,2].map(i=>(
+        <path key={i} d={`M${280+i*60},${130+i*10} Q${340+i*40},${150+i*8} ${400+i*50},${140+i*12}`} stroke="#888" strokeWidth={0.7} fill="none" opacity={0.14}/>
+      ))}
+      {/* Web pattern — bottom-left corner */}
+      {[1,2,3,4].map(i=>(
+        <circle key={i} cx={0} cy={450} r={i*70} fill="none" stroke="#777" strokeWidth={0.8} opacity={0.18} />
+      ))}
+      {[15,30,50,70,90,110].map((a,i)=>(
+        <line key={i} x1={0} y1={500} x2={300*Math.cos(a*Math.PI/180)} y2={500-300*Math.sin(a*Math.PI/180)} stroke="#777" strokeWidth={0.8} opacity={0.14} />
+      ))}
+      {/* Web pattern — top-right corner */}
+      {[1,2,3].map(i=>(
+        <circle key={i} cx={800} cy={0} r={i*60} fill="none" stroke="#666" strokeWidth={0.8} opacity={0.14}/>
+      ))}
+      {[200,220,240,260,280].map((a,i)=>(
+        <line key={i} x1={800} y1={0} x2={800+200*Math.cos(a*Math.PI/180)} y2={200*Math.sin(a*Math.PI/180)} stroke="#666" strokeWidth={0.7} opacity={0.12}/>
+      ))}
+      {/* WEB SHOOTS across screen */}
       <line x1={0} y1={500} x2={800} y2={0} stroke="#d8d8d8" strokeWidth={2.5} opacity={0.75}
         strokeDasharray="900 900" style={{ animation: 'bg-web-shoot 7s ease-out infinite' }} />
-      {/* Secondary web strands */}
       <line x1={0} y1={400} x2={700} y2={0} stroke="#c8c8c8" strokeWidth={1.8} opacity={0.55}
         strokeDasharray="750 750" style={{ animation: 'bg-web-shoot2 7s 0.4s ease-out infinite' }} />
       <line x1={100} y1={500} x2={800} y2={80} stroke="#c8c8c8" strokeWidth={1.5} opacity={0.45}
         strokeDasharray="730 730" style={{ animation: 'bg-web-shoot2 7s 0.8s ease-out infinite' }} />
-      {/* Web pattern in corner */}
-      {[1,2,3].map(i=>(
-        <circle key={i} cx={0} cy={450} r={i*80} fill="none" stroke="#888" strokeWidth={1} opacity={0.2} />
-      ))}
-      {/* Radial lines from corner */}
-      {[20,40,60,80,100,120].map((a,i)=>(
-        <line key={i} x1={0} y1={500} x2={250*Math.cos(a*Math.PI/180)} y2={500-250*Math.sin(a*Math.PI/180)} stroke="#888" strokeWidth={1} opacity={0.15} />
-      ))}
-      {/* Spider-Man swinging — proper dynamic figure */}
+      {/* Police helicopter with searchlight */}
+      <g style={{ animation: 'bg-drift-lr 20s ease-in-out infinite' }}>
+        <g transform="translate(620,80)">
+          {/* Spotlight beam */}
+          <path d="M0,14 L-35,120 L35,120Z" fill="url(#sp-spot)" style={{ animation: 'bg-sway 3s ease-in-out infinite', transformBox:'fill-box', transformOrigin:'center top' }}/>
+          {/* Fuselage */}
+          <ellipse cx={0} cy={0} rx={30} ry={10} fill="#1a1a2a"/>
+          <rect x={24} y={-3} width={22} height={5} rx={2} fill="#141420"/>
+          {/* Tail rotor */}
+          <ellipse cx={46} cy={-1} rx={1.5} ry={8} fill="#222232" opacity={0.5} style={{ animation: 'bg-spin 0.1s linear infinite' }}/>
+          {/* Main rotor */}
+          <ellipse cx={0} cy={-10} rx={44} ry={4} fill="#1a1a2a" opacity={0.45} style={{ animation: 'bg-spin 0.1s linear infinite' }}/>
+          {/* Belly light */}
+          <circle cx={0} cy={10} r={4} fill="#fffce0" opacity={0.9} style={{ animation: 'bg-glow-fast 1.2s ease-in-out infinite' }}/>
+        </g>
+      </g>
+      {/* Green Goblin on glider — lurking from the right */}
+      <g style={{ animation: 'bg-float 5s 1s ease-in-out infinite' }}>
+        <g transform="translate(680,260)">
+          {/* Glider — bat-wing shaped */}
+          <path d="M0,0 C-20,-18 -54,-20 -60,-8 C-54,-4 -28,0 0,0Z" fill="#4a8020"/>
+          <path d="M0,0 C20,-18 54,-20 60,-8 C54,-4 28,0 0,0Z" fill="#4a8020"/>
+          <ellipse cx={0} cy={-4} rx={14} ry={10} fill="#386018"/>
+          {/* Engine glow */}
+          <ellipse cx={0} cy={2} rx={10} ry={4} fill="#ff8800" opacity={0.5} style={{ animation: 'bg-glow 1.5s ease-in-out infinite' }}/>
+          {/* Goblin figure */}
+          <circle cx={0} cy={-18} r={10} fill="#50a030"/>
+          {/* Goblin mask — angular eyes */}
+          <path d="M-6,-20 L-2,-16 L2,-16 L6,-20" fill="#ff8800" opacity={0.85}/>
+          <circle cx={-4} cy={-18} r={2.5} fill="#ffcc00"/>
+          <circle cx={4} cy={-18} r={2.5} fill="#ffcc00"/>
+          {/* Body */}
+          <rect x={-8} y={-8} width={16} height={16} rx={4} fill="#386018"/>
+          {/* Pumpkin bomb */}
+          <circle cx={18} cy={-12} r={6} fill="#ff8800"/>
+          <path d="M16,-18 L18,-14 L20,-18" fill="#50a030"/>
+          <circle cx={18} cy={-12} r={3} fill="#ff6600" opacity={0.6} style={{ animation: 'bg-glow-fast 0.8s ease-in-out infinite' }}/>
+          {/* Laugh lines */}
+          <path d="M-4,-12 Q0,-9 4,-12" stroke="#1a0a00" strokeWidth={1.5} fill="none"/>
+        </g>
+      </g>
+      {/* Bystander silhouette on rooftop */}
+      <g transform="translate(570,160)">
+        <circle cx={0} cy={-20} r={6} fill="#060810"/>
+        <rect x={-4} y={-14} width={8} height={14} rx={2} fill="#060810"/>
+        <line x1={-4} y1={-8} x2={-10} y2={-2} stroke="#060810" strokeWidth={2.5} strokeLinecap="round"/>
+        <line x1={4} y1={-8} x2={10} y2={-2} stroke="#060810" strokeWidth={2.5} strokeLinecap="round"/>
+        <line x1={-2} y1={0} x2={-2} y2={12} stroke="#060810" strokeWidth={2.5} strokeLinecap="round"/>
+        <line x1={2} y1={0} x2={2} y2={12} stroke="#060810" strokeWidth={2.5} strokeLinecap="round"/>
+        {/* Phone glow — filming the action */}
+        <rect x={8} y={-12} width={5} height={8} rx={1} fill="#3a80ff" opacity={0.7} style={{ animation: 'bg-twinkle 2s ease-in-out infinite' }}/>
+      </g>
+      {/* Spider-Man swinging */}
       <g style={{ animation: 'bg-fly 10s 1.5s ease-in-out infinite normal backwards' }}>
-        {/* Web line from hand up to building anchor */}
+        {/* Spidey sense burst — concentric arcs */}
+        {[1,2,3].map(i=>(
+          <path key={i} d={`M${384-i*6},${118+i*4} Q${400},${106+i*3} ${416+i*6},${118+i*4}`}
+            stroke="#ff4444" strokeWidth={1.5-i*.3} fill="none" opacity={0.5-i*.12}
+            style={{ animation: `bg-pulse ${0.8}s ${i*.1}s ease-in-out infinite` }}/>
+        ))}
+        {/* Web line from hand to anchor */}
         <path d="M348,125 C355,105 370,90 400,80" stroke="#d0d0d0" strokeWidth={1.8} fill="none" opacity={0.7} />
-        {/* Head — round with mask */}
+        {/* Head */}
         <circle cx={400} cy={136} r={16} fill="#cc1122" />
-        {/* Web pattern on mask */}
         {[[-8,-4],[0,-4],[8,-4],[-8,2],[0,2],[8,2]].map(([dx,dy],i)=>(
           <line key={i} x1={400+dx} y1={136+dy} x2={400+dx+4} y2={136+dy+5} stroke="#990011" strokeWidth={0.7} opacity={0.6} />
         ))}
-        {/* Spider lenses — angular white eyes */}
         <ellipse cx={394} cy={133} rx={8} ry={5} fill="white" opacity={0.9} />
         <ellipse cx={407} cy={133} rx={8} ry={5} fill="white" opacity={0.9} />
-        {/* Lens detail — inner white */}
         <ellipse cx={394} cy={133} rx={5} ry={3} fill="white" />
         <ellipse cx={407} cy={133} rx={5} ry={3} fill="white" />
         {/* Torso */}
         <path d="M388,150 C384,154 382,164 384,174 C386,180 394,184 400,184 C406,184 414,180 416,174 C418,164 416,154 412,150 C408,148 392,148 388,150 Z" fill="#cc1122" />
-        {/* Blue legs on suit */}
+        {/* Blue legs */}
         <path d="M385,180 C382,188 378,198 374,208 C378,212 384,212 386,210 C388,202 390,192 392,184 Z" fill="#1122cc" />
         <path d="M415,180 C418,188 422,198 426,208 C422,212 416,212 414,210 C412,202 408,192 408,184 Z" fill="#1122cc" />
         {/* Boots */}
         <path d="M372,208 C370,214 370,220 374,222 C378,224 386,222 387,218 C386,214 382,210 378,208 Z" fill="#cc1122" />
         <path d="M428,208 C430,214 430,220 426,222 C422,224 414,222 413,218 C414,214 418,210 422,208 Z" fill="#cc1122" />
-        {/* Web-shooting arm stretched up — dynamic pose */}
+        {/* Web-shooting arm */}
         <path d="M388,156 C380,152 372,148 365,143 C360,140 356,136 352,132" stroke="#1122cc" strokeWidth={8} fill="none" strokeLinecap="round" />
-        <path d="M350,132 C348,130 347,128 348,126" stroke="#1122cc" strokeWidth={6} fill="none" strokeLinecap="round" />
-        {/* Web-shooter hand */}
         <circle cx={348} cy={125} r={6} fill="#cc1122" />
-        {/* Other arm behind body */}
+        {/* Second web strand from shooter hand */}
+        <path d="M348,125 Q290,90 240,110" stroke="#d0d0d0" strokeWidth={1.2} fill="none" opacity={0.5}/>
+        {/* Other arm */}
         <path d="M412,158 C420,164 428,172 432,182" stroke="#1122cc" strokeWidth={8} fill="none" strokeLinecap="round" />
-        {/* Spider emblem on chest */}
+        {/* Spider emblem */}
         <path d="M400,158 L396,162 L400,168 L404,162 Z" fill="#111" opacity={0.5} />
         <path d="M396,162 L390,160 L392,164 Z" fill="#111" opacity={0.5} />
         <path d="M404,162 L410,160 L408,164 Z" fill="#111" opacity={0.5} />
@@ -5082,12 +5285,31 @@ function Scene_girlhero() {
   return (
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
       <defs>
-        <linearGradient id="gh-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#4a148c"/><stop offset="100%" stopColor="#1a0838"/></linearGradient>
-        <radialGradient id="gh-glow" cx="50%" cy="50%"><stop offset="0%" stopColor="#e91e63" stopOpacity={0.28}/><stop offset="100%" stopColor="#e91e63" stopOpacity={0}/></radialGradient>
+        <linearGradient id="gh-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#4a148c"/>
+          <stop offset="55%" stopColor="#2a0858"/>
+          <stop offset="100%" stopColor="#1a0030"/>
+        </linearGradient>
+        <radialGradient id="gh-glow" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#e91e63" stopOpacity={0.35}/>
+          <stop offset="100%" stopColor="#e91e63" stopOpacity={0}/>
+        </radialGradient>
+        <radialGradient id="gh-blast" cx="50%" cy="50%">
+          <stop offset="0%" stopColor="#ff80ff" stopOpacity={0.9}/>
+          <stop offset="60%" stopColor="#e91e63" stopOpacity={0.4}/>
+          <stop offset="100%" stopColor="#e91e63" stopOpacity={0}/>
+        </radialGradient>
+        <radialGradient id="gh-shield" cx="50%" cy="50%">
+          <stop offset="60%" stopColor="rgba(255,100,200,0)"/>
+          <stop offset="85%" stopColor="rgba(255,100,200,0.35)"/>
+          <stop offset="100%" stopColor="rgba(255,100,200,0)"/>
+        </radialGradient>
+        <filter id="gh-blur-sm"><feGaussianBlur stdDeviation="4"/></filter>
       </defs>
       <rect width={800} height={450} fill="url(#gh-bg)" />
       <Stars n={40} />
-      {/* City skyline anchored to bottom */}
+
+      {/* City skyline */}
       {[{x:0,w:80,h:180},{x:85,w:55,h:240},{x:145,w:85,h:165},{x:235,w:48,h:280},
         {x:570,w:65,h:205},{x:640,w:88,h:158},{x:730,w:62,h:230}].map((b,i)=>(
         <g key={i}>
@@ -5100,52 +5322,198 @@ function Scene_girlhero() {
           ))}
         </g>
       ))}
-      {/* Hero glow */}
-      <ellipse cx={400} cy={220} rx={170} ry={150} fill="url(#gh-glow)" />
-      {/* Girl Hero — flies like Superman using bg-fly (horizontal only, no vertical clip) */}
-      <g style={{ animation: 'bg-fly 10s ease-in-out infinite' }}>
-        {/* Cape billowing behind left */}
-        <path d="M388,195 C380,210 372,236 376,262 C388,248 404,238 412,232 C416,218 414,204 406,196 Z"
-          fill="#e91e63" opacity={0.92} />
+
+      {/* Shadow hero silhouette in background — second girl hero */}
+      <g transform="translate(160,200)" opacity={0.35} style={{ animation: 'bg-float 6s 1s ease-in-out infinite' }}>
+        <path d="M-14,14 C-18,24 -22,42 -18,58 C-10,48 2,40 8,34 C10,24 8,14 2,8Z" fill="#9c27b0"/>
+        <rect x={-2} y={8} width={22} height={34} rx={5} fill="#6a1b9a"/>
+        <circle cx={8} cy={-6} r={13} fill="#5d4037"/>
+        <path d="M14,8 Q24,14 30,8" stroke="#6a1b9a" strokeWidth={8} fill="none" strokeLinecap="round"/>
+        <path d="M-4,8 Q-14,14 -18,10" stroke="#6a1b9a" strokeWidth={7} fill="none" strokeLinecap="round"/>
+      </g>
+
+      {/* Civilian on rooftop — building at x=570,w=65,h=205 → top at y=245 */}
+      <g transform="translate(602,229)">
+        {/* Rooftop ledge */}
+        <rect x={-35} y={16} width={70} height={5} rx={2} fill="#2a1040"/>
+        {/* Person */}
+        <circle cx={0} cy={-20} r={7} fill="#c9a87c"/>
+        <rect x={-5} y={-13} width={10} height={16} rx={3} fill="#e040fb"/>
+        <line x1={-3} y1={3} x2={-4} y2={16} stroke="#7b1fa2" strokeWidth={3} strokeLinecap="round"/>
+        <line x1={3} y1={3} x2={4} y2={16} stroke="#7b1fa2" strokeWidth={3} strokeLinecap="round"/>
+        {/* Arms raised in distress */}
+        <path d="M-5,-7 Q-18,-14 -16,-22" stroke="#c9a87c" strokeWidth={3} fill="none" strokeLinecap="round"/>
+        <path d="M5,-7 Q18,-14 16,-22" stroke="#c9a87c" strokeWidth={3} fill="none" strokeLinecap="round"/>
+      </g>
+
+      {/* Villain robot drone — synced to hero 12s cycle: floats 0-63%, breaks+falls 64-86%, resets 87-100% */}
+      <g transform="translate(680,120)">
+        <g style={{ animation: 'bg-drone-break 12s 1s linear infinite normal backwards' }}>
+        
+          {/* Body */}
+          <rect x={-28} y={-22} width={56} height={44} rx={6} fill="#1a1030"/>
+          <rect x={-22} y={-16} width={44} height={32} rx={4} fill="#0e0820"/>
+          {/* Evil eye */}
+          <circle cx={0} cy={-4} r={12} fill="#200010"/>
+          <circle cx={0} cy={-4} r={8} fill="#cc0020" style={{ animation: 'bg-glow-fast 0.8s ease-in-out infinite' }}/>
+          <circle cx={0} cy={-4} r={4} fill="#ff2040" opacity={0.9}/>
+          {/* Scanner beam */}
+          <path d="M0,8 L-20,60 L20,60Z" fill="#cc0020" opacity={0.15} style={{ animation: 'bg-sway 2s ease-in-out infinite', transformBox:'fill-box', transformOrigin:'center top' }}/>
+          {/* Wings */}
+          <path d="M-28,-8 Q-50,-18 -58,-10 Q-50,0 -28,4Z" fill="#150a28"/>
+          <path d="M28,-8 Q50,-18 58,-10 Q50,0 28,4Z" fill="#150a28"/>
+          {/* Weapon pods */}
+          <circle cx={-52} cy={-8} r={6} fill="#300020"/>
+          <circle cx={52} cy={-8} r={6} fill="#300020"/>
+          <circle cx={-52} cy={-8} r={3} fill="#cc0020" opacity={0.7} style={{ animation: 'bg-glow-fast 1s 0.3s ease-in-out infinite' }}/>
+          <circle cx={52} cy={-8} r={3} fill="#cc0020" opacity={0.7} style={{ animation: 'bg-glow-fast 1s 0.6s ease-in-out infinite' }}/>
+          {/* Rotor blur */}
+          <ellipse cx={0} cy={-22} rx={32} ry={4} fill="#150a28" opacity={0.4} style={{ animation: 'bg-spin 0.1s linear infinite' }}/>
+          {/* Laser toward hero */}
+          <line x1={-55} y1={-8} x2={-150} y2={20} stroke="#cc0020" strokeWidth={2} opacity={0.6} style={{ animation: 'bg-glow-fast 0.5s ease-in-out infinite' }}/>
+        </g>
+      </g>
+
+      {/* Explosion flash at drone position — fires at 64% of 12s cycle */}
+      <g transform="translate(680,120)">
+        <g style={{ animation: 'bg-drone-flash 12s 1s linear infinite normal backwards' }}>
+          {[0,40,80,120,160,200,240,280,320].map((a,i)=>(
+            <line key={i} x1={0} y1={0} x2={Math.cos(a*Math.PI/180)*36} y2={Math.sin(a*Math.PI/180)*36}
+              stroke={i%3===0?'#ffd600':i%3===1?'#ff80ff':'#ff4000'} strokeWidth={3} strokeLinecap="round"/>
+          ))}
+          <circle cx={0} cy={0} r={20} fill="#ff8000" opacity={0.7}/>
+          <circle cx={0} cy={0} r={10} fill="#ffffa0" opacity={0.9}/>
+        </g>
+      </g>
+
+      {/* Debris piece — left wing, flies upper-left */}
+      <g transform="translate(680,120)">
+        <g style={{ animation: 'bg-drone-debris-l 12s 1s linear infinite normal backwards' }}>
+          <path d="M0,0 Q-16,-8 -24,-2 Q-16,4 0,4Z" fill="#150a28"/>
+          <circle cx={-20} cy={-2} r={4} fill="#300020"/>
+        </g>
+      </g>
+      {/* Debris piece — right wing chunk, flies right */}
+      <g transform="translate(680,120)"> 
+        <g style={{ animation: 'bg-drone-debris-r 12s 1s linear infinite normal backwards' }}>
+          <path d="M0,0 Q16,-8 24,-2 Q16,4 0,4Z" fill="#150a28"/>
+          <circle cx={20} cy={-2} r={4} fill="#cc0020"/>
+        </g>
+      </g>
+      {/* Debris piece — body core, falls center */}
+      <g transform="translate(680,120)">
+        <g style={{ animation: 'bg-drone-debris-c 12s 1s linear infinite normal backwards' }}>
+          <rect x={-12} y={-10} width={24} height={20} rx={4} fill="#0e0820"/>
+          <circle cx={0} cy={-2} r={5} fill="#cc0020" opacity={0.8}/>
+        </g>
+      </g>
+
+      {/* Hero glow aura */}
+      <ellipse cx={400} cy={220} rx={180} ry={160} fill="url(#gh-glow)" />
+
+      {/* Girl Hero — moves LEFT→RIGHT with bg-fly-r */}
+      <g style={{ animation: 'bg-fly-r 12s 1s ease-in-out infinite normal backwards' }}>
+        {/* Flight energy trail — behind her (to her LEFT since she flies right) */}
+        <path d="M150,218 Q220,210 290,213 Q340,215 370,218" stroke="#e91e63" strokeWidth={7} fill="none" opacity={0.35} strokeLinecap="round"/>
+        <path d="M120,224 Q200,216 275,219 Q330,221 368,224" stroke="#ff80c0" strokeWidth={4} fill="none" opacity={0.22} strokeLinecap="round"/>
+        <path d="M90,228 Q180,222 260,225 Q320,227 366,230" stroke="#9c27b0" strokeWidth={3} fill="none" opacity={0.15} strokeLinecap="round"/>
+        {/* Sparkle trail particles (fade left to right — brightest near her) */}
+        {[{x:160,y:214},{x:200,y:218},{x:240,y:212},{x:280,y:216},{x:330,y:214},{x:362,y:217}].map((p,i)=>(
+          <circle key={i} cx={p.x} cy={p.y} r={2.5+i*.3} fill="#ff80ff" opacity={0.3+i*.07}
+            style={{ animation: `bg-twinkle ${1+i*.2}s ${i*.15}s ease-in-out infinite` }}/>
+        ))}
+        {/* Speed lines — behind her (to the LEFT) */}
+        {[195,207,219,231].map((y,i)=>(
+          <line key={i} x1={340-i*6} y1={y} x2={290-i*8} y2={y} stroke="rgba(255,255,255,0.22)" strokeWidth={1.5} />
+        ))}
+
+        {/* Energy shield bubble around her fist (right/forward side) */}
+        <circle cx={476} cy={192} r={28} fill="url(#gh-shield)" style={{ animation: 'bg-pulse 0.8s ease-in-out infinite' }}/>
+        <circle cx={476} cy={192} r={20} fill="none" stroke="#ff80ff" strokeWidth={1.5} opacity={0.5} style={{ animation: 'bg-pulse 0.8s 0.2s ease-in-out infinite' }}/>
+        {/* Power blast from fist — cone shooting forward (right) */}
+        <path d="M476,192 L560,170 L576,188 L560,206 L476,192Z" fill="#ff80ff" opacity={0.25} style={{ animation: 'bg-glow 0.6s ease-in-out infinite' }}/>
+        <path d="M476,192 L548,178 L558,192 L548,206 L476,192Z" fill="#ffd600" opacity={0.2} style={{ animation: 'bg-glow 0.6s 0.1s ease-in-out infinite' }}/>
+        {/* Cape billowing behind (to the LEFT since she moves right) */}
+        <path d="M388,195 C380,210 372,236 376,262 C388,248 404,238 412,232 C416,218 414,204 406,196 Z" fill="#e91e63" opacity={0.92} />
+        {/* Cape shimmer highlight */}
+        <path d="M406,196 C410,206 410,218 408,228 C412,222 416,212 414,204Z" fill="#ff80a0" opacity={0.4}/>
         {/* Body */}
         <rect x={390} y={196} width={36} height={50} rx={8} fill="#7b1fa2" />
-        {/* Star */}
-        <polygon points="408,206 411,216 421,216 413,222 416,232 408,226 400,232 403,222 395,216 405,216"
-          fill="#ffd600" />
+        {/* Suit detail */}
+        <line x1={408} y1={196} x2={408} y2={246} stroke="#6a1b9a" strokeWidth={1.5} opacity={0.5}/>
+        <line x1={390} y1={218} x2={426} y2={218} stroke="#6a1b9a" strokeWidth={1} opacity={0.4}/>
+        {/* Star emblem */}
+        <polygon points="408,206 411,216 421,216 413,222 416,232 408,226 400,232 403,222 395,216 405,216" fill="#ffd600" />
         {/* Head */}
         <circle cx={408} cy={180} r={20} fill="#ffcc80" />
         {/* Hair */}
         <ellipse cx={408} cy={163} rx={20} ry={10} fill="#6d4c41" />
         <path d="M390,170 Q382,188 388,208" stroke="#6d4c41" strokeWidth={9} fill="none" strokeLinecap="round" />
         <path d="M426,170 Q434,188 428,208" stroke="#6d4c41" strokeWidth={9} fill="none" strokeLinecap="round" />
+        {/* Hair highlight */}
+        <path d="M392,164 Q400,160 410,163" stroke="#8d6c51" strokeWidth={2.5} fill="none" opacity={0.5}/>
         {/* Mask */}
         <rect x={392} y={175} width={32} height={11} rx={5} fill="#e91e63" opacity={0.88} />
         <ellipse cx={400} cy={180} rx={5} ry={3.5} fill="#1a0a3a" />
         <ellipse cx={416} cy={180} rx={5} ry={3.5} fill="#1a0a3a" />
-        {/* Lead arm outstretched forward right — like Superman */}
+        {/* Eye shine */}
+        <circle cx={401} cy={179} r={1.2} fill="white" opacity={0.6}/>
+        <circle cx={417} cy={179} r={1.2} fill="white" opacity={0.6}/>
+        {/* Lead arm — power fist pointing RIGHT (forward direction) */}
         <path d="M424,210 Q450,202 470,194" stroke="#7b1fa2" strokeWidth={14} fill="none" strokeLinecap="round" />
         <circle cx={474} cy={192} r={11} fill="#ffcc80" />
-        {/* Trailing arm back */}
+        {/* Glowing knuckles */}
+        <circle cx={474} cy={192} r={14} fill="#ff80ff" opacity={0.3} style={{ animation: 'bg-glow-fast 0.5s ease-in-out infinite' }}/>
+        {/* Trailing arm — sweeps back to the LEFT */}
         <path d="M392,210 Q372,218 358,228" stroke="#7b1fa2" strokeWidth={12} fill="none" strokeLinecap="round" />
         <circle cx={354} cy={230} r={10} fill="#ffcc80" />
-        {/* Legs back */}
+        {/* Legs angled back */}
         <path d="M396,246 Q390,264 388,280" stroke="#7b1fa2" strokeWidth={12} fill="none" strokeLinecap="round" />
         <path d="M414,246 Q418,264 422,280" stroke="#7b1fa2" strokeWidth={10} fill="none" strokeLinecap="round" />
         {/* Boots */}
         <path d="M386,280 Q382,288 384,294 Q388,296 394,292 Q394,286 390,280 Z" fill="#e91e63" />
         <path d="M420,280 Q420,288 422,294 Q426,296 432,292 Q432,286 424,281 Z" fill="#e91e63" />
-        {/* Speed lines */}
-        {[193,204,215,226].map((y,i)=>(
-          <line key={i} x1={484+i*2} y1={y} x2={520+i*6} y2={y}
-            stroke="rgba(255,255,255,0.22)" strokeWidth={1.5} />
-        ))}
       </g>
-      {/* Sparkles */}
-      {[{x:240,y:180},{x:560,y:200},{x:300,y:310},{x:500,y:300}].map((s,i)=>(
+
+      {/* Sidekick fairy companion — tiny glowing sprite */}
+      <g style={{ animation: 'bg-float 2.5s 0.8s ease-in-out infinite' }}>
+        <g transform="translate(340,175)">
+          {/* Wing glow */}
+          <ellipse cx={-10} cy={0} rx={12} ry={7} fill="#ff80ff" opacity={0.4} transform="rotate(-30,-10,0)"/>
+          <ellipse cx={10} cy={0} rx={12} ry={7} fill="#ff80ff" opacity={0.4} transform="rotate(30,10,0)"/>
+          {/* Tiny body */}
+          <circle cx={0} cy={0} r={5} fill="#ffd6f0"/>
+          <circle cx={0} cy={-7} r={4} fill="#ffc0e0"/>
+          {/* Wand with star */}
+          <line x1={4} y1={2} x2={14} y2={-10} stroke="#ffd600" strokeWidth={1.5}/>
+          <polygon points="14,-14 15,-10 19,-10 16,-7 17,-3 14,-6 11,-3 12,-7 9,-10 13,-10" fill="#ffd600" transform="scale(0.6) translate(9,-4)"/>
+          {/* Sparkle trail from wand */}
+          {[{x:16,y:-12},{x:20,y:-8},{x:24,y:-4}].map((p,i)=>(
+            <circle key={i} cx={p.x} cy={p.y} r={2} fill="#ffd600" opacity={0.7-i*.2}
+              style={{ animation: `bg-twinkle ${0.8+i*.2}s ${i*.1}s ease-in-out infinite` }}/>
+          ))}
+          {/* Body glow */}
+          <circle cx={0} cy={0} r={9} fill="#ff80ff" opacity={0.2} style={{ animation: 'bg-glow 1.5s ease-in-out infinite' }}/>
+        </g>
+      </g>
+
+      {/* Floating debris from battle — rocks/chunks */}
+      {[{x:200,y:280,r:14},{x:560,y:300,r:10},{x:130,y:320,r:8},{x:650,y:280,r:12}].map((d,i)=>(
+        <g key={i} style={{ animation: `bg-float ${3+i*.7}s ${i*.5}s ease-in-out infinite` }}>
+          <polygon points={`${d.x},${d.y-d.r} ${d.x+d.r},${d.y-d.r/2} ${d.x+d.r*.8},${d.y+d.r*.6} ${d.x-d.r*.6},${d.y+d.r} ${d.x-d.r},${d.y}`}
+            fill="#2a1040" stroke="#3a1858" strokeWidth={1}/>
+          {/* Energy crack on debris */}
+          <path d={`M${d.x-4},${d.y-4} L${d.x+2},${d.y} L${d.x-2},${d.y+5}`} stroke="#e91e63" strokeWidth={1} fill="none" opacity={0.6}
+            style={{ animation: `bg-glow ${1+i*.3}s ease-in-out infinite` }}/>
+        </g>
+      ))}
+
+      {/* Sparkles — more of them, different sizes */}
+      {[{x:240,y:180,s:13},{x:560,y:200,s:10},{x:300,y:310,s:11},{x:500,y:300,s:8},{x:170,y:250,s:9},{x:650,y:340,s:7}].map((s,i)=>(
         <g key={i} style={{ animation: `bg-glow ${2+i*.5}s ${i*.3}s ease-in-out infinite` }}>
           <polygon
-            points={`${s.x},${s.y-13} ${s.x+4},${s.y-4} ${s.x+13},${s.y} ${s.x+4},${s.y+4} ${s.x},${s.y+13} ${s.x-4},${s.y+4} ${s.x-13},${s.y} ${s.x-4},${s.y-4}`}
-            fill="#ffd600" opacity={0.82} />
+            points={`${s.x},${s.y-s.s} ${s.x+3},${s.y-3} ${s.x+s.s},${s.y} ${s.x+3},${s.y+3} ${s.x},${s.y+s.s} ${s.x-3},${s.y+3} ${s.x-s.s},${s.y} ${s.x-3},${s.y-3}`}
+            fill={i%2===0?'#ffd600':'#ff80ff'} opacity={0.82} />
         </g>
       ))}
     </svg>

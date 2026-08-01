@@ -81,13 +81,15 @@ public class PromoCreditService {
             "🎁 You've received " + credits + " bonus credits: " + label + " — " +
             "expires " + expiresFormatted + ". They kick in automatically when your monthly credits run out.");
 
-        // Email
-        try {
-            resendClient.send(user.getEmail(),
-                "🎁 You've got " + credits + " bonus Glumbi credits!",
-                emailTemplates.promoGrant(label, credits, expiresFormatted));
-        } catch (Exception e) {
-            log.warn("Promo grant email failed for user {}: {}", userId, e.getMessage());
+        // Email — respect marketing opt-out (promo grants are admin-initiated)
+        if (user.isMarketingEmailsEnabled()) {
+            try {
+                resendClient.send(user.getEmail(),
+                    "🎁 You've got " + credits + " bonus Glumbi credits!",
+                    emailTemplates.promoGrant(label, credits, expiresFormatted));
+            } catch (Exception e) {
+                log.warn("Promo grant email failed for user {}: {}", userId, e.getMessage());
+            }
         }
 
         return true;
@@ -133,12 +135,14 @@ public class PromoCreditService {
             notificationService.save(user, null, NotificationType.QUOTA_WARNING,
                 "Your " + grant.getLabel() + " bonus credits are fully used. " +
                 "Monthly credits reset on " + nextReset + ".");
-            try {
-                resendClient.send(user.getEmail(),
-                    "Your Glumbi bonus credits are used up",
-                    emailTemplates.promoExhausted(grant.getLabel(), nextReset));
-            } catch (Exception e) {
-                log.warn("Promo exhausted email failed for user {}: {}", userId, e.getMessage());
+            if (user.isMarketingEmailsEnabled()) {
+                try {
+                    resendClient.send(user.getEmail(),
+                        "Your Glumbi bonus credits are used up",
+                        emailTemplates.promoExhausted(grant.getLabel(), nextReset));
+                } catch (Exception e) {
+                    log.warn("Promo exhausted email failed for user {}: {}", userId, e.getMessage());
+                }
             }
         });
     }

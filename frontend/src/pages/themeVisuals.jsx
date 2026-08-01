@@ -28,7 +28,7 @@ const ZONE_BG = {
   dragonfire:'#0d0000',   racecar:'#090900',       halloween:'#090400',
   diwali:'#0f0700',       hotcocoa:'#040309',      christmas:'#020902',
   frozen:'#051626',       sky:'#051626',           rainbow:'#070007',
-  artStudio:'#070007',
+  artStudio:'#070007',    cricket: '#1b5e20',      football: '#2e7d32'
 }
 
 // ── Theme zone scene SVG (inside clipped circle) ───────────────────────────────
@@ -1526,6 +1526,8 @@ const THEME_PLANET_EMOJIS = {
   sky:          ['☁️','🌤️','🪁','🦅','🌈'],
   rainbow:      ['🌈','☁️','💧','⭐','🌟'],
   artStudio:    ['🎨','🖌️','✏️','🖼️','🌈'],
+  cricket:      ['🏏', '🥎', '🧢', '🥇', '🏆'],
+  football:     ['⚽', '🥅', '👟', '🏆', '🎉'],
 }
 
 // ── Themed Planet Visual ───────────────────────────────────────────────────────

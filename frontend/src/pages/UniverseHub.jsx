@@ -1186,6 +1186,124 @@ function WorldPlanetVisual({ planet, size, world }) {
     )
   }
 
+  // ── Sports: Trophy ─────────────────────────────────────────────────────────
+  if (zoneStyle === 'sportspark') {
+    return (
+      <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+        {glow}
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            overflow: 'visible',
+            animation: 'hub-bob-planet 3.2s ease-in-out infinite'
+          }}
+        >
+          <defs>
+            <linearGradient id={`${id}-gold`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#FFE082" />
+              <stop offset="45%" stopColor={hi} />
+              <stop offset="100%" stopColor={mid} />
+            </linearGradient>
+
+            <filter id={`${id}-blur`}>
+              <feGaussianBlur stdDeviation="2" />
+            </filter>
+          </defs>
+
+          {/* Cup */}
+          <path
+            d={`
+              M ${size*0.30} ${size*0.18}
+              Q ${c} ${size*0.08} ${size*0.70} ${size*0.18}
+              L ${size*0.63} ${size*0.48}
+              Q ${c} ${size*0.62} ${size*0.37} ${size*0.48}
+              Z
+            `}
+            fill={`url(#${id}-gold)`}
+          />
+
+          {/* Handles */}
+          <path
+            d={`
+              M ${size*0.30} ${size*0.22}
+              Q ${size*0.12} ${size*0.28} ${size*0.24} ${size*0.44}
+            `}
+            stroke={mid}
+            strokeWidth={c*0.06}
+            fill="none"
+            strokeLinecap="round"
+          />
+
+          <path
+            d={`
+              M ${size*0.70} ${size*0.22}
+              Q ${size*0.88} ${size*0.28} ${size*0.76} ${size*0.44}
+            `}
+            stroke={mid}
+            strokeWidth={c*0.06}
+            fill="none"
+            strokeLinecap="round"
+          />
+
+          {/* Stem */}
+          <rect
+            x={size*0.46}
+            y={size*0.48}
+            width={size*0.08}
+            height={size*0.16}
+            rx={size*0.02}
+            fill={mid}
+          />
+
+          {/* Base */}
+          <rect
+            x={size*0.35}
+            y={size*0.64}
+            width={size*0.30}
+            height={size*0.08}
+            rx={size*0.03}
+            fill={lo}
+          />
+
+          <rect
+            x={size*0.28}
+            y={size*0.73}
+            width={size*0.44}
+            height={size*0.08}
+            rx={size*0.03}
+            fill={mid}
+          />
+
+          {/* Shine */}
+          <ellipse
+            cx={size*0.42}
+            cy={size*0.24}
+            rx={size*0.08}
+            ry={size*0.04}
+            fill="rgba(255,255,255,.6)"
+            filter={`url(#${id}-blur)`}
+          />
+
+          {/* Star */}
+          <text
+            x={c}
+            y={size*0.36}
+            textAnchor="middle"
+            fontSize={size*0.11}
+            fill="white"
+            opacity="0.85"
+          >
+            ★
+          </text>
+        </svg>
+      </div>
+    );
+  }
+
   // ── Abstract: gemstone / crystal ─────────────────────────────────────────
   if (zoneStyle === 'burst') {
     return (

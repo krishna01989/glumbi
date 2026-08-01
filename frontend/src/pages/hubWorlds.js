@@ -109,6 +109,33 @@ export const WORLD_SYSTEMS = {
     subLabel:  'drift to explore · tap to float',
     orbitLabel:'drift · tap to explore',
   },
+  sport: {
+    bg: 'linear-gradient(180deg,#0f2027 0%,#203a43 45%,#2c5364 100%)',
+    particles: {
+      type: 'spark',
+      count: 20,
+      colors: [
+        'rgba(255,255,255,0.12)',
+        'rgba(255,215,0,0.10)',
+        'rgba(0,255,200,0.08)'
+      ]
+    },
+    ambient: {
+      type: 'stadium',
+      colors: [
+        '#00e5ff44',
+        '#76ff0344',
+        '#ffd60033'
+      ]
+    },
+    zoneStyle: 'sportspark',
+    zoneName: 'Arena',
+    zoneAction: 'Play Here ›',
+    planetAction: 'Compete There ›',
+    worldTitle: 'Sports',
+    subLabel: 'train to improve · tap to play',
+    orbitLabel: 'compete · tap to explore',
+  },
   abstract: {
     bg: 'linear-gradient(180deg,#080008 0%,#0d0010 40%,#150018 100%)',
     particles: { type: 'geometric', count: 40, colors: ['#ff6ec7','#ffd600','#00e5ff','#ff6b6b','#b967ff','#00ff9f','#ff9f00'] },
@@ -154,7 +181,7 @@ export const THEME_WORLD = {
   rainbow: 'abstract', artStudio: 'abstract',
   // New themes
   train: 'warmsky', butterfly: 'magical', bees: 'warmsky',
-  sunflowerfarm: 'warmsky', cricket: 'forest', football: 'forest',
+  sunflowerfarm: 'warmsky', cricket: 'sport', football: 'sport',
   camping: 'forest', aroundtheworld: 'sky', junglebook: 'forest',
   music: 'abstract', girlhero: 'adventure',
 }

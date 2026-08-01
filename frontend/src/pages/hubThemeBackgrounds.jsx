@@ -547,15 +547,46 @@ function Scene_moon() {
     <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
       <defs>
         <radialGradient id="moon-bg" cx="30%" cy="20%"><stop offset="0%" stopColor="#0c1a3a" /><stop offset="100%" stopColor="#020610" /></radialGradient>
-        <radialGradient id="earth-g" cx="40%" cy="35%"><stop offset="0%" stopColor="#4080ff" /><stop offset="60%" stopColor="#2060c0" /><stop offset="100%" stopColor="#0a2060" /></radialGradient>
+        <radialGradient id="earth-g" cx="35%" cy="30%">
+          <stop offset="0%" stopColor="#5bbfff"/>
+          <stop offset="50%" stopColor="#1a6dcc"/>
+          <stop offset="100%" stopColor="#08204a"/>
+        </radialGradient>
+        <radialGradient id="earth-atm" cx="50%" cy="50%">
+          <stop offset="68%" stopColor="rgba(0,0,0,0)"/>
+          <stop offset="100%" stopColor="rgba(80,160,255,0.32)"/>
+        </radialGradient>
+        <clipPath id="earth-clip"><circle cx={680} cy={100} r={63}/></clipPath>
       </defs>
       <rect width={800} height={450} fill="url(#moon-bg)" />
       <Stars n={90} />
-      {/* Earth rising */}
+      {/* Earth rising — ocean base */}
       <circle cx={680} cy={100} r={65} fill="url(#earth-g)" style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
-      <ellipse cx={668} cy={82} rx={28} ry={16} fill="#50c050" opacity={0.7} />
-      <ellipse cx={692} cy={105} rx={20} ry={12} fill="#50c050" opacity={0.6} />
-      <ellipse cx={680} cy={100} rx={65} ry={65} fill="white" opacity={0.05} />
+      {/* Continents clipped to Earth disk */}
+      <g clipPath="url(#earth-clip)">
+        {/* Americas */}
+        <path d="M636,58 Q626,70 629,86 Q632,102 640,114 Q637,130 634,142 Q638,154 647,157 Q654,153 653,140 Q649,126 652,112 Q658,100 659,86 Q656,70 647,60Z" fill="#3d8c30" opacity={0.88}/>
+        {/* Greenland */}
+        <ellipse cx={645} cy={50} rx={10} ry={7} fill="#4a9438" opacity={0.75}/>
+        {/* Europe */}
+        <path d="M681,52 Q690,47 700,55 Q705,64 700,73 Q694,77 687,74 Q682,68 681,58Z" fill="#4a9438" opacity={0.85}/>
+        {/* Africa */}
+        <path d="M684,80 Q694,76 702,84 Q708,97 705,112 Q707,126 703,140 Q699,154 692,157 Q685,155 682,144 Q680,130 684,118 Q686,105 684,93Z" fill="#5a9e40" opacity={0.85}/>
+        {/* Eurasia */}
+        <path d="M700,50 Q714,44 726,52 Q732,62 726,70 Q716,74 706,70 Q700,63 700,54Z" fill="#4a9438" opacity={0.78}/>
+        <path d="M726,54 Q738,50 744,60 Q742,70 734,72 Q726,70 724,62Z" fill="#4a9438" opacity={0.68}/>
+        {/* Australia */}
+        <path d="M718,120 Q728,116 735,123 Q737,133 730,138 Q720,138 716,131Z" fill="#5a9e40" opacity={0.72}/>
+        {/* Cloud formations — irregular lumpy shapes */}
+        <path d="M633,68 Q637,62 643,63 Q645,58 651,60 Q657,58 659,64 Q663,63 664,68 Q663,73 657,73 Q654,76 649,74 Q644,76 640,74 Q635,73 633,68Z" fill="white" opacity={0.58}/>
+        <path d="M655,108 Q659,102 665,104 Q668,100 674,101 Q679,99 681,104 Q684,103 685,108 Q684,113 679,113 Q676,116 671,114 Q666,116 661,114 Q656,113 655,108Z" fill="white" opacity={0.48}/>
+        <path d="M694,80 Q698,75 703,76 Q705,71 710,73 Q714,71 715,76 Q718,76 718,81 Q717,85 712,85 Q709,88 705,86 Q701,88 697,86 Q694,84 694,80Z" fill="white" opacity={0.42}/>
+        <path d="M667,138 Q671,132 677,133 Q680,129 686,131 Q690,130 691,135 Q693,140 689,142 Q685,145 680,143 Q675,145 670,143 Q666,141 667,138Z" fill="white" opacity={0.38}/>
+        <path d="M715,105 Q718,101 722,102 Q724,98 728,100 Q731,99 731,104 Q731,108 727,109 Q724,111 720,110 Q716,111 714,108 Q713,105 715,105Z" fill="white" opacity={0.34}/>
+      </g>
+      {/* Atmosphere halo */}
+      <circle cx={680} cy={100} r={65} fill="url(#earth-atm)"/>
+      <circle cx={680} cy={100} r={67} fill="none" stroke="#6ab4ff" strokeWidth={3} opacity={0.22}/>
       {/* Lunar ground */}
       <ellipse cx={400} cy={440} rx={550} ry={120} fill="#c8c0b0" />
       <ellipse cx={400} cy={420} rx={500} ry={80} fill="#d8d0c0" />
@@ -576,10 +607,17 @@ function Scene_moon() {
         <circle cx={30} cy={28} r={8} fill="#ccc" /> {/* boot R */}
       </g>
       </g>
-      {/* Flag */}
-      <rect x={440} y={335} width={4} height={55} fill="#ccc" />
-      <rect x={444} y={335} width={34} height={22} fill="#cc2222" style={{ animation: 'bg-flag-wave 2s ease-in-out infinite', transformOrigin: 'left center', transformBox: 'fill-box' }} />
-      <text x={448} y={350} fontSize={10} fill="white" opacity={0.8}>★</text>
+      {/* Neutral space exploration flag — white with globe symbol, no country */}
+      <rect x={440} y={335} width={4} height={55} fill="#bbb" />
+      <g style={{ animation: 'bg-flag-wave 2s ease-in-out infinite', transformBox: 'fill-box', transformOrigin: 'left center' }}>
+        <rect x={444} y={335} width={36} height={24} fill="#f0f0f0" />
+        <rect x={444} y={335} width={36} height={3} fill="#4488cc" opacity={0.55}/>
+        <rect x={444} y={356} width={36} height={3} fill="#4488cc" opacity={0.55}/>
+        {/* Globe icon: circle + latitude + longitude lines */}
+        <circle cx={462} cy={347} r={7} fill="none" stroke="#2255aa" strokeWidth={1.4}/>
+        <line x1={455} y1={347} x2={469} y2={347} stroke="#2255aa" strokeWidth={1}/>
+        <ellipse cx={462} cy={347} rx={4} ry={7} fill="none" stroke="#2255aa" strokeWidth={1}/>
+      </g>
       {/* Rocket — launches bottom to top */}
       <g style={{ animation: 'bg-launch 18s 5s linear infinite normal backwards' }}>
         <g transform="translate(400, 0)">

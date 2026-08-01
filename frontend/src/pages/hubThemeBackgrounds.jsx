@@ -3510,7 +3510,7 @@ function Scene_spiderman() {
         </g>
       </g>
       {/* Bystander silhouette on rooftop */}
-      <g transform="translate(570,160)">
+      <g transform="translate(250,180)">
         <circle cx={0} cy={-20} r={6} fill="#060810"/>
         <rect x={-4} y={-14} width={8} height={14} rx={2} fill="#060810"/>
         <line x1={-4} y1={-8} x2={-10} y2={-2} stroke="#060810" strokeWidth={2.5} strokeLinecap="round"/>

@@ -60,6 +60,11 @@ function injectBgStyles() {
     @keyframes bg-screen-flash{0%,83%,100%{opacity:0}85%{opacity:.55}87%{opacity:.06}89%{opacity:.42}91%{opacity:0}}
     @keyframes bg-screen-flash2{0%,78%,100%{opacity:0}80%{opacity:.45}82%{opacity:.04}84%{opacity:.35}86%{opacity:0}}
     @keyframes bg-lightning-draw{0%{stroke-dashoffset:300;opacity:.95}18%{stroke-dashoffset:0;opacity:.85}35%{stroke-dashoffset:0;opacity:0}36%,100%{stroke-dashoffset:300;opacity:0}}
+    @keyframes bg-cricket-delivery{0%,100%{transform:translateY(0);opacity:1}60%{transform:translateY(-200px);opacity:1}75%{transform:translateY(-220px);opacity:0}76%{transform:translateY(0);opacity:0}90%{opacity:0}99%{opacity:1}}
+    @keyframes bg-bat-swing{0%,100%{transform:rotate(20deg)}12%{transform:rotate(75deg)}30%{transform:rotate(138deg)}52%{transform:rotate(138deg)}70%{transform:rotate(-118deg)}89%{transform:rotate(-118deg)}}
+    @keyframes bg-six{0%,55%{opacity:0;transform:scale(0.4) translateY(20px)}60%{opacity:1;transform:scale(1.2) translateY(-10px)}72%{opacity:1;transform:scale(1) translateY(0)}85%{opacity:0;transform:scale(0.8) translateY(-30px)}100%{opacity:0}}
+    @keyframes bg-goal{0%,53%{opacity:0;transform:scale(0.3)}61%{opacity:1;transform:scale(1.3)}69%{opacity:1;transform:scale(1)}78%{opacity:1;transform:scale(1)}86%{opacity:0;transform:scale(0.8)}100%{opacity:0}}
+    @keyframes bg-fb-ball{0%{transform:translate(0,0) rotate(0deg)}55%{transform:translate(224px,-63px) rotate(380deg)}70%{transform:translate(224px,-63px) rotate(420deg)}78%,100%{transform:translate(0,0) rotate(0deg)}}
 
     /* ─── Web shooting ─── */
     @keyframes bg-web-shoot{0%{stroke-dashoffset:900;opacity:.8}30%{stroke-dashoffset:0;opacity:.65}60%{stroke-dashoffset:0;opacity:0}61%,100%{stroke-dashoffset:900;opacity:0}}
@@ -866,6 +871,15 @@ function Scene_superman() {
         <path d="M369,150 C372,142 378,138 382,138 C386,138 392,142 396,148 C392,144 386,142 382,142 C378,142 372,146 369,150 Z" fill="#1a0c08" />
         {/* Curl of hair on forehead */}
         <path d="M380,144 C376,146 374,150 376,152" stroke="#1a0c08" strokeWidth={2.5} fill="none" strokeLinecap="round" />
+        {/* Mask — red eye-cover across bridge of nose */}
+        <rect x={371} y={147} width={24} height={9} rx={4} fill="#cc2222" />
+        {/* Eye holes — white with pupils */}
+        <ellipse cx={376} cy={151} rx={5} ry={4} fill="white" />
+        <ellipse cx={389} cy={151} rx={5} ry={4} fill="white" />
+        <circle cx={377} cy={152} r={2.5} fill="#111" />
+        <circle cx={390} cy={152} r={2.5} fill="#111" />
+        <circle cx={376} cy={151} r={1} fill="white" opacity={0.7} />
+        <circle cx={389} cy={151} r={1} fill="white" opacity={0.7} />
         {/* Body — torso in classic blue */}
         <path d="
           M372,170 C368,174 366,182 367,192
@@ -1148,70 +1162,137 @@ function Scene_frog() {
 
 function Scene_enchanted() {
   return (
-    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
       <defs>
-        <radialGradient id="ench-bg" cx="50%" cy="40%"><stop offset="0%" stopColor="#1a0840" /><stop offset="100%" stopColor="#060215" /></radialGradient>
+        <radialGradient id="ench-bg" cx="50%" cy="35%"><stop offset="0%" stopColor="#2a0860"/><stop offset="60%" stopColor="#120330"/><stop offset="100%" stopColor="#06010e"/></radialGradient>
+        <radialGradient id="ench-portal" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#c060ff" stopOpacity={0.55}/><stop offset="60%" stopColor="#6000cc" stopOpacity={0.2}/><stop offset="100%" stopColor="#6000cc" stopOpacity={0}/></radialGradient>
+        <radialGradient id="ench-glow-g" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#60ffcc" stopOpacity={0.4}/><stop offset="100%" stopColor="#60ffcc" stopOpacity={0}/></radialGradient>
       </defs>
       <rect width={800} height={450} fill="url(#ench-bg)" />
-      <Stars n={40} color="#d0c0ff" />
-      {/* Magical portal ring */}
-      <circle cx={400} cy={240} r={90} fill="none" stroke="#a040ff" strokeWidth={4} opacity={0.6} style={{ animation: 'bg-pulse 3s ease-in-out infinite' }} />
-      <circle cx={400} cy={240} r={82} fill="rgba(160,60,255,.08)" />
-      <circle cx={400} cy={240} r={95} fill="none" stroke="#60ffcc" strokeWidth={2} opacity={0.3} style={{ animation: 'bg-spin 15s linear infinite', transformOrigin: '400px 240px' }} />
-      {/* Glowing mushrooms */}
-      {[{x:120,y:420,c:'#ff80ff',h:40},{x:200,y:435,c:'#80ffcc',h:32},{x:600,y:415,c:'#ffaa40',h:45},{x:680,y:430,c:'#80c0ff',h:35}].map((m,i)=>(
-        <g key={i} style={{ animation: `bg-glow ${2+i*.5}s ${i*.3}s ease-in-out infinite` }}>
-          <rect x={m.x-6} y={m.y-m.h} width={12} height={m.h+15} rx={4} fill="#f5e8d0" />
-          <ellipse cx={m.x} cy={m.y-m.h} rx={25} ry={15} fill={m.c} opacity={0.8} />
-          <ellipse cx={m.x} cy={m.y-m.h+3} rx={22} ry={10} fill={m.c} opacity={0.4} />
-          <ellipse cx={m.x} cy={m.y-m.h} rx={25} ry={15} fill={m.c} opacity={0.2} style={{ animation: 'bg-pulse 2s ease-in-out infinite', filter: 'blur(4px)' }} />
+      <Stars n={55} color="#d0b8ff" />
+
+      {/* Enchanted twisted trees — left and right frame */}
+      {[{x:60,flip:1},{x:740,flip:-1}].map((t,i)=>(
+        <g key={i} transform={t.flip===-1?`scale(-1,1) translate(-800,0)`:''}>
+          {/* Main trunk */}
+          <path d={`M${t.x},450 Q${t.x-18},360 ${t.x+10},270 Q${t.x-25},180 ${t.x+5},100`}
+            stroke="#2a1050" strokeWidth={22} fill="none" strokeLinecap="round" />
+          {/* Branch 1 */}
+          <path d={`M${t.x+8},300 Q${t.x+55},278 ${t.x+80},252`}
+            stroke="#2a1050" strokeWidth={12} fill="none" strokeLinecap="round" />
+          {/* Branch 2 */}
+          <path d={`M${t.x+5},210 Q${t.x+55},188 ${t.x+70},162`}
+            stroke="#2a1050" strokeWidth={9} fill="none" strokeLinecap="round" />
+          {/* Branch 3 — thin upward */}
+          <path d={`M${t.x+6},160 Q${t.x+38},130 ${t.x+42},95`}
+            stroke="#2a1050" strokeWidth={6} fill="none" strokeLinecap="round" />
+          {/* Glowing leaves clusters */}
+          {[{cx:t.x+82,cy:248,r:28,c:'#80ffcc'},{cx:t.x+72,cy:158,r:22,c:'#c060ff'},{cx:t.x+44,cy:90,r:18,c:'#80c0ff'}].map((l,j)=>(
+            <g key={j}>
+              <circle cx={l.cx} cy={l.cy} r={l.r+8} fill={l.c} opacity={0.12} style={{ animation: `bg-glow ${2.5+j*.6}s ${j*.4}s ease-in-out infinite` }} />
+              <circle cx={l.cx} cy={l.cy} r={l.r} fill={l.c} opacity={0.28} style={{ animation: `bg-pulse ${3+j*.5}s ${j*.3}s ease-in-out infinite` }} />
+            </g>
+          ))}
         </g>
       ))}
-      {/* Fairy flying figure-8 */}
-      <g style={{ animation: 'bg-float 2.5s ease-in-out infinite, bg-drift-l 20s linear infinite' }}>
-        <circle cx={300} cy={200} r={6} fill="#ffee40" opacity={0.9} />
-        {/* Wings */}
-        <ellipse cx={291} cy={196} rx={12} ry={7} fill="#c0e0ff" opacity={0.7} transform="rotate(-30,291,196)" />
-        <ellipse cx={309} cy={196} rx={12} ry={7} fill="#c0e0ff" opacity={0.7} transform="rotate(30,309,196)" />
-        <ellipse cx={290} cy={204} rx={9} ry={5} fill="#c0e0ff" opacity={0.5} transform="rotate(20,290,204)" />
-        <ellipse cx={310} cy={204} rx={9} ry={5} fill="#c0e0ff" opacity={0.5} transform="rotate(-20,310,204)" />
-        {/* Sparkle trail */}
-        {[1,2,3].map(j=>(
-          <circle key={j} cx={300+j*12} cy={200+j*4} r={2} fill="#ffee40" opacity={0.5-j*.15} />
-        ))}
-      </g>
-      {/* Twisted trees */}
-      {[50,700].map((x,i)=>(
-        <g key={i}>
-          <path d={`M${x+25},500 Q${x+20},400 ${x+30},300 Q${x+15},200 ${x+25},100`} stroke="#3a2460" strokeWidth={18} fill="none" strokeLinecap="round" />
-          <path d={`M${x+25},300 Q${x-20},270 ${x-30},240`} stroke="#3a2460" strokeWidth={10} fill="none" strokeLinecap="round" />
-          <path d={`M${x+25},220 Q${x+65},195 ${x+75},170`} stroke="#3a2460" strokeWidth={8} fill="none" strokeLinecap="round" />
-        </g>
-      ))}
-      {/* Magic sparkles */}
-      {Array.from({length:18},(_,i)=>(
-        <text key={i} x={(i*97+80)%800} y={150+(i%5)*60} fontSize={10} fill={['#ffee40','#ff80ff','#60ffcc'][i%3]} style={{ animation: `bg-twinkle ${1+i*.2}s ${i*.18}s ease-in-out infinite` }}>✦</text>
-      ))}
-      {/* Mushroom fairy ring on ground */}
-      {[0,40,80,120,160,200,240,300].map((a,i)=>{
-        const r=90, cx=400, cy=460
-        const x=cx+r*Math.cos(a*Math.PI/180), y=cy+r*0.35*Math.sin(a*Math.PI/180)
-        const c=['#ff80ff','#80ffcc','#ffaa40','#80c0ff'][i%4]
+
+      {/* Ground with glowing mist */}
+      <ellipse cx={400} cy={445} rx={420} ry={55} fill="#3a0880" opacity={0.35} />
+      <ellipse cx={400} cy={440} rx={380} ry={38} fill="#60ffcc" opacity={0.06} style={{ animation: 'bg-pulse 4s ease-in-out infinite' }} />
+
+      {/* Mushroom fairy ring */}
+      {[0,45,90,135,180,225,270,315].map((a,i)=>{
+        const r=110, cx=400, cy=470
+        const x=cx+r*Math.cos(a*Math.PI/180), y=cy+r*0.28*Math.sin(a*Math.PI/180)
+        const c=['#ff80ff','#80ffcc','#ffaa40','#80c0ff','#ffd600','#ff6ec7','#60ffaa','#c0a0ff'][i]
         return (
-          <g key={i} transform={`translate(${x},${y})`}>
-            <rect x={-4} y={-14} width={8} height={14} rx={3} fill="#f5e8d0" />
-            <ellipse cx={0} cy={-14} rx={12} ry={7} fill={c} opacity={0.85} style={{ animation: `bg-glow ${2+i*.3}s ${i*.25}s ease-in-out infinite` }} />
+          <g key={i} transform={`translate(${x},${y})`} style={{ animation: `bg-glow ${1.8+i*.3}s ${i*.22}s ease-in-out infinite` }}>
+            <rect x={-5} y={-18} width={10} height={20} rx={4} fill="#e8d8c0" />
+            <ellipse cx={0} cy={-19} rx={16} ry={10} fill={c} opacity={0.92} />
+            <ellipse cx={0} cy={-16} rx={12} ry={5} fill={c} opacity={0.35} />
+            {/* Spots */}
+            <circle cx={-5} cy={-21} r={2.5} fill="rgba(255,255,255,0.55)" />
+            <circle cx={4}  cy={-23} r={2}   fill="rgba(255,255,255,0.45)" />
           </g>
         )
       })}
-      {/* Extra fairy */}
-      <g transform="translate(550,0)">
-        <g style={{ animation: 'bg-float 3s 1s ease-in-out infinite normal backwards, bg-drift-l 25s 5s linear infinite normal backwards' }}>
-          <circle cx={0} cy={350} r={5} fill="#ffee40" opacity={0.9} />
-          <ellipse cx={-9} cy={346} rx={10} ry={6} fill="#ffe0ff" opacity={0.7} transform="rotate(-30,-9,346)" />
-          <ellipse cx={9} cy={346} rx={10} ry={6} fill="#ffe0ff" opacity={0.7} transform="rotate(30,9,346)" />
-        </g>
+
+      {/* Central magic portal */}
+      <circle cx={400} cy={230} r={105} fill="url(#ench-portal)" style={{ animation: 'bg-pulse 3s ease-in-out infinite' }} />
+      <circle cx={400} cy={230} r={92}  fill="none" stroke="#c060ff" strokeWidth={3} opacity={0.65}
+        style={{ animation: 'bg-spin 18s linear infinite', transformOrigin: '400px 230px' }} />
+      <circle cx={400} cy={230} r={100} fill="none" stroke="#60ffcc" strokeWidth={1.5} opacity={0.35}
+        style={{ animation: 'bg-spin-ccw 12s linear infinite', transformOrigin: '400px 230px' }} />
+      {/* Inner glow */}
+      <circle cx={400} cy={230} r={60} fill="url(#ench-glow-g)" style={{ animation: 'bg-pulse 2.5s .5s ease-in-out infinite' }} />
+      {/* Rune marks on portal ring */}
+      {[0,60,120,180,240,300].map((a,i)=>(
+        <text key={i} fill="#d0a0ff" fontSize={13} opacity={0.7} fontFamily="serif"
+          x={400+98*Math.cos(a*Math.PI/180)-6} y={230+98*Math.sin(a*Math.PI/180)+5}
+          style={{ animation: `bg-twinkle ${2+i*.4}s ${i*.3}s ease-in-out infinite` }}>
+          {['✦','◈','⬡','✧','◇','⬟'][i]}
+        </text>
+      ))}
+
+      {/* Castle silhouette inside portal */}
+      <g opacity={0.6}>
+        {/* Main wall */}
+        <rect x={362} y={192} width={76} height={66} fill="#4010a0" />
+        {/* Left tower — x:348–370 */}
+        <rect x={348} y={180} width={22} height={78} fill="#4a14aa" />
+        {/* Left tower cone — base exactly matches tower top (348–370), apex 24px above */}
+        <polygon points="348,180 359,156 370,180" fill="#5a1ac0" />
+        {/* Right tower — x:432–454 */}
+        <rect x={432} y={180} width={22} height={78} fill="#4a14aa" />
+        {/* Right tower cone — base exactly matches tower top (432–454), apex 24px above */}
+        <polygon points="432,180 443,156 454,180" fill="#5a1ac0" />
+        {/* Battlements on main wall */}
+        {[366,378,390,402,414,426].map((x,i)=>(
+          <rect key={i} x={x} y={188} width={8} height={10} rx={1} fill="#4a14aa" />
+        ))}
+        {/* Arched door */}
+        <rect x={386} y={228} width={28} height={30} rx={14} fill="#6020c0" opacity={0.7} />
+        {/* Glowing window left tower */}
+        <ellipse cx={359} cy={200} rx={5} ry={7} fill="#ffd600" opacity={0.55} style={{ animation: 'bg-glow 2s ease-in-out infinite' }} />
+        {/* Glowing window right tower */}
+        <ellipse cx={443} cy={200} rx={5} ry={7} fill="#ffd600" opacity={0.55} style={{ animation: 'bg-glow 2s .4s ease-in-out infinite' }} />
+        {/* Main window */}
+        <ellipse cx={400} cy={210} rx={8} ry={11} fill="#ffd600" opacity={0.5} style={{ animation: 'bg-glow 2.5s .2s ease-in-out infinite' }} />
       </g>
+
+      {/* Fairies — 3 of them flying at different heights */}
+      {[
+        {sx:200,sy:170,drift:'bg-drift-r 22s 0s linear infinite',float:'bg-float 2.2s ease-in-out infinite',c:'#ffee40',wc:'#c0e0ff'},
+        {sx:-60,sy:310,drift:'bg-drift-r 30s 8s linear infinite',float:'bg-float 3s 1s ease-in-out infinite',c:'#ff80ff',wc:'#ffd0ff'},
+        {sx:650,sy:140,drift:'bg-drift-l 26s 3s linear infinite',float:'bg-float 2.8s 0.5s ease-in-out infinite',c:'#80ffcc',wc:'#c0ffee'},
+      ].map((f,i)=>(
+        <g key={i} style={{ animation: f.drift }}>
+          <g transform={`translate(${f.sx},${f.sy})`} style={{ animation: f.float }}>
+            {/* Wings */}
+            <ellipse cx={-14} cy={-3} rx={14} ry={8}  fill={f.wc} opacity={0.72} transform="rotate(-28,-14,-3)" />
+            <ellipse cx={14}  cy={-3} rx={14} ry={8}  fill={f.wc} opacity={0.72} transform="rotate(28,14,-3)" />
+            <ellipse cx={-11} cy={7}  rx={10} ry={6}  fill={f.wc} opacity={0.5}  transform="rotate(22,-11,7)" />
+            <ellipse cx={11}  cy={7}  rx={10} ry={6}  fill={f.wc} opacity={0.5}  transform="rotate(-22,11,7)" />
+            {/* Body */}
+            <ellipse cx={0} cy={4} rx={5} ry={8} fill={f.c} opacity={0.9} />
+            {/* Head */}
+            <circle cx={0} cy={-6} r={7} fill={f.c} opacity={0.95} />
+            {/* Glow aura */}
+            <circle cx={0} cy={-2} r={14} fill={f.c} opacity={0.12} style={{ animation: 'bg-pulse 1.8s ease-in-out infinite' }} />
+            {/* Sparkle trail */}
+            {[1,2,3,4].map(j=>(
+              <circle key={j} cx={j*9} cy={j*3} r={1.5} fill={f.c} opacity={0.4-j*.08} />
+            ))}
+          </g>
+        </g>
+      ))}
+
+      {/* Floating magic sparkles */}
+      {Array.from({length:22},(_,i)=>(
+        <text key={i} x={(i*113+40)%800} y={100+(i%6)*52} fontSize={8+i%3*4}
+          fill={['#ffee40','#ff80ff','#60ffcc','#c0a0ff','#80c8ff'][i%5]}
+          style={{ animation: `bg-twinkle ${1+i*.18}s ${i*.15}s ease-in-out infinite` }}>✦</text>
+      ))}
     </svg>
   )
 }
@@ -2200,96 +2281,86 @@ function Scene_donut() {
 
 function Scene_unicorn() {
   return (
-    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="bg-scene-svg">
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
       <defs>
-        <linearGradient id="un-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#c080ff" /><stop offset="50%" stopColor="#ff80cc" /><stop offset="100%" stopColor="#80c8ff" /></linearGradient>
+        <linearGradient id="un-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c080ff"/><stop offset="50%" stopColor="#ff80cc"/><stop offset="100%" stopColor="#aaddff"/>
+        </linearGradient>
       </defs>
       <rect width={800} height={450} fill="url(#un-bg)" />
-      {/* Bold rainbow */}
+      {/* Rainbow arcs */}
       {['#ff4040','#ff8800','#ffee00','#40cc40','#4080ff','#8040ff'].map((c,i)=>(
-        <ellipse key={i} cx={400} cy={450} rx={400-i*28} ry={310-i*20} fill="none" stroke={c} strokeWidth={16} opacity={0.6} />
+        <ellipse key={i} cx={400} cy={450} rx={400-i*28} ry={300-i*18} fill="none" stroke={c} strokeWidth={14} opacity={0.55} />
       ))}
-      {/* Cloud islands */}
-      {[{cx:150,cy:120},{cx:650,cy:100}].map((c,i)=>(
-        <g key={i}>
-          <ellipse cx={c.cx} cy={c.cy} rx={100} ry={45} fill="white" opacity={0.9} style={{ animation: `bg-float ${6+i*2}s ease-in-out infinite` }} />
-          <ellipse cx={c.cx+25} cy={c.cy-20} rx={75} ry={38} fill="white" opacity={0.85} style={{ animation: `bg-float ${6+i*2}s ease-in-out infinite` }} />
-        </g>
-      ))}
-      {/* Unicorn — proper horse silhouette with flowing mane, spiral horn, galloping pose */}
-      <g style={{ animation: 'bg-drift-lr 15s ease-in-out infinite' }}>
-        {/* Body — horse torso shape */}
-        <path d="
-          M320,260 C315,252 315,244 320,238
-          C328,226 345,220 365,220
-          C395,220 440,228 462,244
-          C478,256 480,272 472,284
-          C460,298 430,306 395,308
-          C360,308 330,298 320,284
-          C316,278 316,268 320,260 Z
-        " fill="white" />
-        {/* Neck — arched proudly */}
-        <path d="M325,242 C318,228 316,212 320,198" stroke="white" strokeWidth={28} fill="none" strokeLinecap="round" />
-        {/* Head — proper horse muzzle shape */}
-        <path d="
-          M320,198 C314,192 308,188 304,186
-          C296,184 288,186 284,192
-          C280,198 280,208 286,214
-          C290,218 298,220 308,218
-          C316,216 322,208 320,198 Z
-        " fill="white" />
-        {/* Muzzle / snout */}
-        <path d="M280,204 C274,202 268,204 266,210 C266,216 272,220 280,218" fill="white" />
-        <ellipse cx={272} cy={210} rx={8} ry={5} fill="#f0c0e0" opacity={0.6} />
+      {/* Puffy clouds using CloudShape */}
+      <CloudShape x={30}  y={48}  w={170} fill="white" opacity={0.92} style={{ animation: 'bg-drift-r 36s linear infinite' }} />
+      <CloudShape x={560} y={38}  w={140} fill="white" opacity={0.88} style={{ animation: 'bg-drift-r 44s 10s linear infinite' }} />
+      <CloudShape x={260} y={68}  w={120} fill="white" opacity={0.8}  style={{ animation: 'bg-drift-r 50s 20s linear infinite' }} />
+      {/* Unicorn drifting gently left-right */}
+      <g style={{ animation: 'bg-drift-lr 14s ease-in-out infinite' }}>
+        {/* Tail — drawn first so body overlaps it */}
+        <path d="M480,274 C500,252 520,244 522,260 C524,276 506,298 498,318" stroke="#ff80cc" strokeWidth={9} fill="none" strokeLinecap="round" />
+        <path d="M480,280 C504,260 528,254 528,272 C528,288 510,310 502,332" stroke="#c060ff" strokeWidth={6} fill="none" strokeLinecap="round" />
+        <path d="M480,286 C506,268 530,266 530,284 C530,300 512,322 504,344" stroke="#80c0ff" strokeWidth={4} fill="none" strokeLinecap="round" />
+        {/* Main body — large horizontal ellipse like a real horse torso */}
+        <ellipse cx={400} cy={280} rx={88} ry={48} fill="white" />
+        {/* Rump/haunches — slightly higher circle to give the horse-back silhouette */}
+        <ellipse cx={458} cy={268} rx={42} ry={38} fill="white" />
+        {/* Chest/shoulder swell */}
+        <ellipse cx={340} cy={266} rx={38} ry={36} fill="white" />
+        {/* Neck — thick curved stroke giving the proud arched neck */}
+        <path d="M342,252 C330,232 326,212 332,196" stroke="white" strokeWidth={36} fill="none" strokeLinecap="round" />
+        {/* Head — elongated horizontal ellipse like a real horse skull */}
+        <ellipse cx={310} cy={188} rx={42} ry={26} fill="white" />
+        {/* Muzzle — forward-pointing ellipse */}
+        <ellipse cx={272} cy={196} rx={28} ry={18} fill="white" />
         {/* Nostril */}
-        <ellipse cx={270} cy={212} rx={4} ry={3} fill="#e0a0c0" opacity={0.8} />
-        {/* Horn — twisted spiral */}
-        <path d="M304,182 C302,172 304,160 308,148 C310,140 312,130 314,120" stroke="#c080ff" strokeWidth={7} fill="none" strokeLinecap="round" />
-        <path d="M308,182 C310,172 310,160 308,148 C306,140 306,130 310,120" stroke="#e0a0ff" strokeWidth={4} fill="none" strokeLinecap="round" opacity={0.6} />
-        {/* Horn segments */}
-        {[182,168,154,140,128].map((y,i)=>(
-          <path key={i} d={`M${304+i},${y} C${308},${y+2} ${312},${y} ${308+i},${y}`} stroke="#a060dd" strokeWidth={2} fill="none" opacity={0.5} />
+        <ellipse cx={257} cy={200} rx={5} ry={4} fill="#f0b0d0" opacity={0.85} />
+        <ellipse cx={266} cy={202} rx={4} ry={3} fill="#e090c0" />
+        {/* Horn — solid tapered triangle then shimmer lines */}
+        <polygon points="316,164 326,100 336,164" fill="#c080ff" opacity={0.9} />
+        <line x1={326} y1={100} x2={316} y2={152} stroke="#e0a0ff" strokeWidth={2.5} opacity={0.6} />
+        <line x1={326} y1={100} x2={336} y2={152} stroke="#a050dd" strokeWidth={2}   opacity={0.5} />
+        {[110,124,138,152].map((y,i)=>(
+          <line key={i} x1={316+i*0.8} y1={y} x2={336-i*0.8} y2={y} stroke="#dda0ff" strokeWidth={1.5} opacity={0.4} />
         ))}
-        {/* Flowing mane — rainbow colors cascading down neck */}
-        <path d="M320,198 C330,185 338,175 342,168 C346,162 348,170 344,180 C352,164 358,154 360,148 C362,156 358,170 354,180 C360,162 368,152 374,148 C374,158 368,172 364,182" stroke="#ff80cc" strokeWidth={5} fill="none" strokeLinecap="round" />
-        <path d="M320,205 C330,192 340,180 348,173 C352,168 354,176 350,186 C358,170 366,160 372,156" stroke="#c060ff" strokeWidth={4} fill="none" strokeLinecap="round" />
-        <path d="M322,212 C333,200 344,190 354,185" stroke="#80c0ff" strokeWidth={3} fill="none" strokeLinecap="round" />
-        {/* Eye — large, expressive */}
-        <ellipse cx={292} cy={198} rx={9} ry={9} fill="#8040cc" />
-        <ellipse cx={292} cy={198} rx={5} ry={5} fill="#111" />
-        <circle cx={290} cy={196} r={3} fill="white" opacity={0.8} />
-        {/* Lashes */}
-        <path d="M284,192 C286,188 290,186 294,186" stroke="#6020aa" strokeWidth={1.5} fill="none" />
-        <path d="M286,190 L284,186" stroke="#6020aa" strokeWidth={1.5} strokeLinecap="round" />
-        <path d="M291,188 L291,184" stroke="#6020aa" strokeWidth={1.5} strokeLinecap="round" />
         {/* Ear */}
-        <path d="M316,190 C312,182 314,174 320,172 C324,174 326,182 322,190 Z" fill="white" />
-        <path d="M317,190 C314,184 315,178 320,176 C323,178 324,184 322,190 Z" fill="#f0c0f0" opacity={0.6} />
-        {/* Legs — galloping pose, all 4 legs */}
-        {/* Front left — stretched forward */}
-        <path d="M345,300 C338,316 334,334 334,354" stroke="white" strokeWidth={14} fill="none" strokeLinecap="round" style={{ animation: 'bg-float-sm 0.8s ease-in-out infinite' }} />
-        <ellipse cx={334} cy={358} rx={10} ry={6} fill="#f0f0f0" />
-        {/* Front right — lifted */}
-        <path d="M365,306 C360,320 360,338 365,356" stroke="white" strokeWidth={14} fill="none" strokeLinecap="round" style={{ animation: 'bg-float-sm 0.8s 0.2s ease-in-out infinite' }} />
-        <ellipse cx={366} cy={360} rx={10} ry={6} fill="#f0f0f0" />
-        {/* Back left — pushing */}
-        <path d="M430,304 C436,320 438,338 432,356" stroke="white" strokeWidth={14} fill="none" strokeLinecap="round" style={{ animation: 'bg-float-sm 0.8s 0.4s ease-in-out infinite' }} />
-        <ellipse cx={432} cy={360} rx={10} ry={6} fill="#f0f0f0" />
-        {/* Back right — trailing */}
-        <path d="M455,298 C462,314 466,332 462,350" stroke="white" strokeWidth={14} fill="none" strokeLinecap="round" style={{ animation: 'bg-float-sm 0.8s 0.6s ease-in-out infinite' }} />
-        <ellipse cx={462} cy={354} rx={10} ry={6} fill="#f0f0f0" />
-        {/* Tail — flowing rainbow */}
-        <path d="M472,276 C490,258 506,248 510,262 C514,276 498,294 490,310" stroke="#ff80cc" strokeWidth={7} fill="none" strokeLinecap="round" />
-        <path d="M472,280 C492,265 512,258 516,274 C518,286 504,306 496,322" stroke="#c060ff" strokeWidth={5} fill="none" strokeLinecap="round" />
-        <path d="M472,284 C494,272 518,270 520,286 C520,298 506,318 498,334" stroke="#80c0ff" strokeWidth={4} fill="none" strokeLinecap="round" />
+        <polygon points="338,168 330,148 346,154" fill="white" />
+        <polygon points="338,168 332,152 344,157" fill="#f0c0f0" opacity={0.6} />
+        {/* Eye */}
+        <ellipse cx={292} cy={186} rx={10} ry={10} fill="#7030bb" />
+        <ellipse cx={292} cy={186} rx={6}  ry={6}  fill="#111" />
+        <circle  cx={289} cy={183} r={3}             fill="white" opacity={0.85} />
+        {/* Lashes */}
+        <path d="M283,179 Q287,175 293,175" stroke="#5010a0" strokeWidth={1.5} fill="none" strokeLinecap="round" />
+        <line x1={285} y1={178} x2={282} y2={174} stroke="#5010a0" strokeWidth={1.5} strokeLinecap="round" />
+        <line x1={291} y1={176} x2={290} y2={172} stroke="#5010a0" strokeWidth={1.5} strokeLinecap="round" />
+        {/* Mane — rainbow strands flowing back from neck */}
+        <path d="M338,194 C348,180 358,168 362,158 C366,150 366,162 360,174 C368,158 378,148 382,142 C382,154 374,168 368,180" stroke="#ff80cc" strokeWidth={6} fill="none" strokeLinecap="round" />
+        <path d="M338,202 C350,188 362,176 370,168 C374,162 374,174 368,186 C376,170 386,160 390,155" stroke="#c060ff" strokeWidth={4} fill="none" strokeLinecap="round" />
+        <path d="M340,210 C354,196 366,184 376,178" stroke="#80c0ff" strokeWidth={3} fill="none" strokeLinecap="round" />
+        {/* Four legs in galloping pose */}
+        <path d="M356,312 C348,330 344,350 342,372" stroke="white" strokeWidth={16} fill="none" strokeLinecap="round" />
+        <ellipse cx={342} cy={376} rx={12} ry={7} fill="#eeeeee" />
+        <path d="M378,318 C372,336 370,356 372,376" stroke="white" strokeWidth={16} fill="none" strokeLinecap="round" />
+        <ellipse cx={372} cy={380} rx={12} ry={7} fill="#eeeeee" />
+        <path d="M426,314 C432,332 434,352 428,372" stroke="white" strokeWidth={16} fill="none" strokeLinecap="round" />
+        <ellipse cx={428} cy={376} rx={12} ry={7} fill="#eeeeee" />
+        <path d="M448,308 C456,326 460,346 456,366" stroke="white" strokeWidth={16} fill="none" strokeLinecap="round" />
+        <ellipse cx={456} cy={370} rx={12} ry={7} fill="#eeeeee" />
         {/* Sparkle trail */}
-        {[[510,280],[530,300],[548,286],[520,318]].map(([x,y],i)=>(
-          <path key={i} d={`M${x},${y} L${x+3},${y-8} L${x},${y-4} L${x-3},${y-8} Z M${x+6},${y} L${x},${y-3} Z`} fill={['#ffee40','#ff80cc','#c080ff','#80ffee'][i]} opacity={0.8} style={{ animation: `bg-twinkle ${1+i*.3}s ${i*.2}s ease-in-out infinite` }} />
+        {[[524,268],[544,290],[558,274],[530,320]].map(([x,y],i)=>(
+          <polygon key={i}
+            points={`${x},${y-10} ${x+3},${y-3} ${x+10},${y} ${x+3},${y+3} ${x},${y+10} ${x-3},${y+3} ${x-10},${y} ${x-3},${y-3}`}
+            fill={['#ffee40','#ff80cc','#c080ff','#80ffee'][i]} opacity={0.85}
+            style={{ animation: `bg-glow ${1.2+i*.3}s ${i*.2}s ease-in-out infinite` }} />
         ))}
       </g>
-      {/* Sparkle explosions */}
-      {Array.from({length:16},(_,i)=>(
-        <text key={i} x={(i*107+30)%800} y={80+(i%6)*60} fontSize={12+i%4*4} fill={['#ffee40','#ff80cc','#80ffee','#ffffff'][i%4]} style={{ animation: `bg-twinkle ${1.2+i*.25}s ${i*.18}s ease-in-out infinite` }}>✦</text>
+      {/* Sparkle field */}
+      {Array.from({length:14},(_,i)=>(
+        <text key={i} x={(i*113+28)%800} y={65+(i%5)*56} fontSize={10+i%4*4}
+          fill={['#ffee40','#ff80cc','#c080ff','#80ffee','#ffffff'][i%5]}
+          style={{ animation: `bg-glow ${1.2+i*.25}s ${i*.18}s ease-in-out infinite` }}>✦</text>
       ))}
     </svg>
   )
@@ -3810,6 +3881,948 @@ function Scene_artStudio() {
 }
 
 // ── Theme → Scene mapping ─────────────────────────────────────────────────────
+// ── Train ─────────────────────────────────────────────────────────────────────
+// ── Train ─────────────────────────────────────────────────────────────────────
+function Scene_train() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="tr-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#87ceeb"/><stop offset="100%" stopColor="#c8e8f8"/></linearGradient>
+        <linearGradient id="tr-ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5a8c3c"/><stop offset="100%" stopColor="#3a6b20"/></linearGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#tr-bg)" />
+      <CloudShape x={60}  y={55}  w={180} fill="white" opacity={0.9} style={{ animation: 'bg-drift-r 30s linear infinite' }} />
+      <CloudShape x={450} y={38}  w={140} fill="white" opacity={0.85} style={{ animation: 'bg-drift-r 38s 5s linear infinite' }} />
+      <CloudShape x={260} y={75}  w={110} fill="white" opacity={0.8} style={{ animation: 'bg-drift-r 45s 12s linear infinite' }} />
+      <rect x={0} y={340} width={800} height={110} fill="url(#tr-ground)" />
+      <rect x={0} y={348} width={800} height={7} rx={2} fill="#8b6914" opacity={0.8} />
+      <rect x={0} y={362} width={800} height={7} rx={2} fill="#8b6914" opacity={0.8} />
+      {[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>(
+        <rect key={i} x={i*75-5} y={344} width={18} height={28} rx={3} fill="#6b4e1a" opacity={0.9} />
+      ))}
+      {[30,620,720].map((x,i)=>(
+        <g key={i}>
+          <rect x={x} y={285} width={14} height={60} rx={3} fill="#5a3e1a" />
+          <ellipse cx={x+7} cy={272} rx={32} ry={36} fill="#2d8a3e" />
+          <ellipse cx={x+7} cy={256} rx={22} ry={26} fill="#3aac50" />
+        </g>
+      ))}
+      {/* Train moves left-to-right — engine leads on RIGHT, carriages trail left */}
+      <g style={{ animation: 'bg-drift-r 14s linear infinite' }}>
+        <g transform="translate(-700,0)">
+          {/* Carriage 2 tail */}
+          <rect x={0}   y={272} width={110} height={68} rx={8} fill="#e65100" />
+          <rect x={12}  y={282} width={28} height={20} rx={3} fill="#81d4fa" opacity={0.85} />
+          <rect x={56}  y={282} width={28} height={20} rx={3} fill="#81d4fa" opacity={0.85} />
+          <circle cx={22}  cy={342} r={15} fill="#424242" /><circle cx={22}  cy={342} r={8} fill="#757575" />
+          <circle cx={90}  cy={342} r={15} fill="#424242" /><circle cx={90}  cy={342} r={8} fill="#757575" />
+          <rect x={108} y={305} width={18} height={6} rx={2} fill="#888" />
+          {/* Carriage 1 */}
+          <rect x={126} y={272} width={110} height={68} rx={8} fill="#1565c0" />
+          <rect x={138} y={282} width={28} height={20} rx={3} fill="#81d4fa" opacity={0.85} />
+          <rect x={182} y={282} width={28} height={20} rx={3} fill="#81d4fa" opacity={0.85} />
+          <circle cx={148} cy={342} r={15} fill="#424242" /><circle cx={148} cy={342} r={8} fill="#757575" />
+          <circle cx={216} cy={342} r={15} fill="#424242" /><circle cx={216} cy={342} r={8} fill="#757575" />
+          <rect x={234} y={305} width={18} height={6} rx={2} fill="#888" />
+          {/* Engine rightmost = leading */}
+          <rect x={252} y={262} width={120} height={78} rx={10} fill="#c62828" />
+          <rect x={340} y={250} width={42} height={36} rx={6} fill="#b71c1c" />
+          <rect x={346} y={255} width={30} height={22} rx={4} fill="#81d4fa" opacity={0.9} />
+          <rect x={368} y={272} width={28} height={58} rx={8} fill="#b71c1c" />
+          <polygon points="396,310 396,335 412,340 412,305" fill="#9e1010" />
+          <rect x={348} y={244} width={14} height={20} rx={3} fill="#8b4513" />
+          <ellipse cx={355} cy={237} rx={11} ry={10} fill="rgba(200,200,220,0.65)" style={{ animation: 'bg-steam 2s ease-in-out infinite' }} />
+          <ellipse cx={355} cy={220} rx={14} ry={12} fill="rgba(200,200,220,0.4)"  style={{ animation: 'bg-steam 2s 0.4s ease-in-out infinite' }} />
+          <circle cx={278} cy={342} r={17} fill="#424242" /><circle cx={278} cy={342} r={9} fill="#757575" /><circle cx={278} cy={342} r={3} fill="#bdbdbd" />
+          <circle cx={320} cy={342} r={17} fill="#424242" /><circle cx={320} cy={342} r={9} fill="#757575" /><circle cx={320} cy={342} r={3} fill="#bdbdbd" />
+          <circle cx={362} cy={342} r={17} fill="#424242" /><circle cx={362} cy={342} r={9} fill="#757575" /><circle cx={362} cy={342} r={3} fill="#bdbdbd" />
+          <rect x={278} y={339} width={84} height={6} rx={3} fill="#616161" opacity={0.8} />
+        </g>
+      </g>
+      <circle cx={700} cy={80} r={52} fill="#ffd600" opacity={0.9} style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
+      {[0,45,90,135,180,225,270,315].map((a,i)=>(
+        <line key={i} x1={700+Math.cos(a*Math.PI/180)*60} y1={80+Math.sin(a*Math.PI/180)*60}
+          x2={700+Math.cos(a*Math.PI/180)*76} y2={80+Math.sin(a*Math.PI/180)*76}
+          stroke="#ffd600" strokeWidth={4} strokeLinecap="round" opacity={0.7} />
+      ))}
+    </svg>
+  )
+}
+
+// ── Butterfly Garden ──────────────────────────────────────────────────────────
+function Scene_butterfly() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="bf-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f3e5f5"/><stop offset="100%" stopColor="#e8f5e9"/></linearGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#bf-bg)" />
+      {[{x:80,c:'#f48fb1'},{x:200,c:'#ce93d8'},{x:340,c:'#fff176'},{x:480,c:'#f48fb1'},{x:600,c:'#80cbc4'},{x:720,c:'#ffcc80'}].map((f,i)=>(
+        <g key={i}>
+          <rect x={f.x-3} y={320} width={6} height={110} rx={3} fill="#4caf50" />
+          {[1,-1].map((d,j)=>(
+            <ellipse key={j} cx={f.x+d*18} cy={360} rx={14} ry={7} fill="#66bb6a" opacity={0.7}
+              transform={`rotate(${d*25},${f.x+d*18},360)`} />
+          ))}
+          {[0,60,120,180,240,300].map((a,j)=>(
+            <ellipse key={j}
+              cx={f.x+Math.cos(a*Math.PI/180)*18} cy={315+Math.sin(a*Math.PI/180)*18}
+              rx={13} ry={9} fill={f.c} opacity={0.9}
+              transform={`rotate(${a},${f.x+Math.cos(a*Math.PI/180)*18},${315+Math.sin(a*Math.PI/180)*18})`} />
+          ))}
+          <circle cx={f.x} cy={315} r={10} fill="#ffd600" />
+        </g>
+      ))}
+      <rect x={0} y={400} width={800} height={50} fill="#66bb6a" opacity={0.35} />
+      {[{x:140,y:160,c1:'#ce93d8',c2:'#f48fb1'},{x:380,y:120,c1:'#80deea',c2:'#4dd0e1'},
+        {x:580,y:180,c1:'#ffcc80',c2:'#ffa726'},{x:260,y:240,c1:'#f48fb1',c2:'#e91e63'}].map((b,i)=>(
+        <g key={i} style={{ animation: `bg-float ${3+i*.7}s ${i*.5}s ease-in-out infinite` }}>
+          <g transform={`translate(${b.x},${b.y})`}>
+            <ellipse cx={-20} cy={-12} rx={22} ry={15} fill={b.c1} opacity={0.88} transform="rotate(-20)" />
+            <ellipse cx={-16} cy={10}  rx={15} ry={10} fill={b.c2} opacity={0.75} transform="rotate(18)" />
+            <ellipse cx={20}  cy={-12} rx={22} ry={15} fill={b.c1} opacity={0.88} transform="rotate(20)" />
+            <ellipse cx={16}  cy={10}  rx={15} ry={10} fill={b.c2} opacity={0.75} transform="rotate(-18)" />
+            <ellipse cx={0} cy={0} rx={4} ry={14} fill="#4a148c" opacity={0.8} />
+            <line x1={0} y1={-14} x2={-9} y2={-28} stroke="#4a148c" strokeWidth={1.5} />
+            <line x1={0} y1={-14} x2={9}  y2={-28} stroke="#4a148c" strokeWidth={1.5} />
+            <circle cx={-9} cy={-28} r={3} fill="#4a148c" />
+            <circle cx={9}  cy={-28} r={3} fill="#4a148c" />
+          </g>
+        </g>
+      ))}
+      <circle cx={680} cy={80} r={55} fill="#fff9c4" opacity={0.85} style={{ animation: 'bg-glow 7s ease-in-out infinite' }} />
+    </svg>
+  )
+}
+
+// ── Busy Bees ─────────────────────────────────────────────────────────────────
+function Scene_bees() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="bee-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fffde7"/><stop offset="100%" stopColor="#fff9c4"/></linearGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#bee-bg)" />
+      {[0,1,2,3,4].map(row=>[0,1,2,3,4,5,6,7].map(col=>{
+        const x=col*90+(row%2)*45+30, y=row*68+40
+        return <polygon key={`${row}-${col}`}
+          points={`${x},${y-28} ${x+24},${y-14} ${x+24},${y+14} ${x},${y+28} ${x-24},${y+14} ${x-24},${y-14}`}
+          fill="none" stroke="#f9a825" strokeWidth={1.5} opacity={0.22} />
+      }))}
+      {[{x:100,y:390},{x:280,y:400},{x:480,y:388},{x:660,y:395}].map((f,i)=>(
+        <g key={i}>
+          <rect x={f.x-3} y={f.y-70} width={6} height={75} rx={3} fill="#558b2f" />
+          {[0,72,144,216,288].map((a,j)=>(
+            <ellipse key={j} cx={f.x+Math.cos(a*Math.PI/180)*18} cy={f.y-70+Math.sin(a*Math.PI/180)*18}
+              rx={13} ry={8} fill="#f48fb1" opacity={0.9} />
+          ))}
+          <circle cx={f.x} cy={f.y-70} r={9} fill="#ffd600" />
+        </g>
+      ))}
+      <line x1={400} y1={0} x2={400} y2={50} stroke="#8b6914" strokeWidth={4} />
+      <g transform="translate(400,50)">
+        {[0,1,2,3].map(row=>{
+          const count=4-row
+          return [...Array(count)].map((_,col)=>{
+            const hx=(col-(count-1)/2)*34, hy=row*28
+            return <polygon key={`${row}-${col}`}
+              points={`${hx},${hy-12} ${hx+14},${hy-6} ${hx+14},${hy+6} ${hx},${hy+12} ${hx-14},${hy+6} ${hx-14},${hy-6}`}
+              fill="#f9a825" stroke="#e65100" strokeWidth={1} opacity={0.92} />
+          })
+        })}
+      </g>
+      {[{x:150,y:200},{x:300,y:145},{x:540,y:170},{x:660,y:220},{x:240,y:290}].map((b,i)=>(
+        <g key={i} style={{ animation: `bg-float ${2.5+i*.6}s ${i*.4}s ease-in-out infinite` }}>
+          <g transform={`translate(${b.x},${b.y})`}>
+            <ellipse cx={0} cy={0} rx={22} ry={13} fill="#fdd835" />
+            <rect x={-18} y={-13} width={7} height={26} rx={3} fill="#212121" opacity={0.45} />
+            <rect x={-8}  y={-13} width={7} height={26} rx={3} fill="#212121" opacity={0.45} />
+            <rect x={2}   y={-13} width={7} height={26} rx={3} fill="#212121" opacity={0.45} />
+            <ellipse cx={26} cy={0} rx={6} ry={4} fill="#e65100" />
+            <circle cx={-24} cy={0} r={11} fill="#fdd835" />
+            <circle cx={-28} cy={-3} r={3} fill="#212121" /><circle cx={-27} cy={-4} r={1} fill="white" />
+            <circle cx={-20} cy={-3} r={3} fill="#212121" /><circle cx={-19} cy={-4} r={1} fill="white" />
+            <path d="M-27,4 Q-24,7 -20,4" stroke="#212121" strokeWidth={1.5} fill="none" strokeLinecap="round" />
+            <ellipse cx={-8} cy={-18} rx={16} ry={9} fill="rgba(255,255,255,0.78)" transform="rotate(-15,-8,-18)" />
+            <ellipse cx={8}  cy={-18} rx={16} ry={9} fill="rgba(255,255,255,0.78)" transform="rotate(15,8,-18)" />
+            <line x1={-24} y1={-11} x2={-30} y2={-22} stroke="#212121" strokeWidth={1.5} />
+            <line x1={-20} y1={-11} x2={-14} y2={-22} stroke="#212121" strokeWidth={1.5} />
+            <circle cx={-30} cy={-23} r={2.5} fill="#212121" />
+            <circle cx={-14} cy={-23} r={2.5} fill="#212121" />
+          </g>
+        </g>
+      ))}
+      <rect x={0} y={420} width={800} height={30} fill="#8bc34a" opacity={0.4} />
+    </svg>
+  )
+}
+
+// ── Sunflower Farm ────────────────────────────────────────────────────────────
+function Scene_sunflowerfarm() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="sf-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#87ceeb"/><stop offset="100%" stopColor="#e0f4ff"/></linearGradient>
+        <linearGradient id="sf-soil" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#795548"/><stop offset="100%" stopColor="#5d4037"/></linearGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#sf-bg)" />
+      <circle cx={90} cy={80} r={55} fill="#fdd835" opacity={0.92} style={{ animation: 'bg-glow 6s ease-in-out infinite' }} />
+      <CloudShape x={200} y={55} w={160} fill="white" opacity={0.85} style={{ animation: 'bg-drift-r 35s linear infinite' }} />
+      <CloudShape x={520} y={40} w={130} fill="white" opacity={0.8}  style={{ animation: 'bg-drift-r 45s 8s linear infinite' }} />
+      <rect x={0} y={370} width={800} height={80} fill="url(#sf-soil)" />
+      {[0,1,2,3,4,5,6,7,8,9,10].map(i=>(
+        <g key={i}>
+          <rect x={i*82+10} y={338} width={10} height={46} rx={3} fill="#8b6914" />
+          <polygon points={`${i*82+10},338 ${i*82+15},326 ${i*82+20},338`} fill="#8b6914" />
+        </g>
+      ))}
+      <rect x={0} y={352} width={800} height={7} rx={3} fill="#8b6914" />
+      <rect x={0} y={365} width={800} height={7} rx={3} fill="#8b6914" />
+      {[{x:70,h:200},{x:170,h:220},{x:270,h:195},{x:370,h:215},{x:470,h:205},{x:570,h:225},{x:760,h:210}].map((f,i)=>(
+        <g key={i} style={{ animation: `bg-sway-sm ${3+i*.4}s ${i*.3}s ease-in-out infinite` }}>
+          <path d={`M${f.x},370 Q${f.x+12},${370-f.h/2} ${f.x},${370-f.h}`}
+            stroke="#388e3c" strokeWidth={9} fill="none" strokeLinecap="round" />
+          <ellipse cx={f.x+22} cy={370-f.h*.52} rx={24} ry={11} fill="#4caf50" opacity={0.85}
+            transform={`rotate(-28,${f.x+22},${370-f.h*.52})`} />
+          <ellipse cx={f.x-22} cy={370-f.h*.65} rx={24} ry={11} fill="#4caf50" opacity={0.85}
+            transform={`rotate(28,${f.x-22},${370-f.h*.65})`} />
+          {[0,40,80,120,160,200,240,280,320].map((a,j)=>(
+            <ellipse key={j}
+              cx={f.x+Math.cos(a*Math.PI/180)*30} cy={(370-f.h)+Math.sin(a*Math.PI/180)*30}
+              rx={15} ry={8} fill="#fdd835"
+              transform={`rotate(${a},${f.x+Math.cos(a*Math.PI/180)*30},${(370-f.h)+Math.sin(a*Math.PI/180)*30})`} />
+          ))}
+          <circle cx={f.x} cy={370-f.h} r={20} fill="#5d4037" />
+          <circle cx={f.x} cy={370-f.h} r={13} fill="#4e342e" />
+        </g>
+      ))}
+      {/* Barn — sits on soil, right side */}
+      <rect x={640} y={250} width={120} height={120} fill="#c62828" />
+      <polygon points="634,250 700,180 770,250" fill="#b71c1c" />
+      <rect x={665} y={312} width={30} height={58} rx={2} fill="#5d4037" />
+      <rect x={646} y={264} width={26} height={24} rx={2} fill="#ffcc80" opacity={0.65} />
+      <rect x={730} y={264} width={26} height={24} rx={2} fill="#ffcc80" opacity={0.65} />
+    </svg>
+  )
+}
+
+// ── Cricket ───────────────────────────────────────────────────────────────────
+function Scene_cricket() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="cr-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#87ceeb"/><stop offset="100%" stopColor="#b0ddf0"/></linearGradient>
+        <radialGradient id="cr-oval" cx="50%" cy="70%"><stop offset="0%" stopColor="#8bc34a"/><stop offset="100%" stopColor="#4caf50"/></radialGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#cr-bg)" />
+      {/* Stadium stands — two sides */}
+      <rect x={0} y={40} width={800} height={100} fill="#e3f2fd" opacity={0.6} rx={6} />
+      {/* Crowd rows */}
+      {[0,1,2].map(row=>[0,1,2,3,4,5,6,7,8,9,10,11,12,13].map((col,ci)=>(
+        <circle key={`${row}-${ci}`} cx={col*58+22} cy={58+row*22} r={12}
+          fill={['#ef5350','#42a5f5','#66bb6a','#ffa726','#ab47bc','#ffffff','#ffd600'][ci%7]} opacity={0.65} />
+      )))}
+      {/* Stand structure */}
+      <rect x={0} y={138} width={800} height={10} fill="#1565c0" opacity={0.4} />
+      {/* Ground oval */}
+      <ellipse cx={400} cy={390} rx={400} ry={160} fill="url(#cr-oval)" />
+      {/* Outfield stripe */}
+      <ellipse cx={400} cy={390} rx={320} ry={128} fill="#9ccc65" opacity={0.5} />
+      <ellipse cx={400} cy={390} rx={240} ry={96}  fill="#8bc34a" opacity={0.5} />
+      {/* Pitch */}
+      <rect x={368} y={220} width={64} height={180} rx={4} fill="#d4a843" opacity={0.7} />
+      <line x1={355} y1={258} x2={445} y2={258} stroke="white" strokeWidth={2.5} opacity={0.85} />
+      <line x1={355} y1={382} x2={445} y2={382} stroke="white" strokeWidth={2.5} opacity={0.85} />
+      {/* Stumps — bowler end top */}
+      {[-14,0,14].map((dx,i)=>(
+        <g key={i}>
+          <rect x={400+dx-3} y={235} width={5} height={28} rx={1} fill="#f5f5f5" />
+          <rect x={400+dx-7} y={233} width={13} height={5} rx={1} fill="#f5f5f5" />
+        </g>
+      ))}
+      {/* Stumps — batsman end bottom */}
+      {[-14,0,14].map((dx,i)=>(
+        <g key={i}>
+          <rect x={400+dx-3} y={370} width={5} height={28} rx={1} fill="#f5f5f5" />
+          <rect x={400+dx-7} y={368} width={13} height={5} rx={1} fill="#f5f5f5" />
+        </g>
+      ))}
+      {/* Batsman — right of stumps, side-on */}
+      <g transform="translate(436,355)">
+        <circle cx={0} cy={-66} r={14} fill="#ffcc80" />
+        <path d="M-14,-66 Q-14,-86 0,-88 Q14,-86 14,-66" fill="#c62828" />
+        <rect x={-13} y={-52} width={26} height={36} rx={5} fill="#1565c0" />
+        <rect x={-13} y={-16} width={12} height={32} rx={5} fill="#f5f5f5" opacity={0.9} />
+        <rect x={1}   y={-16} width={12} height={32} rx={5} fill="#f5f5f5" opacity={0.9} />
+        {/* Bat — pivot at grip (batsman's hands at local 12,-22) */}
+        <g transform="translate(12,-22)">
+          {/* This inner group rotates around 0,0 = the grip top = batsman's hands */}
+          <g style={{
+            transformBox: 'fill-box',
+            transformOrigin: 'top center',
+            animation: 'bg-bat-swing 3s ease-in-out infinite'
+          }}>
+            {/* Grip cap at top (pivot end) */}
+            <rect x={-6} y={0} width={12} height={10} rx={3} fill="#f5c842"/>
+            {/* Blade below */}
+            <rect x={-5} y={9} width={10} height={46} rx={4} fill="#d4a843"/>
+          </g>
+        </g>
+      </g>
+      {/* Bowler running in — left of pitch top */}
+      <g transform="translate(350,252)">
+        <circle cx={0} cy={-55} r={12} fill="#ffcc80" />
+        <rect x={-11} y={-43} width={22} height={30} rx={4} fill="#c62828" />
+        {/* Bowling arm — raised high */}
+        <path d="M11,-35 Q24,-52 18,-68" stroke="#c62828" strokeWidth={10} fill="none" strokeLinecap="round" />
+        <circle cx={18} cy={-68} r={8} fill="#ffcc80" />
+        {/* Balance arm — opposite side, low */}
+        <path d="M-11,-35 Q-26,-22 -30,-10" stroke="#c62828" strokeWidth={10} fill="none" strokeLinecap="round" />
+        <circle cx={-30} cy={-10} r={8} fill="#ffcc80" />
+        <rect x={-12} y={-13} width={10} height={28} rx={4} fill="#c62828" />
+        <rect x={2}   y={-13} width={10} height={28} rx={4} fill="#c62828" />
+      </g>
+      {/* Ball flies upward from pitch and disappears — it's a SIX! */}
+      <g style={{ animation: 'bg-cricket-delivery 3s ease-in-out infinite' }}>
+        <circle cx={406} cy={368} r={13} fill="#c62828" />
+        <path d="M399,361 Q406,355 413,361" stroke="white" strokeWidth={2} fill="none" />
+        <path d="M399,375 Q406,381 413,375" stroke="white" strokeWidth={2} fill="none" />
+      </g>
+      {/* SIX!! text that flashes in sync with ball disappearing */}
+      <text x={400} y={200} textAnchor="middle"
+        fill="#ffd600" fontSize={52} fontWeight="900" fontFamily="Nunito,Arial Black,sans-serif"
+        stroke="#ff6f00" strokeWidth={3} paintOrder="stroke"
+        style={{ animation: 'bg-six 3s ease-in-out infinite' }}>
+        SIX!!
+      </text>
+      {/* Fielder — far left, both arms outstretched ready to catch */}
+      <g transform="translate(200,330)">
+        <circle cx={0} cy={-46} r={11} fill="#ffcc80" />
+        <rect x={-10} y={-35} width={20} height={28} rx={4} fill="#1565c0" />
+        {/* Left arm */}
+        <path d="M-10,-28 Q-24,-18 -28,-8" stroke="#1565c0" strokeWidth={9} fill="none" strokeLinecap="round" />
+        <circle cx={-28} cy={-8} r={7} fill="#ffcc80" />
+        {/* Right arm */}
+        <path d="M10,-28 Q24,-18 28,-8" stroke="#1565c0" strokeWidth={9} fill="none" strokeLinecap="round" />
+        <circle cx={28} cy={-8} r={7} fill="#ffcc80" />
+        <rect x={-10} y={-7} width={9} height={22} rx={4} fill="#1565c0" />
+        <rect x={2}   y={-7} width={9} height={22} rx={4} fill="#1565c0" />
+      </g>
+      {/* Scoreboard top-right */}
+      <g transform="translate(688,108)">
+        <rect x={-62} y={-40} width={124} height={80} rx={8} fill="#1b5e20" />
+        <rect x={-56} y={-34} width={112} height={68} rx={5} fill="#212121" />
+        <text x={0} y={-14} textAnchor="middle" fill="#fdd835" fontSize={13} fontWeight="bold" fontFamily="monospace">INDIA</text>
+        <text x={0} y={12}  textAnchor="middle" fill="white"  fontSize={22} fontWeight="bold" fontFamily="monospace">248</text>
+        <text x={0} y={28}  textAnchor="middle" fill="#aaa"   fontSize={10} fontFamily="monospace">OVR 38.4</text>
+      </g>
+    </svg>
+  )
+}
+
+// ── Football (Stadium) ────────────────────────────────────────────────────────
+function Scene_football() {
+  // Ball arc: starts at kicker (x=470,y=355), curves up and right into goal (x=672,y=290)
+  // The keyframe translates from 0,0 → 202,-65 over 60% of cycle, holds briefly, resets
+  const W = 'rgba(255,255,255,0.5)'
+  const W2 = 'rgba(255,255,255,0.15)'
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="fb-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#0a0e2e"/><stop offset="100%" stopColor="#1a2060"/>
+        </linearGradient>
+        <linearGradient id="fb-pitch" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#2e7d32"/><stop offset="60%" stopColor="#256428"/><stop offset="100%" stopColor="#1b5e20"/>
+        </linearGradient>
+        <linearGradient id="fb-stand-bg" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1e2a7a"/><stop offset="100%" stopColor="#111850"/>
+        </linearGradient>
+        <radialGradient id="fb-spot-l" cx="20%" cy="15%"><stop offset="0%" stopColor="rgba(255,253,200,0.14)"/><stop offset="100%" stopColor="rgba(255,253,200,0)"/></radialGradient>
+        <radialGradient id="fb-spot-r" cx="80%" cy="15%"><stop offset="0%" stopColor="rgba(255,253,200,0.14)"/><stop offset="100%" stopColor="rgba(255,253,200,0)"/></radialGradient>
+      </defs>
+
+      {/* Sky */}
+      <rect width={800} height={450} fill="url(#fb-sky)" />
+
+      {/* ── Stands ── */}
+      {/* Top stand */}
+      <rect x={80} y={0} width={640} height={108} fill="url(#fb-stand-bg)" />
+      {/* Top crowd — 4 rows of colourful heads */}
+      {[0,1,2,3].map(row=>[0,1,2,3,4,5,6,7,8,9,10,11,12].map((col,ci)=>(
+        <circle key={`t${row}${ci}`}
+          cx={col*48+104} cy={row*24+12} r={10}
+          fill={['#ef5350','#42a5f5','#ffd600','#4caf50','#ab47bc','#ffffff','#ff7043','#00bcd4'][ci%8]}
+          opacity={0.7} />
+      )))}
+      <rect x={80} y={100} width={640} height={8} fill="#0d1650" />
+
+      {/* Left side stand */}
+      <polygon points="0,0 80,0 80,450 0,450" fill="url(#fb-stand-bg)" />
+      {[0,1,2,3,4,5,6,7].map(row=>[0,1,2,3].map((col,ci)=>(
+        <circle key={`l${row}${ci}`} cx={col*18+8} cy={row*50+20} r={8}
+          fill={['#ef5350','#42a5f5','#ffd600','#ffffff'][ci%4]} opacity={0.65} />
+      )))}
+
+      {/* Right side stand */}
+      <polygon points="720,0 800,0 800,450 720,450" fill="url(#fb-stand-bg)" />
+      {[0,1,2,3,4,5,6,7].map(row=>[0,1,2,3].map((col,ci)=>(
+        <circle key={`r${row}${ci}`} cx={col*18+726} cy={row*50+20} r={8}
+          fill={['#ffffff','#ef5350','#ab47bc','#ffd600'][ci%4]} opacity={0.65} />
+      )))}
+
+      {/* Floodlight towers */}
+      {[{x:40,side:0},{x:760,side:1}].map((t,i)=>(
+        <g key={i}>
+          <rect x={t.x-5} y={100} width={10} height={55} fill="#555" />
+          <rect x={t.x-20} y={98} width={40} height={10} rx={3} fill="#777" />
+          {[-14,-5,5,14].map((dx,j)=>(
+            <ellipse key={j} cx={t.x+dx} cy={98} rx={4} ry={3} fill="#ffe082"
+              style={{ animation: `bg-glow ${1.4+j*.18}s ${j*.09}s ease-in-out infinite` }} />
+          ))}
+          {/* Spotlight cone */}
+          <polygon
+            points={`${t.x-20},108 ${t.x+20},108 ${t.side===0?200:600},200 ${t.side===0?160:640},200`}
+            fill="rgba(255,252,180,0.05)" />
+        </g>
+      ))}
+      {/* Spotlight radial fills on pitch */}
+      <rect x={80} y={108} width={640} height={342} fill="url(#fb-spot-l)" />
+      <rect x={80} y={108} width={640} height={342} fill="url(#fb-spot-r)" />
+
+      {/* Advertising board */}
+      <rect x={80} y={108} width={640} height={24} fill="#0a2a8a" />
+      {['GLUMBI','⚽ LIVE','GOAL TIME','FUN','⚽ PLAY'].map((t,i)=>(
+        <text key={i} x={140+i*122} y={125} textAnchor="middle"
+          fill="#ffd600" fontSize={12} fontWeight="bold" fontFamily="Nunito,sans-serif">{t}</text>
+      ))}
+
+      {/* ── Pitch ── */}
+      <rect x={80} y={132} width={640} height={318} fill="url(#fb-pitch)" />
+      {/* Alternating stripe pattern */}
+      {[0,1,2,3,4,5,6,7].map(i=>(
+        <rect key={i} x={80+i*80} y={132} width={80} height={318}
+          fill={i%2===0?'rgba(0,0,0,0.06)':'transparent'} />
+      ))}
+
+      {/* Pitch markings */}
+      {/* Boundary */}
+      <rect x={96} y={148} width={608} height={286} fill="none" stroke={W} strokeWidth={2} />
+      {/* Halfway line */}
+      <line x1={400} y1={148} x2={400} y2={434} stroke={W} strokeWidth={2} />
+      {/* Centre circle */}
+      <circle cx={400} cy={291} r={52} fill="none" stroke={W} strokeWidth={2} />
+      <circle cx={400} cy={291} r={3} fill={W} />
+      {/* Left penalty box */}
+      <rect x={96} y={220} width={88} height={142} fill="none" stroke={W} strokeWidth={2} />
+      <rect x={96} y={246} width={42} height={90} fill="none" stroke={W} strokeWidth={1} opacity={0.5} />
+      {/* Right penalty box */}
+      <rect x={616} y={220} width={88} height={142} fill="none" stroke={W} strokeWidth={2} />
+      <rect x={662} y={246} width={42} height={90} fill="none" stroke={W} strokeWidth={1} opacity={0.5} />
+      {/* Penalty spots */}
+      <circle cx={154} cy={291} r={3} fill={W} />
+      <circle cx={646} cy={291} r={3} fill={W} />
+      {/* Corner arcs */}
+      {[[96,148],[704,148],[96,434],[704,434]].map(([cx,cy],i)=>(
+        <path key={i} d={`M${cx+(i%2===0?8:-8)},${cy} A8,8 0 0,${i<2?1:0} ${cx},${cy+(i<2?8:-8)}`}
+          stroke={W} strokeWidth={2} fill="none" />
+      ))}
+
+      {/* ── Goals ── */}
+      {/* Left goal (white posts, net lines) */}
+      <rect x={80} y={248} width={18} height={86} fill="none" stroke="white" strokeWidth={3} />
+      <rect x={80} y={248} width={18} height={86} fill={W2} />
+      {[1,2,3,4,5].map(i=><line key={i} x1={80} y1={248+i*14} x2={98} y2={248+i*14} stroke={W2} strokeWidth={1}/>)}
+      {[1].map(i=><line key={i} x1={80+i*9} y1={248} x2={80+i*9} y2={334} stroke={W2} strokeWidth={1}/>)}
+
+      {/* Right goal */}
+      <rect x={702} y={248} width={18} height={86} fill="none" stroke="white" strokeWidth={3} />
+      <rect x={702} y={248} width={18} height={86} fill={W2} />
+      {[1,2,3,4,5].map(i=><line key={i} x1={702} y1={248+i*14} x2={720} y2={248+i*14} stroke={W2} strokeWidth={1}/>)}
+      {[1].map(i=><line key={i} x1={702+i*9} y1={248} x2={702+i*9} y2={334} stroke={W2} strokeWidth={1}/>)}
+
+      {/* ── Players ── */}
+      {/* Blue player — dribbling left of centre */}
+      <g transform="translate(310,300)" style={{ animation: 'bg-sway-sm 1.6s ease-in-out infinite' }}>
+        <circle cx={0} cy={-58} r={13} fill="#fdbcb4" />
+        {/* Hair */}
+        <path d="M-13,-62 Q0,-76 13,-62" fill="#3e2000" />
+        {/* Jersey */}
+        <rect x={-12} y={-45} width={24} height={32} rx={5} fill="#1565c0" />
+        {/* Arms */}
+        <path d="M-12,-40 Q-26,-28 -24,-16" stroke="#1565c0" strokeWidth={9} fill="none" strokeLinecap="round"/>
+        <circle cx={-24} cy={-16} r={7} fill="#fdbcb4"/>
+        <path d="M12,-40 Q26,-28 24,-16" stroke="#1565c0" strokeWidth={9} fill="none" strokeLinecap="round"/>
+        <circle cx={24} cy={-16} r={7} fill="#fdbcb4"/>
+        {/* Shorts + socks */}
+        <rect x={-12} y={-13} width={11} height={28} rx={4} fill="#0d47a1"/>
+        <rect x={1}   y={-13} width={11} height={28} rx={4} fill="#0d47a1"/>
+        <rect x={-12} y={14} width={11} height={12} rx={3} fill="white" opacity={0.8}/>
+        <rect x={1}   y={14} width={11} height={12} rx={3} fill="white" opacity={0.8}/>
+      </g>
+
+      {/* Red goalkeeper — arms spread wide */}
+      <g transform="translate(674,282)">
+        <circle cx={0} cy={-58} r={13} fill="#fdbcb4" />
+        <path d="M-13,-62 Q0,-76 13,-62" fill="#880e0e" />
+        <rect x={-12} y={-45} width={24} height={32} rx={5} fill="#c62828" />
+        {/* Both arms fully out */}
+        <path d="M-12,-38 Q-36,-26 -44,-16" stroke="#c62828" strokeWidth={10} fill="none" strokeLinecap="round"/>
+        <circle cx={-44} cy={-16} r={9} fill="#fdbcb4"/>
+        <path d="M12,-38 Q36,-26 44,-16"  stroke="#c62828" strokeWidth={10} fill="none" strokeLinecap="round"/>
+        <circle cx={44}  cy={-16} r={9} fill="#fdbcb4"/>
+        <rect x={-12} y={-13} width={11} height={28} rx={4} fill="#880e0e"/>
+        <rect x={1}   y={-13} width={11} height={28} rx={4} fill="#880e0e"/>
+        <rect x={-12} y={14} width={11} height={12} rx={3} fill="white" opacity={0.8}/>
+        <rect x={1}   y={14} width={11} height={12} rx={3} fill="white" opacity={0.8}/>
+      </g>
+
+      {/* Yellow kicker — faces RIGHT, nose shows direction, standing leg centred */}
+      <g transform="translate(440,356)">
+        {/* Head — right-facing profile */}
+        <circle cx={6} cy={-54} r={13} fill="#fdbcb4" />
+        {/* Nose bump pointing right = clear facing indicator */}
+        <ellipse cx={18} cy={-51} rx={5} ry={3} fill="#fdbcb4" />
+        {/* Hair cap */}
+        <path d="M-6,-60 Q6,-74 18,-60" fill="#5d3000" />
+        {/* Body / jersey */}
+        <rect x={-8} y={-41} width={22} height={30} rx={5} fill="#f9a825" />
+        {/* Left arm — FORWARD at mid-body height (not drooping down) */}
+        <path d="M-8,-35 Q4,-28 14,-24" stroke="#f9a825" strokeWidth={9} fill="none" strokeLinecap="round"/>
+        <circle cx={14} cy={-24} r={8} fill="#fdbcb4"/>
+        {/* Right arm — BACK swing left and up */}
+        <path d="M14,-35 Q0,-46 -8,-40" stroke="#f9a825" strokeWidth={9} fill="none" strokeLinecap="round"/>
+        <circle cx={-8} cy={-40} r={8} fill="#fdbcb4"/>
+        {/* Standing LEFT leg — slightly left, planted */}
+        <rect x={-6} y={-11} width={10} height={30} rx={4} fill="#e65100"/>
+        <rect x={-6} y={18}  width={10} height={11} rx={3} fill="white" opacity={0.8}/>
+        {/* Kicking RIGHT leg — gentle forward swing, nearly straight at contact */}
+        {/* Knee raised (not below hip) so leg doesn't fold backwards */}
+        <line x1={8}  y1={-11} x2={22} y2={-2}  stroke="#e65100" strokeWidth={13} strokeLinecap="round"/>
+        <line x1={22} y1={-2}  x2={40} y2={-4}   stroke="#e65100" strokeWidth={11} strokeLinecap="round"/>
+        <circle cx={40} cy={-4} r={9} fill="white" opacity={0.9}/>
+      </g>
+
+      {/* ── Ball: at kicker's foot (482,354) → right goal (706,291) ── */}
+      <g style={{ animation: 'bg-fb-ball 3.5s ease-in-out infinite', transformOrigin: '482px 354px' }}>
+        <circle cx={482} cy={354} r={15} fill="white" stroke="#ddd" strokeWidth={0.8}/>
+        <polygon points="482,347 488.7,351.8 486.1,359.7 477.9,359.7 475.3,351.8" fill="#1a1a1a"/>
+        <circle cx={489.4} cy={343.9} r={2.8} fill="#1a1a1a"/>
+        <circle cx={493.9} cy={357.9} r={2.8} fill="#1a1a1a"/>
+        <circle cx={482}   cy={366.5} r={2.8} fill="#1a1a1a"/>
+        <circle cx={470.1} cy={357.9} r={2.8} fill="#1a1a1a"/>
+        <circle cx={474.6} cy={343.9} r={2.8} fill="#1a1a1a"/>
+        <ellipse cx={477} cy={348} rx={4} ry={2.5} fill="white" opacity={0.6}/>
+      </g>
+
+      {/* ── Scoreboard ── */}
+      <g transform="translate(400,16)">
+        <rect x={-78} y={0} width={156} height={36} rx={8} fill="rgba(0,0,0,0.72)" />
+        <rect x={-76} y={2} width={152} height={32} rx={7} fill="rgba(30,40,140,0.9)" />
+        <text x={-28} y={24} textAnchor="middle" fill="white"   fontSize={20} fontWeight="bold" fontFamily="monospace">2</text>
+        <text x={0}   y={22} textAnchor="middle" fill="#ffd600" fontSize={13} fontWeight="bold" fontFamily="monospace">—</text>
+        <text x={28}  y={24} textAnchor="middle" fill="white"   fontSize={20} fontWeight="bold" fontFamily="monospace">1</text>
+      </g>
+
+      {/* ── GOAL!! flash ── */}
+      <text x={706} y={286} textAnchor="middle"
+        fill="#ffd600" fontSize={40} fontWeight="900"
+        fontFamily="Nunito,Arial Black,sans-serif"
+        stroke="#ff3300" strokeWidth={3} paintOrder="stroke"
+        style={{ animation: 'bg-goal 3.5s ease-in-out infinite' }}>
+        GOAL!!
+      </text>
+    </svg>
+  )
+}
+
+// ── Camping ───────────────────────────────────────────────────────────────────
+function Scene_camping() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="ca-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a1a3a"/><stop offset="100%" stopColor="#0d1b2a"/></linearGradient>
+        <radialGradient id="ca-fire" cx="50%" cy="80%"><stop offset="0%" stopColor="#ff8f00"/><stop offset="100%" stopColor="#e65100" stopOpacity={0}/></radialGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#ca-bg)" />
+      <Stars n={60} />
+      {/* Crescent moon — two circles technique */}
+      <circle cx={680} cy={70} r={42} fill="#fff9c4" opacity={0.92} />
+      <circle cx={702} cy={58} r={38} fill="#1a1a3a" />
+      {/* Mountains */}
+      <polygon points="0,310 130,130 260,310"   fill="#1b2a1b" />
+      <polygon points="90,310 240,105 390,310"  fill="#162416" />
+      <polygon points="380,310 540,85 700,310"  fill="#1b2a1b" />
+      <polygon points="520,310 670,145 800,310 800,450 0,450 0,310" fill="#0d1a0d" />
+      <rect x={0} y={360} width={800} height={90} fill="#1a2e0a" />
+      {/* Tent */}
+      <g transform="translate(300,230)">
+        <polygon points="-90,130 0,-40 90,130" fill="#e65100" />
+        <polygon points="-30,130 0,50 30,130" fill="#1a1a0a" />
+        <line x1={0} y1={-40} x2={0} y2={130} stroke="#ff6f00" strokeWidth={2} opacity={0.5} />
+        <line x1={-90} y1={130} x2={-110} y2={148} stroke="#8b6914" strokeWidth={3} strokeLinecap="round" />
+        <line x1={90}  y1={130} x2={110}  y2={148} stroke="#8b6914" strokeWidth={3} strokeLinecap="round" />
+        <line x1={0} y1={-40} x2={-110} y2={148} stroke="#8b6914" strokeWidth={1.5} opacity={0.5} />
+        <line x1={0} y1={-40} x2={110}  y2={148} stroke="#8b6914" strokeWidth={1.5} opacity={0.5} />
+      </g>
+      {/* Campfire */}
+      <g transform="translate(580,370)">
+        <ellipse cx={0} cy={10} rx={38} ry={10} fill="#5d4037" />
+        <rect x={-32} y={-2} width={65} height={12} rx={6} fill="#4e342e" transform="rotate(-14)" />
+        <rect x={-32} y={-2} width={65} height={12} rx={6} fill="#4e342e" transform="rotate(14)" />
+        {[-26,-14,0,14,26].map((x,i)=>(<ellipse key={i} cx={x} cy={14} rx={9} ry={6} fill="#616161" />))}
+        <ellipse cx={0} cy={0} rx={44} ry={22} fill="url(#ca-fire)" opacity={0.4} />
+        {[{x:-12,h:44,c:'#ff6f00',d:2},{x:0,h:58,c:'#ff8f00',d:2.5},{x:12,h:42,c:'#ffa726',d:1.8}].map((f,i)=>(
+          <ellipse key={i} cx={f.x} cy={-f.h/2} rx={11} ry={f.h/2} fill={f.c}
+            style={{ animation: `bg-flicker ${f.d}s ${i*.3}s ease-in-out infinite` }} />
+        ))}
+        {[{x:-6,y:-64},{x:6,y:-72},{x:16,y:-56}].map((s,i)=>(
+          <circle key={i} cx={s.x} cy={s.y} r={3} fill="#fdd835"
+            style={{ animation: `bg-steam ${1.5+i*.4}s ${i*.3}s ease-in-out infinite` }} />
+        ))}
+      </g>
+      {[50,110,660,720].map((x,i)=>(
+        <g key={i}>
+          <polygon points={`${x},360 ${x+22},268 ${x+44},360`} fill="#0d2010" />
+          <polygon points={`${x+4},320 ${x+22},238 ${x+40},320`} fill="#142818" />
+        </g>
+      ))}
+      <ellipse cx={580} cy={380} rx={130} ry={32} fill="#ff6f00" opacity={0.1} />
+    </svg>
+  )
+}
+
+// ── Around the World ──────────────────────────────────────────────────────────
+function Scene_aroundtheworld() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="aw-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e3f2fd"/><stop offset="100%" stopColor="#bbdefb"/></linearGradient>
+        <radialGradient id="aw-globe" cx="45%" cy="42%"><stop offset="0%" stopColor="#42a5f5"/><stop offset="100%" stopColor="#0d47a1"/></radialGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#aw-bg)" />
+      {/* Clouds in upper sky */}
+      <CloudShape x={30}  y={55}  w={150} fill="white" opacity={0.9} style={{ animation: 'bg-drift-r 32s linear infinite' }} />
+      <CloudShape x={580} y={42}  w={120} fill="white" opacity={0.85} style={{ animation: 'bg-drift-r 42s 9s linear infinite' }} />
+      {/* Globe — centered horizontally, sits in lower portion, no float so it never clips */}
+      <g transform="translate(400,305)">
+        <circle cx={0} cy={0} r={118} fill="url(#aw-globe)" />
+        {[-59,0,59].map((y,i)=>(
+          <ellipse key={i} cx={0} cy={y} rx={Math.max(8,Math.sqrt(118*118-y*y))} ry={14}
+            fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
+        ))}
+        {[0,36,72,108,144].map((a,i)=>(
+          <ellipse key={i} cx={0} cy={0} rx={12} ry={118} fill="none"
+            stroke="rgba(255,255,255,0.14)" strokeWidth={1} transform={`rotate(${a})`} />
+        ))}
+        <ellipse cx={-28} cy={-18} rx={42} ry={30} fill="#4caf50" opacity={0.86} />
+        <ellipse cx={-18} cy={28}  rx={28} ry={22} fill="#4caf50" opacity={0.82} />
+        <ellipse cx={40}  cy={-28} rx={34} ry={26} fill="#4caf50" opacity={0.84} />
+        <ellipse cx={58}  cy={18}  rx={20} ry={16} fill="#4caf50" opacity={0.78} />
+        <ellipse cx={-66} cy={8}   rx={18} ry={26} fill="#4caf50" opacity={0.76} />
+        <ellipse cx={-38} cy={-48} rx={32} ry={22} fill="rgba(255,255,255,0.1)" />
+        <ellipse cx={0} cy={0} rx={118} ry={16} fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth={1.5} />
+        {/* Stand */}
+        <rect x={-7} y={110} width={14} height={34} rx={4} fill="#1565c0" opacity={0.65} />
+        <ellipse cx={0} cy={144} rx={44} ry={10} fill="#0d47a1" opacity={0.5} />
+      </g>
+      {/* Flags left and right, anchored low */}
+      {[{x:80,y:360},{x:680,y:365}].map((f,i)=>(
+        <g key={i}>
+          <rect x={f.x} y={f.y-95} width={4} height={100} fill="#5d4037" />
+          <rect x={f.x+4} y={f.y-95} width={48} height={14} fill={['#ff9800','#1565c0'][i]} />
+          <rect x={f.x+4} y={f.y-81} width={48} height={14} fill="white" />
+          <rect x={f.x+4} y={f.y-67} width={48} height={14} fill={['#4caf50','#e53935'][i]} />
+        </g>
+      ))}
+      {/* Aeroplane drifting across upper sky */}
+      <g style={{ animation: 'bg-drift-r 20s linear infinite' }}>
+        <g transform="translate(-80,100)">
+          <ellipse cx={0} cy={0} rx={60} ry={16} fill="white" />
+          <ellipse cx={18} cy={-10} rx={25} ry={10} fill="white" />
+          <polygon points="-60,0 -82,-12 -76,0" fill="white" />
+          <polygon points="-22,0 -34,24 -10,24" fill="white" />
+          <polygon points="-16,0 -28,-20 -4,-20" fill="white" />
+          {[-12,4,20].map((x,i)=>(
+            <ellipse key={i} cx={x} cy={-8} rx={8} ry={5} fill="#bbdefb" opacity={0.8} />
+          ))}
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+// ── Jungle Book ───────────────────────────────────────────────────────────────
+function Scene_junglebook() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="jb-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1b5e20"/><stop offset="100%" stopColor="#2e7d32"/></linearGradient>
+        <radialGradient id="jb-sun" cx="50%" cy="0%" r="60%"><stop offset="0%" stopColor="#fff9c4" stopOpacity={0.7}/><stop offset="100%" stopColor="#fff9c4" stopOpacity={0}/></radialGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#jb-bg)" />
+      <rect x={0} y={0} width={800} height={220} fill="url(#jb-sun)" />
+      {/* Background trees */}
+      {[40,170,310,470,610,730].map((x,i)=>(
+        <g key={i}>
+          <rect x={x} y={120} width={20} height={310} rx={7} fill="#1a3a0a" />
+          <ellipse cx={x+10} cy={108}  rx={60} ry={64} fill="#1b5e20" opacity={0.9} />
+          <ellipse cx={x+10} cy={88}   rx={44} ry={48} fill="#2e7d32" opacity={0.85} />
+          <ellipse cx={x+10} cy={72}   rx={30} ry={35} fill="#388e3c" opacity={0.8} />
+        </g>
+      ))}
+      {/* Vines */}
+      {[100,290,500,670].map((x,i)=>(
+        <path key={i} d={`M${x},0 Q${x+35},90 ${x-24},180 Q${x+45},270 ${x},360`}
+          stroke="#2e7d32" strokeWidth={7} fill="none" strokeLinecap="round" opacity={0.65} />
+      ))}
+      {/* Ground */}
+      <ellipse cx={400} cy={440} rx={440} ry={85} fill="#1a2e0a" />
+      {/* Elephant — centred, sits on ground with trunk hanging naturally */}
+      <g transform="translate(430,300)">
+        {/* Rear legs */}
+        <rect x={38}  y={50} width={28} height={55} rx={14} fill="#78909c" />
+        <rect x={72}  y={50} width={28} height={55} rx={14} fill="#78909c" />
+        {/* Body — large horizontal ellipse */}
+        <ellipse cx={28} cy={18} rx={96} ry={62} fill="#78909c" />
+        {/* Front legs */}
+        <rect x={-52} y={50} width={28} height={58} rx={14} fill="#78909c" />
+        <rect x={-18} y={50} width={28} height={58} rx={14} fill="#78909c" />
+        {/* Head — overlapping body left */}
+        <ellipse cx={-90} cy={-4} rx={54} ry={48} fill="#78909c" />
+        {/* Ear */}
+        <ellipse cx={-78} cy={-14} rx={34} ry={46} fill="#607d8b" opacity={0.82} />
+        <ellipse cx={-78} cy={-14} rx={22} ry={30} fill="#e57373" opacity={0.3} />
+        {/* Eye */}
+        <circle cx={-108} cy={-20} r={9} fill="#212121" />
+        <circle cx={-106} cy={-22} r={3} fill="white" />
+        {/* Tusk */}
+        <path d="M-128,-6 Q-152,2 -144,28" stroke="#fff9c4" strokeWidth={8} fill="none" strokeLinecap="round" />
+        {/* Trunk — hangs down then curls forward */}
+        <path d="M-128,10 Q-158,40 -148,78 Q-140,102 -122,90"
+          stroke="#607d8b" strokeWidth={24} fill="none" strokeLinecap="round" />
+        <circle cx={-116} cy={88} r={14} fill="#607d8b" />
+        {/* Tail */}
+        <path d="M122,8 Q144,28 136,52" stroke="#607d8b" strokeWidth={8} fill="none" strokeLinecap="round" />
+        <ellipse cx={136} cy={54} rx={6} ry={4} fill="#607d8b" />
+      </g>
+      {/* Monkey — in middle vertical band, holding vine */}
+      <g style={{ animation: 'bg-drift-lr 12s ease-in-out infinite' }}>
+        <g transform="translate(200,155)">
+          {/* Vine held */}
+          <line x1={18} y1={-32} x2={18} y2={-80} stroke="#5d4037" strokeWidth={5} />
+          {/* Body */}
+          <ellipse cx={0} cy={12} rx={13} ry={18} fill="#8d6e63" />
+          {/* Head */}
+          <circle cx={0} cy={-12} r={16} fill="#a1887f" />
+          <circle cx={0} cy={-10} r={11} fill="#bcaaa4" />
+          {/* Eyes */}
+          <circle cx={-5} cy={-14} r={3.5} fill="#212121" /><circle cx={-4} cy={-15} r={1} fill="white" />
+          <circle cx={5}  cy={-14} r={3.5} fill="#212121" /><circle cx={6}  cy={-15} r={1} fill="white" />
+          {/* Smile */}
+          <path d="M-4,-6 Q0,-3 4,-6" stroke="#5d4037" strokeWidth={1.5} fill="none" />
+          {/* Ears */}
+          <circle cx={-16} cy={-12} r={6} fill="#a1887f" /><circle cx={-16} cy={-12} r={3.5} fill="#bcaaa4" />
+          <circle cx={16}  cy={-12} r={6} fill="#a1887f" /><circle cx={16}  cy={-12} r={3.5} fill="#bcaaa4" />
+          {/* Right arm holding vine */}
+          <path d="M13,0 Q22,-14 18,-32" stroke="#8d6e63" strokeWidth={7} fill="none" strokeLinecap="round" />
+          {/* Left arm outstretched */}
+          <path d="M-13,0 Q-28,12 -28,24" stroke="#8d6e63" strokeWidth={7} fill="none" strokeLinecap="round" />
+          {/* Legs */}
+          <path d="M-8,30 Q-14,46 -10,58" stroke="#8d6e63" strokeWidth={6} fill="none" strokeLinecap="round" />
+          <path d="M8,30  Q14,46  10,58"  stroke="#8d6e63" strokeWidth={6} fill="none" strokeLinecap="round" />
+          {/* Tail */}
+          <path d="M0,30 Q18,52 12,68" stroke="#8d6e63" strokeWidth={5} fill="none" strokeLinecap="round" />
+          <circle cx={12} cy={68} r={4} fill="#8d6e63" />
+        </g>
+      </g>
+      {/* Tropical birds */}
+      {[{x:140,y:205,c:'#e53935'},{x:600,y:185,c:'#1565c0'}].map((b,i)=>(
+        <g key={i} style={{ animation: `bg-float ${3+i}s ease-in-out infinite` }}>
+          <ellipse cx={b.x}    cy={b.y}    rx={20} ry={10} fill={b.c} />
+          <ellipse cx={b.x-16} cy={b.y-7}  rx={18} ry={9}  fill={b.c} opacity={0.85} transform={`rotate(-28,${b.x-16},${b.y-7})`} />
+          <ellipse cx={b.x+16} cy={b.y-7}  rx={18} ry={9}  fill={b.c} opacity={0.85} transform={`rotate(28,${b.x+16},${b.y-7})`} />
+          <ellipse cx={b.x+18} cy={b.y}    rx={9}  ry={5}  fill="#ffd600" />
+        </g>
+      ))}
+      {/* Foreground leaves */}
+      <ellipse cx={40}  cy={425} rx={90} ry={65} fill="#1b5e20" opacity={0.85} />
+      <ellipse cx={760} cy={425} rx={90} ry={65} fill="#1b5e20" opacity={0.85} />
+    </svg>
+  )
+}
+
+// ── Music World ───────────────────────────────────────────────────────────────
+function Scene_music() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="mu-bg" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stopColor="#0d1b2a"/><stop offset="100%" stopColor="#1a0a3a"/></linearGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#mu-bg)" />
+      {/* Spotlight beams from top */}
+      {[{x:180,c:'rgba(156,39,176,0.12)'},{x:400,c:'rgba(0,188,212,0.12)'},{x:620,c:'rgba(233,30,99,0.12)'}].map((s,i)=>(
+        <polygon key={i} points={`${s.x},0 ${s.x-100},450 ${s.x+100},450`} fill={s.c} />
+      ))}
+      {/* Stage floor */}
+      <rect x={0} y={360} width={800} height={90} fill="#1a1a2a" />
+      <rect x={0} y={355} width={800} height={10} rx={4} fill="#4a148c" />
+      {/* Rig bar + lights */}
+      <rect x={0} y={0} width={800} height={10} fill="#111" />
+      {[100,220,400,580,700].map((x,i)=>(
+        <g key={i}>
+          <rect x={x-6} y={10} width={12} height={22} rx={3} fill="#212121" />
+          <ellipse cx={x} cy={36} rx={14} ry={9}
+            fill={['#e91e63','#00bcd4','#ffd600','#4caf50','#7c4dff'][i]} opacity={0.92}
+            style={{ animation: `bg-glow ${2+i*.3}s ${i*.2}s ease-in-out infinite` }} />
+          {/* Light cone */}
+          <polygon points={`${x-14},36 ${x-55},355 ${x+55},355 ${x+14},36`}
+            fill={['rgba(233,30,99,0.05)','rgba(0,188,212,0.05)','rgba(255,214,0,0.05)','rgba(76,175,80,0.05)','rgba(124,77,255,0.05)'][i]} />
+        </g>
+      ))}
+      {/* Staff lines in mid-screen */}
+      {[175,191,207,223,239].map((y,i)=>(
+        <line key={i} x1={50} y1={y} x2={750} y2={y}
+          stroke="rgba(255,255,255,0.3)" strokeWidth={1.5}
+          style={{ animation: `bg-glow 2s ${i*.15}s ease-in-out infinite` }} />
+      ))}
+      {/* Floating notes */}
+      {[{x:105,y:210,c:'#e91e63'},{x:228,y:162,c:'#ffd600'},{x:368,y:185,c:'#00bcd4'},
+        {x:522,y:155,c:'#4caf50'},{x:655,y:198,c:'#e91e63'},{x:748,y:170,c:'#ffd600'}].map((n,i)=>(
+        <g key={i} style={{ animation: `bg-float ${3+i*.5}s ${i*.4}s ease-in-out infinite` }}>
+          <g transform={`translate(${n.x},${n.y}) scale(1.3)`}>
+            {i%3===0 && <>
+              <ellipse cx={0} cy={0} rx={11} ry={9} fill={n.c} opacity={0.9} transform="rotate(-20)" />
+              <rect x={9} y={-34} width={3} height={34} fill={n.c} opacity={0.9} />
+              <rect x={9} y={-34} width={18} height={4} fill={n.c} opacity={0.75} />
+            </>}
+            {i%3===1 && <>
+              <ellipse cx={0}  cy={0} rx={11} ry={9} fill={n.c} opacity={0.9} transform="rotate(-20)" />
+              <ellipse cx={18} cy={4} rx={11} ry={9} fill={n.c} opacity={0.9} transform="rotate(-20)" />
+              <rect x={9}  y={-32} width={3} height={32} fill={n.c} opacity={0.9} />
+              <rect x={27} y={-28} width={3} height={32} fill={n.c} opacity={0.9} />
+              <line x1={9} y1={-32} x2={30} y2={-28} stroke={n.c} strokeWidth={3} />
+            </>}
+            {i%3===2 && <>
+              <ellipse cx={0} cy={0} rx={11} ry={9} fill={n.c} opacity={0.9} transform="rotate(-20)" />
+              <rect x={9} y={-36} width={3} height={36} fill={n.c} opacity={0.9} />
+              <polygon points="9,-36 22,-30 9,-24" fill={n.c} opacity={0.9} />
+            </>}
+          </g>
+        </g>
+      ))}
+      {/* Piano keys on stage */}
+      {[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i=>(
+        <rect key={i} x={i*60+10} y={362} width={56} height={36} rx={3} fill="rgba(255,255,255,0.09)" />
+      ))}
+      {/* Guitar — grounded on stage right */}
+      <g transform="translate(620,265)">
+        <ellipse cx={0} cy={42}  rx={44} ry={48} fill="#795548" opacity={0.9} />
+        <ellipse cx={0} cy={-16} rx={28} ry={34} fill="#795548" opacity={0.9} />
+        {/* Neck */}
+        <rect x={-7} y={-118} width={14} height={136} rx={5} fill="#5d4037" />
+        {/* Headstock */}
+        <rect x={-22} y={-124} width={44} height={16} rx={5} fill="#4e342e" />
+        {/* Strings */}
+        {[0,1,2,3,4,5].map(i=>(
+          <line key={i} x1={-6+i*2.5} y1={-116} x2={-6+i*2.5} y2={88}
+            stroke="#ffd600" strokeWidth={0.9} opacity={0.55} />
+        ))}
+        {/* Sound hole */}
+        <circle cx={0} cy={42} r={14} fill="none" stroke="#ffd600" strokeWidth={2} opacity={0.5} />
+        {/* Frets */}
+        {[0,1,2,3].map(i=>(
+          <line key={i} x1={-7} y1={-90+i*22} x2={7} y2={-90+i*22} stroke="#9e9e9e" strokeWidth={1.5} opacity={0.5} />
+        ))}
+      </g>
+      {/* Treble clef left side */}
+      <g transform="translate(110,255)" opacity={0.5}>
+        <path d="M8,0 Q22,8 18,28 Q14,48 0,58 Q-8,64 0,76 Q12,82 18,68"
+          stroke="white" strokeWidth={4} fill="none" strokeLinecap="round" />
+        <circle cx={2} cy={76} r={7} fill="none" stroke="white" strokeWidth={4} />
+        <line x1={-6} y1={55} x2={22} y2={55} stroke="white" strokeWidth={2} opacity={0.5} />
+        <line x1={-6} y1={40} x2={22} y2={40} stroke="white" strokeWidth={2} opacity={0.5} />
+      </g>
+    </svg>
+  )
+}
+
+// ── Girl Hero ─────────────────────────────────────────────────────────────────
+function Scene_girlhero() {
+  return (
+    <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" overflow="hidden" className="bg-scene-svg">
+      <defs>
+        <linearGradient id="gh-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#4a148c"/><stop offset="100%" stopColor="#1a0838"/></linearGradient>
+        <radialGradient id="gh-glow" cx="50%" cy="50%"><stop offset="0%" stopColor="#e91e63" stopOpacity={0.28}/><stop offset="100%" stopColor="#e91e63" stopOpacity={0}/></radialGradient>
+      </defs>
+      <rect width={800} height={450} fill="url(#gh-bg)" />
+      <Stars n={40} />
+      {/* City skyline anchored to bottom */}
+      {[{x:0,w:80,h:180},{x:85,w:55,h:240},{x:145,w:85,h:165},{x:235,w:48,h:280},
+        {x:570,w:65,h:205},{x:640,w:88,h:158},{x:730,w:62,h:230}].map((b,i)=>(
+        <g key={i}>
+          <rect x={b.x} y={450-b.h} width={b.w} height={b.h} fill="#1a0a3a" />
+          {[...Array(Math.floor(b.h/36))].map((_,j)=>(
+            [...Array(Math.floor(b.w/18))].map((_,k)=>(
+              <rect key={`${j}-${k}`} x={b.x+k*18+4} y={450-b.h+j*36+8} width={9} height={12} rx={1}
+                fill="#ffd600" opacity={(j+k)%3===0?0.55:0.08} />
+            ))
+          ))}
+        </g>
+      ))}
+      {/* Hero glow */}
+      <ellipse cx={400} cy={220} rx={170} ry={150} fill="url(#gh-glow)" />
+      {/* Girl Hero — flies like Superman using bg-fly (horizontal only, no vertical clip) */}
+      <g style={{ animation: 'bg-fly 10s ease-in-out infinite' }}>
+        {/* Cape billowing behind left */}
+        <path d="M388,195 C380,210 372,236 376,262 C388,248 404,238 412,232 C416,218 414,204 406,196 Z"
+          fill="#e91e63" opacity={0.92} />
+        {/* Body */}
+        <rect x={390} y={196} width={36} height={50} rx={8} fill="#7b1fa2" />
+        {/* Star */}
+        <polygon points="408,206 411,216 421,216 413,222 416,232 408,226 400,232 403,222 395,216 405,216"
+          fill="#ffd600" />
+        {/* Head */}
+        <circle cx={408} cy={180} r={20} fill="#ffcc80" />
+        {/* Hair */}
+        <ellipse cx={408} cy={163} rx={20} ry={10} fill="#6d4c41" />
+        <path d="M390,170 Q382,188 388,208" stroke="#6d4c41" strokeWidth={9} fill="none" strokeLinecap="round" />
+        <path d="M426,170 Q434,188 428,208" stroke="#6d4c41" strokeWidth={9} fill="none" strokeLinecap="round" />
+        {/* Mask */}
+        <rect x={392} y={175} width={32} height={11} rx={5} fill="#e91e63" opacity={0.88} />
+        <ellipse cx={400} cy={180} rx={5} ry={3.5} fill="#1a0a3a" />
+        <ellipse cx={416} cy={180} rx={5} ry={3.5} fill="#1a0a3a" />
+        {/* Lead arm outstretched forward right — like Superman */}
+        <path d="M424,210 Q450,202 470,194" stroke="#7b1fa2" strokeWidth={14} fill="none" strokeLinecap="round" />
+        <circle cx={474} cy={192} r={11} fill="#ffcc80" />
+        {/* Trailing arm back */}
+        <path d="M392,210 Q372,218 358,228" stroke="#7b1fa2" strokeWidth={12} fill="none" strokeLinecap="round" />
+        <circle cx={354} cy={230} r={10} fill="#ffcc80" />
+        {/* Legs back */}
+        <path d="M396,246 Q390,264 388,280" stroke="#7b1fa2" strokeWidth={12} fill="none" strokeLinecap="round" />
+        <path d="M414,246 Q418,264 422,280" stroke="#7b1fa2" strokeWidth={10} fill="none" strokeLinecap="round" />
+        {/* Boots */}
+        <path d="M386,280 Q382,288 384,294 Q388,296 394,292 Q394,286 390,280 Z" fill="#e91e63" />
+        <path d="M420,280 Q420,288 422,294 Q426,296 432,292 Q432,286 424,281 Z" fill="#e91e63" />
+        {/* Speed lines */}
+        {[193,204,215,226].map((y,i)=>(
+          <line key={i} x1={484+i*2} y1={y} x2={520+i*6} y2={y}
+            stroke="rgba(255,255,255,0.22)" strokeWidth={1.5} />
+        ))}
+      </g>
+      {/* Sparkles */}
+      {[{x:240,y:180},{x:560,y:200},{x:300,y:310},{x:500,y:300}].map((s,i)=>(
+        <g key={i} style={{ animation: `bg-glow ${2+i*.5}s ${i*.3}s ease-in-out infinite` }}>
+          <polygon
+            points={`${s.x},${s.y-13} ${s.x+4},${s.y-4} ${s.x+13},${s.y} ${s.x+4},${s.y+4} ${s.x},${s.y+13} ${s.x-4},${s.y+4} ${s.x-13},${s.y} ${s.x-4},${s.y-4}`}
+            fill="#ffd600" opacity={0.82} />
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+
 const SCENE_MAP = {
   coral:        Scene_coral,
   sunshine:     Scene_sunshine,
@@ -3859,7 +4872,18 @@ const SCENE_MAP = {
   frozen:       Scene_frozen,
   sky:          Scene_sky,
   rainbow:      Scene_rainbow,
-  artStudio:    Scene_artStudio,
+  artStudio:      Scene_artStudio,
+  train:          Scene_train,
+  butterfly:      Scene_butterfly,
+  bees:           Scene_bees,
+  sunflowerfarm:  Scene_sunflowerfarm,
+  cricket:        Scene_cricket,
+  football:       Scene_football,
+  camping:        Scene_camping,
+  aroundtheworld: Scene_aroundtheworld,
+  junglebook:     Scene_junglebook,
+  music:          Scene_music,
+  girlhero:       Scene_girlhero,
 }
 
 // ── Public component ──────────────────────────────────────────────────────────

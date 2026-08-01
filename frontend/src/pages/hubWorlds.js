@@ -152,6 +152,11 @@ export const THEME_WORLD = {
   sky: 'sky',
   // Abstract
   rainbow: 'abstract', artStudio: 'abstract',
+  // New themes
+  train: 'warmsky', butterfly: 'magical', bees: 'warmsky',
+  sunflowerfarm: 'warmsky', cricket: 'forest', football: 'forest',
+  camping: 'forest', aroundtheworld: 'sky', junglebook: 'forest',
+  music: 'abstract', girlhero: 'adventure',
 }
 
 // ── Per-theme particle overrides ──────────────────────────────────────────────

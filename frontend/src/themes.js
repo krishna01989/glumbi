@@ -317,22 +317,102 @@ export const THEMES = {
     headerGrad: 'linear-gradient(135deg,#ad1457,#e91e8c)',
     headerShadow: 'rgba(173,20,87,0.35)',
   },
+
+  // ── Toddler ──────────────────────────────────────────────
+  train: {
+    name: 'Choo Choo Train', emoji: '🚂',
+    primary: '#c62828', primaryLt: '#ffebee', accent: '#1565c0', bg: '#fff5f5',
+    headerGrad: 'linear-gradient(135deg,#c62828,#1565c0)',
+    headerShadow: 'rgba(198,40,40,0.4)',
+  },
+  butterfly: {
+    name: 'Butterfly Garden', emoji: '🦋',
+    primary: '#8e24aa', primaryLt: '#f3e5f5', accent: '#66bb6a', bg: '#fdf5ff',
+    headerGrad: 'linear-gradient(135deg,#8e24aa,#ce93d8,#66bb6a)',
+    headerShadow: 'rgba(142,36,170,0.35)',
+  },
+  bees: {
+    name: 'Busy Bees', emoji: '🐝',
+    primary: '#f9a825', primaryLt: '#fffde7', accent: '#1a1a1a', bg: '#fffdf0',
+    headerGrad: 'linear-gradient(135deg,#f57f17,#f9a825)',
+    headerShadow: 'rgba(249,168,37,0.4)',
+  },
+  sunflowerfarm: {
+    name: 'Sunflower Farm', emoji: '🌻',
+    primary: '#f9a825', primaryLt: '#fffde7', accent: '#388e3c', bg: '#fffbf0',
+    headerGrad: 'linear-gradient(135deg,#f9a825,#388e3c)',
+    headerShadow: 'rgba(249,168,37,0.35)',
+  },
+
+  // ── Sports ───────────────────────────────────────────────
+  cricket: {
+    name: 'Cricket', emoji: '🏏',
+    primary: '#1b5e20', primaryLt: '#e8f5e9', accent: '#ffd600', bg: '#f1fff3',
+    headerGrad: 'linear-gradient(135deg,#1b5e20,#388e3c,#ffd600)',
+    headerShadow: 'rgba(27,94,32,0.4)',
+  },
+  football: {
+    name: 'Football', emoji: '⚽',
+    primary: '#2e7d32', primaryLt: '#e8f5e9', accent: '#ffffff', bg: '#f1fff3',
+    headerGrad: 'linear-gradient(135deg,#1b5e20,#2e7d32)',
+    headerShadow: 'rgba(46,125,50,0.4)',
+  },
+
+  // ── Adventure ────────────────────────────────────────────
+  camping: {
+    name: 'Camping', emoji: '🏕️',
+    primary: '#e65100', primaryLt: '#fff3e0', accent: '#1b5e20', bg: '#fffaf0',
+    headerGrad: 'linear-gradient(135deg,#4e342e,#e65100,#1b5e20)',
+    headerShadow: 'rgba(230,81,0,0.4)',
+  },
+  aroundtheworld: {
+    name: 'Around the World', emoji: '🌍',
+    primary: '#1565c0', primaryLt: '#e3f2fd', accent: '#ff6f00', bg: '#f0f7ff',
+    headerGrad: 'linear-gradient(135deg,#0d47a1,#1565c0,#ff6f00)',
+    headerShadow: 'rgba(21,101,192,0.4)',
+  },
+
+  // ── Indian Nature ────────────────────────────────────────
+  junglebook: {
+    name: 'Jungle Book', emoji: '🐘',
+    primary: '#2e7d32', primaryLt: '#e8f5e9', accent: '#795548', bg: '#f1fff3',
+    headerGrad: 'linear-gradient(135deg,#1b5e20,#2e7d32,#795548)',
+    headerShadow: 'rgba(46,125,50,0.4)',
+  },
+
+  // ── Music ────────────────────────────────────────────────
+  music: {
+    name: 'Music World', emoji: '🎵',
+    primary: '#6a1b9a', primaryLt: '#f3e5f5', accent: '#00bcd4', bg: '#fdf5ff',
+    headerGrad: 'linear-gradient(135deg,#4a148c,#6a1b9a,#00bcd4)',
+    headerShadow: 'rgba(106,27,154,0.4)',
+  },
+
+  // ── Girl Power ───────────────────────────────────────────
+  girlhero: {
+    name: 'Girl Hero', emoji: '🦸‍♀️',
+    primary: '#6a1b9a', primaryLt: '#f3e5f5', accent: '#ffd600', bg: '#fdf5ff',
+    headerGrad: 'linear-gradient(135deg,#6a1b9a,#e91e63,#ffd600)',
+    headerShadow: 'rgba(106,27,154,0.4)',
+  },
 }
 
 // Group for display in the picker
 export const THEME_GROUPS = [
-  { label: '⭐ Glumbi Specials', keys: ['storymagic','curiositylab','wordwizard','goldstar','artStudio'] },
+  { label: '⭐ Glumbi Specials', keys: ['storymagic','curiositylab','wordwizard','goldstar'] },
   { label: '🪷 Indian & Cultural', keys: ['rangoli','kolam','holi','monsoon','diwali'] },
-  { label: '🌿 Nature',         keys: ['coral','ocean','forest','sky','sunshine','rainbow'] },
+  { label: '🌿 Nature',         keys: ['coral','ocean','forest','sky','sunshine','rainbow','sunflowerfarm'] },
   { label: '🌙 Night Sky',      keys: ['moon','galaxy','stardust'] },
   { label: '🍬 Fun & Candy',    keys: ['candy','bubblegum','icecream','pizza','donut'] },
-  { label: '🐾 Animals',        keys: ['dinosaur','shark','unicorn','panda','lion','frog'] },
-  { label: '🌊 Ocean & Adventure', keys: ['mermaid','pirate'] },
-  { label: '🎮 Gaming & Vehicles', keys: ['minecraft','robot','racecar'] },
+  { label: '🐾 Animals',        keys: ['dinosaur','shark','unicorn','panda','lion','frog','butterfly','bees','junglebook'] },
+  { label: '🌊 Ocean & Adventure', keys: ['mermaid','pirate','camping','aroundtheworld'] },
+  { label: '🎮 Gaming & Vehicles', keys: ['minecraft','robot','racecar','train'] },
+  { label: '🏏 Sports',           keys: ['cricket','football'] },
+  { label: '🎵 Music & Arts',     keys: ['music','artStudio'] },
   { label: '🧚 Fantasy & Magic', keys: ['fairygarden','dragonfire','enchanted'] },
   { label: '🍂 Cozy & Comfort', keys: ['hotcocoa','autumnleaves','cherryblossom'] },
   { label: '🎉 Festivals',      keys: ['christmas','halloween'] },
-  { label: '🦸 Superheroes',    keys: ['avengers','spiderman','batman','superman','frozen','princess'] },
+  { label: '🦸 Superheroes',    keys: ['avengers','spiderman','batman','superman','frozen','princess','girlhero'] },
 ]
 
 export function applyTheme(themeKey) {

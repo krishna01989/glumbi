@@ -1706,6 +1706,169 @@ const THEMES_ANIM = {
     ),
   },
 
+  icecream: {
+    msg: ['Scooping up ideas…', 'Chilling out a story…', 'One scoop or two?'],
+    bg: '#ff8a65', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes scoop-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+          @keyframes drip-fall { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(18px);opacity:0} }
+          @keyframes sprinkle-spin { from{transform-origin:60px 60px;transform:rotate(0deg)} to{transform-origin:60px 60px;transform:rotate(360deg)} }
+        `}</style>
+        {/* Cone */}
+        <polygon points="60,115 30,65 90,65" fill="#d4a843" />
+        {[0,1,2,3,4].map(i=>(
+          <line key={i} x1={30+i*12} y1={65} x2={60} y2={115} stroke="#c8962a" strokeWidth="1" opacity=".6" />
+        ))}
+        <line x1={30} y1={75} x2={90} y2={75} stroke="#c8962a" strokeWidth="1" opacity=".5" />
+        <line x1={33} y1={85} x2={87} y2={85} stroke="#c8962a" strokeWidth="1" opacity=".5" />
+        <line x1={37} y1={95} x2={83} y2={95} stroke="#c8962a" strokeWidth="1" opacity=".5" />
+        {/* Scoops */}
+        <g style={{ animation:'scoop-bob 2s ease-in-out infinite' }}>
+          <circle cx="60" cy="55" r="22" fill="#ce93d8" />
+          <circle cx="42" cy="58" r="18" fill="#ff8a65" />
+          <circle cx="78" cy="58" r="18" fill="#81d4fa" />
+          {/* Sprinkles */}
+          <g style={{ animation:'sprinkle-spin 4s linear infinite' }}>
+            {[[55,45,'#ffd600',30],[65,42,'#e91e63',-20],[50,52,'#4caf50',60],[70,50,'#ff5722',-45]].map(([cx,cy,c,r],i)=>(
+              <rect key={i} x={cx-4} y={cy-1.5} width={8} height={3} rx={1.5} fill={c} transform={`rotate(${r},${cx},${cy})`} />
+            ))}
+          </g>
+        </g>
+        {/* Drip */}
+        <path d="M60,77 Q57,82 60,87 Q63,82 60,77Z" fill="#ce93d8"
+          style={{ animation:'drip-fall 2s 0.5s ease-in infinite' }} />
+      </svg>
+    ),
+  },
+
+  pizza: {
+    msg: ['Tossing up an idea…', 'Extra toppings incoming…', 'Hot and ready…'],
+    bg: '#e53935', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes pizza-spin { from{transform-origin:60px 60px;transform:rotate(0deg)} to{transform-origin:60px 60px;transform:rotate(360deg)} }
+          @keyframes cheese-melt { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.06)} }
+        `}</style>
+        {/* Crust */}
+        <circle cx="60" cy="60" r="50" fill="#d4a843" />
+        {/* Sauce */}
+        <circle cx="60" cy="60" r="44" fill="#e53935" />
+        {/* Cheese */}
+        <circle cx="60" cy="60" r="38" fill="#fbc02d"
+          style={{ animation:'cheese-melt 2s ease-in-out infinite' }} />
+        {/* Slice lines */}
+        {[0,60,120,180,240,300].map(a=>(
+          <line key={a} x1={60} y1={60}
+            x2={60+50*Math.cos(a*Math.PI/180)} y2={60+50*Math.sin(a*Math.PI/180)}
+            stroke="#d4a843" strokeWidth="2" opacity=".6" />
+        ))}
+        {/* Toppings - pepperoni */}
+        {[[48,48],[72,52],[58,72],[40,66],[75,38],[62,38]].map(([cx,cy],i)=>(
+          <circle key={i} cx={cx} cy={cy} r={7} fill="#c62828" />
+        ))}
+        {/* Basil */}
+        {[[55,58],[68,65]].map(([cx,cy],i)=>(
+          <ellipse key={i} cx={cx} cy={cy} rx={6} ry={4} fill="#2e7d32" transform={`rotate(${30+i*40},${cx},${cy})`} />
+        ))}
+        {/* Steam */}
+        {[45,60,75].map((x,i)=>(
+          <path key={i} d={`M${x},10 Q${x+5},5 ${x},0 Q${x-5},-5 ${x},-10`}
+            stroke="rgba(255,255,255,0.4)" strokeWidth="2" fill="none" strokeLinecap="round"
+            style={{ animation:`scoop-bob ${1.5+i*0.3}s ${i*0.2}s ease-in-out infinite` }} />
+        ))}
+      </svg>
+    ),
+  },
+
+  donut: {
+    msg: ['Glazing over ideas…', 'Sweet thinking in progress…', 'Sprinkles loading…'],
+    bg: '#c2185b', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes donut-spin { from{transform-origin:60px 60px;transform:rotate(0deg)} to{transform-origin:60px 60px;transform:rotate(360deg)} }
+          @keyframes glaze-shine { 0%,100%{opacity:.25} 50%{opacity:.55} }
+        `}</style>
+        {/* Donut body */}
+        <circle cx="60" cy="60" r="46" fill="#f48fb1" />
+        {/* Glaze */}
+        <circle cx="60" cy="60" r="44" fill="#f06292" />
+        {/* Hole */}
+        <circle cx="60" cy="60" r="18" fill="rgba(0,0,0,0)" style={{ filter:'url()' }} />
+        <circle cx="60" cy="60" r="18" fill="#c2185b" />
+        {/* Glaze highlight */}
+        <ellipse cx="46" cy="46" rx="14" ry="9" fill="rgba(255,255,255,0.22)"
+          style={{ animation:'glaze-shine 2s ease-in-out infinite' }} />
+        {/* Sprinkles spinning */}
+        <g style={{ animation:'donut-spin 6s linear infinite' }}>
+          {[[60,20,'#ffd600',0],[85,38,'#4fc3f7',45],[92,65,'#ff5722',90],[75,88,'#4caf50',135],
+            [45,92,'#ab47bc',-45],[28,72,'#ff8a65',-90],[22,44,'#e91e63',-135],[38,22,'#fdd835',-170]].map(([cx,cy,c,r],i)=>(
+            <rect key={i} x={cx-5} y={cy-2} width={10} height={4} rx={2} fill={c} transform={`rotate(${r},${cx},${cy})`} />
+          ))}
+        </g>
+        {/* Hole cutout overlay so sprinkles don't show through */}
+        <circle cx="60" cy="60" r="18" fill="#c2185b" />
+      </svg>
+    ),
+  },
+
+  unicorn: {
+    msg: ['Summoning magic…', 'Rainbow thoughts loading…', 'Sparkle sparkle…'],
+    bg: '#ab47bc', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes unicorn-bob  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+          @keyframes rainbow-fade { 0%,100%{opacity:.7} 50%{opacity:1} }
+          @keyframes horn-glow    { 0%,100%{filter:drop-shadow(0 0 3px #ffd600)} 50%{filter:drop-shadow(0 0 10px #ffd600)} }
+        `}</style>
+        {/* Rainbow arc */}
+        {['#e53935','#ff9800','#fdd835','#4caf50','#1e88e5','#ab47bc'].map((c,i)=>(
+          <path key={i} d={`M${10+i*4},90 Q60,${20-i*7} ${110-i*4},90`}
+            stroke={c} strokeWidth="5" fill="none" opacity=".75"
+            style={{ animation:`rainbow-fade 2s ${i*0.15}s ease-in-out infinite` }} />
+        ))}
+        {/* Unicorn body */}
+        <g style={{ animation:'unicorn-bob 2.5s ease-in-out infinite' }}>
+          <ellipse cx="62" cy="75" rx="26" ry="18" fill="white" />
+          {/* Head */}
+          <ellipse cx="82" cy="58" rx="16" ry="14" fill="white" />
+          {/* Horn */}
+          <g style={{ animation:'horn-glow 1.5s ease-in-out infinite' }}>
+            <polygon points="88,34 84,56 92,56" fill="#ffd600" />
+            {[1,2,3].map(i=>(
+              <line key={i} x1={84+i*2} y1={56-i*6} x2={88+i} y2={50-i*6} stroke="#ffcc02" strokeWidth="1" opacity=".6" />
+            ))}
+          </g>
+          {/* Eye */}
+          <circle cx="88" cy="56" r="4" fill="#4a148c" />
+          <circle cx="89" cy="55" r="1.5" fill="white" />
+          {/* Mane */}
+          {[['#f48fb1',74,44],['#ce93d8',68,40],['#80cbc4',62,42]].map(([c,x,y],i)=>(
+            <ellipse key={i} cx={x} cy={y} rx={6} ry={10} fill={c} transform={`rotate(${-20+i*10},${x},${y})`} />
+          ))}
+          {/* Legs */}
+          {[46,56,66,76].map((x,i)=>(
+            <rect key={i} x={x} y={90} width={8} height={20} rx={4} fill="white" />
+          ))}
+          {/* Tail */}
+          {[['#f48fb1',36,72],['#ce93d8',32,80],['#80cbc4',30,88]].map(([c,x,y],i)=>(
+            <ellipse key={i} cx={x} cy={y} rx={5} ry={9} fill={c} transform={`rotate(${-30+i*10},${x},${y})`} />
+          ))}
+        </g>
+        {/* Sparkles */}
+        {[[20,30],[95,40],[15,85],[100,80]].map(([x,y],i)=>(
+          <polygon key={i} points={`${x},${y-6} ${x+1.5},${y-1.5} ${x+6},${y} ${x+1.5},${y+1.5} ${x},${y+6} ${x-1.5},${y+1.5} ${x-6},${y} ${x-1.5},${y-1.5}`}
+            fill="#ffd600" opacity=".85"
+            style={{ animation:`horn-glow ${1.5+i*0.4}s ${i*0.3}s ease-in-out infinite` }} />
+        ))}
+      </svg>
+    ),
+  },
+
   bubblegum: {
     msg: ['Blowing bubbles…', 'Pop! Almost there…', 'Pink and sparkly…'],
     bg: '#f06292', color: 'white',
@@ -1730,6 +1893,372 @@ const THEMES_ANIM = {
         {/* gumballs */}
         {[[52,48,'#ffd600'],[65,52,'#4fc3f7'],[58,62,'#ff4081'],[68,44,'#4caf50'],[50,60,'#ff8f00']].map(([cx,cy,c],i) => (
           <circle key={i} cx={cx} cy={cy} r="6" fill={c} />
+        ))}
+      </svg>
+    ),
+  },
+
+  train: {
+    msg: ['All aboard! 🚂', 'Chugga chugga thinking…', 'Full steam ahead…'],
+    bg: '#c62828', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes train-wheel { from{transform-origin:center;transform:rotate(0deg)} to{transform-origin:center;transform:rotate(360deg)} }
+          @keyframes train-smoke { 0%{transform:translateY(0) scale(1);opacity:.7} 100%{transform:translateY(-30px) scale(2);opacity:0} }
+        `}</style>
+        {/* Track */}
+        <rect x="5" y="90" width="110" height="5" rx="2" fill="#8b6914" />
+        {[10,30,50,70,90].map(x=><rect key={x} x={x} y="88" width="10" height="9" rx="1" fill="#6b4e1a" />)}
+        {/* Engine body */}
+        <rect x="20" y="60" width="55" height="30" rx="6" fill="#c62828" />
+        <rect x="65" y="50" width="20" height="20" rx="4" fill="#b71c1c" />
+        <rect x="68" y="53" width="14" height="12" rx="2" fill="#81d4fa" opacity=".85" />
+        {/* Chimney + smoke */}
+        <rect x="28" y="50" width="8" height="12" rx="2" fill="#8b4513" />
+        {[0,1,2].map(i=>(
+          <circle key={i} cx={32} cy={44-i*10} r={5+i*3} fill="rgba(200,200,220,0.55)"
+            style={{ animation:`train-smoke ${1.2+i*0.4}s ease-out ${i*0.3}s infinite` }} />
+        ))}
+        {/* Wheels */}
+        {[35,60].map(cx=>(
+          <g key={cx} style={{ animation:'train-wheel 1s linear infinite' }}>
+            <circle cx={cx} cy={90} r={10} fill="#424242" />
+            <circle cx={cx} cy={90} r={6}  fill="#616161" />
+            <circle cx={cx} cy={90} r={2}  fill="#9e9e9e" />
+            <line x1={cx} y1={80} x2={cx} y2={100} stroke="#9e9e9e" strokeWidth="1.5" />
+            <line x1={cx-10} y1={90} x2={cx+10} y2={90} stroke="#9e9e9e" strokeWidth="1.5" />
+          </g>
+        ))}
+      </svg>
+    ),
+  },
+
+  butterfly: {
+    msg: ['Fluttering ideas…', 'Wings of imagination…', 'Flutter flutter…'],
+    bg: '#8e24aa', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes wing-flap { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(.3)} }
+          @keyframes bf-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        `}</style>
+        <g style={{ animation:'bf-float 2s ease-in-out infinite', transformOrigin:'60px 60px' }}>
+          {/* Left wings */}
+          <ellipse cx="38" cy="50" rx="26" ry="18" fill="#ce93d8"
+            style={{ animation:'wing-flap 0.6s ease-in-out infinite', transformOrigin:'60px 60px' }} />
+          <ellipse cx="40" cy="72" rx="18" ry="12" fill="#ab47bc"
+            style={{ animation:'wing-flap 0.6s ease-in-out infinite', transformOrigin:'60px 60px' }} />
+          {/* Right wings */}
+          <ellipse cx="82" cy="50" rx="26" ry="18" fill="#ce93d8"
+            style={{ animation:'wing-flap 0.6s ease-in-out infinite', transformOrigin:'60px 60px' }} />
+          <ellipse cx="80" cy="72" rx="18" ry="12" fill="#ab47bc"
+            style={{ animation:'wing-flap 0.6s ease-in-out infinite', transformOrigin:'60px 60px' }} />
+          {/* Body */}
+          <ellipse cx="60" cy="60" rx="5" ry="18" fill="#4a148c" />
+          {/* Antennae */}
+          <line x1="60" y1="42" x2="50" y2="28" stroke="#4a148c" strokeWidth="2" />
+          <line x1="60" y1="42" x2="70" y2="28" stroke="#4a148c" strokeWidth="2" />
+          <circle cx="50" cy="27" r="3" fill="#ffd600" />
+          <circle cx="70" cy="27" r="3" fill="#ffd600" />
+        </g>
+      </svg>
+    ),
+  },
+
+  bees: {
+    msg: ['The hive is thinking…', 'Buzz buzz buzz…', 'Honey dripping soon…'],
+    bg: '#f57f17', color: '#1a1a1a',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes bee-fly { 0%,100%{transform:translate(0,0) rotate(0deg)} 25%{transform:translate(8px,-6px) rotate(5deg)} 75%{transform:translate(-8px,6px) rotate(-5deg)} }
+          @keyframes bee-wing { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.4)} }
+        `}</style>
+        {/* Honeycomb bg */}
+        {[0,1,2].map(row=>[0,1,2,3].map(col=>{
+          const x=col*28+(row%2)*14+8, y=row*24+10
+          return <polygon key={`${row}-${col}`} points={`${x},${y-10} ${x+12},${y-5} ${x+12},${y+5} ${x},${y+10} ${x-12},${y+5} ${x-12},${y-5}`}
+            fill="none" stroke="#f9a825" strokeWidth="1.5" opacity=".4" />
+        }))}
+        {/* Bee */}
+        <g style={{ animation:'bee-fly 2s ease-in-out infinite', transformOrigin:'60px 70px' }}>
+          <ellipse cx="60" cy="72" rx="18" ry="13" fill="#fdd835" />
+          {[0,1,2].map(i=><rect key={i} x={46+i*10} y={61} width={6} height={26} rx={3} fill="#212121" opacity=".45" />)}
+          {/* Wings */}
+          <ellipse cx="50" cy="57" rx="14" ry="8" fill="rgba(255,255,255,0.75)"
+            style={{ animation:'bee-wing 0.3s linear infinite', transformOrigin:'60px 70px' }} />
+          <ellipse cx="70" cy="57" rx="14" ry="8" fill="rgba(255,255,255,0.75)"
+            style={{ animation:'bee-wing 0.3s linear infinite', transformOrigin:'60px 70px' }} />
+          {/* Eyes */}
+          <circle cx="52" cy="68" r="3.5" fill="#212121" /><circle cx="53" cy="67" r="1" fill="white" />
+          <circle cx="68" cy="68" r="3.5" fill="#212121" /><circle cx="69" cy="67" r="1" fill="white" />
+          {/* Stinger */}
+          <polygon points="78,72 86,70 86,74" fill="#e65100" />
+        </g>
+        {/* Honey drop */}
+        <path d="M60,100 Q56,110 60,115 Q64,110 60,100Z" fill="#f9a825" opacity=".8" />
+      </svg>
+    ),
+  },
+
+  sunflowerfarm: {
+    msg: ['Fields of ideas blooming…', 'Sun-kissed thinking…', 'Growing something bright…'],
+    bg: '#f57f17', color: '#1a1a1a',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes sway { 0%,100%{transform-origin:bottom;transform:rotate(-4deg)} 50%{transform-origin:bottom;transform:rotate(4deg)} }
+        `}</style>
+        {/* Sky */}
+        <rect width="120" height="80" fill="#87ceeb" rx="8" />
+        {/* Sun */}
+        <circle cx="95" cy="22" r="16" fill="#fdd835" />
+        {/* Ground */}
+        <rect y="80" width="120" height="40" fill="#5a8c3c" />
+        {/* Sunflowers */}
+        {[25,60,95].map((x,i)=>(
+          <g key={x} style={{ animation:`sway ${2.5+i*0.4}s ease-in-out infinite` }}>
+            <rect x={x-3} y={50} width={6} height={35} rx={3} fill="#388e3c" />
+            {[0,45,90,135,180,225,270,315].map((a,j)=>(
+              <ellipse key={j} cx={x+Math.cos(a*Math.PI/180)*14} cy={47+Math.sin(a*Math.PI/180)*14}
+                rx={7} ry={4} fill="#fdd835" transform={`rotate(${a},${x+Math.cos(a*Math.PI/180)*14},${47+Math.sin(a*Math.PI/180)*14})`} />
+            ))}
+            <circle cx={x} cy={47} r={9} fill="#5d4037" />
+          </g>
+        ))}
+      </svg>
+    ),
+  },
+
+  cricket: {
+    msg: ['Stumps are set…', 'Pitching an idea…', 'Howzat! Almost there…'],
+    bg: '#1b5e20', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes ball-arc { 0%{transform:translate(0,0)} 40%{transform:translate(40px,-35px)} 100%{transform:translate(70px,5px)} }
+        `}</style>
+        {/* Pitch oval */}
+        <ellipse cx="60" cy="80" rx="55" ry="35" fill="#4caf50" />
+        <rect x="42" y="50" width="36" height="55" rx="3" fill="#d4a843" opacity=".5" />
+        {/* Stumps */}
+        {[52,60,68].map(x=>(
+          <g key={x}>
+            <rect x={x-2} y={70} width={4} height={22} rx={1} fill="#f5f5f5" />
+            <rect x={x-4} y={68} width={8} height={4} rx={1} fill="#f5f5f5" />
+          </g>
+        ))}
+        {/* Bat */}
+        <g transform="translate(30,55) rotate(-35)">
+          <rect x={0} y={0} width={8} height={38} rx={3} fill="#d4a843" />
+          <rect x={-1} y={0} width={10} height={6} rx={2} fill="#f5c842" />
+        </g>
+        {/* Ball */}
+        <g style={{ animation:'ball-arc 1.8s ease-in-out infinite' }}>
+          <circle cx="18" cy="75" r="9" fill="#c62828" />
+          <path d="M12,70 Q18,65 24,70" stroke="white" strokeWidth="1.5" fill="none" />
+          <path d="M12,80 Q18,85 24,80" stroke="white" strokeWidth="1.5" fill="none" />
+        </g>
+      </svg>
+    ),
+  },
+
+  football: {
+    msg: ['Kicking up ideas…', 'Goooal! Almost…', 'Penalty thinking in progress…'],
+    bg: '#2e7d32', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes ball-roll { 0%{transform:translate(0,0) rotate(0deg)} 100%{transform:translate(50px,-20px) rotate(360deg)} }
+          @keyframes net-wave  { 0%,100%{transform:skewX(0deg)} 50%{transform:skewX(5deg)} }
+        `}</style>
+        {/* Pitch */}
+        <rect width="120" height="120" fill="#2e7d32" rx="8" />
+        <circle cx="60" cy="80" r="25" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+        <line x1="60" y1="55" x2="60" y2="120" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" />
+        {/* Goal */}
+        <rect x="10" y="20" width="50" height="35" fill="none" stroke="white" strokeWidth="2.5" />
+        <g style={{ animation:'net-wave 1.5s ease-in-out infinite' }}>
+          {[0,1,2,3].map(i=><line key={i} x1={10+i*13} y1={20} x2={10+i*13} y2={55} stroke="rgba(255,255,255,0.25)" strokeWidth="1" />)}
+          {[0,1,2].map(i=><line key={i} x1={10} y1={27+i*14} x2={60} y2={27+i*14} stroke="rgba(255,255,255,0.25)" strokeWidth="1" />)}
+        </g>
+        {/* Ball */}
+        <g style={{ animation:'ball-roll 1.5s ease-in-out infinite alternate' }}>
+          <circle cx="25" cy="85" r="12" fill="white" />
+          <polygon points="25,73 31,79 29,87 21,87 19,79" fill="#212121" opacity=".85" />
+        </g>
+      </svg>
+    ),
+  },
+
+  camping: {
+    msg: ['Setting up camp…', 'Stars are thinking…', 'Campfire story loading…'],
+    bg: '#1a1a3a', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes flicker { 0%,100%{transform:scaleY(1) scaleX(1);opacity:1} 33%{transform:scaleY(1.15) scaleX(.85);opacity:.8} 66%{transform:scaleY(.9) scaleX(1.1);opacity:.9} }
+          @keyframes star-twinkle { 0%,100%{opacity:.9} 50%{opacity:.2} }
+        `}</style>
+        {/* Stars */}
+        {[[15,15],[35,8],[60,12],[85,6],[105,20],[20,35],[90,30]].map(([x,y],i)=>(
+          <circle key={i} cx={x} cy={y} r="2" fill="white"
+            style={{ animation:`star-twinkle ${1.5+i*0.3}s ease-in-out ${i*0.2}s infinite` }} />
+        ))}
+        {/* Moon */}
+        <path d="M95,15 Q110,28 95,42 Q82,28 95,15Z" fill="#fff9c4" opacity=".85" />
+        {/* Mountains */}
+        <polygon points="0,90 30,45 60,90" fill="#1b2a1b" />
+        <polygon points="40,90 75,30 110,90" fill="#162416" />
+        {/* Ground */}
+        <rect y="90" width="120" height="30" fill="#1a2e0a" />
+        {/* Tent */}
+        <polygon points="30,90 60,50 90,90" fill="#e65100" />
+        <polygon points="50,90 60,65 70,90" fill="#1a1a0a" />
+        {/* Fire */}
+        <ellipse cx="105" cy="86" rx="9" ry="4" fill="#e65100" opacity=".3" />
+        {[[-4,0],[0,-10],[4,0]].map(([dx,dy],i)=>(
+          <ellipse key={i} cx={105+dx} cy={83+dy} rx={4} ry={8} fill={['#ff8f00','#ffd600','#ff6f00'][i]}
+            style={{ animation:`flicker ${1+i*0.3}s ease-in-out ${i*0.2}s infinite` }} />
+        ))}
+      </svg>
+    ),
+  },
+
+  aroundtheworld: {
+    msg: ['Spinning the globe…', 'Exploring big ideas…', 'Passport stamped…'],
+    bg: '#1565c0', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes globe-spin { from{transform-origin:60px 60px;transform:rotate(0)} to{transform-origin:60px 60px;transform:rotate(360deg)} }
+          @keyframes plane-loop { 0%{transform:rotate(0deg) translateX(48px) rotate(90deg)} 100%{transform:rotate(360deg) translateX(48px) rotate(90deg)} }
+        `}</style>
+        {/* Globe */}
+        <circle cx="60" cy="60" r="42" fill="#0d47a1" />
+        <ellipse cx="60" cy="60" rx="42" ry="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1.5" />
+        {[-22,0,22].map((y,i)=>(
+          <ellipse key={i} cx="60" cy={60+y} rx={Math.sqrt(42*42-y*y)} ry="8" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="1" />
+        ))}
+        {/* Continents */}
+        <g style={{ animation:'globe-spin 8s linear infinite' }}>
+          <ellipse cx="48" cy="52" rx="16" ry="12" fill="#4caf50" opacity=".85" />
+          <ellipse cx="70" cy="48" rx="14" ry="10" fill="#4caf50" opacity=".8" />
+          <ellipse cx="60" cy="68" rx="10" ry="7"  fill="#4caf50" opacity=".75" />
+        </g>
+        {/* Shine */}
+        <ellipse cx="44" cy="44" rx="12" ry="8" fill="rgba(255,255,255,0.1)" />
+        {/* Plane orbiting */}
+        <g style={{ animation:'plane-loop 4s linear infinite', transformOrigin:'60px 60px' }}>
+          <ellipse cx="0" cy="0" rx="7" ry="4" fill="white" />
+          <polygon points="-7,0 -11,-3 -10,0" fill="white" />
+          <polygon points="-4,0 -6,4 -2,4"  fill="white" />
+        </g>
+      </svg>
+    ),
+  },
+
+  junglebook: {
+    msg: ['The jungle awakens…', 'Mowgli is thinking…', 'Wild ideas incoming…'],
+    bg: '#1b5e20', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes leaf-sway { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(8deg)} }
+          @keyframes elephant-rock { 0%,100%{transform:rotate(-3deg)} 50%{transform:rotate(3deg)} }
+        `}</style>
+        {/* Trees */}
+        {[10,90].map((x,i)=>(
+          <g key={x} style={{ animation:`leaf-sway ${2.5+i}s ease-in-out infinite`, transformOrigin:`${x+8}px 40px` }}>
+            <rect x={x} y={50} width={16} height={60} rx={5} fill="#1a3a0a" />
+            <ellipse cx={x+8} cy={42} rx={32} ry={36} fill="#1b5e20" />
+            <ellipse cx={x+8} cy={30} rx={22} ry={26} fill="#2e7d32" />
+          </g>
+        ))}
+        {/* Elephant */}
+        <g style={{ animation:'elephant-rock 3s ease-in-out infinite', transformOrigin:'60px 80px' }}>
+          <ellipse cx="60" cy="80" rx="28" ry="20" fill="#78909c" />
+          <ellipse cx="40" cy="70" rx="16" ry="14" fill="#78909c" />
+          <path d="M26,70 Q10,80 18,96 Q22,102 28,96" stroke="#607d8b" strokeWidth="8" fill="none" strokeLinecap="round" />
+          <circle cx="34" cy="64" r="6" fill="#607d8b" opacity=".7" />
+          <circle cx="32" cy="62" r="3" fill="#212121" />
+          <circle cx="33" cy="61" r="1" fill="white" />
+          {[48,58,68,78].map((lx,i)=>(
+            <rect key={i} x={lx} y={96} width={10} height={18} rx={4} fill="#78909c" />
+          ))}
+        </g>
+      </svg>
+    ),
+  },
+
+  music: {
+    msg: ['Tuning the ideas…', 'Composing something special…', 'Music in the air…'],
+    bg: '#4a148c', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes note-rise  { 0%{transform:translateY(0);opacity:1} 100%{transform:translateY(-50px);opacity:0} }
+          @keyframes staff-glow { 0%,100%{opacity:.3} 50%{opacity:.8} }
+        `}</style>
+        {/* Staff lines */}
+        {[45,55,65,75,85].map((y,i)=>(
+          <line key={i} x1="10" y1={y} x2="110" y2={y} stroke="rgba(255,255,255,0.4)" strokeWidth="1.5"
+            style={{ animation:`staff-glow 2s ${i*0.2}s ease-in-out infinite` }} />
+        ))}
+        {/* Notes floating up */}
+        {[{x:25,d:0,c:'#e91e63'},{x:50,d:0.5,c:'#ffd600'},{x:75,d:1,c:'#00bcd4'},{x:95,d:0.3,c:'#4caf50'}].map((n,i)=>(
+          <g key={i} style={{ animation:`note-rise 2s ${n.d}s ease-out infinite` }}>
+            <ellipse cx={n.x} cy={80} rx={7} ry={5} fill={n.c} transform="rotate(-20)" />
+            <rect x={n.x+5} y={55} width={3} height={25} fill={n.c} />
+          </g>
+        ))}
+        {/* Treble clef simplified */}
+        <g transform="translate(42,25)" opacity=".7">
+          <path d="M8,0 Q18,5 16,20 Q14,35 4,40 Q-4,45 4,55 Q12,60 16,50" stroke="white" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <circle cx="6" cy="55" r="5" fill="none" stroke="white" strokeWidth="3" />
+        </g>
+      </svg>
+    ),
+  },
+
+  girlhero: {
+    msg: ['Summoning girl power…', 'Cape is ready…', 'Hero landing soon…'],
+    bg: '#6a1b9a', color: 'white',
+    render: () => (
+      <svg width="120" height="120" viewBox="0 0 120 120">
+        <style>{`
+          @keyframes hero-hover { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+          @keyframes sparkle    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.5)} }
+          @keyframes cape-flow  { 0%,100%{transform:skewY(0deg)} 50%{transform:skewY(6deg)} }
+        `}</style>
+        {/* City silhouette */}
+        {[[5,60,30],[40,40,20],[65,50,25],[90,35,18],[105,55,15]].map(([x,h,w],i)=>(
+          <rect key={i} x={x} y={120-h} width={w} height={h} fill="#2a0a4a" />
+        ))}
+        {/* Hero */}
+        <g style={{ animation:'hero-hover 2.5s ease-in-out infinite', transformOrigin:'60px 50px' }}>
+          {/* Cape */}
+          <path d="M48,45 Q30,80 40,100 Q50,90 60,85 Q70,90 80,100 Q90,80 72,45Z" fill="#e91e63"
+            style={{ animation:'cape-flow 2s ease-in-out infinite' }} />
+          {/* Body */}
+          <rect x="48" y="40" width="24" height="28" rx="6" fill="#7b1fa2" />
+          {/* Star */}
+          <polygon points="60,44 62,50 68,50 63,54 65,60 60,56 55,60 57,54 52,50 58,50" fill="#ffd600" />
+          {/* Head */}
+          <circle cx="60" cy="32" r="14" fill="#ffcc80" />
+          {/* Hair */}
+          <ellipse cx="60" cy="24" rx="14" ry="7" fill="#5d4037" />
+          {/* Mask */}
+          <rect x="48" y="28" width="24" height="8" rx="4" fill="#e91e63" />
+          {/* Arms */}
+          <rect x="30" y="42" width="20" height="8" rx="4" fill="#7b1fa2" />
+          <rect x="70" y="42" width="20" height="8" rx="4" fill="#7b1fa2" />
+        </g>
+        {/* Sparkles */}
+        {[[20,30],[95,25],[15,70],[100,65]].map(([x,y],i)=>(
+          <polygon key={i} points={`${x},${y-8} ${x+2},${y-2} ${x+8},${y} ${x+2},${y+2} ${x},${y+8} ${x-2},${y+2} ${x-8},${y} ${x-2},${y-2}`}
+            fill="#ffd600" style={{ animation:`sparkle ${1.5+i*0.4}s ${i*0.3}s ease-in-out infinite` }} />
         ))}
       </svg>
     ),

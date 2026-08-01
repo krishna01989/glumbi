@@ -918,9 +918,16 @@ function Scene_avengers() {
         <linearGradient id="av-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0a0a1a" /><stop offset="60%" stopColor="#1a0a30" /><stop offset="100%" stopColor="#0a1020" /></linearGradient>
       </defs>
       <rect width={800} height={450} fill="url(#av-bg)" />
-      {/* NYC skyline silhouette */}
+      {/* NYC skyline */}
       {[{x:0,w:60,h:220},{x:55,w:45,h:280},{x:95,w:70,h:200},{x:160,w:50,h:320},{x:205,w:35,h:260},{x:235,w:55,h:180},{x:620,w:55,h:250},{x:670,w:40,h:310},{x:705,w:65,h:220},{x:765,w:40,h:280}].map((b,i)=>(
-        <rect key={i} x={b.x} y={500-b.h} width={b.w} height={b.h} fill="#111118" />
+        <g key={i}>
+          <rect key={i} x={b.x} y={500-b.h} width={b.w} height={b.h} fill="#111118" />
+          {/* Windows glowing */}
+          {Array.from({length:8},(_,j)=>(
+            <rect key={j} x={Math.min(b.x+b.w-16, b.x+6+j%3*14)} y={500-b.h+18+Math.floor(j/3)*28} width={10} height={12} rx={1}
+              fill={j%3===0?'#ffee80':'#ffe0a0'} opacity={0.35+j%2*0.25} style={{ animation: `bg-twinkle ${3+j*.5}s ${j*.3+i*.2}s ease-in-out infinite` }} />
+          ))}
+        </g>
       ))}
       {/* Iron Man flying — proper armored suit silhouette */}
       <g style={{ animation: 'bg-fly 12s 1s ease-in-out infinite normal backwards' }}>

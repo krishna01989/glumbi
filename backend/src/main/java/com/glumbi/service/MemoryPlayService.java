@@ -39,7 +39,7 @@ public class MemoryPlayService {
     private int wotdTtlHours;
 
     // keyed by "childId:date" — expires after 25h so it always outlives the calendar day
-    private Cache<String, WordOfDayResult> wotdCache;
+    private Cache<String, WordOfDay> wotdCache;
 
     @PostConstruct
     void initCache() {
@@ -81,33 +81,41 @@ public class MemoryPlayService {
     }
 
     // ── Word of Day ───────────────────────────────────────────────────────────
-
     /**
      * Returns the word for today if already generated, otherwise generates + saves + returns.
-     * The returned map has a "fresh" boolean so the controller can decide whether to consume quota.
+     * The returned result has fresh=true only when a new word was generated during this request.
      */
     public WordOfDayResult getOrGenerateWordOfDay(Long childId) {
         LocalDate today = LocalDate.now();
         String cacheKey = childId + ":" + today;
 
-        WordOfDayResult cached = wotdCache.getIfPresent(cacheKey);
-        if (cached != null) return cached;
+        // Cache stores only the WordOfDay entity
+        WordOfDay cached = wotdCache.getIfPresent(cacheKey);
+        if (cached != null) {
+            return new WordOfDayResult(cached, false);
+        }
 
         Optional<WordOfDay> existing = wordOfDayRepo.findByChildIdAndDate(childId, today);
         if (existing.isPresent()) {
-            WordOfDayResult result = new WordOfDayResult(existing.get(), false);
-            wotdCache.put(cacheKey, result);
-            return result;
+            WordOfDay word = existing.get();
+            wotdCache.put(cacheKey, word);
+            return new WordOfDayResult(word, false);
         }
 
         Child child = childService.getByIdUnchecked(childId);
         int age = ChildService.ageFromBirthYear(child.getBirthYear());
 
         List<String> recentWords = wordOfDayRepo.findTop30ByChildIdOrderByDateDesc(childId)
-                .stream().map(WordOfDay::getWord).toList();
+                .stream()
+                .map(WordOfDay::getWord)
+                .toList();
 
-        MemoryPlayAgent.WordResult agentResult = agent.generateWordOfDay(child.getName(), age, today, recentWords);
-        if (agentResult == null) return null;
+        MemoryPlayAgent.WordResult agentResult =
+                agent.generateWordOfDay(child.getName(), age, today, recentWords);
+
+        if (agentResult == null) {
+            return null;
+        }
 
         WordOfDay word = new WordOfDay();
         word.setChild(child);
@@ -118,9 +126,13 @@ public class MemoryPlayService {
         word.setEmoji(agentResult.emoji());
         word.setDate(today);
 
-        WordOfDayResult saved = new WordOfDayResult(wordOfDayRepo.save(word), true);
-        wotdCache.put(cacheKey, saved);
-        return saved;
+        WordOfDay savedWord = wordOfDayRepo.save(word);
+
+        // Cache the entity only
+        wotdCache.put(cacheKey, savedWord);
+
+        // Only this request is considered fresh
+        return new WordOfDayResult(savedWord, true);
     }
 
     public record WordOfDayResult(WordOfDay word, boolean fresh) {}

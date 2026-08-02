@@ -121,6 +121,7 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
   const [customTimeStr, setCustomTimeStr] = useState('')
   const [maxSnooze, setMaxSnooze]     = useState(1)
   const [lockPin, setLockPin]         = useState('')
+  const [showPin, setShowPin]         = useState(false)
   const [lockPinError, setLockPinError] = useState('')
   const [locking, setLocking]         = useState(false)
   const [backoffUntil, setBackoffUntil] = useState(() => {
@@ -425,16 +426,22 @@ function UnlockModal({ child, offline, onClose, onLockConfirmed, onToggleOffline
         {/* PIN entry to lock */}
         <form onSubmit={handleLock} autoComplete="off">
           <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', letterSpacing: 1, marginBottom: 6, textAlign: 'left' }}>CONFIRM IT'S YOU</div>
-          <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
-            placeholder="• • • •" autoComplete="off" data-form-type="other"
-            value={lockPin}
-            onChange={e => { setLockPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setLockPinError('') }}
-            style={{
-              width: '100%', textAlign: 'center', fontSize: 26, fontWeight: 900, boxSizing: 'border-box',
-              border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12,
-              padding: '10px 12px', letterSpacing: 18, WebkitTextSecurity: 'disc', outline: 'none',
-              fontFamily: 'Nunito, sans-serif', marginBottom: 6,
-            }} />
+          <div style={{ position: 'relative', marginBottom: 8 }}>
+            <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={4}
+              placeholder="• • • •" autoComplete="off" data-form-type="other"
+              value={lockPin}
+              onChange={e => { setLockPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setLockPinError('') }}
+              style={{
+                width: '100%', textAlign: 'center', fontSize: 26, fontWeight: 900, boxSizing: 'border-box',
+                border: `2px solid ${lockPinError ? '#cc0033' : '#eee'}`, borderRadius: 12,
+                padding: '10px 12px', letterSpacing: showPin ? 12 : 20, WebkitTextSecurity: showPin ? 'none' : 'disc', outline: 'none',
+                fontFamily: 'Nunito, sans-serif', marginBottom: 6,
+              }} />
+            <button type="button" onClick={() => setShowPin(p => !p)}
+                style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, lineHeight: 1, padding: 4, color: '#aaa' }}>
+                {showPin ? '🙈' : '👁️'}
+            </button>
+          </div>
           {lockPinError && <div style={{ color: '#cc0033', fontSize: 12, marginBottom: 6, fontFamily: 'Nunito, sans-serif' }}>{lockPinError}</div>}
           <button type="submit" disabled={locking || timeLimit <= 0}
             style={{ width: '100%', marginTop: 6, background: (locking || timeLimit <= 0) ? '#eee' : pt.headerGrad, color: (locking || timeLimit <= 0) ? '#aaa' : 'white', border: 'none', borderRadius: 50, padding: '13px 20px', fontWeight: 800, fontSize: 14, cursor: (locking || timeLimit <= 0) ? 'not-allowed' : 'pointer', fontFamily: 'Nunito, sans-serif', boxShadow: (locking || timeLimit <= 0) ? 'none' : `0 6px 20px ${pt.primary}44` }}>

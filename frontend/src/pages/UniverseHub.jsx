@@ -1607,16 +1607,16 @@ function PlanetOrbital({ galaxy, planets, goTo, onBack, isMobile, initialRot = M
       <div style={{ position: 'relative', zIndex: 30, display: 'flex', alignItems: 'center',
         gap: 12, padding: '16px 20px 0', flexShrink: 0 }}
         onPointerDown={e => e.stopPropagation()}>
-        <button onClick={e => { e.stopPropagation(); onBack() }}
-          style={{ width: 56, height: 56, minWidth: 56, borderRadius: '50%', padding: 0,
-            background: `radial-gradient(circle at 40% 35%, ${gc}55 0%, ${gc}22 60%, transparent 100%)`,
-            border: `2px solid ${gc}cc`,
-            boxShadow: `0 0 12px ${gc}88, 0 0 28px ${gc}44`,
-            color: 'white', fontSize: 30, cursor: 'pointer', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+        <button onClick={e => { e.stopPropagation(); onBack() }} 
+          style={{ width: 56, height: 56, minWidth: 56, borderRadius: '50%', padding: 0, 
+            background: `radial-gradient(circle at 40% 35%, ${gc}55 0%, ${gc}22 60%, transparent 100%)`, 
+            border: `2px solid ${gc}cc`, 
+            boxShadow: `0 0 12px ${gc}88, 0 0 28px ${gc}44`, 
+            color: 'white', cursor: 'pointer', flexShrink: 0, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
             animation: 'hub-sun-pulse 2.5s ease-in-out infinite' }}>
-          ‹
-        </button>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 6L9 12L15 18" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
         <div>
           <div style={{ fontSize: 20, fontWeight: 900, color: 'white', textShadow: `0 0 18px ${gc}, 0 0 36px ${gc}66` }}>{galaxy.name}</div>
           <div style={{ fontSize: 12, color: gc, fontWeight: 800, marginTop: 2, letterSpacing: .8, textShadow: `0 0 10px ${gc}88` }}>{world.orbitLabel}</div>

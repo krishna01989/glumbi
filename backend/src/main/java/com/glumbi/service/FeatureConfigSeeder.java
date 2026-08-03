@@ -23,7 +23,7 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"writing-coach", 1, "Writing coach feedback"},
         new Object[]{"translation",   5, "Translate a passage"},
         new Object[]{"draw",          1, "React to a child's drawing with AI praise"},
-        new Object[]{"flipbook",      0, "Flipbook Studio — frame-by-frame animation (no AI credits)"},
+        new Object[]{"flipbook",      0, "Flipbook Studio — frame-by-frame animation"},
         new Object[]{"learn-validate",1, "Validate a letter drawing"},
         new Object[]{"learn-word",    2, "Identify a written word"},
         new Object[]{"story-listen",    1, "First listen of a story (TTS synthesis)"},
@@ -33,9 +33,9 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"memory-match",      1, "Generate a memory match game"},
         new Object[]{"journal-ai",        2, "AI-generated journal entry from child's daily activity"},
         new Object[]{"draw-guide",          1, "AI step-by-step drawing guide for a chosen subject"},
-        new Object[]{"draw-animate",        1, "Bring a child's drawing to life with animation (1 credit per use)"},
+        new Object[]{"draw-animate",        1, "Bring a child's drawing to life with animation"},
         new Object[]{"maze",               1, "Generate a maze game level"},
-        new Object[]{"riddle",             1, "Generate a set of 5 riddles"}
+        new Object[]{"riddle",             1, "Generate a set of riddles"}
     );
 
     @Override

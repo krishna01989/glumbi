@@ -12,18 +12,26 @@ function calcAge(birthYear) {
 }
 
 const FEATURE_META = {
-  'story':          { label: 'Stories',        emoji: '📖' },
-  'activity':       { label: 'Activities',     emoji: '🎮' },
-  'learn-validate': { label: 'Learn to Write', emoji: '✏️' },
-  'curiosity':      { label: 'Curiosity',      emoji: '🔍' },
-  'draw':           { label: 'Draw',           emoji: '🎨' },
-  'draw-animate':   { label: 'Bring to Life',  emoji: '🎬' },
-  'draw-guide':     { label: 'Drawing Guide',  emoji: '🖌️' },
-  'read-quiz':      { label: 'Read & Quiz',    emoji: '📚' },
-  'writing-coach':  { label: 'My Writing',     emoji: '✍️' },
-  'memory-flashcards': { label: 'Flashcards',    emoji: '🧠' },
-  'memory-match':      { label: 'Memory Match',  emoji: '🃏' },
-  'word-of-day':       { label: 'Word of Day',   emoji: '✏️' },
+  'story':               { label: 'Stories',          emoji: '📖' },
+  'activity':            { label: 'Activities',       emoji: '🎮' },
+  'learn-validate':      { label: 'Learn to Write',   emoji: '✏️' },
+  'learn-word':          { label: 'Learn a Word',     emoji: '🔤' },
+  'curiosity':           { label: 'Curiosity',        emoji: '🔍' },
+  'draw':                { label: 'Draw',             emoji: '🎨' },
+  'draw-guide':          { label: 'Drawing Guide',    emoji: '🖌️' },
+  'draw-animate':        { label: 'Bring to Life',    emoji: '🎬' },
+  'read-quiz':           { label: 'Read & Quiz',      emoji: '📚' },
+  'story-listen':        { label: 'Story Listening',  emoji: '🎧' },
+  'writing-coach':       { label: 'My Writing',       emoji: '✍️' },
+  'translation':         { label: 'Translation',      emoji: '🌍' },
+  'flipbook':            { label: 'Flipbook Studio',  emoji: '🎞️' },
+  'memory':              { label: 'Memory',           emoji: '🧠' },
+  'memory-flashcards':   { label: 'Flashcards',       emoji: '🧠' },
+  'memory-match':        { label: 'Memory Match',     emoji: '🃏' },
+  'word-of-day':         { label: 'Word of Day',      emoji: '💡' },
+  'journal-ai':          { label: 'AI Journal',       emoji: '📔' },
+  'maze':                { label: 'Maze',             emoji: '🌀' },
+  'riddle':              { label: 'Riddles',          emoji: '❓' }
 }
 
 /* ── Credit info modal ── */

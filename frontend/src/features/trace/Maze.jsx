@@ -363,7 +363,7 @@ export default function Maze({ child, quota, featureConfig }) {
       svg.removeEventListener('touchmove',  onTouchMove)
       svg.removeEventListener('touchend',   onTouchEnd)
     }
-  }, [onTouchStart, onTouchMove, onTouchEnd])
+  }, [onTouchStart, onTouchMove, onTouchEnd, riddlePhase])
 
   useEffect(() => {
     const h = () => setFullscreen(!!document.fullscreenElement)

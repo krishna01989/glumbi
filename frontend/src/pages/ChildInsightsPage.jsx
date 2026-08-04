@@ -4,6 +4,18 @@ import { analyticsApi, userApi, childApi } from '../api/client'
 import { THEMES } from '../themes'
 import Timeline from '../features/timeline/Timeline'
 
+const COMPLETION_LABELS = {
+  maze:      n => `🏁 ${n} maze${n !== 1 ? 's' : ''} completed`,
+  readquiz:  n => `🏁 ${n} quiz${n !== 1 ? 'zes' : ''} completed`,
+  riddle:    n => `🏁 ${n} riddle set${n !== 1 ? 's' : ''} completed`,
+  stories:   n => `🏁 ${n} stor${n !== 1 ? 'ies' : 'y'} completed`,
+  curiosity: n => `🏁 ${n} topic${n !== 1 ? 's' : ''} completed`,
+  activities:n => `🏁 ${n} activit${n !== 1 ? 'ies' : 'y'} completed`,
+  mywriting: n => `🏁 ${n} submission${n !== 1 ? 's' : ''} completed`,
+  learn:     n => `🏁 ${n} lesson${n !== 1 ? 's' : ''} completed`,
+}
+const completionLabel = (f, n) => (COMPLETION_LABELS[f] ? COMPLETION_LABELS[f](n) : `🏁 ${n} completed`)
+
 const SCRIPT_META = {
   tamil:     { label: 'Tamil',     flag: '🌺' },
   hindi:     { label: 'Hindi',     flag: '🇮🇳' },
@@ -272,9 +284,9 @@ function ActivityTab({ childName, t }) {
                             ✓ {accuracy.rate}% accurate
                           </span>
                         )}
-                        {completions && count > 0 && feature !== 'memorymatch' && (
+                        {completions && feature !== 'memorymatch' && (
                           <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#f0f0ff', borderRadius: 50, padding: '2px 8px' }}>
-                            🏁 {completions}/{count} completed
+                            {completionLabel(feature, completions)}
                           </span>
                         )}
                         {feature === 'memorymatch' && completions > 0 && (

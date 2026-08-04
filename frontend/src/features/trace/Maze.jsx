@@ -8,6 +8,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
+import Maze3D from './Maze3D'
 
 // ── Procedural Maze Generator (DFS / recursive backtracker) ──────────────────
 
@@ -142,10 +143,14 @@ export default function Maze({ child, quota, featureConfig }) {
   const [seed, setSeed]         = useState(() => (Math.random() * 1e8) | 0)
   const [themeIdx, setThemeIdx] = useState(0)
   const [aiSkin, setAiSkin]     = useState(null)
+  const [use3D, setUse3D]       = useState(false)
+  const [maze3DKey, setMaze3DKey] = useState(0)
   const [pathPts, setPathPts]   = useState([])
   const [phase, setPhase]       = useState('idle')
   const [showConfetti, setShowConfetti] = useState(false)
   const [wallMsg, setWallMsg]   = useState('')
+  const [wallMsg3D, setWallMsg3D] = useState('')
+  const wallMsg3DTimer = useRef(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
@@ -241,6 +246,7 @@ export default function Maze({ child, quota, featureConfig }) {
     setAiSkin(null)
     setRiddlePhase(null)
     setRiddleChosen(null)
+    setMaze3DKey(k => k + 1)
     resetDraw()
   }
 
@@ -413,6 +419,15 @@ export default function Maze({ child, quota, featureConfig }) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const isSuccess = phase === 'success'
+
+  const handle3DComplete = useCallback(() => {
+    if (phaseRef.current === 'success') return
+    phaseRef.current = 'success'
+    setPhase('success')
+    completedRef.current = true
+    track('maze', 'complete', { metadata: { cols, rows, wallHits: wallHitsRef.current, mode: '3d' }, durationSeconds: Math.round((Date.now() - mazeStartTime.current) / 1000) })
+    setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3000)
+  }, [cols, rows, track])
   const isWall    = phase === 'wall'
   const WALL_W    = 3
   const iconSize  = Math.min(cw, ch) * 0.55
@@ -423,7 +438,14 @@ export default function Maze({ child, quota, featureConfig }) {
   const fsStyle = fullscreen ? {
     position: 'fixed', inset: 0, zIndex: 9999,
     display: 'flex', flexDirection: 'column',
-    background: theme.bg, height: '100dvh', width: '100dvw',
+    background: theme.bg,
+    height: '100dvh', width: '100dvw',
+    // honour notch / home-indicator on iOS
+    paddingTop: 'env(safe-area-inset-top)',
+    paddingBottom: 'env(safe-area-inset-bottom)',
+    paddingLeft: 'env(safe-area-inset-left)',
+    paddingRight: 'env(safe-area-inset-right)',
+    boxSizing: 'border-box',
   } : {}
 
   return (
@@ -504,6 +526,74 @@ export default function Maze({ child, quota, featureConfig }) {
       {/* ── Maze ────────────────────────────────────────────────────────── */}
       {!riddlePhase && (
         <>
+          {/* 3D mode */}
+          {use3D && (
+            <div style={fullscreen ? { display:'flex', flexDirection:'column', flex:1, minHeight:0 } : {}}>
+              {/* Title row */}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom: fullscreen ? 6 : 8 }}>
+                <div style={{ fontWeight:900, fontSize: fullscreen ? 18 : 15, color: fullscreen ? '#fff' : 'var(--primary)',
+                              textShadow: fullscreen ? '0 1px 4px rgba(0,0,0,0.4)' : 'none' }}>
+                  Walk {theme.startEmoji} to {theme.endEmoji}! · {cols}×{rows} maze
+                </div>
+                <button onClick={() => { setUse3D(v => !v); setPhase('idle'); phaseRef.current = 'idle'; setPathPts([]); pathRef.current = [] }}
+                  style={{ padding:'8px 20px', borderRadius:50, border:'2px solid var(--primary,#ff6b6b)', background:'white', color:'var(--primary,#ff6b6b)', fontWeight:900, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif', flexShrink:0, boxShadow:'0 2px 12px rgba(0,0,0,0.15)', letterSpacing:0.5 }}>
+                  🗺️ Back to 2D
+                </button>
+              </div>
+
+              {/* Canvas block — flex:1 in fullscreen so it takes all remaining space */}
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                ...(fullscreen
+                  ? { flex: 1, minHeight: 0 }
+                  : { height: 'clamp(320px, calc(100dvh - 200px), 960px)' }),
+                borderRadius: fullscreen ? 0 : 16,
+                overflow: 'hidden',
+                boxShadow: fullscreen ? 'none' : '0 6px 32px rgba(0,0,0,0.18)',
+              }}>
+                  <Maze3D key={maze3DKey} grid={grid} cols={cols} rows={rows} theme={theme} aiSkin={aiSkin} onComplete={handle3DComplete} onWallHit={() => {
+                    wallHitsRef.current += 1
+                    const msg = WALL_MSGS[Math.floor(Math.random() * WALL_MSGS.length)]
+                    setWallMsg3D(msg)
+                    clearTimeout(wallMsg3DTimer.current)
+                    wallMsg3DTimer.current = setTimeout(() => setWallMsg3D(''), 1200)
+                  }} />
+                  {wallMsg3D && (
+                    <div style={{ position:'absolute', top:16, left:'50%', transform:'translateX(-50%)', background:'rgba(229,57,53,0.92)', color:'white', fontWeight:900, fontSize:16, borderRadius:50, padding:'8px 20px', pointerEvents:'none', whiteSpace:'nowrap', boxShadow:'0 4px 16px rgba(0,0,0,0.25)', zIndex:10 }}>
+                      {wallMsg3D}
+                    </div>
+                  )}
+
+                  {/* Fullscreen toggle */}
+                  {!fullscreen && (
+                    <button onClick={() => containerRef.current?.requestFullscreen()} title="Fullscreen"
+                      style={{ position:'absolute', top:10, right:10, zIndex:10, width:32, height:32, minWidth:32, minHeight:32, borderRadius:8, border:'1.5px solid rgba(0,0,0,0.1)', background:'rgba(255,255,255,0.9)', color:'#888', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4"/>
+                      </svg>
+                    </button>
+                  )}
+                  {fullscreen && (
+                    <button onClick={() => document.exitFullscreen()} title="Exit fullscreen"
+                      style={{ position:'absolute', top:10, right:10, zIndex:20, width:36, height:36, minWidth:36, minHeight:36, borderRadius:10, border:'none', background:'rgba(255,255,255,0.95)', color:'#555', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', padding:0, boxShadow:'0 2px 8px rgba(0,0,0,0.15)' }}>
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 2v4H2M10 2v4h4M6 14v-4H2M10 14v-4h4"/>
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+              {isSuccess && (
+                <div style={{ background:'linear-gradient(135deg,#6bcb77,#4caf50)', borderRadius:16, padding:'16px 20px', margin:'12px 0', color:'white', textAlign:'center', fontWeight:800, fontSize:16 }}>
+                  {completionStory()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 2D mode */}
+          {!use3D && <>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:16, marginBottom: fullscreen ? 6 : 12, padding: fullscreen ? '10px 16px 0' : 0 }}>
             <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.startEmoji}</span>
             <div style={{ textAlign:'center' }}>
@@ -513,6 +603,10 @@ export default function Maze({ child, quota, featureConfig }) {
               <div style={{ fontSize:12, color:'#888', marginTop:2 }}>
                 {cols}×{rows} maze · draw from {theme.startEmoji} to {theme.endEmoji}
               </div>
+              <button onClick={() => { setUse3D(v => !v); setPhase('idle'); phaseRef.current = 'idle'; setPathPts([]); pathRef.current = [] }}
+                style={{ marginTop:8, padding:'8px 22px', borderRadius:50, border:'none', background:'var(--primary,#ff6b6b)', color:'white', fontWeight:900, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif', boxShadow:'0 4px 14px rgba(0,0,0,0.2)', letterSpacing:0.5 }}>
+                🕹️ Try 3D Mode!
+              </button>
             </div>
             <span style={{ fontSize: fullscreen ? 36 : 28 }}>{theme.endEmoji}</span>
           </div>
@@ -627,9 +721,10 @@ export default function Maze({ child, quota, featureConfig }) {
               {completionStory()}
             </div>
           )}
+          </>}
 
           <div style={{ display:'flex', gap:8, marginTop:12 }}>
-            <button onClick={resetDraw}
+            <button onClick={() => { resetDraw(); if (use3D) setMaze3DKey(k => k + 1) }}
               style={{ flex:1, padding:'10px 0', borderRadius:50, border:'none', background:'var(--primary-lt)', color:'var(--primary,#ff6b6b)', fontWeight:800, fontSize:14, cursor:'pointer', fontFamily:'Nunito,sans-serif' }}>
               🔄 Replay
             </button>

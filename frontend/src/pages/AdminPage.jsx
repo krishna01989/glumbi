@@ -557,6 +557,18 @@ const AUTO_REFRESH_OPTIONS = [
 ]
 
 // ─── Activity analytics section (child feature usage) ────────────────────────
+const COMPLETION_LABELS = {
+  maze:      n => `🏁 ${n} maze${n !== 1 ? 's' : ''} completed`,
+  readquiz:  n => `🏁 ${n} quiz${n !== 1 ? 'zes' : ''} completed`,
+  riddle:    n => `🏁 ${n} riddle set${n !== 1 ? 's' : ''} completed`,
+  stories:   n => `🏁 ${n} stor${n !== 1 ? 'ies' : 'y'} completed`,
+  curiosity: n => `🏁 ${n} topic${n !== 1 ? 's' : ''} completed`,
+  activities:n => `🏁 ${n} activit${n !== 1 ? 'ies' : 'y'} completed`,
+  mywriting: n => `🏁 ${n} submission${n !== 1 ? 's' : ''} completed`,
+  learn:     n => `🏁 ${n} lesson${n !== 1 ? 's' : ''} completed`,
+}
+const completionLabel = (f, n) => (COMPLETION_LABELS[f] ? COMPLETION_LABELS[f](n) : `🏁 ${n} completed`)
+
 const ACTIVITY_FEATURE_NAMES = {
   stories:     '📖 Stories',
   draw:        '🎨 Draw',
@@ -792,9 +804,9 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
                           </div>
                         )}
                         {acc && <div style={{ fontSize: 10, color: '#aaa' }}>{acc.correct} correct · {acc.wrong} wrong</div>}
-                        {comp && sessions > 0 && f !== 'memorymatch' && (
+                        {comp && f !== 'memorymatch' && (
                           <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 700, marginTop: acc ? 4 : 0 }}>
-                            🏁 {comp}/{sessions} completed ({Math.round(comp/sessions*100)}%)
+                            {completionLabel(f, comp)}
                           </div>
                         )}
                         {f === 'memorymatch' && comp > 0 && (

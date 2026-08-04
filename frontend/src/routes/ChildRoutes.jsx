@@ -33,7 +33,8 @@ function ErrorPageRoute() {
 }
 
 function PhoneGate({ children, emoji, title, message }) {
-  const isPhone = window.innerWidth < 600
+  // Use the smaller dimension so landscape rotation doesn't bypass the gate
+  const isPhone = Math.min(window.screen.width, window.screen.height) < 600
   if (!isPhone) return children
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

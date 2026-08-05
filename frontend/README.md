@@ -80,6 +80,7 @@ src/
 │   ├── memory/MemoryPlay.jsx   # Memory card-matching game + Word of Day
 │   ├── activities/Activities.jsx # Activity suggestions + semantic similar
 │   ├── timeline/Timeline.jsx   # Child progress timeline
+│   ├── torchhunt/TorchHunt.jsx # Dark-arena dwell-to-find hidden-object game (see below)
 │   └── trace/
 │       ├── Maze.jsx            # Procedurally generated maze game (see below)
 │       └── Riddle.jsx          # Age-adaptive riddles (see below)
@@ -420,7 +421,8 @@ Singleton WebSocket client for analytics streaming:
 - `analyticsSocket.send(events)` — sends a JSON array of events; returns `false` if disconnected
 - `analyticsSocket.onAck` — callback set by `useActivityTracker`; called with the `saved` count from the server's `{"saved": N}` reply
 - **Tab lifecycle**: tab hidden → closes connection to free server resources; tab visible → reconnects immediately with backoff reset
-- **Reconnect**: exponential backoff 1s → 2s → 4s → 32s cap. Does not retry on codes 1000 (normal), 1001 (server idle timeout), or 4001 (auth rejected)
+- **Reconnect**: exponential backoff 1s → 2s → 4s → 32s cap. Does not retry on code 4001 (auth rejected). For all other codes, retries while `active = true`
+- **Post-logout guard**: `_connect()` calls `getToken()` at the start — if the token is empty, sets `this.active = false` and returns immediately, stopping the reconnect loop. `analyticsSocket.close()` is also called explicitly in `App.jsx`'s `handleLogout` to set `active = false` before the token is cleared
 - **Base URL**: derived from `VITE_API_URL` with `/api` suffix removed and `http` → `ws` (or `https` → `wss`) replaced
 
 #### `useActivityTracker` hook (`src/hooks/useActivityTracker.js`)
@@ -522,6 +524,7 @@ Routes are split across three files. `App.jsx` selects which set to render based
 | `/child/:id/memory` | Memory Play |
 | `/child/:id/maze` | Maze (redirects from `/trace`) |
 | `/child/:id/riddle` | Riddles |
+| `/child/:id/torchhunt` | Torch Hunt |
 | `/admin/profile` | Admin profile (change password, delete account) |
 | `/admin/*` | Admin panel |
 | `/privacy`, `/terms`, `/contact` | Legal pages |

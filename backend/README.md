@@ -93,6 +93,7 @@ Voyage AI embeddings are normalized to unit vectors, so L2 distance and cosine s
 | `StoryRecommendationAgent` | Recommends story topics based on past activity |
 | `LearningInsightAgent` | Produces weekly learning insight summaries |
 | `LearnToWriteAgent` | Summarises letters and words a child practised writing that week |
+| `TorchHuntAgent` | Generates a themed pack of hidden objects (emoji, name, fun fact) for a given theme and age group |
 
 Weekly notification agents are toggled on/off individually via the admin panel. Each agent's enabled state is stored in `AppSetting`.
 
@@ -114,6 +115,7 @@ All agents call `AnthropicClient.callWithCachedSystem()` which sends the system 
 | `FamilyVoiceController` | `/api/voices` | CRUD for custom story voices — list, create (upload + clone via ElevenLabs), rename, delete. Capped at 5 voices per family. |
 | `TraceController` | `/api/trace` | `POST /generate` — calls `TraceAgent` to produce a maze theme (emojis, story, bg colour) for the Maze feature. Feature key: `maze`. |
 | `RiddleController` | `/api/riddle` | `POST /generate` — calls `RiddleAgent` to produce 5 age-appropriate riddles. Feature key: `riddle`. |
+| `TorchHuntController` | `/api/torch-hunt` | `GET /pack?themeKey=&ageGroup=` — returns (or generates) a themed object pack. `POST /pack/refresh` — deletes the existing pack and generates a fresh one. Feature key: `torch-hunt`. Quota-gated. |
 | `DemoController` | `/api/demo` | Unauthenticated demo (Turnstile protected) |
 | `AdminController` | `/api/admin` | Admin-only: stats, users, agents, feature config, scheduler history. `GET /settings/signup` + `PUT /settings/signup` — signup kill switch read/write via `SignupGuardService`. Dashboard AI credit total reads from `AiUsageLog`. SUPER_ADMIN endpoints: `POST /promote/{id}`, `POST /demote/{id}`, `POST /admin` (create admin). Hold/release blocked for `isAdminOrAbove()` targets — returns 403. Sends transactional emails on hold/release/delete. Promo: `GET/POST /promo-campaigns` (MANUAL filtered out of list), `PUT /promo-campaigns/{id}` (DRAFT only), `POST /users/{id}/promo-grants` (creates MANUAL campaign + grant), `GET /users/{id}/promo-grants`. |
 
@@ -533,7 +535,9 @@ Schema is managed by JPA `ddl-auto: update` — tables are created/altered autom
 
 > **New user quota:** `quotaLimit` is set to the current global default at registration time (not 0). Users without a personal override inherit the default stored at signup; changing the global default only affects future signups. To migrate existing users: `UPDATE app_user SET quota_limit = <new> WHERE quota_limit = <old>`.
 
-> **Feature config seeding:** `FeatureConfigSeeder` inserts a default `FeatureConfig` row for each feature key on startup if none exists. Current keys: `story`, `activity`, `curiosity`, `read-quiz`, `writing-coach`, `learn-validate`, `learn-word`, `translation`, `draw`, `memory-flashcards`, `word-of-day`, `memory-match`, `journal-ai`, `draw-guide`, `draw-animate`, `maze`, `riddle`. The `flipbook` feature is credit-free (pure canvas, no AI calls) and tracked via the analytics event system only.
+> **Feature config seeding:** `FeatureConfigSeeder` inserts a default `FeatureConfig` row for each feature key on startup if none exists. Current keys: `story`, `activity`, `curiosity`, `read-quiz`, `writing-coach`, `learn-validate`, `learn-word`, `translation`, `draw`, `memory-flashcards`, `word-of-day`, `memory-match`, `journal-ai`, `draw-guide`, `draw-animate`, `maze`, `riddle`, `torch-hunt`. The `flipbook` feature is credit-free (pure canvas, no AI calls) and tracked via the analytics event system only.
+>
+> **TorchHuntPack entity:** `(userId, themeKey, ageGroup)` unique constraint. `objectsJson` and `narrativesJson` stored as TEXT. If deploying to a DB that had an old schema with a `sessions_played NOT NULL` column, run `DROP TABLE IF EXISTS torch_hunt_packs;` and restart to let JPA recreate it cleanly.
 
 > **Note:** the `notifications.type` column has a CHECK constraint. When adding new `NotificationType` enum values, run:
 > ```sql

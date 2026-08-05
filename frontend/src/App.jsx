@@ -23,6 +23,7 @@ import PrivacyPage      from './pages/legal/PrivacyPage'
 import TermsPage        from './pages/legal/TermsPage'
 import ContactPage      from './pages/legal/ContactPage'
 import ErrorPage        from './pages/ErrorPage'
+import { analyticsSocket } from './grpc/analyticsSocket'
 import './index.css'
 
 
@@ -306,6 +307,7 @@ export default function App() {
     resetLock()
     resetChild()
     logoutAuth()
+    analyticsSocket.close()
   }
 
   // Auto-collapse sidebar on tablet

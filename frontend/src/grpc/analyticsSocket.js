@@ -79,7 +79,9 @@ class AnalyticsSocket {
 
   _connect() {
     if (!this.active || document.hidden) return
-    const url = `${BASE_URL}/ws/events?token=${encodeURIComponent(getToken())}`
+    const token = getToken()
+    if (!token) { this.active = false; return }
+    const url = `${BASE_URL}/ws/events?token=${encodeURIComponent(token)}`
     const ws  = new WebSocket(url)
 
     ws.onopen = () => {

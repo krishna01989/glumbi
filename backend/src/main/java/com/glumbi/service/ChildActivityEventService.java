@@ -268,6 +268,7 @@ public class ChildActivityEventService {
         // Glumbi Guide: readquiz + curiosity
         long glumbiQuizReady       = repo.countByChildFeatureEventType(childId, "readquiz",  "glumbi_ready",              from);
         long glumbiFollowupChoices = repo.countByChildFeatureEventType(childId, "curiosity", "glumbi_followup_choice",    from);
+        long glumbiOtherEndings    = repo.countByChildFeatureEventType(childId, "stories",   "glumbi_other_ending",       from);
         long glumbiCrossNavStories = repo.countByChildFeatureEventType(childId, "stories",   "glumbi_cross_nav",          from);
         long glumbiCrossNavReadquiz = repo.countByChildFeatureEventType(childId, "readquiz", "glumbi_cross_nav",          from);
         long glumbiCrossNavCuriosity = repo.countByChildFeatureEventType(childId, "curiosity","glumbi_cross_nav",         from);
@@ -293,6 +294,7 @@ public class ChildActivityEventService {
         result.put("glumbiMidChoices",         glumbiMidChoices);
         result.put("glumbiEpilogues",          glumbiEpilogues);
         result.put("glumbiPostResponses",      glumbiPostResponses);
+        result.put("glumbiOtherEndings",       glumbiOtherEndings);
         result.put("glumbiQuizReady",          glumbiQuizReady);
         result.put("glumbiFollowupChoices",    glumbiFollowupChoices);
         result.put("glumbiCrossNav",           glumbiCrossNavStories + glumbiCrossNavReadquiz + glumbiCrossNavCuriosity);
@@ -467,12 +469,14 @@ public class ChildActivityEventService {
         long adminGlumbiPostResponses = repo.countByFeatureEventTypeSince("stories",   "glumbi_post_response",      from);
         long adminGlumbiQuizReady     = repo.countByFeatureEventTypeSince("readquiz",  "glumbi_ready",              from);
         long adminGlumbiFollowups     = repo.countByFeatureEventTypeSince("curiosity", "glumbi_followup_choice",    from);
+        long adminGlumbiOtherEndings  = repo.countByFeatureEventTypeSince("stories",   "glumbi_other_ending",       from);
         long adminGlumbiCrossNav      = repo.countByFeatureEventTypeSince("stories",   "glumbi_cross_nav",          from)
                                       + repo.countByFeatureEventTypeSince("readquiz",  "glumbi_cross_nav",          from)
                                       + repo.countByFeatureEventTypeSince("curiosity", "glumbi_cross_nav",          from);
         result.put("glumbiMidChoices",       adminGlumbiMidChoices);
         result.put("glumbiEpilogues",        adminGlumbiEpilogues);
         result.put("glumbiPostResponses",    adminGlumbiPostResponses);
+        result.put("glumbiOtherEndings",     adminGlumbiOtherEndings);
         result.put("glumbiQuizReady",        adminGlumbiQuizReady);
         result.put("glumbiFollowupChoices",  adminGlumbiFollowups);
         result.put("glumbiCrossNav",         adminGlumbiCrossNav);

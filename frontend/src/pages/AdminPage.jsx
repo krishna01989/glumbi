@@ -845,9 +845,10 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
             }
             if ((data.storiesSimilarViewed ?? 0) > 0)
               signals.push({ key: 'sim', icon: '🔗', label: 'Stories', primary: `${data.storiesSimilarViewed} similar explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
-            if ((data.glumbiMidChoices ?? 0) > 0 || (data.glumbiQuizReady ?? 0) > 0 || (data.glumbiFollowupChoices ?? 0) > 0 || (data.glumbiEpilogues ?? 0) > 0 || (data.glumbiCrossNav ?? 0) > 0) {
-              const total = (data.glumbiMidChoices ?? 0) + (data.glumbiQuizReady ?? 0) + (data.glumbiFollowupChoices ?? 0)
+            if ((data.glumbiMidChoices ?? 0) > 0 || (data.glumbiQuizReady ?? 0) > 0 || (data.glumbiFollowupChoices ?? 0) > 0 || (data.glumbiEpilogues ?? 0) > 0 || (data.glumbiCrossNav ?? 0) > 0 || (data.glumbiOtherEndings ?? 0) > 0) {
+              const total = (data.glumbiMidChoices ?? 0) + (data.glumbiQuizReady ?? 0) + (data.glumbiFollowupChoices ?? 0) + (data.glumbiEpilogues ?? 0) + (data.glumbiCrossNav ?? 0) + (data.glumbiOtherEndings ?? 0)
               const parts = [`${data.glumbiMidChoices ?? 0} story picks`, `${data.glumbiQuizReady ?? 0} quiz ready`, `${data.glumbiFollowupChoices ?? 0} curiosity digs`]
+              if ((data.glumbiOtherEndings ?? 0) > 0) parts.push(`${data.glumbiOtherEndings} alt endings`)
               if ((data.glumbiEpilogues ?? 0) > 0) parts.push(`${data.glumbiEpilogues} epilogues`)
               if ((data.glumbiCrossNav ?? 0) > 0) parts.push(`${data.glumbiCrossNav} journeys`)
               signals.push({ key: 'g-mid', icon: '🌟', label: 'Glumbi Guide', primary: `${total} Glumbi interactions`, sub: parts.join(' · '), color: '#f97316', bg: '#fff7ed' })

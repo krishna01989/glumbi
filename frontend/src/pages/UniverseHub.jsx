@@ -1740,44 +1740,17 @@ function WotdBar({ wotd, goTo, isMobile }) {
 export default function UniverseHub({ child, featureConfig, wotd }) {
   const theme    = useTheme()
   const navigate = useNavigate()
-  const cid        = child?.id || 'anon'
-  const GALAXY_KEY = 'glm_hub_galaxy_' + cid
-  const SWIPER_KEY = 'glm_hub_swiper_' + cid
+  const cid      = child?.id || 'anon'
 
-  const [selectedGalaxy, setSelectedGalaxy] = useState(null)
   const [recentPaths, setRecentPaths] = useState([])
-  const [isMobile,    setIsMobile]    = useState(() => window.innerWidth < 640)
+  const [isMobile, setIsMobile]       = useState(() => window.innerWidth < 640)
 
-  const primary = theme?.primary || '#9d8fff'
+  const primary    = theme?.primary || '#9d8fff'
   const storageKey = RECENT_KEY + cid
-
-  // Derive world from child's theme — default to coral (warmsky) if unset
-  const themeKey = child?.theme || 'coral'
-  const world = getWorld(themeKey)
+  const themeKey   = child?.theme || 'coral'
+  const world      = getWorld(themeKey)
 
   useEffect(() => { injectStyles() }, [])
-
-  useLayoutEffect(() => {
-    try {
-      const galaxyId = sessionStorage.getItem(GALAXY_KEY)
-      if (galaxyId) {
-        const g = UNIVERSE.find(g => g.id === galaxyId)
-        if (g) setSelectedGalaxy(g)
-      }
-    } catch {}
-  }, [GALAXY_KEY])
-
-  useEffect(() => {
-    if (selectedGalaxy) {
-      try {
-        sessionStorage.setItem(GALAXY_KEY, selectedGalaxy.id)
-        sessionStorage.setItem(SWIPER_KEY, selectedGalaxy.id)
-      } catch {}
-    } else {
-      try { sessionStorage.removeItem(GALAXY_KEY) } catch {}
-    }
-  }, [selectedGalaxy, GALAXY_KEY, SWIPER_KEY])
-
   useEffect(() => {
     const fn = () => setIsMobile(window.innerWidth < 640)
     window.addEventListener('resize', fn)
@@ -1807,9 +1780,6 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
     navigate(`/child/${child?.id}/${path}`)
   }
 
-  function selectGalaxy(g)  { setSelectedGalaxy(g) }
-  function backToGalaxies() { setSelectedGalaxy(null) }
-
   const recentPlanets = recentPaths.map(path => {
     for (const g of UNIVERSE) {
       const p = g.planets.find(pl => pl.path === path)
@@ -1818,60 +1788,31 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
     return null
   }).filter(Boolean).slice(0, RECENT_LIMIT)
 
-  const visibleGalaxies = UNIVERSE.filter(g => g.planets.some(planetEnabled))
-
-  // ── Planet view ─────────────────────────────────────────────────────────────
-  if (selectedGalaxy) {
-    const planets = selectedGalaxy.planets.filter(planetEnabled)
-    const storedRecent = (() => { try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] } })()
-    const lastPlanetPath = storedRecent.find(rp => planets.some(pl => pl.path === rp))
-    const lastPlanetIdx  = lastPlanetPath ? planets.findIndex(p => p.path === lastPlanetPath) : 0
-    const initialRot = Math.PI / 2 - (2 * Math.PI / planets.length) * lastPlanetIdx
-    return (
-      <div style={{ flex: 1, minHeight: 520, display: 'flex', flexDirection: 'column',
-        background: world.bg, fontFamily: 'Nunito, sans-serif', position: 'relative' }}>
-        <ThemeBackground themeKey={themeKey} />
-        <WorldParticles world={world} count={55} />
-        <div style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column' }}>
-          <PlanetOrbital
-            galaxy={selectedGalaxy}
-            planets={planets}
-            goTo={goTo}
-            onBack={backToGalaxies}
-            isMobile={isMobile}
-            initialRot={initialRot}
-            world={world}
-            themeKey={themeKey}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  // ── Universe view ────────────────────────────────────────────────────────────
   return (
     <div style={{ flex: 1, minHeight: 520, display: 'flex', flexDirection: 'column',
       background: world.bg, fontFamily: 'Nunito, sans-serif', position: 'relative',
       animation: 'hub-view-in .35s ease both' }}>
-      <ThemeBackground themeKey={themeKey} />
-      <WorldParticles world={world} count={world.particles.count} />
+      <div style={{ opacity: world.bgOpacity ?? 0.5, position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <ThemeBackground themeKey={themeKey} />
+        <WorldParticles world={world} count={Math.floor(world.particles.count * 0.65)} />
+      </div>
+      {/* per-world scrim keeps cards readable without flattening dark scenes */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
+        background: `rgba(0,0,0,${world.scrimOpacity ?? 0.35})` }} />
 
       {/* Header */}
       <div id="tour-hub-header" style={{ position: 'relative', zIndex: 5, textAlign: 'center',
-        padding: isMobile ? '18px 14px 0' : '22px 44px 0', flexShrink: 0 }}>
-        <div style={{ fontSize: isMobile ? 18 : 24, fontWeight: 900, color: 'white',
+        padding: isMobile ? '16px 14px 0' : '20px 44px 0', flexShrink: 0 }}>
+        <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 900, color: 'white',
           textShadow: `0 0 26px ${primary}88`, letterSpacing: .3 }}>
           {child?.name ? `${child.name}'s ${world.worldTitle}` : `My ${world.worldTitle}`}
         </div>
       </div>
 
-      {/* Recent pills + WOTD row — same container on desktop so they share the same line */}
+      {/* Recents + WotD */}
       <div style={{ position: 'relative', zIndex: 5, flexShrink: 0,
-        padding: isMobile ? '10px 14px 0' : '12px 44px 0',
-        display: 'flex', alignItems: 'center', gap: 10,
-        justifyContent: 'space-between',
-      }}>
-        {/* Recently visited pills */}
+        padding: isMobile ? '10px 14px 0' : '10px 44px 0',
+        display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'space-between' }}>
         {recentPlanets.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, flex: 1, minWidth: 0 }}>
             {recentPlanets.map((p, i) => (
@@ -1890,38 +1831,74 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
             ))}
           </div>
         )}
-        {/* Word of the Day — right side on desktop, own row on mobile */}
-        {isMobile
-          ? null
-          : <div id="tour-hub-wotd" style={{ flexShrink: 0, maxWidth: 400 }}>
-              <WotdBar wotd={wotd} goTo={goTo} isMobile={false} />
-            </div>
-        }
+        {!isMobile && (
+          <div id="tour-hub-wotd" style={{ flexShrink: 0, maxWidth: 400 }}>
+            <WotdBar wotd={wotd} goTo={goTo} isMobile={false} />
+          </div>
+        )}
       </div>
-      {/* Word of the Day — own row on mobile */}
       {isMobile && (
         <div id="tour-hub-wotd">
           <WotdBar wotd={wotd} goTo={goTo} isMobile={true} />
         </div>
       )}
 
-      {/* Galaxy swiper */}
-      {(() => {
-        let savedId = ''
-        try { savedId = sessionStorage.getItem(SWIPER_KEY) || '' } catch {}
-        const initPos = Math.max(0, visibleGalaxies.findIndex(g => g.id === savedId))
-        return (
-          <GalaxySwiper
-            galaxies={visibleGalaxies}
-            onSelect={selectGalaxy}
-            isMobile={isMobile}
-            primary={primary}
-            initialPos={initPos}
-            world={world}
-            themeKey={themeKey}
-          />
-        )
-      })()}
+      {/* Feature grid */}
+      <div style={{
+        flex: 1, overflowY: 'auto', position: 'relative', zIndex: 5,
+        padding: isMobile ? '12px 14px 28px' : '14px 44px 36px',
+      }}>
+        {UNIVERSE.map(zone => {
+          const enabled = zone.planets.filter(planetEnabled)
+          if (!enabled.length) return null
+          return (
+            <div key={zone.id} style={{ marginBottom: isMobile ? 18 : 22 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
+                fontSize: 10, fontWeight: 800, letterSpacing: 1.4,
+                textTransform: 'uppercase', color: zone.color,
+                textShadow: `0 0 10px ${zone.color}66`,
+              }}>
+                <span style={{ fontSize: 13 }}>{zone.emoji}</span>
+                {zone.name}
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+                gap: isMobile ? 8 : 10,
+              }}>
+                {enabled.map(p => (
+                  <button key={p.id} onClick={() => goTo(p.path)} style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                    gap: 3, padding: isMobile ? '12px' : '14px 16px',
+                    borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+                    background: 'rgba(0,0,0,0.42)',
+                    border: `1px solid ${zone.color}28`,
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
+                    transition: 'background .15s, border-color .15s',
+                  }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(0,0,0,0.58)'
+                      e.currentTarget.style.borderColor = `${zone.color}55`
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(0,0,0,0.42)'
+                      e.currentTarget.style.borderColor = `${zone.color}28`
+                    }}>
+                    <span style={{ fontSize: isMobile ? 24 : 28, lineHeight: 1 }}>{p.emoji}</span>
+                    <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 900,
+                      color: 'white', lineHeight: 1.2, marginTop: 4 }}>{p.name}</div>
+                    {!isMobile && (
+                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)',
+                        lineHeight: 1.4, marginTop: 2 }}>{p.desc}</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -5655,7 +5655,6 @@ function Scene_football() {
         <circle cx={0} cy={-58} r={13} fill="#fdbcb4" />
         <path d="M-13,-62 Q0,-76 13,-62" fill="#880e0e" />
         <rect x={-12} y={-45} width={24} height={32} rx={5} fill="#c62828" />
-        {/* Both arms fully out */}
         <path d="M-12,-38 Q-36,-26 -44,-16" stroke="#c62828" strokeWidth={10} fill="none" strokeLinecap="round"/>
         <circle cx={-44} cy={-16} r={9} fill="#fdbcb4"/>
         <path d="M12,-38 Q36,-26 44,-16"  stroke="#c62828" strokeWidth={10} fill="none" strokeLinecap="round"/>
@@ -5685,11 +5684,21 @@ function Scene_football() {
         {/* Standing LEFT leg — slightly left, planted */}
         <rect x={-6} y={-11} width={10} height={30} rx={4} fill="#e65100"/>
         <rect x={-6} y={18}  width={10} height={11} rx={3} fill="white" opacity={0.8}/>
-        {/* Kicking RIGHT leg — gentle forward swing, nearly straight at contact */}
-        {/* Knee raised (not below hip) so leg doesn't fold backwards */}
-        <line x1={8}  y1={-11} x2={22} y2={-2}  stroke="#e65100" strokeWidth={13} strokeLinecap="round"/>
-        <line x1={22} y1={-2}  x2={40} y2={-4}   stroke="#e65100" strokeWidth={11} strokeLinecap="round"/>
-        <circle cx={40} cy={-4} r={9} fill="white" opacity={0.9}/>
+        {/* Kicking RIGHT leg — SVG animateTransform rotates around hip (0,0) in local coords */}
+        <g transform="translate(8,-11)">
+          <g>
+            <animateTransform
+              attributeName="transform" type="rotate"
+              values="0 0 0; -46 0 0; 90 0 0; 90 0 0; 115 0 0; 115 0 0; 0 0 0"
+              keyTimes="0; 0.08; 0.22; 0.48; 0.64; 0.78; 1"
+              calcMode="spline"
+              keySplines="0.2 0 0.3 1; 0.4 0 0.6 1; 0 0 1 1; 0.4 0 0.6 1; 0 0 1 1; 0.35 0 0.65 1"
+              dur="3.5s" repeatCount="indefinite"
+            />
+            <line x1={0} y1={0} x2={34} y2={6}  stroke="#e65100" strokeWidth={12} strokeLinecap="round"/>
+            <circle cx={34} cy={6} r={9} fill="white" opacity={0.9}/>
+          </g>
+        </g>
       </g>
 
       {/* ── Ball: at kicker's foot (482,354) → right goal (706,291) ── */}

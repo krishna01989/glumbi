@@ -1,7 +1,11 @@
 // ── World system configs ──────────────────────────────────────────────────────
 // Each world defines: background, particles, ambient, zone visual style, and labels.
+// bgOpacity: how much of the ThemeBackground SVG scene shows through (0–1)
+// scrimOpacity: dark overlay on top to keep cards readable (0–1)
+// Tune per world based on how bright/dark the SVG scene actually renders.
 export const WORLD_SYSTEMS = {
   space: {
+    bgOpacity: 0.65, scrimOpacity: 0.20,   // deep dark starfield — keep vivid
     bg: 'linear-gradient(180deg,#020616 0%,#050d28 100%)',
     particles: { type: 'star',      count: 90, colors: ['#ffffff'] },
     ambient:   { type: 'nebula',    colors: ['#9d8fff55','#40c4ff44','#9d8fff44'] },
@@ -14,6 +18,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'drag to spin · tap focused planet to enter',
   },
   forest: {
+    bgOpacity: 0.58, scrimOpacity: 0.28,   // dark greens, fireflies — slight taming
     bg: 'linear-gradient(180deg,#030d06 0%,#051408 50%,#0a1f0f 100%)',
     particles: { type: 'firefly',   count: 60, colors: ['#aaff44','#88ee88','#ccff66','#ffff88'] },
     ambient:   { type: 'trees',     colors: ['#2d9a4e55','#52b78844','#95d5b244'] },
@@ -26,6 +31,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'drag to spin · tap to explore',
   },
   ocean: {
+    bgOpacity: 0.62, scrimOpacity: 0.22,   // dark blue depths — keep moody
     bg: 'linear-gradient(180deg,#010810 0%,#021428 55%,#032040 100%)',
     particles: { type: 'bubble',    count: 55, colors: ['rgba(100,200,255,0.55)','rgba(180,240,255,0.38)','rgba(64,196,255,0.45)'] },
     ambient:   { type: 'seabed',    colors: ['#0096c755','#48cae444','#00b4d844'] },
@@ -38,6 +44,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'drift · tap to explore',
   },
   candy: {
+    bgOpacity: 0.30, scrimOpacity: 0.52,   // neon-bright scene — needs heavy taming
     bg: 'linear-gradient(180deg,#0d0010 0%,#1a0028 50%,#2d0040 100%)',
     particles: { type: 'sprinkle',  count: 70, colors: ['#ff6ec7','#ffd600','#00e5ff','#ff6b6b','#b967ff','#00ff9f'] },
     ambient:   { type: 'candy',     colors: ['#e040fb55','#f06292aa','#b967ff44'] },
@@ -50,6 +57,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'spin · tap to explore',
   },
   warmsky: {
+    bgOpacity: 0.42, scrimOpacity: 0.40,   // warm orange/red sunset — moderate taming
     bg: 'linear-gradient(180deg,#0d0500 0%,#1a0800 30%,#3d1200 70%,#6b2200 100%)',
     particles: { type: 'ember',     count: 50, colors: ['#ff8c00','#ffb347','#ffd700','#ff6600','#ff4500'] },
     ambient:   { type: 'hills',     colors: ['#d96f1a55','#ff8c0044','#ffd70033'] },
@@ -62,6 +70,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'spin · tap to explore',
   },
   magical: {
+    bgOpacity: 0.60, scrimOpacity: 0.22,   // dark purple sparkle — keep vivid
     bg: 'linear-gradient(180deg,#060010 0%,#0d0020 40%,#1a0038 100%)',
     particles: { type: 'petal',     count: 65, colors: ['#ff80ab','#ce93d8','#ffd600','#80cbc4','#f48fb1','#fff9c4'] },
     ambient:   { type: 'sparkle',   colors: ['#ab47bc55','#ff80ab44','#ffd60033'] },
@@ -74,6 +83,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'spin · tap to explore',
   },
   adventure: {
+    bgOpacity: 0.68, scrimOpacity: 0.18,   // very dark (batman/spiderman) — barely touch it
     bg: 'linear-gradient(180deg,#060000 0%,#0d0400 40%,#1a0600 100%)',
     particles: { type: 'spark',     count: 45, colors: ['#ff6600','#ff3300','#ffaa00','#ffffff','#ff9900'] },
     ambient:   { type: 'dramatic',  colors: ['#b0302055','#ff660044','#7b1fa244'] },
@@ -86,6 +96,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'spin · tap to explore',
   },
   cozy: {
+    bgOpacity: 0.65, scrimOpacity: 0.20,   // very dark cozy interior — keep warm
     bg: 'linear-gradient(180deg,#04030a 0%,#0a0810 40%,#100c06 100%)',
     particles: { type: 'snowflake', count: 55, colors: ['rgba(255,255,255,0.72)','rgba(180,220,255,0.52)','rgba(220,240,255,0.6)'] },
     ambient:   { type: 'cozy',      colors: ['#7a5c3a55','#ff8a6544','#ce93d833'] },
@@ -98,6 +109,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'spin · tap to explore',
   },
   sky: {
+    bgOpacity: 0.45, scrimOpacity: 0.38,   // lighter blue skies — moderate taming
     bg: 'linear-gradient(180deg,#061828 0%,#0a2440 40%,#1a3a60 100%)',
     particles: { type: 'cloud',     count: 18, colors: ['rgba(255,255,255,0.14)','rgba(180,220,255,0.1)','rgba(220,240,255,0.12)'] },
     ambient:   { type: 'sky',       colors: ['#4fc3f755','#81d4fa44','#b3e5fc33'] },
@@ -110,6 +122,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel:'drift · tap to explore',
   },
   sport: {
+    bgOpacity: 0.62, scrimOpacity: 0.24,   // teal stadium — dark enough, keep energetic
     bg: 'linear-gradient(180deg,#0f2027 0%,#203a43 45%,#2c5364 100%)',
     particles: {
       type: 'spark',
@@ -137,6 +150,7 @@ export const WORLD_SYSTEMS = {
     orbitLabel: 'compete · tap to explore',
   },
   abstract: {
+    bgOpacity: 0.58, scrimOpacity: 0.24,   // dark with colorful geometry — keep vivid
     bg: 'linear-gradient(180deg,#080008 0%,#0d0010 40%,#150018 100%)',
     particles: { type: 'geometric', count: 40, colors: ['#ff6ec7','#ffd600','#00e5ff','#ff6b6b','#b967ff','#00ff9f','#ff9f00'] },
     ambient:   { type: 'abstract',  colors: ['#e91e8c55','#ffd60044','#00bcd433'] },

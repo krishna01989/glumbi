@@ -238,10 +238,34 @@ export default function Stories({ child, quota }) {
   }
 
   useEffect(() => {
-    fetchStories(0, true)
-    voiceApi.list().then(setFamilyVoices).catch(() => {})
     const prefill = location.state?.glumbiPrefill
+    const openStoryId = location.state?.openStoryId
     if (prefill) setKeywords(prefill)
+    fetchStories(0, true).then(flat => {
+      if (!openStoryId) return
+      const inPage = flat?.find(s => s.id === openStoryId)
+      const openStory = (story) => {
+        setSelected(story)
+        loadGlumbiState(story)
+        setSimilarStories([])
+        setShowList(false)
+        storyApi.getSimilar(story.id).then(s => setSimilarStories(s)).catch(() => {})
+      }
+      if (inPage) {
+        openStory(inPage)
+      } else {
+        storyApi.getSeries(openStoryId).then(series => {
+          // Inject root + chapters into stories state so series nav works
+          setStories(prev => {
+            const ids = new Set(series.map(s => s.id))
+            return [...series, ...prev.filter(s => !ids.has(s.id))]
+          })
+          const target = series.find(s => s.id === openStoryId)
+          if (target) openStory(target)
+        }).catch(() => {})
+      }
+    })
+    voiceApi.list().then(setFamilyVoices).catch(() => {})
   }, [child.id])
 
   async function fetchStories(page, replace) {
@@ -254,6 +278,7 @@ export default function Stories({ child, quota }) {
       setStoriesPage(data.number)
       setHistoriesTotalPages(data.totalPages)
       setStoriesTotalCount(data.totalElements)
+      return flat
     } finally { setStoriesLoading(false) }
   }
 

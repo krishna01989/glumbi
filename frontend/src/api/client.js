@@ -112,6 +112,8 @@ export const childApi = {
 export const storyApi = {
   generate:       (data)              => api.post('/stories/generate', data).then(r => r.data),
   continue:       (childId, previousStoryId) => api.post('/stories/generate', { childId, keywords: 'continue', previousStoryId }).then(r => r.data),
+  getById:        (id)                => api.get(`/stories/${id}`).then(r => r.data),
+  getSeries:      (id)                => api.get(`/stories/${id}/series`).then(r => r.data),
   getByChild:     (childId, params)   => api.get(`/stories/child/${childId}`, { params }).then(r => r.data),
   getByChildPaged:(childId, page = 0) => api.get(`/stories/child/${childId}/paged`, { params: { page } }).then(r => r.data),
   getFavorites:   (childId)           => api.get(`/stories/child/${childId}/favorites`).then(r => r.data),

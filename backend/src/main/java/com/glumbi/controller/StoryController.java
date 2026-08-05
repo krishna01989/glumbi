@@ -122,6 +122,16 @@ public class StoryController {
         return service.toggleFavorite(id);
     }
 
+    @GetMapping("/{id}")
+    public Story getById(@PathVariable Long id) {
+        return service.getById(id);
+    }
+
+    @GetMapping("/{id}/series")
+    public List<Story> getSeries(@PathVariable Long id) {
+        return service.getSeries(id);
+    }
+
     @GetMapping("/{id}/similar")
     public List<Story> getSimilar(@PathVariable Long id) {
         return service.findSimilar(id);

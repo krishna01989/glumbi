@@ -103,6 +103,18 @@ public class StoryService {
         return repo.findById(id).orElseThrow(() -> new RuntimeException("Story not found: " + id));
     }
 
+    /** Returns [root, ...chapters] for any story in the series (root or chapter). */
+    public List<Story> getSeries(Long id) {
+        Story story = getById(id);
+        Long rootId = story.getSeriesId() != null ? story.getSeriesId() : story.getId();
+        Story root = rootId.equals(story.getId()) ? story : getById(rootId);
+        List<Story> chapters = repo.findBySeriesId(rootId);
+        List<Story> result = new java.util.ArrayList<>();
+        result.add(root);
+        result.addAll(chapters);
+        return result;
+    }
+
     public List<Story> getByChild(Long childId, LocalDateTime from, LocalDateTime to) {
         if (from != null && to != null)
             return repo.findByChildIdAndCreatedAtBetweenOrderByCreatedAtDesc(childId, from, to);

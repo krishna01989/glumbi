@@ -832,9 +832,9 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
           {/* Engagement signals */}
           {(() => {
             const signals = []
-            if ((data.mazeGaveUpCount ?? 0) > 0 || (data.mazeAvgWallHits ?? 0) > 0 || (data.adminMazeRiddleCorrect ?? 0) > 0 || (data.adminMazeRiddleWrong ?? 0) > 0) {
-              const riddleTotal = (data.adminMazeRiddleCorrect ?? 0) + (data.adminMazeRiddleWrong ?? 0)
-              const riddlePct = riddleTotal > 0 ? Math.round(((data.adminMazeRiddleCorrect ?? 0) / riddleTotal) * 100) : null
+            if ((data.mazeGaveUpCount ?? 0) > 0 || (data.mazeAvgWallHits ?? 0) > 0 || (data.mazeRiddleCorrect ?? 0) > 0 || (data.mazeRiddleWrong ?? 0) > 0) {
+              const riddleTotal = (data.mazeRiddleCorrect ?? 0) + (data.mazeRiddleWrong ?? 0)
+              const riddlePct = riddleTotal > 0 ? Math.round(((data.mazeRiddleCorrect ?? 0) / riddleTotal) * 100) : null
               signals.push({ key: 'maze', icon: '🧱', label: 'Maze', primary: `${data.mazeGaveUpCount ?? 0} gave up · avg ${data.mazeAvgWallHits ?? 0} wall hits`, sub: riddlePct !== null ? `🤔 ${riddlePct}% riddle accuracy (${riddleTotal} attempts)` : 'no riddle data yet', color: '#f97316', bg: '#fff7ed' })
             }
             if ((data.riddleHints ?? 0) > 0 || (data.riddleGlumbi ?? 0) > 0) {

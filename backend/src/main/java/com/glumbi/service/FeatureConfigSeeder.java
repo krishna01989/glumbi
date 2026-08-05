@@ -35,7 +35,8 @@ public class FeatureConfigSeeder implements ApplicationRunner {
         new Object[]{"draw-guide",          1, "AI step-by-step drawing guide for a chosen subject"},
         new Object[]{"draw-animate",        1, "Bring a child's drawing to life with animation"},
         new Object[]{"maze",               1, "Generate a maze game level"},
-        new Object[]{"riddle",             1, "Generate a set of riddles"}
+        new Object[]{"riddle",             1, "Generate a set of riddles"},
+        new Object[]{"torch-hunt",         2, "Generate a Torch Hunt adventure pack (30 objects)"}
     );
 
     @Override

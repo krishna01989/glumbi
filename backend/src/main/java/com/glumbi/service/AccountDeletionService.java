@@ -33,6 +33,7 @@ public class AccountDeletionService {
     private final FamilyVoiceRepository        familyVoiceRepository;
     private final UserRepository               userRepository;
     private final PromoCreditGrantRepository   promoCreditGrantRepository;
+    private final TorchHuntPackRepository      torchHuntPackRepository;
     private final ElevenLabsService            elevenLabsService;
     private final R2Service                    r2Service;
     private final ObjectMapper                 objectMapper;
@@ -84,13 +85,15 @@ public class AccountDeletionService {
             memoryMatchRepository.deleteByChildId(childId);
             flashcardSetRepository.deleteByChildId(childId);
             writingRepository.deleteByChildId(childId);
+            // torch hunt packs are per-parent — deleted in user-level cleanup below
             childActivityEventRepository.anonymiseByChildId(childId);
             aiUsageLogRepository.anonymiseByChildId(childId);
             notificationRepository.deleteByChildId(childId);
             childRepository.delete(child);
         });
 
-        // 3. Anonymise user-level analytics, delete user-level config
+        // 3. Delete per-parent torch hunt packs, anonymise analytics, delete user-level config
+        torchHuntPackRepository.deleteByUserId(userId);
         childActivityEventRepository.anonymiseByUserId(userId);
         aiUsageLogRepository.anonymiseByUserId(userId);
         userFeatureOverrideRepository.deleteByIdUserId(userId);

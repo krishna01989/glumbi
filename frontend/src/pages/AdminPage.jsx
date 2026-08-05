@@ -189,6 +189,7 @@ const FEATURE_DISPLAY_MAP = {
   'draw-animate':        { label: 'Bring to Life',   icon: '🎬' },
   'maze':                { label: 'Maze',            icon: '🌀' },
   'riddle':              { label: 'Riddle',          icon: '🧩' },
+  'torch-hunt':          { label: 'Torch Hunt',      icon: '🔦' },
 }
 
 function FeatureAccessModal({ user, onClose }) {
@@ -561,6 +562,7 @@ const COMPLETION_LABELS = {
   maze:      n => `🏁 ${n} maze${n !== 1 ? 's' : ''} completed`,
   readquiz:  n => `🏁 ${n} quiz${n !== 1 ? 'zes' : ''} completed`,
   riddle:    n => `🏁 ${n} riddle set${n !== 1 ? 's' : ''} completed`,
+  'torch-hunt': n => `🏁 ${n} hunt${n !== 1 ? 's' : ''} completed`,
   stories:   n => `🏁 ${n} stor${n !== 1 ? 'ies' : 'y'} completed`,
   curiosity: n => `🏁 ${n} topic${n !== 1 ? 's' : ''} completed`,
   activities:n => `🏁 ${n} activit${n !== 1 ? 'ies' : 'y'} completed`,
@@ -580,6 +582,7 @@ const ACTIVITY_FEATURE_NAMES = {
   mywriting:   '✍️ My Writing',
   riddle:      '🎯 Riddles',
   maze:        '🌀 Maze',
+  'torch-hunt':'🔦 Torch Hunt',
   learn:       '✏️ Learn to Write',
   flashcards:  '📇 Flashcards',
   wordofday:   '🌟 Word of Day',
@@ -843,6 +846,8 @@ function ActivityAnalytics({ rangeLabel, data, loading, onRefresh }) {
               if ((data.riddleGlumbi ?? 0) > 0) riddleParts.push(`${data.riddleGlumbi} Glumbi moments`)
               signals.push({ key: 'riddle', icon: '🎯', label: 'Riddles', primary: riddleParts[0], sub: riddleParts.slice(1).join(' · ') || 'platform total', color: '#f59e0b', bg: '#fffbeb' })
             }
+            if ((data.torchFoundCount ?? 0) > 0 || (data.torchCompleteCount ?? 0) > 0)
+              signals.push({ key: 'torch', icon: '🔦', label: 'Torch Hunt', primary: `${data.torchCompleteCount ?? 0} hunt${(data.torchCompleteCount ?? 0) !== 1 ? 's' : ''} completed`, sub: `${data.torchFoundCount ?? 0} objects found`, color: '#f59e0b', bg: '#fffbeb' })
             if ((data.storiesSimilarViewed ?? 0) > 0)
               signals.push({ key: 'sim', icon: '🔗', label: 'Stories', primary: `${data.storiesSimilarViewed} similar explored`, sub: 'across all children', color: '#0ea5e9', bg: '#f0f9ff' })
             if ((data.glumbiMidChoices ?? 0) > 0 || (data.glumbiQuizReady ?? 0) > 0 || (data.glumbiFollowupChoices ?? 0) > 0 || (data.glumbiEpilogues ?? 0) > 0 || (data.glumbiCrossNav ?? 0) > 0 || (data.glumbiOtherEndings ?? 0) > 0) {
@@ -1848,6 +1853,7 @@ const FEATURE_META = {
   'draw-animate':        { label: 'Bring to Life',   icon: '🎬', desc: "Analyzes a child's drawing and returns animation objects (1 credit per tap; replays are free)", maxTokens: 600, suggestedCost: 1 },
   'maze':                { label: 'Maze',            icon: '🌀', desc: 'Generate a themed maze level with age-based complexity',  maxTokens: 300, suggestedCost: 1 },
   'riddle':              { label: 'Riddle',          icon: '🧩', desc: 'Generate a set of 5 age-appropriate riddles',             maxTokens: 400, suggestedCost: 1 },
+  'torch-hunt':          { label: 'Torch Hunt',      icon: '🔦', desc: 'Generate a 30-object hidden-object adventure pack (pooled; 2 credits per pack, 0 per session)', maxTokens: 2400, suggestedCost: 2 },
   'flipbook':            { label: 'Flipbook Studio', icon: '🖼️', desc: 'Frame-by-frame animation studio (no AI credits)',         maxTokens: 0,   suggestedCost: 0 },
 }
 
@@ -1864,7 +1870,7 @@ const DEFAULT_MIX = {
   'story': 3, 'activity': 3, 'curiosity': 5, 'read-quiz': 2,
   'writing-coach': 3, 'translation': 1, 'draw': 3, 'draw-animate': 2, 'learn-validate': 5, 'learn-word': 3, 'story-listen': 2,
   'memory-flashcards': 2, 'word-of-day': 5, 'memory-match': 2, 'journal-ai': 3, 'draw-guide': 4,
-  'maze': 3, 'riddle': 3,
+  'maze': 3, 'riddle': 3, 'torch-hunt': 1,
 }
 
 function FeatureCredits() {

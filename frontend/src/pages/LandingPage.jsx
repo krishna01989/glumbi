@@ -50,8 +50,96 @@ const FEATURES = [
   { emoji: '🎯', title: 'Activities', desc: '"What should we do right now?" Pick the time of day and weather, and Glumbi suggests 3 fun, personalised things for your child to do — indoors or out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'What to do now', highlights: ['Time & weather aware', 'Personalised ideas', 'Swap any suggestion'] },
   // ── Games ─────────────────────────────────────────────────────────────────
   { emoji: '🧠', title: 'Memory & Words', desc: 'Generate flashcard sets on any topic, match emoji pairs in a memory game, and discover a new word every day — all personalised to your child.', grad: 'linear-gradient(135deg,#a18cd1,#fbc2eb)', tag: 'Brain games', highlights: ['Flashcards', 'Memory match', 'Word of the day'] },
-  { emoji: '🌀', title: 'Maze Adventure', desc: 'Solve a riddle to unlock an AI-themed adventure maze — fox through the forest, bee to the flower, rocket to the moon! Only one path leads to the goal.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Problem solving', highlights: ['Riddle unlock', 'Age-adaptive', 'AI adventure'] },
+  { emoji: '🌀', title: 'Maze Adventure', desc: 'Solve a riddle to unlock an AI-themed adventure maze — fox through the forest, bee to the flower, rocket to the moon! Only one path leads to the goal.', grad: 'linear-gradient(135deg,#43e97b,#38f9d7)', tag: 'Problem solving', highlights: ['Riddle unlock', 'Age-adaptive', 'AI adventure'],
+    illustration: (
+      <svg viewBox="0 0 160 130" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <defs>
+          <linearGradient id="mz-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#1a3a2a"/><stop offset="100%" stopColor="#0d2218"/></linearGradient>
+          <linearGradient id="mz-wall-top" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5ee89a"/><stop offset="100%" stopColor="#38c97b"/></linearGradient>
+          <linearGradient id="mz-path" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#00ff88" stopOpacity="0.25"/><stop offset="100%" stopColor="#00ffcc" stopOpacity="0.1"/></linearGradient>
+          <filter id="mz-glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <rect width="160" height="130" fill="url(#mz-bg)" rx="12"/>
+        {/* isometric floor tiles — path */}
+        {[[2,2],[2,3],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[4,0],[3,0]].map(([r,c],i)=>{
+          const x = 80 + (c-r)*16; const y = 30 + (c+r)*8
+          return <g key={i}>
+            <polygon points={`${x},${y} ${x+16},${y+8} ${x+16},${y+16} ${x},${y+8}`} fill="url(#mz-path)" stroke="rgba(0,255,136,0.3)" strokeWidth="0.5"/>
+          </g>
+        })}
+        {/* isometric walls */}
+        {[
+          [0,0],[0,1],[0,2],[0,3],[0,4],[0,5],
+          [1,0],[1,5],[2,0],[2,1],[2,5],[3,1],[3,2],[3,3],[3,5],
+          [4,5],[5,0],[5,1],[5,2],[5,3],[5,4],[5,5],
+          [1,2],[1,3],[1,4],[2,4],[3,4],[4,4],
+        ].map(([r,c],i)=>{
+          const x = 80 + (c-r)*16; const y = 30 + (c+r)*8
+          const h = 12
+          return <g key={i}>
+            {/* top face */}
+            <polygon points={`${x},${y} ${x+16},${y+8} ${x+16},${y+8} ${x},${y}`} fill="url(#mz-wall-top)" opacity="0.9"/>
+            {/* front-left face */}
+            <polygon points={`${x},${y} ${x},${y+8} ${x},${y+8+h} ${x},${y+h}`} fill="#2a7a52" opacity="0.8"/>
+            {/* front-right face */}
+            <polygon points={`${x},${y} ${x+16},${y+8} ${x+16},${y+8+h} ${x},${y+h}`} fill="#1e5c3d" opacity="0.9"/>
+            {/* top cap */}
+            <polygon points={`${x},${y-h} ${x+16},${y+8-h} ${x+16},${y+8} ${x},${y}`} fill="url(#mz-wall-top)" opacity="0.95"/>
+          </g>
+        })}
+        {/* Fox at start */}
+        <text x="60" y="95" fontSize="18" textAnchor="middle" filter="url(#mz-glow)">🦊</text>
+        {/* Star at end */}
+        <text x="32" y="55" fontSize="14" textAnchor="middle" filter="url(#mz-glow)">⭐</text>
+        {/* Glow path line */}
+        <polyline points="68,85 68,72 52,72 52,58 44,54" fill="none" stroke="#00ff88" strokeWidth="1.5" strokeDasharray="3,2" opacity="0.6" filter="url(#mz-glow)"/>
+      </svg>
+    ),
+  },
   { emoji: '🧩', title: 'Riddles', desc: 'Glumbi AI crafts age-perfect riddles and your child types the answer. With hints, celebrations, and 5 new riddles every round — the fun never runs out.', grad: 'linear-gradient(135deg,#f093fb,#f5576c)', tag: 'Brain teasers', highlights: ['Age-adaptive', 'Hints system', 'AI-generated'] },
+  { emoji: '🔦', title: 'Torch Hunt', desc: 'The arena is dark — pick an object and shine your torch to find it! Hold the beam steady on a hidden object for a moment and it\'s yours. Dwell, discover, delight.', grad: 'linear-gradient(135deg,#1a1a3e,#3a1a6e,#6a2090)', tag: 'Exploration', highlights: ['Dwell to discover', 'Age-adaptive', 'Fun facts on find'],
+    illustration: (
+      <svg viewBox="0 0 160 130" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+        <defs>
+          <radialGradient id="th-beam" cx="65%" cy="70%" r="45%">
+            <stop offset="0%" stopColor="#ffe066" stopOpacity="0.95"/>
+            <stop offset="40%" stopColor="#ffaa00" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="#ff6600" stopOpacity="0"/>
+          </radialGradient>
+          <radialGradient id="th-obj1" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(255,220,80,0.3)"/>
+            <stop offset="100%" stopColor="transparent"/>
+          </radialGradient>
+          <filter id="th-glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        {/* Dark arena */}
+        <rect width="160" height="130" fill="#04040e" rx="12"/>
+        {/* Subtle star field */}
+        {[[14,12],[45,8],[90,5],[120,15],[140,9],[30,30],[110,25],[150,40],[8,50],[155,70],[20,90],[140,100],[70,115],[100,108]].map(([x,y],i)=>(
+          <circle key={i} cx={x} cy={y} r={Math.random()<0.5?0.8:1.2} fill="white" opacity={0.2+i%3*0.15}/>
+        ))}
+        {/* Hidden objects in dark (very faint) */}
+        <text x="28" y="45" fontSize="20" opacity="0.08">🌙</text>
+        <text x="125" y="38" fontSize="16" opacity="0.07">🐠</text>
+        <text x="18" y="100" fontSize="18" opacity="0.07">🦋</text>
+        <text x="130" y="105" fontSize="16" opacity="0.08">🌺</text>
+        {/* Torch beam */}
+        <ellipse cx="95" cy="78" rx="52" ry="42" fill="url(#th-beam)" opacity="0.85"/>
+        {/* Revealed object in torch beam */}
+        <text x="88" y="82" fontSize="26" textAnchor="middle" filter="url(#th-glow)">🌙</text>
+        {/* Catch badge */}
+        <rect x="62" y="52" width="52" height="16" rx="8" fill="rgba(255,180,0,0.9)"/>
+        <text x="88" y="63" fontSize="9" fontWeight="bold" fill="#1a0a00" textAnchor="middle" fontFamily="sans-serif">✨ Found it!</text>
+        {/* Torch icon in corner */}
+        <text x="140" y="118" fontSize="18" transform="rotate(135,140,118)" opacity="0.9" filter="url(#th-glow)">🔦</text>
+        {/* Dwell progress ring */}
+        <circle cx="88" cy="72" r="22" fill="none" stroke="rgba(255,220,80,0.3)" strokeWidth="2.5"/>
+        <circle cx="88" cy="72" r="22" fill="none" stroke="rgba(255,220,80,0.8)" strokeWidth="2.5"
+          strokeDasharray="110 138" strokeLinecap="round"
+          transform="rotate(-90,88,72)"/>
+      </svg>
+    ),
+  },
   // ── Platform & trust ──────────────────────────────────────────────────────
   { emoji: '🔐', title: 'Parental Lock', desc: 'Set a PIN and a time limit before handing over the device. Kids can snooze — but parents always stay in control.', grad: 'linear-gradient(135deg,#667eea,#764ba2)', tag: 'Screen time', highlights: ['PIN + timer', 'Snooze control', 'No app needed'] },
   { emoji: '🌍', title: '12 Languages', desc: 'Stories narrated in English, Spanish, French, Hindi, Tamil, and more — in warm, natural WaveNet voices.', grad: 'linear-gradient(135deg,#f7971e,#ffd200)', tag: 'Multilingual', highlights: ['12 languages', '4 English accents', 'Male & female voices'] },
@@ -198,18 +286,29 @@ function FeatureCarousel() {
               borderRight: '1px solid rgba(255,255,255,0.12)',
               gap: 12,
             }}>
-              {/* Big emoji with glow */}
-              <div style={{
-                width: 'clamp(80px,12vw,110px)', height: 'clamp(80px,12vw,110px)',
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(8px)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'clamp(40px,7vw,60px)',
-                boxShadow: '0 0 0 8px rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.2)',
-              }}>
-                {f.emoji}
-              </div>
+              {/* Illustration or emoji */}
+              {f.illustration ? (
+                <div style={{
+                  width: 'clamp(100px,14vw,140px)', height: 'clamp(100px,14vw,140px)',
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  boxShadow: '0 0 0 8px rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.25)',
+                }}>
+                  {f.illustration}
+                </div>
+              ) : (
+                <div style={{
+                  width: 'clamp(80px,12vw,110px)', height: 'clamp(80px,12vw,110px)',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 'clamp(40px,7vw,60px)',
+                  boxShadow: '0 0 0 8px rgba(255,255,255,0.08), 0 12px 40px rgba(0,0,0,0.2)',
+                }}>
+                  {f.emoji}
+                </div>
+              )}
               {/* Tag pill */}
               <div style={{
                 background: 'rgba(255,255,255,0.22)',
@@ -440,7 +539,7 @@ export default function LandingPage() {
         <div style={{ maxWidth: 780, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <div style={{ display: 'inline-block', background: '#fff0f0', color: '#ff6b6b', borderRadius: 50, padding: '4px 16px', fontSize: 11, fontWeight: 800, marginBottom: 14, letterSpacing: 0.5 }}>
-              12 FEATURES
+              17 FEATURES
             </div>
             <h2 style={{ fontFamily: 'Nunito, sans-serif', fontSize: 'clamp(24px,4vw,38px)', color: '#3d3d3d', marginBottom: 10, fontWeight: 900 }}>
               Everything your child needs to thrive 🌱

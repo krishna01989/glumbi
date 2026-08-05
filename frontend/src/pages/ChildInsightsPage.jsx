@@ -8,6 +8,7 @@ const COMPLETION_LABELS = {
   maze:      n => `🏁 ${n} maze${n !== 1 ? 's' : ''} completed`,
   readquiz:  n => `🏁 ${n} quiz${n !== 1 ? 'zes' : ''} completed`,
   riddle:    n => `🏁 ${n} riddle set${n !== 1 ? 's' : ''} completed`,
+  'torch-hunt': n => `🏁 ${n} hunt${n !== 1 ? 's' : ''} completed`,
   stories:   n => `🏁 ${n} stor${n !== 1 ? 'ies' : 'y'} completed`,
   curiosity: n => `🏁 ${n} topic${n !== 1 ? 's' : ''} completed`,
   activities:n => `🏁 ${n} activit${n !== 1 ? 'ies' : 'y'} completed`,
@@ -37,6 +38,7 @@ const ACTIVITY_FEATURES = {
   mywriting:   { label: 'My Writing',     emoji: '✍️' },
   riddle:      { label: 'Riddles',        emoji: '🎯' },
   maze:        { label: 'Maze',           emoji: '🌀' },
+  'torch-hunt':{ label: 'Torch Hunt',    emoji: '🔦' },
   learn:       { label: 'Learn to Write', emoji: '✏️' },
   flashcards:  { label: 'Flashcards',     emoji: '📇' },
   wordofday:   { label: 'Word of Day',    emoji: '🌟' },
@@ -229,6 +231,10 @@ function ActivityTab({ childName, t }) {
                   extraChips.push({ key: 'hints', icon: '💡', text: `Used ${data.riddleHints} hint${data.riddleHints !== 1 ? 's' : ''}`, color: '#f59e0b', bg: '#fffbeb' })
                 if (feature === 'riddle' && data?.riddleGlumbi > 0)
                   extraChips.push({ key: 'g-riddle', icon: '🌟', text: `${data.riddleGlumbi} Glumbi moment${data.riddleGlumbi !== 1 ? 's' : ''}`, color: '#f97316', bg: '#fff7ed' })
+                if (feature === 'torch-hunt' && (data?.torchFoundCount ?? 0) > 0)
+                  extraChips.push({ key: 'torch-found', icon: '🔍', text: `${data.torchFoundCount} object${data.torchFoundCount !== 1 ? 's' : ''} found`, color: '#f59e0b', bg: '#fffbeb' })
+                if (feature === 'torch-hunt' && (data?.torchCompleteCount ?? 0) > 0)
+                  extraChips.push({ key: 'torch-complete', icon: '🎯', text: `${data.torchCompleteCount} hunt${data.torchCompleteCount !== 1 ? 's' : ''} completed`, color: '#10b981', bg: '#f0fdf4' })
                 if (feature === 'mywriting' && data?.mywritingAvgWordCount > 0)
                   extraChips.push({ key: 'words', icon: '✍️', text: `avg ${data.mywritingAvgWordCount} words/submission`, color: '#10b981', bg: '#f0fdf4' })
                 if (feature === 'memorymatch' && data?.topMemoryMatchTheme)

@@ -25,6 +25,7 @@ const UNIVERSE = [
       { id: 'activities', name: 'Activities',  emoji: '🎯', path: 'activities',         featureKey: 'activity',         desc: 'Fun learning activities made just for you!',            hi: '#80ffc0', mid: '#1a9060', lo: '#042818', hasRing: true  },
       { id: 'riddle',     name: 'Riddles',     emoji: '🧩', path: 'riddle',             featureKey: 'riddle',           desc: 'Solve tricky riddles and brain-busting teasers!',       hi: '#60e8a8', mid: '#147050', lo: '#021810', hasRing: false },
       { id: 'maze',       name: 'Maze',        emoji: '🌀', path: 'maze',               featureKey: 'maze',             desc: 'Navigate exciting mazes and challenge your mind!',      hi: '#40d898', mid: '#0e5840', lo: '#010e08', hasRing: false },
+      { id: 'torch-hunt', name: 'Torch Hunt',  emoji: '🔦', path: 'torch-hunt',         featureKey: 'torch-hunt',       desc: 'Find hidden objects in the dark with your torch!',      hi: '#ffd580', mid: '#a06000', lo: '#1a0a00', hasRing: false },
     ],
   },
   {
@@ -1496,7 +1497,7 @@ function GalaxySwiper({ galaxies, onSelect, isMobile, primary, initialPos = 0, w
         <div style={{ fontSize: isMobile ? 11 : 12, color: focused.color, fontWeight: 700,
           marginTop: 4, lineHeight: 1.55, maxWidth: 290, margin: '4px auto 0' }}>{focused.desc}</div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 10 }}>
-          {focused.planets.slice(0, 4).map(p => (
+          {focused.planets.map(p => (
             <span key={p.id} style={{ fontSize: isMobile ? 15 : 17 }}>{p.emoji}</span>
           ))}
         </div>

@@ -24,6 +24,7 @@ const ALL_FEATURES = [
   { key: 'memory',     label: 'Memory Play',     emoji: '🧠', minAge: 2, featureName: 'memory' },
   { key: 'maze',       label: 'Maze',            emoji: '🌀', minAge: 3, featureName: 'maze'   },
   { key: 'riddle',     label: 'Riddle',          emoji: '🧩', minAge: 5, featureName: 'riddle' },
+  { key: 'torch-hunt', label: 'Torch Hunt',      emoji: '🔦', minAge: 3, featureName: 'torch-hunt' },
 ]
 
 function calcAge(birthYear) {

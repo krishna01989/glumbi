@@ -15,6 +15,7 @@ import MyWriting       from '../features/mywriting/MyWriting'
 import MemoryPlay      from '../features/memory/MemoryPlay'
 import Maze            from '../features/trace/Maze'
 import Riddle          from '../features/riddle/Riddle'
+import TorchHunt       from '../features/torchhunt/TorchHunt'
 import LearnPage       from '../features/learn/LearnPage'
 import UniverseHub     from '../pages/UniverseHub'
 import ChildForm       from '../pages/ChildForm'
@@ -93,6 +94,7 @@ export default function ChildRoutes({
           <Route path="/child/:childId/maze"       element={guard('maze',               <Maze       child={child} quota={quota} featureConfig={featureConfig} />)} />
           <Route path="/child/:childId/trace"      element={<Navigate to={`/child/${child?.id}/maze`} replace />} />
           <Route path="/child/:childId/riddle"     element={guard('riddle',             <Riddle     child={child} quota={quota} featureConfig={featureConfig} />)} />
+          <Route path="/child/:childId/torch-hunt" element={guard('torch-hunt',         <TorchHunt  child={child} quota={quota} featureConfig={featureConfig} />)} />
           <Route path="/child/:id/edit"            element={blockedWhenLocked(
             <ChildForm onChildUpdated={onChildUpdated} enabledFeatureConfig={featureConfig} inChildContext />
           )} />

@@ -279,6 +279,12 @@ export const riddleApi = {
     api.post('/riddle/generate', { childId: String(childId), childName, childAge: String(childAge) }).then(r => r.data),
 }
 
+export const torchHuntApi = {
+  getPackReady: (childId, theme) => api.get('/torch-hunt/pack-ready', { params: { childId, theme } }).then(r => r.data),
+  getPack:      (childId, theme) => api.get('/torch-hunt/pack', { params: { childId, theme } }).then(r => r.data),
+  refresh:      (childId, theme) => api.post('/torch-hunt/pack/refresh', { childId: String(childId), theme }).then(r => r.data),
+}
+
 export const timelineApi = {
   getPage: (childId, page, size, from, to, type) =>
     api.get(`/timeline/${childId}`, { params: { page, size, from, to, ...(type && type !== 'all' ? { type } : {}) } }).then(r => r.data),

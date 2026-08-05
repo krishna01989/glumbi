@@ -31,7 +31,8 @@ const FEATURE_META = {
   'word-of-day':         { label: 'Word of Day',      emoji: '💡' },
   'journal-ai':          { label: 'AI Journal',       emoji: '📔' },
   'maze':                { label: 'Maze',             emoji: '🌀' },
-  'riddle':              { label: 'Riddles',          emoji: '❓' }
+  'riddle':              { label: 'Riddles',          emoji: '❓' },
+  'torch-hunt':          { label: 'Torch Hunt',       emoji: '🔦' },
 }
 
 /* ── Credit info modal ── */

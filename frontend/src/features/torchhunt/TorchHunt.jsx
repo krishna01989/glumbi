@@ -359,6 +359,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       setSessionObjects(sessionObjs)   // re-placement effect handles actual positioning
       setFoundCount(0)
       setSelectedTarget(null)
+      setFactCard(null)
       setPhase('playing')
       setSessionStarted(false)
       track('torch-hunt', 'session_start', { metadata: { theme: childTheme } })
@@ -390,6 +391,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       setSessionObjects(sessionObjs)
       setFoundCount(0)
       setSelectedTarget(null)
+      setFactCard(null)
       setPhase('playing')
       setSessionStarted(false)
       markActive()

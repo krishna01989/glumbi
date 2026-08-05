@@ -5689,10 +5689,10 @@ function Scene_football() {
           <g>
             <animateTransform
               attributeName="transform" type="rotate"
-              values="0 0 0; -46 0 0; 90 0 0; 90 0 0; 115 0 0; 115 0 0; 0 0 0"
-              keyTimes="0; 0.08; 0.22; 0.48; 0.64; 0.78; 1"
+              values="0 0 0; -46 0 0; 90 0 0; 115 0 0; 115 0 0; 0 0 0"
+              keyTimes="0; 0.10; 0.28; 0.50; 0.78; 1"
               calcMode="spline"
-              keySplines="0.2 0 0.3 1; 0.4 0 0.6 1; 0 0 1 1; 0.4 0 0.6 1; 0 0 1 1; 0.35 0 0.65 1"
+              keySplines="0.2 0 0.4 1; 0.4 0 0.6 1; 0.5 0 0.7 1; 0 0 1 1; 0.4 0 0.2 1"
               dur="3.5s" repeatCount="indefinite"
             />
             <line x1={0} y1={0} x2={34} y2={6}  stroke="#e65100" strokeWidth={12} strokeLinecap="round"/>

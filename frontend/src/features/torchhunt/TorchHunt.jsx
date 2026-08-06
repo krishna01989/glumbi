@@ -12,12 +12,12 @@ import EmojiImg from '../../components/EmojiImg'
 const DECOY_COUNT = 4
 
 
-// ── Age-adaptive config ───────────────────────────────────────────────────────
+// ── Age-adaptive config (radius is a fraction of the shorter arena dimension) ─
 function gameConfig(age) {
-  if (age <= 4)  return { objectCount: 8,  torchRadius: 120, dwellMs: 1000 }
-  if (age <= 6)  return { objectCount: 12, torchRadius: 100, dwellMs: 800  }
-  if (age <= 8)  return { objectCount: 18, torchRadius: 80,  dwellMs: 650  }
-  return              { objectCount: 25, torchRadius: 65,  dwellMs: 500  }
+  if (age <= 4)  return { objectCount: 4,  radiusFraction: 0.22, dwellMs: 1200, placementZone: 1.0, defaultIntensity: 3 }
+  if (age <= 6)  return { objectCount: 8,  radiusFraction: 0.17, dwellMs: 950,  placementZone: 1.0, defaultIntensity: 2 }
+  if (age <= 8)  return { objectCount: 14, radiusFraction: 0.13, dwellMs: 700,  placementZone: 1.0, defaultIntensity: 2 }
+  return              { objectCount: 20, radiusFraction: 0.10, dwellMs: 500,  placementZone: 1.0, defaultIntensity: 2 }
 }
 
 function calcAge(child) {
@@ -30,17 +30,20 @@ function themeLabel(key) {
   return key.charAt(0).toUpperCase() + key.slice(1).replace(/-/g, ' ')
 }
 
-// ── Object placement — truly random with min-distance guarantee ───────────────
-function placeObjects(objects, containerW, containerH, torchRadius = 80) {
-  const pad = Math.max(60, Math.min(containerW, containerH) * 0.1)
-  // minDist must be at least 2× torchRadius so catch zones (torchRadius×0.45) never overlap
-  const minDist = Math.max(torchRadius * 2, Math.min(containerW, containerH) * 0.28)
+// ── Object placement — constrained to a central zone, min-distance guaranteed ─
+function placeObjects(objects, containerW, containerH, torchRadius = 80, placementZone = 1.0) {
+  const zoneW = containerW * placementZone
+  const zoneH = containerH * placementZone
+  const offsetX = (containerW - zoneW) / 2
+  const offsetY = (containerH - zoneH) / 2
+  const pad = Math.max(40, Math.min(zoneW, zoneH) * 0.08)
+  const minDist = Math.max(torchRadius * 1.8, Math.min(zoneW, zoneH) * 0.22)
   const placed = []
   return objects.map((obj, i) => {
     let x, y, attempts = 0
     do {
-      x = pad + Math.random() * (containerW - pad * 2)
-      y = pad + Math.random() * (containerH - pad * 2)
+      x = offsetX + pad + Math.random() * (zoneW - pad * 2)
+      y = offsetY + pad + Math.random() * (zoneH - pad * 2)
       attempts++
     } while (attempts < 80 && placed.some(p => Math.hypot(p.x - x, p.y - y) < minDist))
     placed.push({ x, y })
@@ -223,7 +226,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   injectStyles()
 
   const age = calcAge(child)
-  const cfg = gameConfig(age)
+  const cfgBase = gameConfig(age)
   const childTheme = child.theme || 'coral'
 
   // ── State ──
@@ -240,7 +243,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   const [decoyObjects, setDecoyObjects] = useState([])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [torchOn, setTorchOn] = useState(true)
-  const [torchIntensity, setTorchIntensity] = useState(2)
+  const [torchIntensity, setTorchIntensity] = useState(cfgBase.defaultIntensity)
   const [dwellProgress, setDwellProgress] = useState(0)
   const [error, setError] = useState(null)
   const [narrativeIdx, setNarrativeIdx] = useState(0)
@@ -254,15 +257,24 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   const selectedTargetRef = useRef(null)
   const placedObjectsRef = useRef([])
   const torchOnRef = useRef(true)
-  const effectiveTorchRadiusRef = useRef(cfg.torchRadius)
-  const dwellMsRef = useRef(cfg.dwellMs)
+  const effectiveTorchRadiusRef = useRef(100)
+  const dwellMsRef = useRef(cfgBase.dwellMs)
   const childThemeRef = useRef(childTheme)
   const trackRef = useRef(track)
   const [arenaSize, setArenaSize] = useState({ w: 700, h: 420 })
 
+  // Compute pixel values now that arenaSize is known — fully device + age adaptive
+  const shortSide = Math.max(200, Math.min(arenaSize.w, arenaSize.h))
+  const cfg = {
+    objectCount:    cfgBase.objectCount,
+    torchRadius:    Math.round(shortSide * cfgBase.radiusFraction),
+    dwellMs:        cfgBase.dwellMs,
+    placementZone:  cfgBase.placementZone,
+  }
+
   const isEnabled = !featureConfig || !!featureConfig.find(f => f.featureName === 'torch-hunt' && f.enabled !== false)
   const blocked = isCreditsBlocked(quota)
-  const effectiveTorchRadius = cfg.torchRadius * [0.55, 0.85, 1.2][torchIntensity - 1]
+  const effectiveTorchRadius = cfg.torchRadius * [0.7, 1.0, 1.55][torchIntensity - 1]
 
   // Keep refs in sync so the stable handlePointerMove can always read fresh values
   selectedTargetRef.current = selectedTarget
@@ -319,7 +331,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         ...sessionObjects,
         ...decoyObjects.map(o => ({ ...o, isDecoy: true })),
       ]
-      return placeObjects(allForPlacement, arenaSize.w, arenaSize.h, cfg.torchRadius).map(o => ({
+      return placeObjects(allForPlacement, arenaSize.w, arenaSize.h, cfg.torchRadius, cfg.placementZone).map(o => ({
         ...o,
         found: !o.isDecoy && foundNames.has(o.name),
       }))
@@ -458,9 +470,11 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       return
     }
 
+    const isTouch = !!e.touches
     const catchZone = effectiveTorchRadiusRef.current * 0.45
-    // cone points upward — check from the lit area center, not the cursor
-    const beamCenterY = y - effectiveTorchRadiusRef.current * 0.8
+    // on mouse, cone points up so shift detection into the lit area above cursor;
+    // on touch the finger is already centered where the user aims — no offset needed
+    const beamCenterY = isTouch ? y : y - effectiveTorchRadiusRef.current * 0.8
     const dist = Math.hypot(x - placedTarget.x, beamCenterY - placedTarget.y)
     if (dist < catchZone) {
       if (!dwellStartRef.current) dwellStartRef.current = Date.now()
@@ -753,28 +767,33 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         </button>
       </div>
 
-      {/* Object strip — pick your target */}
+      {/* Object strip — large icon cards, easy tap targets */}
       <div style={{
         background: '#0a0a18', borderBottom: '1px solid rgba(255,255,255,0.08)',
-        padding: '8px 12px', flexShrink: 0,
+        padding: '10px 12px', flexShrink: 0,
       }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' }}>
-          {selectedTarget ? '🎯 Now find this →' : notFoundObjects.length > 0 ? '👇 Tap an object to hunt for it' : '🎉 All found!'}
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: 1, marginBottom: 8, textTransform: 'uppercase' }}>
+          {selectedTarget ? '🎯 Now find this →' : notFoundObjects.length > 0 ? '👇 Pick one to hunt' : '🎉 All found!'}
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
           {placedObjects.filter(o => !o.isDecoy).map((obj, i) => {
             const isActive = selectedTarget?.name === obj.name
             const isFound = obj.found
             const Tag = isFound ? 'div' : 'button'
+            const cardSize = age <= 4 ? 72 : age <= 6 ? 62 : 52
+            const emojiSize = age <= 4 ? 36 : age <= 6 ? 30 : 24
+            const labelSize = age <= 4 ? 12 : age <= 6 ? 11 : 10
             return (
               <Tag
                 key={obj.name + i}
                 onClick={isFound ? undefined : () => { setSelectedTarget(obj); setTorchPos({ x: -999, y: -999 }) }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '6px 12px', borderRadius: 50, border: 'none',
+                  flexShrink: 0,
+                  width: cardSize, minWidth: cardSize,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 4, padding: '8px 4px', borderRadius: 14, border: 'none',
                   cursor: isFound ? 'default' : 'pointer',
-                  fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: 13,
+                  fontFamily: 'Nunito, sans-serif', fontWeight: 800,
                   userSelect: 'none',
                   transition: 'transform 0.15s, box-shadow 0.15s',
                   background: isFound
@@ -782,15 +801,21 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                     : isActive
                       ? 'linear-gradient(135deg, var(--primary), var(--accent))'
                       : 'rgba(255,255,255,0.1)',
-                  color: isFound ? 'rgba(255,255,255,0.25)' : isActive ? 'white' : 'rgba(255,255,255,0.85)',
-                  boxShadow: isActive ? '0 0 16px color-mix(in srgb, var(--primary) 60%, transparent)' : 'none',
-                  transform: isActive ? 'scale(1.05)' : 'scale(1)',
-                  textDecoration: isFound ? 'line-through' : 'none',
-                  opacity: isFound ? 0.5 : 1,
+                  boxShadow: isActive ? '0 0 18px color-mix(in srgb, var(--primary) 60%, transparent)' : 'none',
+                  transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                  opacity: isFound ? 0.4 : 1,
                 }}
               >
-                <EmojiImg emoji={obj.emoji} size={18} />
-                <span>{isFound ? '✓' : obj.name}</span>
+                <div style={{ fontSize: emojiSize, lineHeight: 1, filter: isFound ? 'grayscale(1)' : 'none' }}>
+                  {isFound ? '✓' : <EmojiImg emoji={obj.emoji} size={emojiSize} />}
+                </div>
+                <span style={{
+                  fontSize: labelSize, color: isFound ? 'rgba(255,255,255,0.3)' : isActive ? 'white' : 'rgba(255,255,255,0.8)',
+                  textAlign: 'center', lineHeight: 1.2,
+                  maxWidth: cardSize - 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {obj.name}
+                </span>
               </Tag>
             )
           })}
@@ -845,7 +870,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                 const revealedAsTarget = isTarget && torchOn && distToTorch < effectiveTorchRadius
                 const revealedAsDecoy = !!obj.isDecoy && torchOn && distToTorch < effectiveTorchRadius
                 const revealed = revealedAsTarget || revealedAsDecoy
-                const imgSize = age <= 5 ? 42 : age <= 8 ? 34 : 28
+                const imgSize = age <= 4 ? 56 : age <= 6 ? 46 : age <= 8 ? 34 : 28
                 return (
                   <div
                     key={obj.name + i}
@@ -941,7 +966,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
             position: 'absolute',
             left: torchPos.x, top: torchPos.y,
             transform: 'translate(-50%, -50%) rotate(135deg)',
-            fontSize: age <= 5 ? 36 : 28,
+            fontSize: age <= 4 ? 48 : age <= 6 ? 38 : 28,
             zIndex: 30, pointerEvents: 'none',
             filter: torchOn
               ? `drop-shadow(0 0 ${6 + torchIntensity * 4}px rgba(255,220,80,${0.5 + torchIntensity * 0.15}))`

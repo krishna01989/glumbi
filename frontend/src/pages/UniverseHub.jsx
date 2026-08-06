@@ -11,45 +11,61 @@ const UNIVERSE = [
     id: 'stories', name: 'Story World', emoji: '🌌', color: '#9d8fff', coreColor: '#c8b8ff',
     desc: 'Create stories, read books and grow as a writer!',
     planets: [
-      { id: 'stories',   name: 'Stories',       emoji: '📖', path: 'stories',           featureKey: 'story',            desc: 'Create AI stories and listen to them come alive!',      hi: '#e8deff', mid: '#7c6fcd', lo: '#120a40', hasRing: false },
-      { id: 'readquiz',  name: 'Read & Quiz',   emoji: '📚', path: 'readquiz',          featureKey: 'read-quiz',        desc: 'Read books and test your knowledge with quizzes!',      hi: '#d0c0ff', mid: '#5a4aad', lo: '#0e0838', hasRing: true  },
-      { id: 'mywriting', name: 'My Writing',    emoji: '✍️', path: 'mywriting',         featureKey: 'writing-coach',    desc: 'Write stories with AI coaching and feedback!',          hi: '#b8a8f5', mid: '#4830b8', lo: '#09062e', hasRing: false },
-      { id: 'journal',   name: 'Journal',       emoji: '📝', path: 'journal',           featureKey: null,               desc: 'Keep a diary of your thoughts every single day!',       hi: '#a090e8', mid: '#3820a8', lo: '#060420', hasRing: false },
+      { id: 'stories',   name: 'Stories',       emoji: '📖', path: 'stories',           featureKey: 'story',            desc: 'Create AI stories and listen to them come alive!',      hi: '#e8deff', mid: '#7c6fcd', lo: '#120a40', hasRing: false,
+        tips: ['Pick any theme — space, animals, fantasy and more', 'AI builds the story and narrates it aloud', 'Choose a branch halfway through the story', 'Jump into a Read & Quiz from the same story'] },
+      { id: 'readquiz',  name: 'Read & Quiz',   emoji: '📚', path: 'readquiz',          featureKey: 'read-quiz',        desc: 'Read books and test your knowledge with quizzes!',      hi: '#d0c0ff', mid: '#5a4aad', lo: '#0e0838', hasRing: true,
+        tips: ['Read an AI-generated book on any topic', 'Answer a quiz at the end to test what you remembered', 'Get instant feedback on each answer', 'Glumbi reacts to your score!'] },
+      { id: 'mywriting', name: 'My Writing',    emoji: '✍️', path: 'mywriting',         featureKey: 'writing-coach',    desc: 'Write stories with AI coaching and feedback!',          hi: '#b8a8f5', mid: '#4830b8', lo: '#09062e', hasRing: false,
+        tips: ['Write your own stories and poems', 'Get AI coaching on how to improve', 'Track your word count over time', 'Build a personal writing portfolio'] },
+      { id: 'journal',   name: 'Journal',       emoji: '📝', path: 'journal',           featureKey: null,               desc: 'Keep a diary of your thoughts every single day!',       hi: '#a090e8', mid: '#3820a8', lo: '#060420', hasRing: false,
+        tips: ['Write diary entries any time you like', 'Pick a mood — happy, silly, nervous and more', 'Add a milestone tag for special moments', 'AI helps when you need a writing spark'] },
     ],
   },
   {
     id: 'curiosity', name: 'Curiosity Corner', emoji: '🔭', color: '#2dd4a0', coreColor: '#80ffcc',
     desc: 'Ask questions, solve riddles and explore adventures!',
     planets: [
-      { id: 'curiosity',  name: 'Curiosity',   emoji: '🔍', path: 'curiosity',          featureKey: 'curiosity',        desc: 'Ask anything and get a smart fun answer instantly!',    hi: '#aeffdd', mid: '#2cb67d', lo: '#083828', hasRing: false },
-      { id: 'activities', name: 'Activities',  emoji: '🎯', path: 'activities',         featureKey: 'activity',         desc: 'Fun learning activities made just for you!',            hi: '#80ffc0', mid: '#1a9060', lo: '#042818', hasRing: true  },
-      { id: 'riddle',     name: 'Riddles',     emoji: '🧩', path: 'riddle',             featureKey: 'riddle',           desc: 'Solve tricky riddles and brain-busting teasers!',       hi: '#60e8a8', mid: '#147050', lo: '#021810', hasRing: false },
-      { id: 'maze',       name: 'Maze',        emoji: '🌀', path: 'maze',               featureKey: 'maze',             desc: 'Navigate exciting mazes and challenge your mind!',      hi: '#40d898', mid: '#0e5840', lo: '#010e08', hasRing: false },
-      { id: 'torch-hunt', name: 'Torch Hunt',  emoji: '🔦', path: 'torch-hunt',         featureKey: 'torch-hunt',       desc: 'Find hidden objects in the dark with your torch!',      hi: '#ffd580', mid: '#a06000', lo: '#1a0a00', hasRing: false },
+      { id: 'curiosity',  name: 'Curiosity',   emoji: '🔍', path: 'curiosity',          featureKey: 'curiosity',        desc: 'Ask anything and get a smart fun answer instantly!',    hi: '#aeffdd', mid: '#2cb67d', lo: '#083828', hasRing: false,
+        tips: ['Ask any question — science, animals, history, anything!', 'Get a kid-friendly answer with fun facts', 'Pick a follow-up question to go deeper', 'Turn your question into a story with one tap'] },
+      { id: 'activities', name: 'Activities',  emoji: '🎯', path: 'activities',         featureKey: 'activity',         desc: 'Fun learning activities made just for you!',            hi: '#80ffc0', mid: '#1a9060', lo: '#042818', hasRing: true,
+        tips: ['Get AI activity suggestions based on your interests', 'Each activity comes with step-by-step instructions', 'Mark activities complete to track what you\'ve done', 'Discover similar activities you might enjoy'] },
+      { id: 'riddle',     name: 'Riddles',     emoji: '🧩', path: 'riddle',             featureKey: 'riddle',           desc: 'Solve tricky riddles and brain-busting teasers!',       hi: '#60e8a8', mid: '#147050', lo: '#021810', hasRing: false,
+        tips: ['Fresh AI-generated riddles every time', 'Riddles are matched to your age level', 'Use a hint if you\'re really stuck', 'Try to solve it before Glumbi reveals the answer'] },
+      { id: 'maze',       name: 'Maze',        emoji: '🌀', path: 'maze',               featureKey: 'maze',             desc: 'Navigate exciting mazes and challenge your mind!',      hi: '#40d898', mid: '#0e5840', lo: '#010e08', hasRing: false,
+        tips: ['Pick a fun theme for your maze — jungle, space, city', 'Trace the path with your finger or mouse', 'Mazes get trickier as you pick harder levels', 'Race against yourself to beat your best time'] },
+      { id: 'torch-hunt', name: 'Torch Hunt',  emoji: '🔦', path: 'torch-hunt',         featureKey: 'torch-hunt',       desc: 'Find hidden objects in the dark with your torch!',      hi: '#ffd580', mid: '#a06000', lo: '#1a0a00', hasRing: false,
+        tips: ['The arena is pitch-black — only your torch reveals objects', 'Hold the torch steady over an object to catch it', 'Watch out for decoy objects that look similar!', 'Find all objects to win — learn a fun fact for each'] },
     ],
   },
   {
     id: 'play', name: 'Play Zone', emoji: '🎮', color: '#f06aab', coreColor: '#ffb0d8',
     desc: 'Memory games, flashcards and words of the day!',
     planets: [
-      { id: 'match',      name: 'Memory Match', emoji: '🎴', path: 'memory/match',      featureKey: 'memory-flashcards', desc: 'Flip cards and match pairs to train your memory!',      hi: '#ffddf0', mid: '#e05d9a', lo: '#580830', hasRing: true  },
-      { id: 'flashcards', name: 'Flashcards',   emoji: '📇', path: 'memory/flashcards', featureKey: 'memory-flashcards', desc: 'Study words and facts with interactive flashcards!',    hi: '#ffaacc', mid: '#c03878', lo: '#400620', hasRing: false },
-      { id: 'wordofday',  name: 'Word of Day',  emoji: '🧠', path: 'memory/wordofday',  featureKey: 'memory-flashcards', desc: 'Discover a brand new exciting word every day!',         hi: '#ff88bb', mid: '#a02060', lo: '#280412', hasRing: false },
+      { id: 'match',      name: 'Memory Match', emoji: '🎴', path: 'memory/match',      featureKey: 'memory-flashcards', desc: 'Flip cards and match pairs to train your memory!',      hi: '#ffddf0', mid: '#e05d9a', lo: '#580830', hasRing: true,
+        tips: ['Flip cards and find matching pairs', 'Different themes — animals, space, food and more', 'Try to match in as few flips as possible', 'Great for training memory and focus'] },
+      { id: 'flashcards', name: 'Flashcards',   emoji: '📇', path: 'memory/flashcards', featureKey: 'memory-flashcards', desc: 'Study words and facts with interactive flashcards!',    hi: '#ffaacc', mid: '#c03878', lo: '#400620', hasRing: false,
+        tips: ['Study any topic with AI-generated flashcards', 'Flip each card to reveal the answer', 'Create your own custom card sets', 'Perfect for school prep or just learning something new'] },
+      { id: 'wordofday',  name: 'Word of Day',  emoji: '🧠', path: 'memory/wordofday',  featureKey: 'memory-flashcards', desc: 'Discover a brand new exciting word every day!',         hi: '#ff88bb', mid: '#a02060', lo: '#280412', hasRing: false,
+        tips: ['A brand new word appears every single day', 'See the meaning, how to use it, and an example', 'Words are chosen to match your age level', 'Tap through to flashcards to practise it further'] },
     ],
   },
   {
     id: 'studio', name: 'Art Studio', emoji: '🎨', color: '#f4a261', coreColor: '#ffd08a',
     desc: 'Draw, animate and create anything you imagine!',
     planets: [
-      { id: 'draw',     name: 'Draw',           emoji: '🎨', path: 'draw',              featureKey: 'draw',              desc: 'Create amazing digital artwork with every colour!',      hi: '#ffecc0', mid: '#f4a261', lo: '#6a2c00', hasRing: false },
-      { id: 'flipbook', name: 'Flipbook',        emoji: '🖼️', path: 'flipbook',          featureKey: 'flipbook',          desc: 'Bring drawings to life with frame-by-frame animation!', hi: '#ffe090', mid: '#d4820a', lo: '#4a2000', hasRing: true  },
-      { id: 'learn',    name: 'Learn to Write',  emoji: '✏️', path: 'learn',             featureKey: 'learn-validate',    desc: 'Practice writing letters and words perfectly!',         hi: '#ffc860', mid: '#b46000', lo: '#301000', hasRing: false },
+      { id: 'draw',     name: 'Draw',           emoji: '🎨', path: 'draw',              featureKey: 'draw',              desc: 'Create amazing digital artwork with every colour!',      hi: '#ffecc0', mid: '#f4a261', lo: '#6a2c00', hasRing: false,
+        tips: ['Draw anything with brushes, shapes and every colour', 'Tap "Bring to Life" and AI animates your drawing', 'Save your artwork to a personal gallery', 'Use the eraser, undo and fill tools to perfect it'] },
+      { id: 'flipbook', name: 'Flipbook',        emoji: '🖼️', path: 'flipbook',          featureKey: 'flipbook',          desc: 'Bring drawings to life with frame-by-frame animation!', hi: '#ffe090', mid: '#d4820a', lo: '#4a2000', hasRing: true,
+        tips: ['Draw frame by frame to make your own animation', 'Onion-skin mode shows the previous frame as a guide', 'Hit Play to watch your flipbook come alive', 'Export and save your finished animation'] },
+      { id: 'learn',    name: 'Learn to Write',  emoji: '✏️', path: 'learn',             featureKey: 'learn-validate',    desc: 'Practice writing letters and words perfectly!',         hi: '#ffc860', mid: '#b46000', lo: '#301000', hasRing: false,
+        tips: ['Trace letters and words on the canvas with your finger', 'AI checks your handwriting and gives a score', 'Practice individual letters or full words', 'See which letters need more practice over time'] },
     ],
   },
 ]
 
-const RECENT_KEY = 'glm_recent_hub_'
-const RECENT_LIMIT = 5
+const RECENT_KEY    = 'glm_recent_hub_'
+const RECENT_LIMIT  = 5
+const INTRO_SKIP_KEY = 'glm_hub_intro_skip_'
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 let stylesInjected = false
@@ -72,6 +88,10 @@ function injectStyles() {
     @keyframes hub-fall-straight{ 0%{transform:translateY(-4vh);opacity:0} 8%{opacity:.7} 88%{opacity:.45} 100%{transform:translateY(110vh);opacity:0} }
     @keyframes hub-drift        { 0%{transform:translateX(-15%);opacity:0} 8%{opacity:.6} 88%{opacity:.4} 100%{transform:translateX(115%);opacity:0} }
     @keyframes hub-firefly      { 0%,100%{transform:translate(0,0)} 25%{transform:translate(10px,-14px)} 50%{transform:translate(-8px,10px)} 75%{transform:translate(12px,6px)} }
+    .hub-row-scroll { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; -ms-overflow-style:none; }
+    .hub-row-scroll::-webkit-scrollbar { display:none; }
+    .hub-card { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-start; gap:3px; border-radius:14px; cursor:pointer; text-align:left; transition:background .15s, border-color .15s; }
+    .hub-card:hover { background:rgba(0,0,0,0.58) !important; }
   `
   document.head.appendChild(s)
 }
@@ -1736,23 +1756,127 @@ function WotdBar({ wotd, goTo, isMobile }) {
   )
 }
 
+// ── Feature intro modal ───────────────────────────────────────────────────────
+function FeatureDetailModal({ planet, zoneColor, onGo, onSkipAndGo, onClose }) {
+  const [skip, setSkip] = useState(false)
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 16px', animation: 'hub-view-in .22s ease both',
+      }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: 'linear-gradient(160deg, rgba(30,30,48,0.98) 0%, rgba(14,14,26,0.99) 100%)',
+          border: `1.5px solid ${zoneColor}44`,
+          boxShadow: `0 0 60px ${zoneColor}22, 0 24px 80px rgba(0,0,0,0.6)`,
+          borderRadius: 24, padding: '32px 28px 24px',
+          maxWidth: 400, width: '100%', position: 'relative',
+          fontFamily: 'Nunito, sans-serif',
+        }}>
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute', top: 14, right: 14,
+            width: 30, height: 30, minWidth: 30, minHeight: 30,
+            borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.15)',
+            background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)',
+            cursor: 'pointer', fontSize: 14, display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0,
+          }}>✕</button>
+
+        {/* Emoji + title */}
+        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 52, lineHeight: 1, marginBottom: 10 }}>{planet.emoji}</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: 'white', marginBottom: 6 }}>{planet.name}</div>
+          <div style={{ fontSize: 13, color: zoneColor, fontWeight: 700, lineHeight: 1.5 }}>{planet.desc}</div>
+        </div>
+
+        {/* Tips */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+          {planet.tips.map((tip, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{
+                width: 22, height: 22, minWidth: 22, borderRadius: '50%',
+                background: `${zoneColor}22`, border: `1px solid ${zoneColor}44`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 900, color: zoneColor, marginTop: 1,
+              }}>{i + 1}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.82)', lineHeight: 1.5 }}>{tip}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={() => skip ? onSkipAndGo() : onGo()}
+          style={{
+            width: '100%', padding: '14px', borderRadius: 14,
+            background: `linear-gradient(135deg, ${zoneColor} 0%, ${zoneColor}bb 100%)`,
+            border: 'none', color: 'white', fontSize: 15, fontWeight: 900,
+            cursor: 'pointer', letterSpacing: 0.3,
+            boxShadow: `0 4px 20px ${zoneColor}44`,
+          }}>
+          Let's Go! →
+        </button>
+
+        {/* Don't show again — checkbox below CTA */}
+        <label style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 8, marginTop: 14, cursor: 'pointer',
+        }}>
+          <input
+            type="checkbox"
+            checked={skip}
+            onChange={e => setSkip(e.target.checked)}
+            style={{ width: 15, height: 15, accentColor: zoneColor, cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', userSelect: 'none' }}>
+            Don't show this again
+          </span>
+        </label>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function UniverseHub({ child, featureConfig, wotd }) {
   const theme    = useTheme()
   const navigate = useNavigate()
   const cid      = child?.id || 'anon'
 
-  const [recentPaths, setRecentPaths] = useState([])
-  const [isMobile, setIsMobile]       = useState(() => window.innerWidth < 640)
+  const [recentPaths, setRecentPaths]     = useState([])
+  const [detailPlanet, setDetailPlanet]   = useState(null)   // { planet, zoneColor }
+  const [introSkips, setIntroSkips]       = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(INTRO_SKIP_KEY + (child?.id || 'anon')) || '[]')) } catch { return new Set() }
+  })
 
   const primary    = theme?.primary || '#9d8fff'
   const storageKey = RECENT_KEY + cid
   const themeKey   = child?.theme || 'coral'
   const world      = getWorld(themeKey)
 
+  // Responsive breakpoint: xs <480, sm 480-768, md 768-1024, lg 1024-1280, xl >1280
+  const getBreakpoint = () => {
+    const w = window.innerWidth
+    if (w < 480)  return 'xs'
+    if (w < 768)  return 'sm'
+    if (w < 1024) return 'md'
+    if (w < 1280) return 'lg'
+    return 'xl'
+  }
+  const [bp, setBp] = useState(getBreakpoint)
+  const isMobile = bp === 'xs' || bp === 'sm'
+
   useEffect(() => { injectStyles() }, [])
   useEffect(() => {
-    const fn = () => setIsMobile(window.innerWidth < 640)
+    const fn = () => setBp(getBreakpoint())
     window.addEventListener('resize', fn)
     return () => window.removeEventListener('resize', fn)
   }, [])
@@ -1777,7 +1901,19 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
       const cur = JSON.parse(localStorage.getItem(storageKey) || '[]')
       localStorage.setItem(storageKey, JSON.stringify([path, ...cur.filter(x => x !== path)].slice(0, RECENT_LIMIT)))
     } catch {}
+    setDetailPlanet(null)
     navigate(`/child/${child?.id}/${path}`)
+  }
+
+  function saveSkip(planetId) {
+    const next = new Set([...introSkips, planetId])
+    setIntroSkips(next)
+    try { localStorage.setItem(INTRO_SKIP_KEY + cid, JSON.stringify([...next])) } catch {}
+  }
+
+  function handleCardClick(planet, zoneColor) {
+    if (introSkips.has(planet.id)) { goTo(planet.path); return }
+    setDetailPlanet({ planet, zoneColor })
   }
 
   const recentPlanets = recentPaths.map(path => {
@@ -1843,62 +1979,118 @@ export default function UniverseHub({ child, featureConfig, wotd }) {
         </div>
       )}
 
-      {/* Feature grid */}
+      {/* Feature rows — Netflix-style horizontal scroll per category */}
       <div style={{
         flex: 1, overflowY: 'auto', position: 'relative', zIndex: 5,
-        padding: isMobile ? '12px 14px 28px' : '14px 44px 36px',
+        padding: isMobile ? '12px 0 28px' : '14px 0 36px',
       }}>
         {UNIVERSE.map(zone => {
           const enabled = zone.planets.filter(planetEnabled)
           if (!enabled.length) return null
+
+          // Card dimensions scale with breakpoint
+          const cardW  = { xs: 130, sm: 148, md: 190, lg: 220, xl: 250 }[bp]
+          const cardH  = { xs: 118, sm: 132, md: 160, lg: 180, xl: 200 }[bp]
+          const padX   = { xs: 14,  sm: 20,  md: 32,  lg: 52,  xl: 72  }[bp]
+          const emojiSz= { xs: 28,  sm: 30,  md: 36,  lg: 42,  xl: 48  }[bp]
+          const nameSz = { xs: 12,  sm: 13,  md: 14,  lg: 15,  xl: 16  }[bp]
+          const gap    = { xs: 10,  sm: 10,  md: 14,  lg: 16,  xl: 18  }[bp]
+          // How many cards fit without scrolling (for swipe hint)
+          const fitsW  = { xs: 2, sm: 3, md: 3, lg: 4, xl: 5 }[bp]
+
           return (
-            <div key={zone.id} style={{ marginBottom: isMobile ? 18 : 22 }}>
+            <div key={zone.id} style={{ marginBottom: isMobile ? 20 : 30 }}>
+              {/* Row label */}
               <div style={{
-                display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8,
-                fontSize: 10, fontWeight: 800, letterSpacing: 1.4,
+                display: 'flex', alignItems: 'center', gap: 7,
+                marginBottom: 10, paddingLeft: padX,
+                fontSize: 11, fontWeight: 800, letterSpacing: 1.4,
                 textTransform: 'uppercase', color: zone.color,
                 textShadow: `0 0 10px ${zone.color}66`,
               }}>
-                <span style={{ fontSize: 13 }}>{zone.emoji}</span>
+                <span style={{ fontSize: 14 }}>{zone.emoji}</span>
                 {zone.name}
+                {enabled.length > fitsW && (
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', fontWeight: 600, letterSpacing: .5, textTransform: 'none' }}>
+                    swipe →
+                  </span>
+                )}
               </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-                gap: isMobile ? 8 : 10,
-              }}>
-                {enabled.map(p => (
-                  <button key={p.id} onClick={() => goTo(p.path)} style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                    gap: 3, padding: isMobile ? '12px' : '14px 16px',
-                    borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-                    background: 'rgba(0,0,0,0.42)',
-                    border: `1px solid ${zone.color}28`,
-                    boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
-                    transition: 'background .15s, border-color .15s',
-                  }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(0,0,0,0.58)'
-                      e.currentTarget.style.borderColor = `${zone.color}55`
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(0,0,0,0.42)'
-                      e.currentTarget.style.borderColor = `${zone.color}28`
-                    }}>
-                    <span style={{ fontSize: isMobile ? 24 : 28, lineHeight: 1 }}>{p.emoji}</span>
-                    <div style={{ fontSize: isMobile ? 12 : 13, fontWeight: 900,
-                      color: 'white', lineHeight: 1.2, marginTop: 4 }}>{p.name}</div>
-                    {!isMobile && (
-                      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)',
-                        lineHeight: 1.4, marginTop: 2 }}>{p.desc}</div>
-                    )}
-                  </button>
-                ))}
+
+              {/* Horizontal scroll strip */}
+              <div style={{ position: 'relative' }}>
+                <div className="hub-row-scroll" style={{ paddingLeft: padX, paddingRight: padX, gap }}>
+                  {enabled.map(p => (
+                    <button
+                      key={p.id}
+                      className="hub-card"
+                      onClick={() => handleCardClick(p, zone.color)}
+                      style={{
+                        width: cardW, minHeight: cardH,
+                        padding: isMobile ? '14px 12px 16px' : '18px 16px 20px',
+                        background: 'rgba(0,0,0,0.42)',
+                        border: `1px solid ${zone.color}28`,
+                        boxShadow: '0 2px 16px rgba(0,0,0,0.28)',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(0,0,0,0.62)'
+                        e.currentTarget.style.borderColor = `${zone.color}66`
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = `0 8px 28px rgba(0,0,0,0.38), 0 0 0 1px ${zone.color}44`
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'rgba(0,0,0,0.42)'
+                        e.currentTarget.style.borderColor = `${zone.color}28`
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 2px 16px rgba(0,0,0,0.28)'
+                      }}>
+                      <span style={{ fontSize: emojiSz, lineHeight: 1 }}>{p.emoji}</span>
+                      <div style={{
+                        fontSize: nameSz, fontWeight: 900,
+                        color: 'white', lineHeight: 1.2, marginTop: 8,
+                      }}>{p.name}</div>
+                      <div style={{
+                        fontSize: isMobile ? 10 : 11, color: 'rgba(255,255,255,0.42)',
+                        lineHeight: 1.4, marginTop: 5,
+                        display: '-webkit-box', WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                      }}>{p.desc}</div>
+                      {/* Tap-for-details hint */}
+                      {!introSkips.has(p.id) && (
+                        <div style={{
+                          marginTop: 'auto', paddingTop: 10,
+                          fontSize: 9, color: zone.color, fontWeight: 700, letterSpacing: .4,
+                          opacity: 0.6,
+                        }}>tap for details ›</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Right fade edge */}
+                {enabled.length > fitsW && (
+                  <div style={{
+                    position: 'absolute', right: 0, top: 0, bottom: 4,
+                    width: 60, pointerEvents: 'none',
+                    background: 'linear-gradient(to right, transparent, rgba(0,0,0,0.6))',
+                  }} />
+                )}
               </div>
             </div>
           )
         })}
       </div>
+
+      {/* Feature detail modal */}
+      {detailPlanet && (
+        <FeatureDetailModal
+          planet={detailPlanet.planet}
+          zoneColor={detailPlanet.zoneColor}
+          onGo={() => goTo(detailPlanet.planet.path)}
+          onSkipAndGo={() => { saveSkip(detailPlanet.planet.id); goTo(detailPlanet.planet.path) }}
+          onClose={() => setDetailPlanet(null)}
+        />
+      )}
     </div>
   )
 }

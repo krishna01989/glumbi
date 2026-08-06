@@ -382,6 +382,21 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     loadPack()
   }, [loadPack, markActive])
 
+  const handleReplay = useCallback(() => {
+    dwellStartRef.current = null
+    dwellFiredRef.current = false
+    setFoundCount(0)
+    setSelectedTarget(null)
+    selectedTargetRef.current = null
+    setFactCard(null)
+    setDwellProgress(0)
+    setTorchPos({ x: 200, y: 200 })
+    setPlacedObjects(prev => prev.map(o => ({ ...o, found: false })))
+    setPhase('playing')
+    setSessionStarted(false)
+    markActive()
+  }, [markActive])
+
   const handleRefresh = useCallback(async () => {
     setError(null)
     setPhase('loading')
@@ -615,7 +630,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         </div>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={handlePlay} style={{
+<button onClick={handlePlay} style={{
             background: 'linear-gradient(135deg, var(--primary), var(--accent))',
             border: 'none', borderRadius: 50, padding: '12px 28px',
             color: 'white', fontWeight: 800, fontSize: 16, cursor: 'pointer',
@@ -636,7 +651,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   }
 
   // ── Playing ──
-  const totalObjects = placedObjects.length
+  const totalObjects = placedObjects.filter(o => !o.isDecoy).length
   const progressPct = totalObjects > 0 ? (foundCount / totalObjects) * 100 : 0
   const notFoundObjects = placedObjects.filter(o => !o.found && !o.isDecoy)
 
@@ -690,6 +705,21 @@ export default function TorchHunt({ child, quota, featureConfig }) {
               }} />
             ))}
           </div>
+        </button>
+
+        {/* Replay — same objects, reset found state */}
+        <button
+          onClick={handleReplay}
+          title="Replay"
+          style={{
+            background: 'rgba(255,255,255,0.08)', border: '1.5px solid rgba(255,255,255,0.15)',
+            borderRadius: 12, cursor: 'pointer', flexShrink: 0,
+            width: 44, height: 44, minWidth: 44, minHeight: 44,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'rgba(255,255,255,0.7)', fontSize: 18,
+          }}
+        >
+          🔄
         </button>
 
         {/* Fullscreen — large tap target */}

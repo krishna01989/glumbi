@@ -470,11 +470,9 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       return
     }
 
-    const isTouch = !!e.touches
-    const catchZone = effectiveTorchRadiusRef.current * 0.45
-    // on mouse, cone points up so shift detection into the lit area above cursor;
-    // on touch the finger is already centered where the user aims — no offset needed
-    const beamCenterY = isTouch ? y : y - effectiveTorchRadiusRef.current * 0.8
+    const catchZone = effectiveTorchRadiusRef.current * 0.28
+    // cone points upward — check from the lit area center, not the cursor
+    const beamCenterY = y - effectiveTorchRadiusRef.current * 0.8
     const dist = Math.hypot(x - placedTarget.x, beamCenterY - placedTarget.y)
     if (dist < catchZone) {
       if (!dwellStartRef.current) dwellStartRef.current = Date.now()

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import EmojiImg from '../../components/EmojiImg'
 import { journalApi } from '../../api/client'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
@@ -139,7 +140,7 @@ export default function Journal({ child, featureConfig, quota }) {
                       background: selected ? m.bg : 'white',
                       cursor: 'pointer', fontSize: selected ? 13 : 18, fontWeight: 700,
                       color: selected ? m.color : '#888', transition: 'all 0.15s' }}>
-                    {m.emoji}{selected && <span style={{ fontSize: 13 }}>{m.label}</span>}
+                    <EmojiImg emoji={m.emoji} size={18} />{selected && <span style={{ fontSize: 13 }}>{m.label}</span>}
                   </button>
                 )
               })}
@@ -177,7 +178,7 @@ export default function Journal({ child, featureConfig, quota }) {
                       style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
                         borderRadius: 50, border: `2px solid ${m.color}`, background: m.bg,
                         cursor: 'pointer', fontSize: 13, fontWeight: 700, color: m.color }}>
-                      {m.emoji} {m.label}
+                      <EmojiImg emoji={m.emoji} size={13} style={{ display: 'inline-block' }} /> {m.label}
                     </button>
                   ))}
                   <button type="button"
@@ -228,8 +229,8 @@ export default function Journal({ child, featureConfig, quota }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     {entry.mood && (
-                      <span style={{ fontSize: 13, fontWeight: 700, color: m.color, background: m.bg, padding: '2px 10px', borderRadius: 50 }}>
-                        {m.emoji} {m.label}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: 700, color: m.color, background: m.bg, padding: '2px 10px', borderRadius: 50 }}>
+                        <EmojiImg emoji={m.emoji} size={13} /> {m.label}
                       </span>
                     )}
                     {entry.milestone && (

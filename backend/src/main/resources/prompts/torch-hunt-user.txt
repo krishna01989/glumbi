@@ -23,6 +23,15 @@ Return ONLY a valid JSON object (no markdown, no code block) with this exact str
   ]
 }
 
+CRITICAL — emoji accuracy rules (follow strictly):
+- Every object must be a single, concrete, real-world thing that a child can instantly recognise.
+- The emoji must be the universally-known, standard icon for that exact object — if you imagine a child pointing at the emoji, they should name the object immediately without hesitation.
+- NEVER invent compound or abstract objects (no "football box", "space dust", "ocean mist", "victory flame"). Stick to tangible, everyday things.
+- If a perfect, instantly-recognisable emoji does not exist for an object, choose a different object that does have one. Never force an approximate emoji.
+- Test yourself: does the emoji look exactly like the named object in real life? If not, pick something else.
+- Good examples: football ⚽, helmet 🪖, whistle 📣, trophy 🏆, boot 👢, mushroom 🍄, compass 🧭, telescope 🔭, crab 🦀, shell 🐚, rocket 🚀, crown 👑, sword ⚔️, acorn (describe as "nut" and use 🌰)
+- Bad examples (avoid): "football box" 🎁, "ocean shimmer" ✨, "star dust" 💫, "forest breath" 🌬️
+
 Age guide:
 - Ages 3-4: very simple, common, friendly objects (toy, apple, cat, ball, cup)
 - Ages 5-6: everyday items plus theme-specific objects (butterfly, acorn, lantern, boot)
@@ -35,14 +44,13 @@ Theme guide — pick objects that truly belong in this specific world:
 - space/stars/galaxy: planets, rockets, astronaut gear, satellites, moon rocks
 - castle/medieval/kingdom: armour, swords, crowns, scrolls, torches
 - dinosaur/prehistoric: dinosaur types, fossils, prehistoric plants, eggs
-- cricket/sports: cricket gear, trophies, scoreboards, stadium items
-- football/soccer: football gear, goals, jerseys, whistles, boots
-- camping/adventure: tents, compasses, campfire items, wildlife, maps
-- music/concert: instruments, notes, stage items, microphones, headphones
-- kitchen/cooking: food, utensils, pots, spices, baked goods
-- jungle/safari: wildlife, binoculars, jeep parts, animal tracks
-- train/transport: train parts, tickets, signals, luggage
-- farm/countryside: animals, crops, tools, barns, weather vanes
+- cricket/sports: cricket bat, cricket ball, stump, helmet, gloves, bails, jersey, scoreboard
+- football/soccer: football, goal post, boot, jersey, whistle, gloves, trophy, shin guard
+- camping/adventure: tent, compass, campfire, map, binoculars, lantern, sleeping bag
+- music/concert: guitar, drum, microphone, headphones, piano, violin, trumpet, music note
+- jungle/safari: lion, elephant, giraffe, binoculars, jeep, animal footprint
+- train/transport: train, ticket, signal light, luggage, wheel, steam cloud
+- farm/countryside: cow, chicken, tractor, hay bale, watering can, fence, scarecrow
 - If the theme doesn't match above, invent objects that clearly belong in that world.
 
 Make each object unique. No duplicates. Keep hints gentle and encouraging (never say "wrong").

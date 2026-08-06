@@ -421,6 +421,21 @@ export default function HelpPage() {
           </button>
         </div>
 
+        {/* Open source credits */}
+        <div style={{ textAlign: 'center', padding: '0 0 32px', fontSize: 11, color: '#bbb', lineHeight: 1.8 }}>
+          Emoji illustrations by{' '}
+          <a href="https://openmoji.org" target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 700 }}>
+            OpenMoji
+          </a>
+          {' '}— the open-source emoji and icon project.{' '}
+          License:{' '}
+          <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer"
+            style={{ color: 'var(--primary)', textDecoration: 'none' }}>
+            CC BY-SA 4.0
+          </a>
+        </div>
+
       </div>
     </div>
   )

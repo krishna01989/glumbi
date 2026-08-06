@@ -7,6 +7,10 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import QuotaBanner from '../../components/QuotaBanner'
 import FeatureBanner from '../../components/FeatureBanner'
 import ThemeLoader from '../../components/ThemeLoader'
+import EmojiImg from '../../components/EmojiImg'
+
+const DECOY_COUNT = 4
+
 
 // ── Age-adaptive config ───────────────────────────────────────────────────────
 function gameConfig(age) {
@@ -27,9 +31,10 @@ function themeLabel(key) {
 }
 
 // ── Object placement — truly random with min-distance guarantee ───────────────
-function placeObjects(objects, containerW, containerH) {
+function placeObjects(objects, containerW, containerH, torchRadius = 80) {
   const pad = Math.max(60, Math.min(containerW, containerH) * 0.1)
-  const minDist = Math.min(containerW, containerH) * 0.28
+  // minDist must be at least 2× torchRadius so catch zones (torchRadius×0.45) never overlap
+  const minDist = Math.max(torchRadius * 2, Math.min(containerW, containerH) * 0.28)
   const placed = []
   return objects.map((obj, i) => {
     let x, y, attempts = 0
@@ -65,10 +70,6 @@ function injectStyles() {
       50%  { opacity: 1; }
       100% { opacity: 0.5; }
     }
-    @keyframes th-confetti-fall {
-      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(80px) rotate(360deg); opacity: 0; }
-    }
     @keyframes th-fact-in {
       0%   { transform: translateY(20px); opacity: 0; }
       100% { transform: translateY(0); opacity: 1; }
@@ -81,11 +82,6 @@ function injectStyles() {
       0%, 100% { transform: translate(-50%,-50%) scale(1); filter: drop-shadow(0 0 6px var(--primary)); }
       50%       { transform: translate(-50%,-50%) scale(1.35); filter: drop-shadow(0 0 18px var(--primary)); }
     }
-    @keyframes th-credit-pop {
-      0%   { transform: translateY(0);     opacity: 1; }
-      70%  { transform: translateY(-48px); opacity: 1; }
-      100% { transform: translateY(-72px); opacity: 0; }
-    }
     @keyframes th-tap-hint {
       0%, 100% { transform: translate(-50%,-50%) scale(1);    opacity: 0.85; }
       50%       { transform: translate(-50%,-50%) scale(1.12); opacity: 1; }
@@ -94,25 +90,24 @@ function injectStyles() {
   document.head.appendChild(el)
 }
 
-// ── Mini confetti burst ───────────────────────────────────────────────────────
-function ConfettiBurst({ x, y }) {
-  const pieces = Array.from({ length: 8 }, (_, i) => ({
-    color: ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff9ff3'][i % 5],
-    angle: (i / 8) * 360,
-    delay: i * 0.05,
+// ── Common confetti (full-screen, fires on all-found) ─────────────────────────
+function Confetti({ count = 32 }) {
+  const pieces = Array.from({ length: count }, (_, i) => ({
+    key: i, left: Math.random() * 100,
+    color: ['#ff6b6b','#ffd32a','#6bcb77','#4facfe','#f093fb','#ff9800'][i % 6],
+    delay: Math.random() * 0.8, size: 8 + Math.random() * 10, dur: 1.5 + Math.random(),
   }))
   return (
-    <div style={{ position: 'absolute', left: x, top: y, pointerEvents: 'none', zIndex: 40 }}>
-      {pieces.map((p, i) => (
-        <div key={i} style={{
-          position: 'absolute',
-          width: 8, height: 8,
-          borderRadius: 2,
-          background: p.color,
-          animation: `th-confetti-fall 0.8s ease-out ${p.delay}s both`,
-          transform: `rotate(${p.angle}deg) translateX(${20 + i * 4}px)`,
+    <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', overflow: 'hidden', zIndex: 999 }}>
+      {pieces.map(p => (
+        <div key={p.key} style={{
+          position: 'absolute', left: `${p.left}%`, top: '-20px',
+          width: p.size, height: p.size, background: p.color,
+          borderRadius: Math.random() > 0.5 ? '50%' : 2,
+          animation: `cfFall ${p.dur}s ${p.delay}s ease-in forwards`,
         }} />
       ))}
+      <style>{`@keyframes cfFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}`}</style>
     </div>
   )
 }
@@ -135,7 +130,7 @@ function FactCard({ obj, onClose }) {
         animation: 'th-fact-in 0.3s ease',
         boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 60px rgba(255,220,80,0.15)',
       }}>
-        <div style={{ fontSize: 56, marginBottom: 8 }}>{obj.emoji}</div>
+        <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}><EmojiImg emoji={obj.emoji} size={56} /></div>
         <div style={{ fontWeight: 900, fontSize: 18, color: 'var(--primary-lt)', marginBottom: 8 }}>
           You found {obj.name}!
         </div>
@@ -232,16 +227,16 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   const [placedObjects, setPlacedObjects] = useState([])
   const [foundCount, setFoundCount] = useState(0)
   const [torchPos, setTorchPos] = useState({ x: 200, y: 200 })
-  const [confettiBursts, setConfettiBursts] = useState([])
+  const [showConfetti, setShowConfetti] = useState(false)
   const [factCard, setFactCard] = useState(null)
   const [selectedTarget, setSelectedTarget] = useState(null)
   const [sessionObjects, setSessionObjects] = useState([])
+  const [decoyObjects, setDecoyObjects] = useState([])
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [torchOn, setTorchOn] = useState(true)
   const [torchIntensity, setTorchIntensity] = useState(2)
   const [dwellProgress, setDwellProgress] = useState(0)
   const [error, setError] = useState(null)
-  const [creditPop, setCreditPop] = useState(false)
   const [narrativeIdx, setNarrativeIdx] = useState(0)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 })
@@ -313,13 +308,17 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     if (phase !== 'playing' || !sessionObjects.length) return
     if (arenaSize.w < 50 || arenaSize.h < 50) return
     setPlacedObjects(prev => {
-      const foundNames = new Set(prev.filter(o => o.found).map(o => o.name))
-      return placeObjects(sessionObjects, arenaSize.w, arenaSize.h).map(o => ({
+      const foundNames = new Set(prev.filter(o => o.found && !o.isDecoy).map(o => o.name))
+      const allForPlacement = [
+        ...sessionObjects,
+        ...decoyObjects.map(o => ({ ...o, isDecoy: true })),
+      ]
+      return placeObjects(allForPlacement, arenaSize.w, arenaSize.h, cfg.torchRadius).map(o => ({
         ...o,
-        found: foundNames.has(o.name),
+        found: !o.isDecoy && foundNames.has(o.name),
       }))
     })
-  }, [arenaSize, sessionObjects, phase])
+  }, [arenaSize, sessionObjects, decoyObjects, phase])
 
   // ── Reset dwell when target changes ──
   useEffect(() => {
@@ -349,14 +348,16 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       setPackReady(true)
 
       if (wasNew) {
-        setCreditPop(true)
-        setTimeout(() => setCreditPop(false), 2000)
         window.__glumbiRefreshQuota?.('torch-hunt')
       }
 
       const allObjs = data.objects || []
-      const sessionObjs = [...allObjs].sort(() => Math.random() - 0.5).slice(0, cfg.objectCount)
-      setSessionObjects(sessionObjs)   // re-placement effect handles actual positioning
+      const shuffled = [...allObjs].sort(() => Math.random() - 0.5)
+      const sessionObjs = shuffled.slice(0, cfg.objectCount)
+      const decoyObjs = shuffled.slice(cfg.objectCount, cfg.objectCount + DECOY_COUNT)
+      setPlacedObjects([])
+      setSessionObjects(sessionObjs)
+      setDecoyObjects(decoyObjs)
       setFoundCount(0)
       setSelectedTarget(null)
       setFactCard(null)
@@ -382,13 +383,15 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       const data = await torchHuntApi.refresh(child.id, childTheme)
       setPack(data)
       setPackReady(true)
-      setCreditPop(true)
-      setTimeout(() => setCreditPop(false), 2000)
       window.__glumbiRefreshQuota?.('torch-hunt')
 
       const allObjs = data.objects || []
-      const sessionObjs = [...allObjs].sort(() => Math.random() - 0.5).slice(0, cfg.objectCount)
+      const shuffled = [...allObjs].sort(() => Math.random() - 0.5)
+      const sessionObjs = shuffled.slice(0, cfg.objectCount)
+      const decoyObjs = shuffled.slice(cfg.objectCount, cfg.objectCount + DECOY_COUNT)
+      setPlacedObjects([])
       setSessionObjects(sessionObjs)
+      setDecoyObjects(decoyObjs)
       setFoundCount(0)
       setSelectedTarget(null)
       setFactCard(null)
@@ -449,7 +452,6 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         setSelectedTarget(null)
         setPlacedObjects(prev => prev.map(o => o.name === targetName ? { ...o, found: true } : o))
         setFoundCount(c => c + 1)
-        setConfettiBursts(b => [...b, { id: Date.now(), x: placedTarget.x, y: placedTarget.y }])
         setFactCard({ ...placedTarget, found: true })
         trackRef.current('torch-hunt', 'found', { metadata: { object: targetName, theme: childThemeRef.current } })
       }
@@ -462,19 +464,27 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   // ── Complete check ──
   useEffect(() => {
     if (phase !== 'playing') return
-    const total = placedObjects.length
+    const total = sessionObjects.length
     if (total > 0 && foundCount >= total) {
       setPhase('complete')
+      setShowConfetti(true)
+      setTimeout(() => setShowConfetti(false), 2500)
       track('torch-hunt', 'complete', { metadata: { theme: childTheme, found: foundCount } })
     }
   }, [foundCount, placedObjects.length, phase, childTheme, track])
 
-  // ── Cleanup old bursts ──
+  // ── Touch listeners (non-passive so preventDefault works) ──
   useEffect(() => {
-    if (!confettiBursts.length) return
-    const t = setTimeout(() => setConfettiBursts([]), 1000)
-    return () => clearTimeout(t)
-  }, [confettiBursts])
+    const el = arenaRef.current
+    if (!el) return
+    const onTouch = e => { e.preventDefault(); handlePointerMove(e) }
+    el.addEventListener('touchstart', onTouch, { passive: false })
+    el.addEventListener('touchmove',  onTouch, { passive: false })
+    return () => {
+      el.removeEventListener('touchstart', onTouch)
+      el.removeEventListener('touchmove',  onTouch)
+    }
+  }, [handlePointerMove])
 
   // ── Parallax layers ──
   const layerShift = (layerIdx) => {
@@ -575,6 +585,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   if (phase === 'complete') {
     return (
       <div style={{ fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '32px 16px' }}>
+        {showConfetti && <Confetti />}
         <div style={{ fontSize: 64, marginBottom: 12 }}>🎉</div>
         <div style={{ fontSize: 24, fontWeight: 900, color: '#222', marginBottom: 8 }}>
           Amazing! You found everything!
@@ -584,13 +595,13 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 28 }}>
-          {placedObjects.map((obj, i) => (
+          {placedObjects.filter(o => !o.isDecoy).map((obj, i) => (
             <div key={i} style={{
               background: 'var(--primary-lt)', border: '1.5px solid var(--primary)', borderRadius: 50,
               padding: '6px 14px', fontSize: 14, fontWeight: 700, color: 'var(--primary)',
               display: 'flex', alignItems: 'center', gap: 6,
             }}>
-              <span>{obj.emoji}</span><span>{obj.name}</span>
+              <EmojiImg emoji={obj.emoji} size={20} /><span>{obj.name}</span>
             </div>
           ))}
         </div>
@@ -619,7 +630,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   // ── Playing ──
   const totalObjects = placedObjects.length
   const progressPct = totalObjects > 0 ? (foundCount / totalObjects) * 100 : 0
-  const notFoundObjects = placedObjects.filter(o => !o.found)
+  const notFoundObjects = placedObjects.filter(o => !o.found && !o.isDecoy)
 
   return (
     <div ref={containerRef} style={{ fontFamily: 'Nunito, sans-serif', display: 'flex', flexDirection: 'column', height: isFullscreen ? '100vh' : '100%', minHeight: 0, background: '#04040e', borderRadius: isFullscreen ? 0 : 16, overflow: 'hidden' }}>
@@ -713,7 +724,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
           {selectedTarget ? '🎯 Now find this →' : notFoundObjects.length > 0 ? '👇 Tap an object to hunt for it' : '🎉 All found!'}
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {placedObjects.map((obj, i) => {
+          {placedObjects.filter(o => !o.isDecoy).map((obj, i) => {
             const isActive = selectedTarget?.name === obj.name
             const isFound = obj.found
             const Tag = isFound ? 'div' : 'button'
@@ -740,7 +751,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                   opacity: isFound ? 0.5 : 1,
                 }}
               >
-                <span style={{ fontSize: 18 }}>{obj.emoji}</span>
+                <EmojiImg emoji={obj.emoji} size={18} />
                 <span>{isFound ? '✓' : obj.name}</span>
               </Tag>
             )
@@ -757,7 +768,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       }}>
         {selectedTarget ? (
           <>
-            <span style={{ fontSize: 22 }}>{selectedTarget.emoji}</span>
+            <EmojiImg emoji={selectedTarget.emoji} size={22} />
             <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary-lt)' }}>
               Find the <span style={{ color: 'white' }}>{selectedTarget.name}</span>!
             </span>
@@ -784,8 +795,6 @@ export default function TorchHunt({ child, quota, featureConfig }) {
           userSelect: 'none',
         }}
         onMouseMove={handlePointerMove}
-        onTouchStart={e => { e.preventDefault(); handlePointerMove(e) }}
-        onTouchMove={e => { e.preventDefault(); handlePointerMove(e) }}
       >
         {/* Parallax depth layers */}
         {[0, 1, 2].map(layerIdx => (
@@ -794,8 +803,11 @@ export default function TorchHunt({ child, quota, featureConfig }) {
               .filter(obj => obj.layer === layerIdx)
               .map((obj, i) => {
                 const isTarget = selectedTarget?.name === obj.name && !obj.found
-                const dist = isTarget ? Math.hypot(torchPos.x - obj.x, torchPos.y - obj.y) : Infinity
-                const revealed = isTarget && torchOn && dist < effectiveTorchRadius
+                const distToTorch = Math.hypot(torchPos.x - obj.x, torchPos.y - obj.y)
+                const revealedAsTarget = isTarget && torchOn && distToTorch < effectiveTorchRadius
+                const revealedAsDecoy = !!obj.isDecoy && torchOn && distToTorch < effectiveTorchRadius
+                const revealed = revealedAsTarget || revealedAsDecoy
+                const imgSize = age <= 5 ? 42 : age <= 8 ? 34 : 28
                 return (
                   <div
                     key={obj.name + i}
@@ -804,20 +816,19 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                       left: obj.x, top: obj.y,
                       zIndex: obj.found ? 35 : isTarget ? 15 : 10,
                       pointerEvents: 'none',
-                      fontSize: age <= 5 ? 42 : age <= 8 ? 34 : 28,
                       animationName: obj.found ? 'th-pop' : revealed ? 'th-tap-me' : 'th-float',
                       animationDuration: obj.found ? '0.6s' : revealed ? '0.7s' : '3s',
-                      animationTimingFunction: obj.found ? 'ease' : revealed ? 'ease-in-out' : 'ease-in-out',
+                      animationTimingFunction: 'ease-in-out',
                       animationIterationCount: obj.found ? 1 : 'infinite',
                       animationFillMode: obj.found ? 'both' : 'none',
                       animationDelay: obj.found || revealed ? '0s' : `${(i * 0.4) % 2}s`,
-                      filter: obj.found ? 'drop-shadow(0 0 12px rgba(255,220,80,0.9))' : 'none',
-                      opacity: obj.found ? 1 : 0.9,
+                      filter: obj.found ? 'drop-shadow(0 0 12px rgba(255,220,80,0.9))' : revealedAsDecoy ? 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' : 'none',
+                      opacity: obj.found ? 1 : revealedAsDecoy ? 0.7 : 0.9,
                       transform: 'translate(-50%, -50%)',
                     }}
                   >
-                    {obj.emoji}
-                    {revealed && dwellProgress > 0 && (
+                    <EmojiImg emoji={obj.emoji} size={imgSize} />
+                    {revealedAsTarget && dwellProgress > 0 && (
                       <svg style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', overflow: 'visible', pointerEvents: 'none', zIndex: 5 }} width={64} height={64}>
                         <circle cx={32} cy={32} r={28} fill="none" stroke="rgba(255,220,80,0.25)" strokeWidth={4} />
                         <circle cx={32} cy={32} r={28} fill="none" stroke="rgba(255,220,80,0.9)" strokeWidth={4}
@@ -827,7 +838,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                         />
                       </svg>
                     )}
-                    {revealed && (
+                    {revealedAsTarget && (
                       <div style={{
                         position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)',
                         background: 'var(--primary)', color: 'white', borderRadius: 50,
@@ -835,7 +846,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                         whiteSpace: 'nowrap', boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
                         animation: 'th-fact-in 0.3s ease',
                       }}>
-                        {dwellProgress > 0 ? '⏳ Hold…' : '✨ Found it!'}
+                        ⏳ Hold…
                       </div>
                     )}
                     {obj.found && (
@@ -855,8 +866,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
           </div>
         ))}
 
-        {/* Confetti bursts */}
-        {confettiBursts.map(b => <ConfettiBurst key={b.id} x={b.x} y={b.y} />)}
+        {showConfetti && <Confetti />}
 
         {/* Torch overlay — always dark, cone only when torch on + target selected */}
         <TorchCanvas
@@ -909,22 +919,6 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       {/* Fun fact card */}
       {factCard && <FactCard obj={factCard} onClose={() => setFactCard(null)} />}
 
-      {/* -2 credits popup */}
-      {creditPop && (
-        <div style={{
-          position: 'fixed', bottom: 80, right: 24,
-          background: 'linear-gradient(135deg, var(--primary), var(--accent))',
-          color: 'white', fontFamily: 'Nunito, sans-serif',
-          fontWeight: 900, fontSize: 15,
-          borderRadius: 50, padding: '8px 20px',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-          animation: 'th-credit-pop 2s ease forwards',
-          pointerEvents: 'none', zIndex: 200,
-          whiteSpace: 'nowrap',
-        }}>
-          ✨ −2 credits
-        </div>
-      )}
     </div>
   )
 }

@@ -9,6 +9,7 @@ import ThemeLoader from '../../components/ThemeLoader'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
+import EmojiImg from '../../components/EmojiImg'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 
@@ -285,7 +286,7 @@ function WordOfDayTab({ child, quota }) {
       {/* Today's word */}
       <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary-lt), white)', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', textAlign: 'center', padding: isMobile ? '24px 20px' : 40 }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1 }}>Today's Word</div>
-        <div style={{ fontSize: isMobile ? 56 : 80 }}>{word.emoji}</div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}><EmojiImg emoji={word.emoji} size={isMobile ? 56 : 80} /></div>
         <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 28 : 40, fontWeight: 900, color: 'var(--primary)' }}>
           {word.word}
         </div>
@@ -548,7 +549,7 @@ function MatchGame({ pairs, difficulty = 'medium', setDifficulty, onReset }) {
                     {card.matched ? '✅' : '?'}
                   </div>
                   <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', borderRadius: isLandscapeMobile ? 8 : 16, background: card.matched ? '#e8f8e8' : 'var(--primary-lt)', border: card.matched ? '2px solid #6bcb77' : '2px solid transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: isLandscapeMobile ? 2 : 8, padding: isLandscapeMobile ? 4 : 8, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-                    <span style={{ fontSize: emojiSize, lineHeight: 1 }}>{card.emoji}</span>
+                    <EmojiImg emoji={card.emoji} size={emojiSize} />
                     <span style={{ fontSize: labelSize, fontWeight: 800, color: card.matched ? '#27ae60' : 'var(--primary)', textAlign: 'center', wordBreak: 'break-word', lineHeight: 1.2, width: '100%' }}>{card.label}</span>
                   </div>
                 </div>
@@ -800,7 +801,7 @@ export default function MemoryPlay({ child, quota, initialTab }) {
                   flexDirection: isMobile ? 'row' : 'column',
                   padding: isMobile ? '0 24px' : 0,
                 }}>
-                <span style={{ fontSize: isMobile ? 36 : 44, lineHeight: 1 }}>{b.emoji}</span>
+                <EmojiImg emoji={b.emoji} size={isMobile ? 36 : 44} />
                 <div style={{ textAlign: isMobile ? 'left' : 'center' }}>
                   <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: isMobile ? 16 : 15, color: 'white', lineHeight: 1.2 }}>{b.label}</div>
                   <div style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 600, fontSize: 12, color: 'rgba(255,255,255,0.78)', marginTop: 2 }}>{b.desc}</div>

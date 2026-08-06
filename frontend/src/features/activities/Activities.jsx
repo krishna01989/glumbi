@@ -6,6 +6,7 @@ import ErrorBox from '../../components/ErrorBox'
 import FeatureBanner from '../../components/FeatureBanner'
 import QuotaBanner from '../../components/QuotaBanner'
 import HistoryDrawer, { fmtDate } from '../../components/HistoryDrawer'
+import EmojiImg from '../../components/EmojiImg'
 import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
@@ -225,7 +226,7 @@ export default function Activities({ child, quota }) {
               return (
                 <div key={a.id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: 36 }}>{a.emoji}</span>
+                    <EmojiImg emoji={a.emoji} size={36} />
                     <span style={{ background: cat.bg, color: cat.color, padding: '3px 10px', borderRadius: 50, fontSize: 11, fontWeight: 700 }}>
                       {cat.icon} {a.category}
                     </span>
@@ -268,7 +269,7 @@ export default function Activities({ child, quota }) {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {similarMap[a.id].map(s => (
                           <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--primary-lt)', borderRadius: 8, padding: '6px 10px' }}>
-                            <span style={{ fontSize: 18 }}>{s.emoji}</span>
+                            <EmojiImg emoji={s.emoji} size={18} />
                             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', flex: 1 }}>{s.title}</div>
                             {s.rating && <div style={{ fontSize: 11 }}>{'⭐'.repeat(s.rating)}</div>}
                           </div>
@@ -289,7 +290,7 @@ export default function Activities({ child, quota }) {
       <HistoryDrawer icon="🎯" title="Completed Activities" count={completed.length}>
         {completed.map(a => (
           <div key={a.id} className="card" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.85 }}>
-            <span style={{ fontSize: 28 }}>{a.emoji}</span>
+            <EmojiImg emoji={a.emoji} size={28} />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>

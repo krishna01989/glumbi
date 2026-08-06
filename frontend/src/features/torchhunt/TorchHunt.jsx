@@ -31,12 +31,13 @@ function themeLabel(key) {
 }
 
 // ── Object placement — constrained to a central zone, min-distance guaranteed ─
-function placeObjects(objects, containerW, containerH, torchRadius = 80, placementZone = 1.0) {
+function placeObjects(objects, containerW, containerH, torchRadius = 80, placementZone = 1.0, emojiSize = 40) {
   const zoneW = containerW * placementZone
   const zoneH = containerH * placementZone
   const offsetX = (containerW - zoneW) / 2
   const offsetY = (containerH - zoneH) / 2
-  const pad = Math.max(40, Math.min(zoneW, zoneH) * 0.08)
+  // pad must be at least half the emoji so no object bleeds off the canvas edge
+  const pad = Math.max(emojiSize * 0.6, Math.min(zoneW, zoneH) * 0.1)
   const minDist = Math.max(torchRadius * 1.8, Math.min(zoneW, zoneH) * 0.22)
   const placed = []
   return objects.map((obj, i) => {
@@ -331,7 +332,8 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         ...sessionObjects,
         ...decoyObjects.map(o => ({ ...o, isDecoy: true })),
       ]
-      return placeObjects(allForPlacement, arenaSize.w, arenaSize.h, cfg.torchRadius, cfg.placementZone).map(o => ({
+      const emojiSize = age <= 4 ? 56 : age <= 6 ? 46 : age <= 8 ? 34 : 28
+      return placeObjects(allForPlacement, arenaSize.w, arenaSize.h, cfg.torchRadius, cfg.placementZone, emojiSize).map(o => ({
         ...o,
         found: !o.isDecoy && foundNames.has(o.name),
       }))
@@ -438,7 +440,10 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     }
   }, [child.id, childTheme, cfg.objectCount, track, markActive])
 
-  // ── Torch movement + dwell detection ──
+  // ── Torch position ref (for rAF loop to read without stale closure) ──
+  const torchPosRef = useRef({ x: 200, y: 200 })
+
+  // ── Torch movement — updates position only ──
   const handlePointerMove = useCallback((e) => {
     if (!arenaRef.current) return
     const rect = arenaRef.current.getBoundingClientRect()
@@ -447,54 +452,59 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     const clientY = touch ? touch.clientY : e.clientY
     const x = clientX - rect.left
     const y = clientY - rect.top
-
+    torchPosRef.current = { x, y }
     setTorchPos({ x, y })
-
     if (!sessionStarted) {
       setSessionStarted(true)
       markActive()
     }
-
-    // Dwell detection — all reads via refs so this callback never goes stale
-    const targetName = selectedTargetRef.current?.name
-    if (!targetName || !torchOnRef.current) {
-      dwellStartRef.current = null
-      setDwellProgress(0)
-      return
-    }
-
-    const placedTarget = placedObjectsRef.current.find(o => o.name === targetName && !o.found)
-    if (!placedTarget) {
-      dwellStartRef.current = null
-      setDwellProgress(0)
-      return
-    }
-
-    const catchZone = effectiveTorchRadiusRef.current * 0.28
-    // cone points upward — check from the lit area center, not the cursor
-    const beamCenterY = y - effectiveTorchRadiusRef.current * 0.8
-    const dist = Math.hypot(x - placedTarget.x, beamCenterY - placedTarget.y)
-    if (dist < catchZone) {
-      if (!dwellStartRef.current) dwellStartRef.current = Date.now()
-      const elapsed = Date.now() - dwellStartRef.current
-      const progress = Math.min(1, elapsed / dwellMsRef.current)
-      setDwellProgress(progress)
-      if (progress >= 1 && !dwellFiredRef.current) {
-        dwellFiredRef.current = true          // guard: prevent re-fire on same dwell
-        dwellStartRef.current = null
-        selectedTargetRef.current = null
-        setDwellProgress(0)
-        setSelectedTarget(null)
-        setPlacedObjects(prev => prev.map(o => o.name === targetName ? { ...o, found: true } : o))
-        setFoundCount(c => c + 1)
-        setFactCard({ ...placedTarget, found: true })
-        trackRef.current('torch-hunt', 'found', { metadata: { object: targetName, theme: childThemeRef.current } })
-      }
-    } else {
-      dwellStartRef.current = null
-      setDwellProgress(0)
-    }
   }, [sessionStarted, markActive])
+
+  // ── Dwell detection — rAF loop so progress animates even when pointer is still ──
+  const dwellRafRef = useRef(null)
+  useEffect(() => {
+    const tick = () => {
+      dwellRafRef.current = requestAnimationFrame(tick)
+      const targetName = selectedTargetRef.current?.name
+      if (!targetName || !torchOnRef.current) {
+        dwellStartRef.current = null
+        setDwellProgress(0)
+        return
+      }
+      const placedTarget = placedObjectsRef.current.find(o => o.name === targetName && !o.found)
+      if (!placedTarget) {
+        dwellStartRef.current = null
+        setDwellProgress(0)
+        return
+      }
+      const { x, y } = torchPosRef.current
+      const catchZone = effectiveTorchRadiusRef.current * 0.28
+      const beamCenterY = y - effectiveTorchRadiusRef.current * 0.8
+      const dist = Math.hypot(x - placedTarget.x, beamCenterY - placedTarget.y)
+      if (dist < catchZone) {
+        if (!dwellStartRef.current) dwellStartRef.current = Date.now()
+        const elapsed = Date.now() - dwellStartRef.current
+        const progress = Math.min(1, elapsed / dwellMsRef.current)
+        setDwellProgress(progress)
+        if (progress >= 1 && !dwellFiredRef.current) {
+          dwellFiredRef.current = true
+          dwellStartRef.current = null
+          selectedTargetRef.current = null
+          setDwellProgress(0)
+          setSelectedTarget(null)
+          setPlacedObjects(prev => prev.map(o => o.name === targetName ? { ...o, found: true } : o))
+          setFoundCount(c => c + 1)
+          setFactCard({ ...placedTarget, found: true })
+          trackRef.current('torch-hunt', 'found', { metadata: { object: targetName, theme: childThemeRef.current } })
+        }
+      } else {
+        dwellStartRef.current = null
+        setDwellProgress(0)
+      }
+    }
+    dwellRafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(dwellRafRef.current)
+  }, [])
 
   // ── Complete check ──
   useEffect(() => {
@@ -809,8 +819,9 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                 </div>
                 <span style={{
                   fontSize: labelSize, color: isFound ? 'rgba(255,255,255,0.3)' : isActive ? 'white' : 'rgba(255,255,255,0.8)',
-                  textAlign: 'center', lineHeight: 1.2,
-                  maxWidth: cardSize - 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  textAlign: 'center', lineHeight: 1.2, wordBreak: 'break-word',
+                  maxWidth: cardSize - 8, overflow: 'hidden', display: '-webkit-box',
+                  WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                 }}>
                   {obj.name}
                 </span>

@@ -168,33 +168,39 @@ function TorchCanvas({ torchPos, torchRadius, width, height, showLight }) {
 
     if (!showLight) return
 
-    // Cut out torch cone via destination-out
+    const dir = -Math.PI / 2  // fixed upward — nozzle always points to ceiling
+    const halfAngle = Math.PI / 5  // 36° half-angle → 72° total cone
+    const coneLen = torchRadius * 1.7
+
+    // Cut cone via destination-out — narrow at cursor, fans outward
     ctx.globalCompositeOperation = 'destination-out'
     const grd = ctx.createRadialGradient(
       torchPos.x, torchPos.y, 0,
-      torchPos.x, torchPos.y, torchRadius
+      torchPos.x, torchPos.y, coneLen
     )
-    grd.addColorStop(0,   'rgba(0,0,0,1)')
-    grd.addColorStop(0.6, 'rgba(0,0,0,0.85)')
-    grd.addColorStop(1,   'rgba(0,0,0,0)')
+    grd.addColorStop(0,    'rgba(0,0,0,1)')
+    grd.addColorStop(0.45, 'rgba(0,0,0,0.95)')
+    grd.addColorStop(0.8,  'rgba(0,0,0,0.5)')
+    grd.addColorStop(1,    'rgba(0,0,0,0)')
     ctx.fillStyle = grd
     ctx.beginPath()
-    ctx.arc(torchPos.x, torchPos.y, torchRadius, 0, Math.PI * 2)
+    ctx.moveTo(torchPos.x, torchPos.y)
+    ctx.arc(torchPos.x, torchPos.y, coneLen, dir - halfAngle, dir + halfAngle)
+    ctx.closePath()
     ctx.fill()
 
     ctx.globalCompositeOperation = 'source-over'
 
-    // Warm torch glow ring
+    // Warm glow at the torch source
     const glowGrd = ctx.createRadialGradient(
-      torchPos.x, torchPos.y, torchRadius * 0.7,
-      torchPos.x, torchPos.y, torchRadius * 1.3
+      torchPos.x, torchPos.y, 0,
+      torchPos.x, torchPos.y, torchRadius * 0.45
     )
-    glowGrd.addColorStop(0,   'rgba(255,200,80,0)')
-    glowGrd.addColorStop(0.5, 'rgba(255,200,80,0.06)')
-    glowGrd.addColorStop(1,   'rgba(255,200,80,0)')
+    glowGrd.addColorStop(0, 'rgba(255,200,80,0.18)')
+    glowGrd.addColorStop(1, 'rgba(255,200,80,0)')
     ctx.fillStyle = glowGrd
     ctx.beginPath()
-    ctx.arc(torchPos.x, torchPos.y, torchRadius * 1.3, 0, Math.PI * 2)
+    ctx.arc(torchPos.x, torchPos.y, torchRadius * 0.45, 0, Math.PI * 2)
     ctx.fill()
   }, [torchPos, torchRadius, width, height, showLight])
 
@@ -414,8 +420,8 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     const clientY = touch ? touch.clientY : e.clientY
     const x = clientX - rect.left
     const y = clientY - rect.top
+
     setTorchPos({ x, y })
-    setMouse({ x: x / rect.width, y: y / rect.height })
 
     if (!sessionStarted) {
       setSessionStarted(true)
@@ -438,7 +444,9 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     }
 
     const catchZone = effectiveTorchRadiusRef.current * 0.45
-    const dist = Math.hypot(x - placedTarget.x, y - placedTarget.y)
+    // cone points upward — check from the lit area center, not the cursor
+    const beamCenterY = y - effectiveTorchRadiusRef.current * 0.8
+    const dist = Math.hypot(x - placedTarget.x, beamCenterY - placedTarget.y)
     if (dist < catchZone) {
       if (!dwellStartRef.current) dwellStartRef.current = Date.now()
       const elapsed = Date.now() - dwellStartRef.current
@@ -838,7 +846,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                         />
                       </svg>
                     )}
-                    {revealedAsTarget && (
+                    {revealedAsTarget && dwellProgress > 0 && (
                       <div style={{
                         position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)',
                         background: 'var(--primary)', color: 'white', borderRadius: 50,

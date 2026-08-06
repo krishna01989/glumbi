@@ -36,8 +36,9 @@ function placeObjects(objects, containerW, containerH, torchRadius = 80, placeme
   const zoneH = containerH * placementZone
   const offsetX = (containerW - zoneW) / 2
   const offsetY = (containerH - zoneH) / 2
-  // pad must be at least half the emoji so no object bleeds off the canvas edge
-  const pad = Math.max(emojiSize * 0.6, Math.min(zoneW, zoneH) * 0.1)
+  // pad = full emoji size so center is a full emoji-width from the border,
+  // leaving half an emoji of breathing room even with float/parallax movement
+  const pad = Math.max(emojiSize + 16, Math.min(zoneW, zoneH) * 0.12)
   const minDist = Math.max(torchRadius * 1.8, Math.min(zoneW, zoneH) * 0.22)
   const placed = []
   return objects.map((obj, i) => {
@@ -245,7 +246,8 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [torchOn, setTorchOn] = useState(true)
   const [torchIntensity, setTorchIntensity] = useState(cfgBase.defaultIntensity)
-  const [dwellProgress, setDwellProgress] = useState(0)
+  const [isDwelling, setIsDwelling] = useState(false)
+  const dwellCircleRef = useRef(null)  // direct DOM ref — bypasses React batching for animation
   const [error, setError] = useState(null)
   const [narrativeIdx, setNarrativeIdx] = useState(0)
   const [sessionStarted, setSessionStarted] = useState(false)
@@ -262,10 +264,10 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   const dwellMsRef = useRef(cfgBase.dwellMs)
   const childThemeRef = useRef(childTheme)
   const trackRef = useRef(track)
-  const [arenaSize, setArenaSize] = useState({ w: 700, h: 420 })
+  const [arenaSize, setArenaSize] = useState(null)
 
-  // Compute pixel values now that arenaSize is known — fully device + age adaptive
-  const shortSide = Math.max(200, Math.min(arenaSize.w, arenaSize.h))
+  // Compute pixel values once arenaSize is measured — fully device + age adaptive
+  const shortSide = arenaSize ? Math.max(200, Math.min(arenaSize.w, arenaSize.h)) : 400
   const cfg = {
     objectCount:    cfgBase.objectCount,
     torchRadius:    Math.round(shortSide * cfgBase.radiusFraction),
@@ -294,16 +296,15 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       .catch(() => setPackReady(false))
   }, [child.id, childTheme])
 
-  // ── Arena sizing ──
+  // ── Arena sizing — ResizeObserver fires on first layout, no default guess needed ──
   useEffect(() => {
-    function measure() {
-      if (!arenaRef.current) return
-      const { width, height } = arenaRef.current.getBoundingClientRect()
-      if (width > 0) setArenaSize({ w: width, h: height })
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    if (!arenaRef.current) return
+    const ro = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect
+      if (width > 0 && height > 0) setArenaSize({ w: width, h: height })
+    })
+    ro.observe(arenaRef.current)
+    return () => ro.disconnect()
   }, [phase])
 
   // ── Fullscreen listener ──
@@ -325,7 +326,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   // ── Re-place objects whenever arena is resized (fixes initial wrong-size placement) ──
   useEffect(() => {
     if (phase !== 'playing' || !sessionObjects.length) return
-    if (arenaSize.w < 50 || arenaSize.h < 50) return
+    if (!arenaSize || arenaSize.w < 50 || arenaSize.h < 50) return
     setPlacedObjects(prev => {
       const foundNames = new Set(prev.filter(o => o.found && !o.isDecoy).map(o => o.name))
       const allForPlacement = [
@@ -344,7 +345,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
   useEffect(() => {
     dwellStartRef.current = null
     dwellFiredRef.current = false
-    setDwellProgress(0)
+    setIsDwelling(false)
   }, [selectedTarget])
 
   // ── Narrative rotation ──
@@ -403,7 +404,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     setSelectedTarget(null)
     selectedTargetRef.current = null
     setFactCard(null)
-    setDwellProgress(0)
+    setIsDwelling(false)
     setTorchPos({ x: 200, y: 200 })
     setPlacedObjects(prev => prev.map(o => ({ ...o, found: false })))
     setPhase('playing')
@@ -460,21 +461,25 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     }
   }, [sessionStarted, markActive])
 
-  // ── Dwell detection — rAF loop so progress animates even when pointer is still ──
+  // ── Dwell detection — rAF loop; writes stroke-dasharray directly to DOM to avoid React batching ──
   const dwellRafRef = useRef(null)
   useEffect(() => {
+    const CIRCUMFERENCE = 175.9
+    const setCircle = (progress) => {
+      if (dwellCircleRef.current) {
+        dwellCircleRef.current.setAttribute('stroke-dasharray', `${progress * CIRCUMFERENCE} ${CIRCUMFERENCE}`)
+      }
+    }
     const tick = () => {
       dwellRafRef.current = requestAnimationFrame(tick)
       const targetName = selectedTargetRef.current?.name
       if (!targetName || !torchOnRef.current) {
-        dwellStartRef.current = null
-        setDwellProgress(0)
+        if (dwellStartRef.current) { dwellStartRef.current = null; setIsDwelling(false); setCircle(0) }
         return
       }
       const placedTarget = placedObjectsRef.current.find(o => o.name === targetName && !o.found)
       if (!placedTarget) {
-        dwellStartRef.current = null
-        setDwellProgress(0)
+        if (dwellStartRef.current) { dwellStartRef.current = null; setIsDwelling(false); setCircle(0) }
         return
       }
       const { x, y } = torchPosRef.current
@@ -482,15 +487,16 @@ export default function TorchHunt({ child, quota, featureConfig }) {
       const beamCenterY = y - effectiveTorchRadiusRef.current * 0.8
       const dist = Math.hypot(x - placedTarget.x, beamCenterY - placedTarget.y)
       if (dist < catchZone) {
-        if (!dwellStartRef.current) dwellStartRef.current = Date.now()
+        if (!dwellStartRef.current) { dwellStartRef.current = Date.now(); setIsDwelling(true) }
         const elapsed = Date.now() - dwellStartRef.current
         const progress = Math.min(1, elapsed / dwellMsRef.current)
-        setDwellProgress(progress)
+        setCircle(progress)
         if (progress >= 1 && !dwellFiredRef.current) {
           dwellFiredRef.current = true
           dwellStartRef.current = null
           selectedTargetRef.current = null
-          setDwellProgress(0)
+          setIsDwelling(false)
+          setCircle(0)
           setSelectedTarget(null)
           setPlacedObjects(prev => prev.map(o => o.name === targetName ? { ...o, found: true } : o))
           setFoundCount(c => c + 1)
@@ -498,8 +504,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
           trackRef.current('torch-hunt', 'found', { metadata: { object: targetName, theme: childThemeRef.current } })
         }
       } else {
-        dwellStartRef.current = null
-        setDwellProgress(0)
+        if (dwellStartRef.current) { dwellStartRef.current = null; setIsDwelling(false); setCircle(0) }
       }
     }
     dwellRafRef.current = requestAnimationFrame(tick)
@@ -900,17 +905,17 @@ export default function TorchHunt({ child, quota, featureConfig }) {
                     }}
                   >
                     <EmojiImg emoji={obj.emoji} size={imgSize} />
-                    {revealedAsTarget && dwellProgress > 0 && (
+                    {revealedAsTarget && isDwelling && (
                       <svg style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', overflow: 'visible', pointerEvents: 'none', zIndex: 5 }} width={64} height={64}>
                         <circle cx={32} cy={32} r={28} fill="none" stroke="rgba(255,220,80,0.25)" strokeWidth={4} />
-                        <circle cx={32} cy={32} r={28} fill="none" stroke="rgba(255,220,80,0.9)" strokeWidth={4}
-                          strokeDasharray={`${dwellProgress * 175.9} 175.9`}
+                        <circle ref={dwellCircleRef} cx={32} cy={32} r={28} fill="none" stroke="rgba(255,220,80,0.9)" strokeWidth={4}
+                          strokeDasharray="0 175.9"
                           strokeLinecap="round"
-                          style={{ transformOrigin: '32px 32px', transform: 'rotate(-90deg)', transition: 'stroke-dasharray 0.05s linear' }}
+                          style={{ transformOrigin: '32px 32px', transform: 'rotate(-90deg)' }}
                         />
                       </svg>
                     )}
-                    {revealedAsTarget && dwellProgress > 0 && (
+                    {revealedAsTarget && isDwelling && (
                       <div style={{
                         position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)',
                         background: 'var(--primary)', color: 'white', borderRadius: 50,
@@ -944,8 +949,8 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         <TorchCanvas
           torchPos={torchPos}
           torchRadius={effectiveTorchRadius}
-          width={arenaSize.w}
-          height={arenaSize.h}
+          width={arenaSize?.w ?? 0}
+          height={arenaSize?.h ?? 0}
           showLight={torchOn && !!selectedTarget}
         />
 

@@ -657,7 +657,7 @@ export default function TorchHunt({ child, quota, featureConfig }) {
         </div>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-<button onClick={handlePlay} style={{
+          <button onClick={handlePlay} style={{
             background: 'linear-gradient(135deg, var(--primary), var(--accent))',
             border: 'none', borderRadius: 50, padding: '12px 28px',
             color: 'white', fontWeight: 800, fontSize: 16, cursor: 'pointer',
@@ -666,8 +666,8 @@ export default function TorchHunt({ child, quota, featureConfig }) {
             🔦 Play Again!
           </button>
           <button onClick={() => { setPhase('idle'); setPack(null) }} style={{
-            background: 'rgba(0,0,0,0.08)', border: 'none', borderRadius: 50, padding: '12px 28px',
-            color: '#444', fontWeight: 800, fontSize: 16, cursor: 'pointer',
+            background: 'var(--primary-lt)', border: '1.5px solid var(--primary)', borderRadius: 50, padding: '12px 28px',
+            color: 'var(--primary)', fontWeight: 800, fontSize: 16, cursor: 'pointer',
             fontFamily: 'Nunito, sans-serif',
           }}>
             🏠 Back

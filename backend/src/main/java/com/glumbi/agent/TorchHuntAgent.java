@@ -20,7 +20,7 @@ public class TorchHuntAgent {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Value("${anthropic.model}")                            private String model;
-    @Value("${anthropic.max-tokens.torch-hunt:3500}")       private int maxTokens;
+    @Value("${anthropic.max-tokens.torch-hunt:2500}")       private int maxTokens;
 
     public PackResult generate(String themeKey, String ageGroup) {
         String prompt = String.format(promptLoader.load("torch-hunt-user"), themeKey, ageGroup);

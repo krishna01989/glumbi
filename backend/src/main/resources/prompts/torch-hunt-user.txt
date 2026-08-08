@@ -3,56 +3,20 @@ Generate a Torch Hunt adventure pack for a child.
 Theme: %s
 Age group: %s
 
-Create exactly 50 hidden objects suitable for this theme and age group. Then write 4 short scene narratives (1-2 sentences each) describing the dark environment the child explores.
+Create exactly 50 hidden objects for this theme and age group. Then write 4 one-sentence scene narratives describing the dark environment.
 
-Return ONLY a valid JSON object (no markdown, no code block) with this exact structure:
+Return ONLY valid JSON (no markdown, no code block):
 {
   "objects": [
-    {
-      "name": "teddy bear",
-      "emoji": "🧸",
-      "hint": "something soft and cuddly",
-      "funFact": "Teddy bears are named after President Theodore Roosevelt!"
-    }
+    {"name": "teddy bear", "emoji": "🧸", "hint": "soft and cuddly", "funFact": "Named after President Roosevelt!"}
   ],
-  "narratives": [
-    "You enter a dark enchanted forest where fireflies flicker between ancient trees.",
-    "The shadows grow deeper as you venture past whispering mushrooms.",
-    "A mysterious glow pulses from behind a mossy boulder.",
-    "Only your trusty torch stands between you and the darkness ahead!"
-  ]
+  "narratives": ["You enter a dark enchanted forest where fireflies flicker between ancient trees."]
 }
 
-CRITICAL — emoji accuracy rules (follow strictly):
-- Every object must be a single, concrete, real-world thing that a child can instantly recognise.
-- The emoji must be the universally-known, standard icon for that exact object — if you imagine a child pointing at the emoji, they should name the object immediately without hesitation.
-- NEVER invent compound or abstract objects (no "football box", "space dust", "ocean mist", "victory flame"). Stick to tangible, everyday things.
-- If a perfect, instantly-recognisable emoji does not exist for an object, choose a different object that does have one. Never force an approximate emoji.
-- Test yourself: does the emoji look exactly like the named object in real life? If not, pick something else.
-- Good examples: football ⚽, helmet 🪖, whistle 📣, trophy 🏆, boot 👢, mushroom 🍄, compass 🧭, telescope 🔭, crab 🦀, shell 🐚, rocket 🚀, crown 👑, sword ⚔️, acorn (describe as "nut" and use 🌰)
-- Bad examples (avoid): "football box" 🎁, "ocean shimmer" ✨, "star dust" 💫, "forest breath" 🌬️
-
-Age guide:
-- Ages 3-4: very simple, common, friendly objects (toy, apple, cat, ball, cup)
-- Ages 5-6: everyday items plus theme-specific objects (butterfly, acorn, lantern, boot)
-- Ages 7-8: more varied including tools, animals, gear (compass, helmet, telescope)
-- Ages 9-10: challenging and highly thematic objects specific to the world
-
-Theme guide — pick objects that truly belong in this specific world:
-- forest/jungle/nature: animals, plants, explorer gear, berries, fungi
-- ocean/sea/underwater: sea creatures, shells, treasure, coral, boat parts
-- space/stars/galaxy: planets, rockets, astronaut gear, satellites, moon rocks
-- castle/medieval/kingdom: armour, swords, crowns, scrolls, torches
-- dinosaur/prehistoric: dinosaur types, fossils, prehistoric plants, eggs
-- cricket/sports: cricket bat, cricket ball, stump, helmet, gloves, bails, jersey, scoreboard
-- football/soccer: football, goal post, boot, jersey, whistle, gloves, trophy, shin guard
-- camping/adventure: tent, compass, campfire, map, binoculars, lantern, sleeping bag
-- music/concert: guitar, drum, microphone, headphones, piano, violin, trumpet, music note
-- jungle/safari: lion, elephant, giraffe, binoculars, jeep, animal footprint
-- train/transport: train, ticket, signal light, luggage, wheel, steam cloud
-- farm/countryside: cow, chicken, tractor, hay bale, watering can, fence, scarecrow
-- If the theme doesn't match above, invent objects that clearly belong in that world.
-
-Make each object unique. No duplicates. Keep hints gentle and encouraging (never say "wrong").
-Fun facts should be surprising and true (age-appropriate).
-Narratives should be atmospheric, exciting, and child-friendly — never scary.
+Rules:
+- Each object must be a single concrete thing a child instantly recognises.
+- Emoji must be the universally-known icon for that exact object. If no perfect emoji exists, pick a different object.
+- hint: 3-5 words only. funFact: 1 short sentence only.
+- No duplicates. No abstract or compound objects.
+- Age guide: 3-4 = very simple common objects; 5-6 = everyday + theme items; 7-8 = varied including tools/animals; 9-10 = challenging thematic objects.
+- Pick objects that clearly belong in the theme world.

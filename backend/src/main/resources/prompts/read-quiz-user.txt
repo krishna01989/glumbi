@@ -14,8 +14,9 @@
 Write exactly 3 comprehension questions:
 - Q1: Factual (what happened?)
 - Q2: Inferential (why did the character do/feel something?)
-- Q3: Reflective (what would YOU do / what did you learn?)
+- Q3: Reflective (what did you learn / which lesson fits this story best?)
 Each question must have exactly 3 answer options, with one clearly correct.
+For Q3, make all 3 options specific and distinct — pick the lesson that matches the story as the correct answer; the other two should be plausible but clearly less fitting. Never use vague phrases like "any answer is correct" or "imagination is wonderful" as options.
 </questions>
 
 <output>

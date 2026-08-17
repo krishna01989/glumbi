@@ -6,16 +6,11 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.security.Key;
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-
-    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
 
     private final Key key;
     private final long expiryMs;
@@ -24,7 +19,6 @@ public class JwtUtil {
                    @Value("${app.jwt.expiry-hours:24}") int expiryHours) {
         this.key      = Keys.hmacShaKeyFor(secret.getBytes());
         this.expiryMs = (long) expiryHours * 60 * 60 * 1000;
-        log.info("JwtUtil: token expiry = {} hours ({} ms)", expiryHours, this.expiryMs);
     }
 
     public String generate(AppUser user) {

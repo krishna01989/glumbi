@@ -2,6 +2,7 @@ export default function LockModal({
   lockModal,
   activeChild,
   lockGrad,
+  pinBackoffUntil,
   lockPin, setLockPin,
   lockPinError,
   showPin, setShowPin,
@@ -11,6 +12,8 @@ export default function LockModal({
   onVerify, onUnlock, onCancel,
 }) {
   if (!lockModal) return null
+  const inBackoff = pinBackoffUntil > Date.now()
+  const pinDisabled = !lockPin || inBackoff
 
   const TIME_OPTS = [
     { label: '15m', value: 15 },
@@ -120,8 +123,8 @@ export default function LockModal({
                 style={{ flex: 1, padding: '12px', borderRadius: 50, border: '1.5px solid #eee', background: 'white', color: '#aaa', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
                 Cancel
               </button>
-              <button type="submit" disabled={lockTimeLimit <= 0}
-                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: lockTimeLimit <= 0 ? 'not-allowed' : 'pointer', fontSize: 14, opacity: lockTimeLimit <= 0 ? 0.5 : 1 }}>
+              <button type="submit" disabled={lockTimeLimit <= 0 || pinDisabled}
+                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: (lockTimeLimit <= 0 || pinDisabled) ? 'not-allowed' : 'pointer', fontSize: 14, opacity: (lockTimeLimit <= 0 || pinDisabled) ? 0.5 : 1 }}>
                 Lock App 🔒
               </button>
             </div>
@@ -165,8 +168,8 @@ export default function LockModal({
                   Cancel
                 </button>
               )}
-              <button type="submit"
-                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: 14 }}>
+              <button type="submit" disabled={pinDisabled}
+                style={{ flex: 1, padding: '12px', borderRadius: 50, border: 'none', background: lockGrad, color: 'white', fontWeight: 800, cursor: pinDisabled ? 'not-allowed' : 'pointer', fontSize: 14, opacity: pinDisabled ? 0.5 : 1 }}>
                 Unlock 🔓
               </button>
             </div>

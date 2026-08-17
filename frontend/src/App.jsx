@@ -299,6 +299,7 @@ export default function App() {
     sessionStart, sessionMinutes,
     screenTimeAlert, setScreenTimeAlert,
     snoozeCount, originalLimitRef,
+    pinBackoffUntil,
     applyLock, handleLockVerify, handleUnlock,
     handleScreenTimeSnooze, endSessionLocked, engageLock, resetLock, formatElapsed,
   } = lock
@@ -346,6 +347,7 @@ export default function App() {
       lockModal={lockModal}
       activeChild={child}
       lockGrad={lockGrad}
+      pinBackoffUntil={pinBackoffUntil}
       lockPin={lockPin}           setLockPin={setLockPin}
       lockPinError={lockPinError} setLockPinError={setLockPinError}
       showPin={showPin}           setShowPin={setShowPin}

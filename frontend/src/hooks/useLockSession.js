@@ -267,6 +267,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
   const handleLockVerify = useCallback(async () => {
     const childId = child?.id
     if (!childId) return
+    if (!lockPin) return
     if (pinBackoffUntil > Date.now()) return
     const result = await childApi.verifyPin(childId, lockPin)
     if (!result.ok) {
@@ -288,6 +289,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
   const handleUnlock = useCallback(async () => {
     const childId = child?.id
     if (!childId) return
+    if (!lockPin) return
     if (pinBackoffUntil > Date.now()) return
     const result = await childApi.verifyPin(childId, lockPin)
     if (!result.ok) {
@@ -346,6 +348,7 @@ export function useLockSession({ child, setChild, prevChildId }) {
     screenTimeAlert, setScreenTimeAlert,
     snoozeCount,
     originalLimitRef,
+    pinBackoffUntil,
     applyLock, handleLockVerify, handleUnlock,
     handleScreenTimeSnooze, endSessionLocked,
     engageLock,

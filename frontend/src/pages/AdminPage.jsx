@@ -1873,8 +1873,19 @@ const DEFAULT_MIX = {
   'maze': 3, 'riddle': 3, 'torch-hunt': 1,
 }
 
+function useIsTablet() {
+  const [tablet, setTablet] = useState(() => window.innerWidth >= 640 && window.innerWidth < 1024)
+  useEffect(() => {
+    const h = () => setTablet(window.innerWidth >= 640 && window.innerWidth < 1024)
+    window.addEventListener('resize', h)
+    return () => window.removeEventListener('resize', h)
+  }, [])
+  return tablet
+}
+
 function FeatureCredits() {
   const isMobile = useIsMobile()
+  const isTablet = useIsTablet()
   const [features, setFeatures]         = useState([])
   const [defaults, setDefaults]         = useState(null)
   const [editing, setEditing]           = useState(null)
@@ -2000,7 +2011,7 @@ function FeatureCredits() {
       {/* Feature table */}
       <div style={{ background: 'white', borderRadius: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
 
-        {!isMobile && (
+        {!isMobile && !isTablet && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 90px 100px 120px 130px 90px', gap: 0, padding: '10px 20px 8px', borderBottom: '2px solid #f0f0f0', background: '#fafafa' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5, textAlign: 'center' }}>Complexity</div>
@@ -2045,7 +2056,7 @@ function FeatureCredits() {
             </div>
           )
 
-          if (isMobile) {
+          if (isMobile || isTablet) {
             return (
               <div key={fc.featureName} style={{ padding: '14px 16px', borderBottom: i < features.length - 1 ? '1px solid #f5f5f5' : 'none', background: fc.enabled === false ? '#fff8f8' : 'white', opacity: fc.enabled === false ? 0.75 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -2125,7 +2136,7 @@ function FeatureCredits() {
           <div style={{ marginTop: 6, color: '#888' }}>Adjust the numbers to match your users' actual behaviour. If the total exceeds the budget, either raise the default credit limit or reduce some feature costs above.</div>
         </div>
 
-        {!isMobile && (
+        {!isMobile && !isTablet && (
           <div style={{ display: 'grid', gridTemplateColumns: '140px 160px 1fr 100px', gap: 12, padding: '6px 0 8px', borderBottom: '1.5px solid #f0f0f0', marginBottom: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Feature</div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Uses / month × cost</div>
@@ -2134,7 +2145,7 @@ function FeatureCredits() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 14 : 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile || isTablet ? 14 : 10 }}>
           {features.map(fc => {
             const meta   = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️' }
             const uses   = mix[fc.featureName] ?? 0
@@ -2142,7 +2153,7 @@ function FeatureCredits() {
             const spendPct = Math.min(spend / budget * 100, 100)
             const barColor = spend > budget * 0.4 ? '#e67e22' : '#6366f1'
 
-            if (isMobile) {
+            if (isMobile || isTablet) {
               return (
                 <div key={fc.featureName} style={{ background: '#f8f9ff', borderRadius: 12, padding: '12px 14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>

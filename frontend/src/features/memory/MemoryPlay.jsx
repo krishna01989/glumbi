@@ -222,6 +222,7 @@ function WordOfDayTab({ child, quota }) {
   const [error, setError] = useState('')
   const [speaking, setSpeaking] = useState(false)
   const [speakingId, setSpeakingId] = useState(null)
+  const [selectedHistory, setSelectedHistory] = useState(null)
   const audioRef = useRef(null)
   const fetchedRef = useRef(false)
 
@@ -281,57 +282,73 @@ function WordOfDayTab({ child, quota }) {
     }
   }
 
+  const displayed = selectedHistory ?? word
+
   return (
     <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Today's word */}
+      {/* Main word card — shows today's word or the selected history word */}
       <div className="card" style={{ background: 'linear-gradient(135deg, var(--primary-lt), white)', display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', textAlign: 'center', padding: isMobile ? '24px 20px' : 40 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1 }}>Today's Word</div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}><EmojiImg emoji={word.emoji} size={isMobile ? 56 : 80} /></div>
+        {selectedHistory ? (
+          <button onClick={() => setSelectedHistory(null)}
+            style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--primary)', fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, padding: 0, marginBottom: -4 }}>
+            ← Today's Word
+          </button>
+        ) : (
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: 1 }}>Today's Word</div>
+        )}
+        {selectedHistory && (
+          <div style={{ fontSize: 11, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 1 }}>{fmtDate(selectedHistory.date)}</div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'center' }}><EmojiImg emoji={displayed.emoji} size={isMobile ? 56 : 80} /></div>
         <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: isMobile ? 28 : 40, fontWeight: 900, color: 'var(--primary)' }}>
-          {word.word}
+          {displayed.word}
         </div>
-        <button onClick={() => playAudio(word.word, word.id)} disabled={offline}
-          style={{ background: speakingId === word.id ? 'var(--primary)' : 'rgba(0,0,0,0.06)', borderRadius: 50, padding: '7px 18px', fontSize: 13, fontWeight: 700, color: speakingId === word.id ? 'white' : '#666', letterSpacing: 0.5, border: 'none', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}>
-          {speakingId === word.id ? <><span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> Playing…</> : <>🔊 {word.pronunciation}</>}
+        <button onClick={() => playAudio(displayed.word, displayed.id)} disabled={offline}
+          style={{ background: speakingId === displayed.id ? 'var(--primary)' : 'rgba(0,0,0,0.06)', borderRadius: 50, padding: '7px 18px', fontSize: 13, fontWeight: 700, color: speakingId === displayed.id ? 'white' : '#666', letterSpacing: 0.5, border: 'none', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'all 0.2s' }}>
+          {speakingId === displayed.id ? <><span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} /> Playing…</> : <>🔊 {displayed.pronunciation}</>}
         </button>
-        <div style={{ fontSize: isMobile ? 14 : 16, color: '#444', lineHeight: 1.7, fontWeight: 600 }}>{word.meaning}</div>
+        <div style={{ fontSize: isMobile ? 14 : 16, color: '#444', lineHeight: 1.7, fontWeight: 600 }}>{displayed.meaning}</div>
         <div style={{ background: 'var(--primary-lt)', borderRadius: 14, padding: '12px 16px', fontSize: isMobile ? 13 : 15, color: '#333', lineHeight: 1.7, width: '100%', textAlign: 'left', boxSizing: 'border-box' }}>
           <span style={{ fontWeight: 800, color: 'var(--primary)' }}>Example: </span>
-          <em>"{word.exampleSentence}"</em>
+          <em>"{displayed.exampleSentence}"</em>
         </div>
-        <div style={{ fontSize: 12, color: '#bbb', marginTop: 2 }}>
-          {fmtDate(word.date)}
-        </div>
+        {!selectedHistory && (
+          <div style={{ fontSize: 12, color: '#bbb', marginTop: 2 }}>
+            {fmtDate(word.date)}
+          </div>
+        )}
       </div>
 
-      {/* History button */}
+      {/* History drawer */}
       <HistoryDrawer icon="🧠" title={`Past Words`} count={history.length}>
-        {history.map((h, i) => (
-          <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none', flexShrink: 0 }}>
-            <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--primary)' }}>{h.word}</span>
-                <span style={{ fontSize: 11, color: '#bbb' }}>
-                  {fmtDate(h.date)}
-                </span>
+        {close => (<>
+          {history.map((h, i) => (
+            <div key={h.id} onClick={() => { setSelectedHistory(prev => prev?.id === h.id ? null : h); close() }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, borderTop: i > 0 ? '1px solid #f5f5f5' : 'none', flexShrink: 0, cursor: 'pointer', borderRadius: 8,
+                background: selectedHistory?.id === h.id ? 'var(--primary-lt)' : 'transparent', margin: '0 -8px', padding: '10px 8px' }}>
+              <div style={{ fontSize: 28, flexShrink: 0 }}>{h.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: 16, color: 'var(--primary)' }}>{h.word}</span>
+                  <span style={{ fontSize: 11, color: '#bbb' }}>{fmtDate(h.date)}</span>
+                </div>
+                <div style={{ fontSize: 13, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{h.meaning}</div>
               </div>
-              <div style={{ fontSize: 13, color: '#666', marginTop: 2, lineHeight: 1.5 }}>{h.meaning}</div>
+              <button onClick={e => { e.stopPropagation(); playAudio(h.word, h.id) }} disabled={offline}
+                style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', border: 'none', background: speakingId === h.id ? 'var(--primary)' : 'var(--primary-lt)', color: speakingId === h.id ? 'white' : 'var(--primary)', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0, flexShrink: 0 }}>
+                {speakingId === h.id ? <span className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : '🔊'}
+              </button>
             </div>
-            <button onClick={() => playAudio(h.word, h.id)} disabled={offline}
-              style={{ width: 32, height: 32, minWidth: 32, borderRadius: '50%', border: 'none', background: speakingId === h.id ? 'var(--primary)' : 'var(--primary-lt)', color: speakingId === h.id ? 'white' : 'var(--primary)', cursor: offline ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, padding: 0, flexShrink: 0 }}>
-              {speakingId === h.id ? <span className="spinner" style={{ width: 10, height: 10, borderWidth: 2 }} /> : '🔊'}
+          ))}
+          {histPage + 1 < histTotalPages && (
+            <button onClick={() => fetchHistory(histPage + 1)} disabled={histLoading}
+              style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
+                border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
+                fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: histLoading ? 0.6 : 1 }}>
+              {histLoading ? 'Loading…' : 'Load more'}
             </button>
-          </div>
-        ))}
-        {histPage + 1 < histTotalPages && (
-          <button onClick={() => fetchHistory(histPage + 1)} disabled={histLoading}
-            style={{ margin: '12px auto 0', display: 'block', padding: '8px 24px', borderRadius: 20,
-              border: 'none', background: '#6c63ff', color: '#fff', fontFamily: 'Nunito, sans-serif',
-              fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: histLoading ? 0.6 : 1 }}>
-            {histLoading ? 'Loading…' : 'Load more'}
-          </button>
-        )}
+          )}
+        </>)}
       </HistoryDrawer>
     </div>
   )

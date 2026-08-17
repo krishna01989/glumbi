@@ -1,5 +1,7 @@
 import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, memo } from 'react'
+import VocabWords from '../../components/VocabWords'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { curiosityApi } from '../../api/client'
 import ErrorBox from '../../components/ErrorBox'
@@ -69,6 +71,7 @@ function CuriosityCard({ entry }) {
   const [related, setRelated]     = useState(null)
   const [relLoading, setRelLoading] = useState(false)
   const { track } = useTracker()
+  const theme = useTheme()
 
   // Glumbi follow-up state
   const [glumbiPicked, setGlumbiPicked] = useState(null) // null | index
@@ -122,6 +125,8 @@ function CuriosityCard({ entry }) {
           </div>
         ))}
       </div>
+
+      <VocabWords vocabWordsJson={entry.vocabWordsJson} theme={theme} />
 
       {/* ── Glumbi follow-up ── */}
       {entry.glumbiFollowUp && !glumbiDone && (() => {

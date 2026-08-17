@@ -197,6 +197,11 @@ export const learnApi = {
     const stoken = await getAudioToken('learn')
     return `${base}/learn/audio?text=${encodeURIComponent(text)}&language=${language}&stoken=${stoken}`
   },
+  vocabAudioUrl: async (word) => {
+    const base   = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+    const stoken = await getAudioToken('learn')
+    return `${base}/learn/vocab-audio?word=${encodeURIComponent(word)}&stoken=${stoken}`
+  },
 }
 
 export const demoApi = {

@@ -49,6 +49,7 @@ public class ReadQuizService {
         }
         entry.setGlumbiIntro(result.glumbiIntro());
         entry.setGlumbiScoreComment(result.glumbiScoreComment());
+        entry.setVocabWordsJson(result.vocabWordsJson());
         return repo.save(entry);
     }
 

@@ -13,6 +13,8 @@ import { useOffline } from '../../contexts/OfflineContext'
 import { useTracker } from '../../contexts/ActivityTrackerContext'
 import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { runPageCurl } from '../../utils/pageCurl'
+import VocabWords from '../../components/VocabWords'
+import { useTheme } from '../../contexts/ThemeContext'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)
@@ -140,6 +142,7 @@ function StorySeriesGroup({ root, chapters, selected, onSelect, onToggleFav }) {
 }
 
 export default function Stories({ child, quota }) {
+  const theme = useTheme()
   const { track } = useTracker()
   const { markActive } = useFeatureDuration('stories', track)
   const navigate = useNavigate()
@@ -1003,39 +1006,45 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
               )
 
               if (glumbiPhase === 'post' && selected.glumbiPostQuestion) return (
-                <GlumbiBubble text={selected.glumbiPostQuestion}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {gbtn('Tell me more! 🔮', () => {
-                      track('stories', 'glumbi_epilogue_requested')
-                      setGlumbiEpilogueOpen(true)
-                      updateGlumbiPhase('epilogue', glumbiMidPicked, true)
-                    })}
-                    {(selected.storyPart2A && selected.storyPart2B) && gbtn('Other ending ✨', () => {
-                      const otherBranch = glumbiMidPicked === 1 ? 0 : 1
-                      track('stories', 'glumbi_other_ending', { metadata: { branch: otherBranch === 1 ? 'b' : 'a' } })
-                      setGlumbiPrevPicked(glumbiMidPicked)
-                      updateGlumbiPhase('mid', null)
-                      stopSpeaking()
-                    }, false)}
-                    {!offline && gbtn('Quiz time! 📚', () => {
-                      track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
-                      navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
-                    }, false)}
-                    {gbtn('Bye Glumbi! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
-                  </div>
-                </GlumbiBubble>
+                <>
+                  <GlumbiBubble text={selected.glumbiPostQuestion}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {gbtn('Tell me more! 🔮', () => {
+                        track('stories', 'glumbi_epilogue_requested')
+                        setGlumbiEpilogueOpen(true)
+                        updateGlumbiPhase('epilogue', glumbiMidPicked, true)
+                      })}
+                      {(selected.storyPart2A && selected.storyPart2B) && gbtn('Other ending ✨', () => {
+                        const otherBranch = glumbiMidPicked === 1 ? 0 : 1
+                        track('stories', 'glumbi_other_ending', { metadata: { branch: otherBranch === 1 ? 'b' : 'a' } })
+                        setGlumbiPrevPicked(glumbiMidPicked)
+                        updateGlumbiPhase('mid', null)
+                        stopSpeaking()
+                      }, false)}
+                      {!offline && gbtn('Quiz time! 📚', () => {
+                        track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
+                        navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
+                      }, false)}
+                      {gbtn('Bye Glumbi! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
+                    </div>
+                  </GlumbiBubble>
+                  <VocabWords vocabWordsJson={selected.vocabWordsJson} theme={theme} />
+                </>
               )
 
               if (glumbiPhase === 'epilogue' && selected.glumbiEpilogue) return (
-                <GlumbiBubble text={`Here's what happened next... ${selected.glumbiEpilogue}`}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {!offline && gbtn('Quiz time! 📚', () => {
-                      track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
-                      navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
-                    }, false)}
-                    {gbtn('The end! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
-                  </div>
-                </GlumbiBubble>
+                <>
+                  <GlumbiBubble text={`Here's what happened next... ${selected.glumbiEpilogue}`}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {!offline && gbtn('Quiz time! 📚', () => {
+                        track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
+                        navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
+                      }, false)}
+                      {gbtn('The end! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
+                    </div>
+                  </GlumbiBubble>
+                  <VocabWords vocabWordsJson={selected.vocabWordsJson} theme={theme} />
+                </>
               )
 
               return null

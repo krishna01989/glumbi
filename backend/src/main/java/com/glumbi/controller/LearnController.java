@@ -310,4 +310,32 @@ public class LearnController {
             return ResponseEntity.internalServerError().build();
         }
     }
+
+    @GetMapping("/vocab-audio")
+    public ResponseEntity<byte[]> vocabAudio(
+            @RequestParam String word,
+            @RequestParam(required = false) String stoken) {
+        if (!audioTokenService.validate(stoken, "learn")) {
+            return ResponseEntity.status(401).build();
+        }
+        try {
+            String cacheKey = "vocab:" + word.toLowerCase().trim();
+            byte[] audio = audioCache.getIfPresent(cacheKey);
+            if (audio == null) {
+                try {
+                    audio = ttsService.synthesize(word, "english");
+                } catch (Exception first) {
+                    try { Thread.sleep(1500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                    audio = ttsService.synthesize(word, "english");
+                }
+                if (audio != null && audio.length > 0) audioCache.put(cacheKey, audio);
+            }
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "audio/mpeg")
+                    .header(HttpHeaders.CACHE_CONTROL, "public, max-age=86400")
+                    .body(audio);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 }

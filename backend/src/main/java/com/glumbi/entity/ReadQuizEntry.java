@@ -53,6 +53,9 @@ public class ReadQuizEntry {
     @Column(columnDefinition = "TEXT")
     private String glumbiScoreComment;  // score-aware post-quiz comment (3 lines separated by |)
 
+    @Column(columnDefinition = "TEXT")
+    private String vocabWordsJson;      // JSON array of {word, definition, emoji}
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 }

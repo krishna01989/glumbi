@@ -1,5 +1,7 @@
 import { isCreditsBlocked } from '../../utils/quota'
 import { useState, useEffect, useRef } from 'react'
+import VocabWords from '../../components/VocabWords'
+import { useTheme } from '../../contexts/ThemeContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { readQuizApi } from '../../api/client'
 import Confetti from '../../components/Confetti'
@@ -40,6 +42,7 @@ const LESSON_COLORS = {
 }
 
 export default function ReadQuiz({ child, quota }) {
+  const theme = useTheme()
   const { track } = useTracker()
   const { markActive } = useFeatureDuration('readquiz', track)
   const quizStartTime = useRef(null)
@@ -363,8 +366,8 @@ export default function ReadQuiz({ child, quota }) {
             {/* Story header */}
             <div style={{
               background: isFullscreen ? 'rgba(255,255,255,0.95)' : `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
-              borderRadius: 20, padding: 'clamp(20px,3vw,32px)',
-              border: isFullscreen ? 'none' : `2px solid ${lessonColor}33`, marginBottom: 24,
+              borderRadius: 20, padding: 'clamp(20px,3vw,32px) clamp(20px,3vw,32px) 12px',
+              border: isFullscreen ? 'none' : `2px solid ${lessonColor}33`, marginBottom: 8,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                 <div>
@@ -481,12 +484,13 @@ export default function ReadQuiz({ child, quota }) {
                   </>
                 )}
               </div>
+              <VocabWords vocabWordsJson={selected.vocabWordsJson} theme={theme} />
             </div>
 
             {/* Quiz */}
             <div id="rq-quiz-section" style={{
               background: isFullscreen ? 'rgba(255,255,255,0.95)' : `linear-gradient(135deg,${lessonColor}22,${lessonColor}11)`,
-              borderRadius: 20, padding: 'clamp(20px,3vw,32px)',
+              borderRadius: 20, padding: 'clamp(12px,2vw,20px) clamp(20px,3vw,32px) clamp(20px,3vw,32px)',
               border: isFullscreen ? 'none' : `2px solid ${lessonColor}33`, marginBottom: 24,
             }}>
               <div style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'var(--primary)', marginBottom: 20 }}>

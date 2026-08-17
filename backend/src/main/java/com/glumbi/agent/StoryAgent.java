@@ -46,7 +46,7 @@ public class StoryAgent {
 
         StoryResult result = parseResponse(response);
         if (!safety.isOutputSafe(result.content()))
-            return new StoryResult("A Magical Story", safety.safeFallback("story"), "", "", "", "", "", "[]", "", "");
+            return new StoryResult("A Magical Story", safety.safeFallback("story"), "", "", "", "", "", "[]", "", "", "[]");
         return result;
     }
 
@@ -79,7 +79,7 @@ public class StoryAgent {
         String response = anthropicClient.callWithCachedSystem(body, safety.safetySystemPreamble(), agentPrompt);
         StoryResult result = parseResponse(response);
         if (!safety.isOutputSafe(result.content()))
-            return new StoryResult("A Magical Story", safety.safeFallback("story"), "", "", "", "", "", "[]", "", "");
+            return new StoryResult("A Magical Story", safety.safeFallback("story"), "", "", "", "", "", "[]", "", "", "[]");
         return result;
     }
 
@@ -138,8 +138,9 @@ public class StoryAgent {
         - "part2b": the second half of the story if the child picks the SECOND choice. Must feel meaningfully different from part2a — a genuinely different outcome, not just different wording.
         - "glumbiPostQuestion": one warm reflection question Glumbi asks after the full story ends. Focus on favourite moment or feeling.
         - "glumbiEpilogue": 2-3 sentences describing what the main character did the very next day. Warm, fun, conclusive. Works for both branches.
+        - "vocabWords": a JSON array of exactly 3 words from the story. Each item: {"word": "...", "definition": "one simple sentence a %d year old can understand", "emoji": "one relevant emoji"}. Age guidance: age 3-4 = very common words the child almost knows (e.g. "journey", "brave"); age 5-6 = simple but slightly new words; age 7-8 = moderately enriching words; age 9+ = genuinely challenging vocabulary. Never pick abstract or complex words for children under 5.
         Keep all Glumbi lines warm, simple, and age-appropriate for a %d year old. Never ask about feelings directly.
-        """.formatted(childAge, childAge);
+        """.formatted(childAge, childAge, childAge);
     }
 
     private StoryResult parseResponse(String raw) {
@@ -175,15 +176,18 @@ public class StoryAgent {
             String glumbiPostQuestion = story.path("glumbiPostQuestion").asText("");
             String glumbiEpilogue     = story.path("glumbiEpilogue").asText("").replace("\\n", "\n");
 
+            JsonNode vocabNode = story.path("vocabWords");
+            String vocabWordsJson = vocabNode.isArray() ? vocabNode.toString() : "[]";
+
             return new StoryResult(
                 story.path("title").asText("A Magical Story"), content,
                 part1, part2a, part2b,
                 glumbiIntro, glumbiMidQuestion, glumbiMidChoicesJson,
-                glumbiPostQuestion, glumbiEpilogue
+                glumbiPostQuestion, glumbiEpilogue, vocabWordsJson
             );
         } catch (Exception e) {
             return new StoryResult("A Magical Story", safety.safeFallback("story"),
-                "", "", "", "", "", "[]", "", "");
+                "", "", "", "", "", "[]", "", "", "[]");
         }
     }
 
@@ -207,6 +211,7 @@ public class StoryAgent {
         String title, String content,
         String part1, String part2a, String part2b,
         String glumbiIntro, String glumbiMidQuestion, String glumbiMidChoices,
-        String glumbiPostQuestion, String glumbiEpilogue
+        String glumbiPostQuestion, String glumbiEpilogue,
+        String vocabWordsJson
     ) {}
 }

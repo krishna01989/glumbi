@@ -68,6 +68,7 @@ public class StoryService {
         story.setGlumbiMidChoices(result.glumbiMidChoices());
         story.setGlumbiPostQuestion(result.glumbiPostQuestion());
         story.setGlumbiEpilogue(result.glumbiEpilogue());
+        story.setVocabWordsJson(result.vocabWordsJson());
         if (prev != null) {
             story.setKeywords(prev.getKeywords());
             // Always use the root story title as prefix so chaining doesn't nest titles

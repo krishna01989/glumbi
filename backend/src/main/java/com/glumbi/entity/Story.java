@@ -75,6 +75,9 @@ public class Story {
     @Column(columnDefinition = "TEXT")
     private String glumbiEpilogue;    // short "what happened next" generated upfront
 
+    @Column(columnDefinition = "TEXT")
+    private String vocabWordsJson;    // JSON array of {word, definition, emoji}
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 }

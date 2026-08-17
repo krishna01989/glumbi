@@ -50,6 +50,7 @@ public class CuriosityService {
         entry.setGlumbiFollowUp(result.glumbiFollowUp());
         entry.setGlumbiFollowUpChoices(result.glumbiFollowUpChoices());
         entry.setGlumbiReaction(result.glumbiReaction());
+        entry.setVocabWordsJson(result.vocabWordsJson());
         CuriosityEntry saved = repo.save(entry);
 
         CompletableFuture.runAsync(() -> embeddingService.embedAndSave(saved), embeddingExecutor);

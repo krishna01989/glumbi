@@ -30,14 +30,15 @@ public class ReadQuizAgent {
         String prompt = String.format(promptLoader.load("read-quiz-user"),
                 childName, childAge, topic, childAge);
 
-        String glumbiInstructions = """
+        String glumbiInstructions = String.format("""
             Also return these Glumbi guide fields in the same JSON:
             - "glumbiIntro": one short enthusiastic line Glumbi says before the child reads (max 12 words, no spoilers, builds excitement)
             - "glumbiScoreComment0": Glumbi's warm comment if score is 0 (encouraging, not sad, max 15 words)
             - "glumbiScoreComment1": Glumbi's comment if score is 1 (encouraging, max 15 words)
             - "glumbiScoreComment2": Glumbi's comment if score is 2 (positive, max 15 words)
             - "glumbiScoreComment3": Glumbi's comment if score is 3 (celebrate!, max 15 words)
-            """;
+            - "vocabWords": a JSON array of exactly 3 words from the story/passage. Each item: {"word": "...", "definition": "one simple sentence a %d year old can understand", "emoji": "one relevant emoji"}. Age guidance: age 3-4 = very common words the child almost knows; age 5-6 = simple but slightly new words; age 7-8 = moderately enriching words; age 9+ = genuinely challenging vocabulary. Never pick abstract or complex words for children under 5.
+            """, childAge);
 
         ObjectNode body = mapper.createObjectNode();
         body.put("model", model);
@@ -54,14 +55,15 @@ public class ReadQuizAgent {
         String agentPrompt = String.format(
                 promptLoader.load("read-quiz-system"), childAge, readingGuidance(childAge));
 
-        String glumbiInstructions = """
+        String glumbiInstructions = String.format("""
             Also return these Glumbi guide fields in the same JSON:
             - "glumbiIntro": one short enthusiastic line Glumbi says before the child reads (max 12 words, no spoilers, builds excitement)
             - "glumbiScoreComment0": Glumbi's warm comment if score is 0 (encouraging, not sad, max 15 words)
             - "glumbiScoreComment1": Glumbi's comment if score is 1 (encouraging, max 15 words)
             - "glumbiScoreComment2": Glumbi's comment if score is 2 (positive, max 15 words)
             - "glumbiScoreComment3": Glumbi's comment if score is 3 (celebrate!, max 15 words)
-            """;
+            - "vocabWords": a JSON array of exactly 3 words from the story/passage. Each item: {"word": "...", "definition": "one simple sentence a %d year old can understand", "emoji": "one relevant emoji"}. Age guidance: age 3-4 = very common words the child almost knows; age 5-6 = simple but slightly new words; age 7-8 = moderately enriching words; age 9+ = genuinely challenging vocabulary. Never pick abstract or complex words for children under 5.
+            """, childAge);
 
         String memorySection = (glumbiMemory != null && !glumbiMemory.isBlank()) ? "\n\n" + glumbiMemory : "";
 
@@ -128,12 +130,15 @@ public class ReadQuizAgent {
                 + "|" + node.path("glumbiScoreComment2").asText("Wow, so close — brilliant!")
                 + "|" + node.path("glumbiScoreComment3").asText("Perfect! You're a superstar! 🌟");
 
+            JsonNode vocabNode = node.path("vocabWords");
+            String vocabWordsJson = vocabNode.isArray() ? vocabNode.toString() : "[]";
+
             return new ReadQuizResult(
                 node.path("title").asText("A Reading Adventure"),
                 node.path("story").asText(),
                 node.path("readingTime").asText("5 mins"),
                 node.path("lesson").asText("Curiosity"),
-                questions, glumbiIntro, scoreComment
+                questions, glumbiIntro, scoreComment, vocabWordsJson
             );
         } catch (Exception e) {
             return fallback(topic);
@@ -157,10 +162,11 @@ public class ReadQuizAgent {
             safety.safeFallback("story"),
             "5 mins", "Courage", qs,
             "Ready to read? Let's go!",
-            "You gave it a great try!|Nice work!|So close — brilliant!|Perfect! You're a superstar! 🌟"
+            "You gave it a great try!|Nice work!|So close — brilliant!|Perfect! You're a superstar! 🌟",
+            "[]"
         );
     }
 
-    public record ReadQuizResult(String title, String story, String readingTime, String lesson, Question[] questions, String glumbiIntro, String glumbiScoreComment) {}
+    public record ReadQuizResult(String title, String story, String readingTime, String lesson, Question[] questions, String glumbiIntro, String glumbiScoreComment, String vocabWordsJson) {}
     public record Question(String question, String[] options, int correctIndex) {}
 }

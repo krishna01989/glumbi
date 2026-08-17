@@ -31,7 +31,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/demo/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()  // auth handled in AuthHandshakeInterceptor
-                .requestMatchers("/api/learn/audio").permitAll()       // auth via stoken (AudioTokenService)
+                .requestMatchers("/api/learn/audio").permitAll()        // auth via stoken (AudioTokenService)
+                .requestMatchers("/api/learn/vocab-audio").permitAll() // auth via stoken (AudioTokenService)
                 .requestMatchers("/api/stories/*/listen").permitAll()  // auth via stoken (AudioTokenService)
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .anyRequest().authenticated()

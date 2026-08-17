@@ -19,7 +19,13 @@ Return a JSON object with exactly these fields:
   "quizOption1": "correct answer text",
   "quizOption2": "wrong but funny option",
   "quizOption3": "wrong but plausible option",
-  "sticker": "one emoji that represents this topic"
+  "sticker": "one emoji that represents this topic",
+  "vocabWords": [
+    {"word": "...", "definition": "one simple sentence a %d year old can understand", "emoji": "one relevant emoji"},
+    {"word": "...", "definition": "one simple sentence a %d year old can understand", "emoji": "one relevant emoji"},
+    {"word": "...", "definition": "one simple sentence a %d year old can understand", "emoji": "one relevant emoji"}
+  ]
 }
+Pick 3 words related to the topic. Age guidance: age 3-4 = very common words the child almost knows; age 5-6 = simple but slightly new words; age 7-8 = moderately enriching words; age 9+ = genuinely challenging vocabulary. Never pick abstract or complex words for children under 5. Keep definitions super simple.
 Return ONLY the JSON, no extra text.
 </output>

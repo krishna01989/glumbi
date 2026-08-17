@@ -41,7 +41,7 @@ public class CuriosityAgent {
         safety.validateInput(question);
 
         String prompt = String.format(promptLoader.load("curiosity-user"),
-                childAge, childName, question, childAge, childAge, ageComparisons(childAge));
+                childAge, childName, question, childAge, childAge, ageComparisons(childAge), childAge, childAge, childAge);
 
         String glumbiInstructions = """
             Also return these Glumbi guide fields in the same JSON:
@@ -88,6 +88,8 @@ public class CuriosityAgent {
             JsonNode node = mapper.readTree(text);
             JsonNode choicesNode = node.path("glumbiFollowUpChoices");
             String followUpChoices = choicesNode.isArray() ? choicesNode.toString() : "[\"I wonder!\",\"That's wild!\"]";
+            JsonNode vocabNode = node.path("vocabWords");
+            String vocabWordsJson = vocabNode.isArray() ? vocabNode.toString() : "[]";
             return new CuriosityResult(
                     node.path("funFact1").asText(),
                     node.path("funFact2").asText(),
@@ -100,7 +102,8 @@ public class CuriosityAgent {
                     node.path("sticker").asText("🌟"),
                     node.path("glumbiFollowUp").asText(""),
                     followUpChoices,
-                    node.path("glumbiReaction").asText("Your brain is amazing! 🌟")
+                    node.path("glumbiReaction").asText("Your brain is amazing! 🌟"),
+                    vocabWordsJson
             );
         } catch (Exception e) {
             return safeDefault();
@@ -114,7 +117,7 @@ public class CuriosityAgent {
             "It's like the world is one big magic trick!",
             "Is the world full of amazing things?",
             "Yes!", "Yes!", "Maybe", "No", "🌟",
-            "", "[\"I wonder!\",\"That's wild!\"]", "Your brain is amazing! 🌟"
+            "", "[\"I wonder!\",\"That's wild!\"]", "Your brain is amazing! 🌟", "[]"
         );
     }
 
@@ -123,5 +126,6 @@ public class CuriosityAgent {
             String quizQuestion, String quizAnswer,
             String quizOption1, String quizOption2, String quizOption3,
             String sticker,
-            String glumbiFollowUp, String glumbiFollowUpChoices, String glumbiReaction) {}
+            String glumbiFollowUp, String glumbiFollowUpChoices, String glumbiReaction,
+            String vocabWordsJson) {}
 }

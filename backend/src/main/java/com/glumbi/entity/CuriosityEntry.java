@@ -53,6 +53,9 @@ public class CuriosityEntry {
     @Column(columnDefinition = "TEXT")
     private String glumbiReaction;        // 1-line reaction shown after child picks (same for both choices)
 
+    @Column(columnDefinition = "TEXT")
+    private String vocabWordsJson;        // JSON array of {word, definition, emoji}
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 }

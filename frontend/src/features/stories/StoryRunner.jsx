@@ -4,10 +4,10 @@ import GameIntroScreen from './GameIntroScreen'
 // ── Difficulty ──────────────────────────────────────────────────────────────
 function mDiff(birthYear) {
   const age = birthYear ? new Date().getFullYear() - birthYear : 7
-  if (age <= 4) return { scroll: 90,  jumpV: 920, gravity: 1500, fallMult: 1.3, dj: true,  airMult: 1.8, label: 'Easy'   }
-  if (age <= 6) return { scroll: 120, jumpV: 950, gravity: 1600, fallMult: 1.3, dj: true,  airMult: 1.8, label: 'Easy'   }
-  if (age <= 8) return { scroll: 155, jumpV: 980, gravity: 1700, fallMult: 1.4, dj: false, airMult: 1.7, label: 'Medium' }
-  return             { scroll: 190, jumpV:1010, gravity: 1850, fallMult: 1.4, dj: false, airMult: 1.6, label: 'Hard'   }
+  if (age <= 4) return { scroll: 90,  jumpV: 920, gravity: 1500, fallMult: 1.3, jumps: 3, airMult: 1.8, label: 'Easy'   }
+  if (age <= 6) return { scroll: 120, jumpV: 950, gravity: 1600, fallMult: 1.3, jumps: 3, airMult: 1.8, label: 'Normal' }
+  if (age <= 8) return { scroll: 155, jumpV: 980, gravity: 1700, fallMult: 1.4, jumps: 2, airMult: 1.7, label: 'Medium' }
+  return             { scroll: 190, jumpV:1010, gravity: 1850, fallMult: 1.4, jumps: 2, airMult: 1.6, label: 'Hard'   }
 }
 
 // ── Color helper ────────────────────────────────────────────────────────────
@@ -182,23 +182,48 @@ function drawEmoji(ctx, emoji, cx, cy, size) {
   ctx.restore()
 }
 
+// Fixed real-world obstacles kids recognise — never derived from story content
+const OBSTACLE_EMOJIS = ['🪨', '🌵', '🌳', '🛢️', '🪵', '🧱']
+
 // ── Level generation ────────────────────────────────────────────────────────
-function genLevel(W, H, diff, collectEmojis, obstacleEmojis) {
-  const GY     = Math.floor(H * 0.74)
+function genLevel(W, H, diff, collectEmojis, obstacleEmojis, jumps) {
+  const GY      = Math.floor(H * 0.74)
   const LEVEL_W = W * 5.5
-  const jumpH  = (diff.jumpV * diff.jumpV) / (2 * diff.gravity)
+  const jumpH   = (diff.jumpV * diff.jumpV) / (2 * diff.gravity)
 
   const obstacles = [], collectibles = []
   let x = W * 0.55
 
   while (x < LEVEL_W - W * 0.75) {
     if (Math.random() < 0.42) {
-      obstacles.push({ x, y: GY, emoji: obstacleEmojis[obstacles.length % obstacleEmojis.length] })
+      // ~35% of obstacles are moving — drifting slowly toward the player
+      const moving = Math.random() < 0.35
+      obstacles.push({
+        x, y: GY,
+        emoji: obstacleEmojis[obstacles.length % obstacleEmojis.length],
+        moving,
+        // speed in px/s in world space; negative = moving left (toward player)
+        speed: moving ? -(28 + Math.random() * 22) : 0,
+      })
       x += W * (0.18 + Math.random() * 0.20)
     } else {
+      // height tiers based on available jumps
+      const rand = Math.random()
+      let heightFrac
+      if (jumps >= 3) {
+        // easy/normal: mix single (40%), double (35%), triple (25%)
+        if (rand < 0.40)      heightFrac = 0.60 + Math.random() * 0.20  // single jump
+        else if (rand < 0.75) heightFrac = 1.10 + Math.random() * 0.30  // double jump
+        else                  heightFrac = 1.85 + Math.random() * 0.30  // triple jump
+      } else {
+        // medium/hard: only single (50%) and double (50%) — never triple-only items
+        heightFrac = rand < 0.50
+          ? 0.60 + Math.random() * 0.20  // single jump
+          : 1.10 + Math.random() * 0.30  // double jump
+      }
       collectibles.push({
         x, collected: false,
-        y: GY - Math.round(jumpH * 0.72),
+        y: GY - Math.round(jumpH * heightFrac),
         emoji: collectEmojis[collectibles.length % collectEmojis.length],
       })
       x += W * (0.10 + Math.random() * 0.13)
@@ -215,8 +240,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
 
   let lvl = {}
   try { lvl = JSON.parse(runnerLevelJson || '{}') } catch {}
-  const collectEmojis  = Array.isArray(lvl.collectibles) ? lvl.collectibles : ['⭐', '💎', '🍀', '🌟']
-  const obstacleEmojis = Array.isArray(lvl.obstacles)    ? lvl.obstacles    : ['👻', '🐉', '🌊']
+  const collectEmojis = Array.isArray(lvl.collectibles) ? lvl.collectibles : ['⭐', '💎', '🍀', '🌟']
   const narration      = lvl.glumbiNarration || 'Run and jump through the story world!'
   const victoryMsg     = lvl.endLine         || 'Amazing! You made it!'
 
@@ -281,19 +305,21 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
       y: 0, vy: 0,
       vx: 0,
       onGround: true,
-      jumpsLeft: diff.dj ? 2 : 1,
+      jumpsLeft: diff.jumps,
       lives: 3, invincible: 0,
       score: 0,
       alive: true, won: false,
       started: false,
       walkPhase: 0,
       squash: 1,
+      caughtAnim: null,   // { sx, sy, t } — screen-space hit position + countdown
+      spawnAnim: 0,       // countdown for pop-in after respawn (1.0 → 0)
     }
 
     function respawn() {
       if (levelData) st.y = levelData.GY - PH
       st.vy = 0; st.vx = 0; st.onGround = true
-      st.jumpsLeft = diff.dj ? 2 : 1
+      st.jumpsLeft = diff.jumps
       st.invincible = 2.0; st.started = false
     }
 
@@ -309,23 +335,44 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
       if (!W || !H) { rafId = requestAnimationFrame(frame); return }
 
       if (!levelData) {
-        levelData = genLevel(W, H, diff, collectEmojis, obstacleEmojis)
+        levelData = genLevel(W, H, diff, collectEmojis, OBSTACLE_EMOJIS, diff.jumps)
         st.y = levelData.GY - PH
       }
 
       const { GY, LEVEL_W, obstacles, collectibles, total } = levelData
+
+      // ── Moving obstacles ──────────────────────────────────────────────────
+      for (const o of obstacles) {
+        if (o.moving) {
+          o.x += o.speed * dt
+          // reverse direction if they drift too far left off screen (recycle)
+          if (o.x < -80) o.x = LEVEL_W - 40
+        }
+      }
+
+      // ── Caught animation tick (freeze everything while playing) ───────────
+      if (st.caughtAnim) {
+        st.caughtAnim.t -= dt
+        jumpRef.current = false
+        if (st.caughtAnim.t <= 0) {
+          respawn()
+          st.caughtAnim = null
+          st.spawnAnim = 0.45  // pop-in duration
+        }
+      }
+
       // ── Jump buffer tick ─────────────────────────────────────────────────
-      if (jumpBufRef.current > 0) jumpBufRef.current -= dt
+      if (!st.caughtAnim && jumpBufRef.current > 0) jumpBufRef.current -= dt
 
       // ── Input ────────────────────────────────────────────────────────────
-      if (jumpRef.current) {
+      if (!st.caughtAnim && jumpRef.current) {
         if (!st.started) st.started = true
         jumpBufRef.current = 0.12
         jumpRef.current = false
       }
 
-      // ── Physics ──────────────────────────────────────────────────────────
-      if (st.started && st.alive && !st.won) {
+      // ── Physics (skipped during caught animation) ─────────────────────────
+      if (st.started && st.alive && !st.won && !st.caughtAnim) {
         // Always move in current direction (Pac-Man style)
         st.vx = diff.scroll * dirRef.current
         st.x = Math.max(0, Math.min(st.x + st.vx * dt, LEVEL_W - PH))
@@ -360,7 +407,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
           st.y = GY - PH
           if (wasAir && st.vy > 250) st.squash = 0.68
           st.vy = 0; st.onGround = true
-          st.jumpsLeft = diff.dj ? 2 : 1
+          st.jumpsLeft = diff.jumps
         } else {
           st.onGround = false
         }
@@ -392,7 +439,14 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
             const ox = o.x - (st.x + PH * 0.5)
             if (Math.abs(ox) < 20 && st.y + PH > o.y - 32 && st.y + PH < o.y + 4) {
               st.lives--
-              if (st.lives <= 0) st.alive = false; else respawn()
+              if (st.lives <= 0) {
+                st.alive = false
+              } else {
+                // start caught animation at screen-space hit position
+                const hitSX = st.x - camX + PH * 0.5
+                const hitSY = st.y + PH * 0.5
+                st.caughtAnim = { sx: hitSX, sy: hitSY, t: 1.0 }
+              }
               break
             }
           }
@@ -456,31 +510,84 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
         if (sx < -30 || sx > W + 30) continue
         const oy = o.y - 18
 
-        const pulse = 0.45 + 0.2 * Math.sin(t * 4 + o.x)
-        const rgrad = ctx.createRadialGradient(sx, oy, 5, sx, oy, 26)
-        rgrad.addColorStop(0, `rgba(255,50,50,${pulse})`); rgrad.addColorStop(1, 'rgba(255,50,50,0)')
+        const pulse = 0.6 + 0.35 * Math.sin(t * 5 + o.x)
+        // moving obstacles glow orange-red, static glow bright red
+        const glowColor = o.moving ? `rgba(255,110,0,${pulse})` : `rgba(255,30,30,${pulse})`
+        const rgrad = ctx.createRadialGradient(sx, oy, 4, sx, oy, 36)
+        rgrad.addColorStop(0, glowColor); rgrad.addColorStop(0.5, `rgba(255,30,30,${pulse * 0.4})`); rgrad.addColorStop(1, 'rgba(255,0,0,0)')
         ctx.fillStyle = rgrad
-        ctx.beginPath(); ctx.arc(sx, oy, 26, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(sx, oy, 36, 0, Math.PI * 2); ctx.fill()
+        // hard red ring underneath the emoji
+        ctx.save()
+        ctx.globalAlpha = 0.55 + 0.3 * Math.sin(t * 5 + o.x)
+        ctx.strokeStyle = o.moving ? '#FF7700' : '#FF1111'
+        ctx.lineWidth = 2.5
+        ctx.beginPath(); ctx.arc(sx, oy, 20, 0, Math.PI * 2); ctx.stroke()
+        ctx.restore()
 
         drawEmoji(ctx, o.emoji, sx, oy, 32)
+
+        // Moving obstacles get a small leftward arrow indicator
+        if (o.moving) {
+          ctx.save()
+          ctx.globalAlpha = 0.55 + 0.3 * Math.sin(t * 5 + o.x)
+          ctx.fillStyle = '#FF9900'
+          ctx.font = 'bold 11px sans-serif'
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.fillText('←', sx, oy + 22)
+          ctx.restore()
+        }
       }
 
       // ── Glumbi character ─────────────────────────────────────────────────
-      const showPlayer = st.alive && (st.invincible <= 0 || Math.floor(st.invincible / 0.1) % 2 === 0)
+      if (st.spawnAnim > 0) st.spawnAnim -= dt
+      const showPlayer = st.alive && !st.caughtAnim && (st.invincible <= 0 || Math.floor(st.invincible / 0.1) % 2 === 0)
       if (showPlayer) {
-        const pSX  = st.x - camX          // player screen x (left edge)
-        const pCX  = pSX + PH * 0.5       // player centre x
+        const pSX  = st.x - camX
+        const pCX  = pSX + PH * 0.5
         const feet = st.y + PH
 
+        // pop-in: scale from 0 → 1.2 → 1 over spawnAnim countdown
+        const spawnProgress = st.spawnAnim > 0 ? 1 - (st.spawnAnim / 0.45) : 1
+        const popScale = st.spawnAnim > 0
+          ? (spawnProgress < 0.7 ? spawnProgress / 0.7 * 1.25 : 1.25 - (spawnProgress - 0.7) / 0.3 * 0.25)
+          : 1
+
         ctx.save()
+        ctx.translate(pCX, feet)
+        ctx.scale(popScale, popScale)
         if (Math.abs(st.squash - 1) > 0.01) {
           const scX = st.squash < 1 ? 2 - st.squash : 1 / st.squash
-          ctx.translate(pCX, feet)
           ctx.scale(scX, st.squash)
-          ctx.translate(-pCX, -feet)
         }
+        ctx.translate(-pCX, -feet)
         drawGlumbi(ctx, pCX, feet, PH, !st.onGround, st.walkPhase, col, st.vy, dirRef.current)
         ctx.restore()
+      }
+
+      // ── Caught animation — expanding rings + shrinking character ─────────
+      if (st.caughtAnim) {
+        const { sx, sy, t } = st.caughtAnim
+        const progress = 1 - t
+        for (let i = 0; i < 3; i++) {
+          const phase = Math.min(1, progress * 1.5 - i * 0.15)
+          if (phase <= 0) continue
+          const radius = PH * 0.3 + phase * PH * 1.4
+          const alpha  = (1 - phase) * 0.7
+          ctx.save()
+          ctx.globalAlpha = alpha
+          ctx.strokeStyle = col
+          ctx.lineWidth = 3 - i
+          ctx.beginPath(); ctx.arc(sx, sy, radius, 0, Math.PI * 2); ctx.stroke()
+          ctx.restore()
+        }
+        const emojiScale = Math.max(0, 1 - progress * 1.3)
+        if (emojiScale > 0) {
+          ctx.save()
+          ctx.globalAlpha = emojiScale
+          drawGlumbi(ctx, sx, sy + PH * 0.5 * emojiScale, PH * emojiScale, false, 0, col, 0, dirRef.current)
+          ctx.restore()
+        }
       }
 
       // ── Goal flag ────────────────────────────────────────────────────────
@@ -525,7 +632,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
         ctx.fillRect(0, GY - 70, W, 44)
         ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = 'bold 13px Nunito,sans-serif'
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText('← → to change direction  ·  Space/Tap top to jump  ·  Grab ✨  Avoid ❗', W / 2, GY - 48)
+        ctx.fillText(`← → to move  ·  Tap Space/↑ up to ${diff.jumps}× to jump higher  ·  Grab ✨  Avoid ❗`, W / 2, GY - 48)
       }
 
       // ── End overlay ──────────────────────────────────────────────────────
@@ -583,9 +690,9 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
           title="Story Run"
           description={narration}
           tips={[
-            { icon: '👆', text: 'Tap or press Space / ↑ to jump' },
+            { icon: '👆', text: `Tap Space / ↑ up to ${diff.jumps} times to jump higher!` },
             { icon: '✨', text: 'Grab glowing floating items to score' },
-            { icon: '❗', text: 'Dodge red danger enemies on the ground' },
+            { icon: '❗', text: 'Dodge red obstacles — moving ones glow orange!' },
             { icon: '🏁', text: 'Reach the finish flag to win!' },
           ]}
           col={col}

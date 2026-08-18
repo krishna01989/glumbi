@@ -79,7 +79,6 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
   let level = {}
   try { level = JSON.parse(runnerLevelJson || '{}') } catch {}
   const collectEmojis = Array.isArray(level.collectibles) ? level.collectibles : ['⭐','💎','🍀','🌟']
-  const ghostEmojis   = Array.isArray(level.obstacles)    ? level.obstacles    : ['👻','🐉','🌊']
   const narration     = level.glumbiNarration || 'Collect all the story items — dodge the obstacles!'
   const victoryMsg    = level.endLine         || 'Amazing! You collected everything!'
 
@@ -171,7 +170,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
     const numGhosts = Math.min(ghostStarts.length, diff.numGhosts)
     const ghosts = ghostStarts.slice(0, numGhosts).map(([c,r], i) => ({
       x: c, y: r, dir: ['up','down','left','right'][i % 4],
-      emoji: ghostEmojis[i % ghostEmojis.length], timer: 0,
+      emoji: '👻', timer: 0,
     }))
 
     const st = {
@@ -180,7 +179,9 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       dots: new Set(allDots), total: allDots.size,
       score: 0, lives: 3, invincible: 0,
       alive: true, won: false, walkT: 0,
-      started: false,  // ghosts don't move until player makes first move
+      started: false,
+      caughtAnim: null,  // { sx, sy, t } — screen-space catch position + countdown
+      spawnAnim: 0,      // pop-in countdown after respawn (0.45 → 0)
     }
 
     let rafId, prev = null
@@ -221,8 +222,22 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       const toSX   = c => offX + c * cs + cs / 2
       const toSY   = r => offY + r * cs + cs / 2
 
-      // ── Physics ──────────────────────────────────────────────────────
-      if (st.alive && !st.won) {
+      // ── Caught animation tick (freeze everything while playing) ──────
+      if (st.caughtAnim) {
+        st.caughtAnim.t -= dt
+        dirRef.current = null
+        if (st.caughtAnim.t <= 0) {
+          // animation done — now respawn at centre with invincibility
+          st.px = playerStart[0]; st.py = playerStart[1]
+          st.dir = 'right'; st.pendingDir = null
+          st.invincible = 2; st.started = false
+          st.caughtAnim = null
+          st.spawnAnim = 0.45
+        }
+      }
+
+      // ── Physics (skipped while caught animation plays) ────────────────
+      if (st.alive && !st.won && !st.caughtAnim) {
         if (dirRef.current) { st.pendingDir = dirRef.current; dirRef.current = null }
         const tryMove = d => {
           const [dx,dy] = DIRS[d]
@@ -231,14 +246,12 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
           return false
         }
         if (st.pendingDir && !st.started) {
-          // First move: unfreeze on success
           st.moveTimer -= dt
           if (st.moveTimer <= 0) {
             st.moveTimer = 1 / diff.speed
             if (tryMove(st.pendingDir)) { st.pendingDir = null; st.started = true }
           }
         } else if (st.started) {
-          // Classic Pac-Man: try queued direction then auto-continue in current direction
           st.moveTimer -= dt
           if (st.moveTimer <= 0) {
             st.moveTimer = 1 / diff.speed
@@ -255,11 +268,11 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
           for (const g of ghosts) {
             if (Math.round(g.x) === st.px && Math.round(g.y) === st.py) {
               st.lives--
-              if (st.lives <= 0) { st.alive = false } else {
-                // respawn at start with 2s invincibility
-                st.px = playerStart[0]; st.py = playerStart[1]
-                st.dir = 'right'; st.pendingDir = null
-                st.invincible = 2; st.started = false
+              if (st.lives <= 0) {
+                st.alive = false
+              } else {
+                // start caught animation at the hit screen position
+                st.caughtAnim = { sx: toSX(st.px), sy: toSY(st.py), t: 1.0 }
               }
               break
             }
@@ -298,24 +311,62 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       // Ghosts
       for (const g of ghosts) drawEmoji(ctx, g.emoji, toSX(g.x), toSY(g.y), cs * 0.72)
 
-      // Player (Pac-Man) — blink every 0.1s when invincible
-      const showPlayer = st.alive && (st.invincible <= 0 || Math.floor(st.invincible / 0.1) % 2 === 0)
+      // Tick spawn pop-in
+      if (st.spawnAnim > 0) st.spawnAnim -= dt
+
+      // Player (Pac-Man) — hidden during caught anim, blinks when invincible
+      const showPlayer = st.alive && !st.caughtAnim && (st.invincible <= 0 || Math.floor(st.invincible / 0.1) % 2 === 0)
       if (showPlayer) {
         const px = toSX(st.px), py = toSY(st.py), pr = cs * 0.42
         const mouth = (0.5 + 0.5 * Math.sin(st.walkT * 12)) * 0.38
         const rot   = { right:0, down:Math.PI/2, left:Math.PI, up:-Math.PI/2 }[st.dir] || 0
 
-        ctx.save(); ctx.translate(px, py); ctx.rotate(rot)
+        const spawnP = st.spawnAnim > 0 ? 1 - (st.spawnAnim / 0.45) : 1
+        const popScale = st.spawnAnim > 0
+          ? (spawnP < 0.7 ? spawnP / 0.7 * 1.25 : 1.25 - (spawnP - 0.7) / 0.3 * 0.25)
+          : 1
+
+        ctx.save(); ctx.translate(px, py); ctx.scale(popScale, popScale); ctx.rotate(rot)
         ctx.fillStyle = col
         ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, pr, mouth, Math.PI*2-mouth); ctx.closePath(); ctx.fill()
         ctx.restore()
 
-        // Eye in world space (never flips)
+        // Eye + character emoji — scaled with pop-in
+        ctx.save(); ctx.translate(px, py); ctx.scale(popScale, popScale); ctx.translate(-px, -py)
         const eOff = { right:[pr*.12,-pr*.46], left:[-pr*.12,-pr*.46], down:[-pr*.46,pr*.12], up:[-pr*.46,-pr*.12] }[st.dir] || [pr*.12,-pr*.46]
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px+eOff[0], py+eOff[1], pr*.13, 0, Math.PI*2); ctx.fill()
         ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(px+eOff[0]+pr*.03, py+eOff[1]+pr*.02, pr*.07, 0, Math.PI*2); ctx.fill()
-
         drawEmoji(ctx, characterEmoji || '🧒', px, py - pr * 0.08, pr * 1.05)
+        ctx.restore()
+      }
+
+      // ── Caught animation — expanding rings + shrinking character at hit spot ──
+      if (st.caughtAnim) {
+        const { sx, sy, t } = st.caughtAnim  // t goes 1.0 → 0
+        const progress = 1 - t               // 0 → 1
+
+        // 3 expanding rings at staggered phases
+        for (let i = 0; i < 3; i++) {
+          const phase = Math.min(1, progress * 1.5 - i * 0.15)
+          if (phase <= 0) continue
+          const radius = cs * 0.3 + phase * cs * 1.2
+          const alpha  = (1 - phase) * 0.7
+          ctx.save()
+          ctx.globalAlpha = alpha
+          ctx.strokeStyle = col
+          ctx.lineWidth = 3 - i
+          ctx.beginPath(); ctx.arc(sx, sy, radius, 0, Math.PI * 2); ctx.stroke()
+          ctx.restore()
+        }
+
+        // Character emoji shrinks + fades out at catch position
+        const emojiScale = Math.max(0, 1 - progress * 1.3)
+        if (emojiScale > 0) {
+          ctx.save()
+          ctx.globalAlpha = emojiScale
+          drawEmoji(ctx, characterEmoji || '🧒', sx, sy, cs * 0.8 * emojiScale)
+          ctx.restore()
+        }
       }
 
       // ── HUD pills — above the maze ──────────────────────────────────────

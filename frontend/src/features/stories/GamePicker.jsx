@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ChaseRunner from './ChaseRunner'
 import StoryRunner from './StoryRunner'
 
 export default function GamePicker({ runnerLevelJson, characterEmoji, theme, birthYear, onClose }) {
   const [game, setGame] = useState(null)  // null | 'chase' | 'story'
   const col = theme?.primary || '#FF6B6B'
+
+  // Session timeout exits all the way out, not just back to picker
+  useEffect(() => {
+    window.addEventListener('glumbi-force-exit', onClose)
+    return () => window.removeEventListener('glumbi-force-exit', onClose)
+  }, [onClose])
 
   if (game === 'chase') {
     return <ChaseRunner runnerLevelJson={runnerLevelJson} characterEmoji={characterEmoji}

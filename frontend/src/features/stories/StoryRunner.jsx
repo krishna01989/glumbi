@@ -260,8 +260,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
   }
 
   useEffect(() => {
-    window.addEventListener('glumbi-force-exit', onClose)
-    return () => window.removeEventListener('glumbi-force-exit', onClose)
+    // force-exit is handled by GamePicker — no listener needed here
   }, [onClose])
 
   // Keyboard

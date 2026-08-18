@@ -15,7 +15,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { runPageCurl } from '../../utils/pageCurl'
 import VocabWords from '../../components/VocabWords'
 import { useTheme } from '../../contexts/ThemeContext'
-import ChaseRunner from './ChaseRunner'
+import GamePicker from './GamePicker'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)
@@ -1242,7 +1242,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
     {runnerLoading && <ThemeLoader theme={child.theme} />}
 
     {runnerOpen && selected?.runnerLevelJson && (
-      <ChaseRunner
+      <GamePicker
         runnerLevelJson={selected.runnerLevelJson}
         characterEmoji={child.avatarEmoji}
         theme={theme}

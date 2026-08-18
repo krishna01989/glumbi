@@ -1,5 +1,4 @@
 import { useRef, useEffect, useState } from 'react'
-import StoryRunner from './StoryRunner'
 import GameIntroScreen from './GameIntroScreen'
 
 // ── Age difficulty (platform brackets: ≤4, ≤6, ≤8, 9–10) ──────────────────
@@ -88,9 +87,8 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
   const dirRef    = useRef(null)
   const pausedRef = useRef(false)
   const [paused, setPaused]   = useState(false)
-  const [phase, setPhase]     = useState('narration')
+  const [phase, setPhase]     = useState('intro')
   const [result, setResult]   = useState(null)
-  const [showStoryRun, setShowStoryRun] = useState(false)
 
   const togglePause = () => {
     pausedRef.current = !pausedRef.current
@@ -379,46 +377,14 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
     <div style={{ position:'fixed', inset:0, zIndex:9999, background:'#0a0a1a',
                   display:'flex', flexDirection:'column', fontFamily:'Nunito,sans-serif' }}>
 
-      {/* Close — during play/result goes back to picker; from picker exits entirely */}
-      <button onClick={() => phase === 'narration' ? onClose() : (setPhase('narration'), setResult(null))} style={{
+      {/* Close — always exits to GamePicker */}
+      <button onClick={onClose} style={{
         position:'absolute', top:14, right:14, zIndex:10001,
-        display: (showStoryRun || phase === 'intro' || phase === 'result') ? 'none' : undefined,
+        display: (phase === 'result') ? 'none' : undefined,
         width:36, height:36, minWidth:36, minHeight:36, padding:0, flexShrink:0,
         borderRadius:'50%', border:'none', background:'rgba(255,255,255,0.18)',
         color:'#fff', fontSize:16, cursor:'pointer', lineHeight:1,
       }}>✕</button>
-
-      {/* Game picker */}
-      {phase === 'narration' && (
-        <div style={{ flex:1, display:'flex', flexDirection:'column',
-                      alignItems:'center', justifyContent:'center', padding:32, gap:20 }}>
-          <div style={{ fontSize:48 }}>🎮</div>
-          <div style={{ background:'rgba(255,255,255,0.1)', borderRadius:20,
-                        padding:'18px 24px', maxWidth:340, textAlign:'center',
-                        color:'#fff', fontSize:15, lineHeight:1.7 }}>{narration}</div>
-          <div style={{ color:'rgba(255,255,255,0.5)', fontSize:13, textAlign:'center' }}>
-            Choose your game!
-          </div>
-          <div style={{ display:'flex', gap:16, flexWrap:'wrap', justifyContent:'center' }}>
-            <button onClick={() => setPhase('intro')} style={{
-              background:col, color:'#fff', border:'none', borderRadius:20,
-              padding:'18px 28px', fontSize:15, fontWeight:800, cursor:'pointer',
-              display:'flex', flexDirection:'column', alignItems:'center', gap:6, minWidth:130 }}>
-              <span style={{ fontSize:36 }}>👾</span>
-              <span>Maze Chase</span>
-              <span style={{ fontSize:11, fontWeight:400, opacity:0.8 }}>Swipe to navigate</span>
-            </button>
-            <button onClick={() => setShowStoryRun(true)} style={{
-              background:'rgba(255,255,255,0.14)', color:'#fff', border:`2px solid ${col}`,
-              borderRadius:20, padding:'18px 28px', fontSize:15, fontWeight:800, cursor:'pointer',
-              display:'flex', flexDirection:'column', alignItems:'center', gap:6, minWidth:130 }}>
-              <span style={{ fontSize:36 }}>🏃</span>
-              <span>Story Run</span>
-              <span style={{ fontSize:11, fontWeight:400, opacity:0.8 }}>Tap to jump</span>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Maze Chase intro screen */}
       {phase === 'intro' && (
@@ -486,7 +452,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
               padding:'12px 28px', fontSize:16, fontWeight:800, cursor:'pointer' }}>
               Play Again 🔄
             </button>
-            <button onClick={() => { setResult(null); setPhase('narration') }} style={{
+            <button onClick={() => { setResult(null); onClose() }} style={{
               background:'transparent', color:'#fff', borderRadius:50,
               border:'2px solid rgba(255,255,255,0.35)',
               padding:'12px 28px', fontSize:16, fontWeight:800, cursor:'pointer' }}>
@@ -494,17 +460,6 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
             </button>
           </div>
         </div>
-      )}
-
-      {/* Story Run — full-screen overlay, own close goes back to picker */}
-      {showStoryRun && (
-        <StoryRunner
-          runnerLevelJson={runnerLevelJson}
-          characterEmoji={characterEmoji}
-          theme={theme}
-          birthYear={birthYear}
-          onClose={() => setShowStoryRun(false)}
-        />
       )}
     </div>
   )

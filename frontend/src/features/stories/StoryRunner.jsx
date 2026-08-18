@@ -663,13 +663,14 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
             <button onClick={() => { setResult(null); setPhase('playing') }} style={{
               background: col, color: '#fff', border: 'none',
-              borderRadius: 50, padding: '12px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
-              Play Again
+              borderRadius: 50, padding: '12px 28px', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
+              Play Again 🔄
             </button>
             <button onClick={onClose} style={{
-              background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none',
-              borderRadius: 50, padding: '12px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
-              Done ✓
+              background: 'transparent', color: '#fff',
+              border: '2px solid rgba(255,255,255,0.35)',
+              borderRadius: 50, padding: '12px 28px', fontSize: 16, fontWeight: 800, cursor: 'pointer' }}>
+              Change Game
             </button>
           </div>
         </div>

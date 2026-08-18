@@ -168,27 +168,43 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
 
     const numGhosts = Math.min(ghostStarts.length, diff.numGhosts)
     const ghosts = ghostStarts.slice(0, numGhosts).map(([c,r], i) => ({
-      x: c, y: r, dir: ['up','down','left','right'][i % 4],
-      emoji: '👻', timer: 0,
+      // tile position (integers)
+      x: c, y: r,
+      // smooth visual position (fractional, for drawing)
+      vx: c, vy: r,
+      fromX: c, fromY: r, toX: c, toY: r, moveT: 1,
+      dir: ['up','down','left','right'][i % 4],
+      emoji: '👻',
     }))
 
     const st = {
       px: playerStart[0], py: playerStart[1],
-      dir: 'right', pendingDir: null, moveTimer: 0,
+      // smooth visual position
+      vx: playerStart[0], vy: playerStart[1],
+      fromX: playerStart[0], fromY: playerStart[1],
+      toX: playerStart[0], toY: playerStart[1], moveT: 1,
+      dir: 'right', pendingDir: null,
       dots: new Set(allDots), total: allDots.size,
       score: 0, lives: 3, invincible: 0,
       alive: true, won: false, walkT: 0,
       started: false,
-      caughtAnim: null,  // { sx, sy, t } — screen-space catch position + countdown
-      spawnAnim: 0,      // pop-in countdown after respawn (0.45 → 0)
+      caughtAnim: null,  // { sx, sy, t }
+      spawnAnim: 0,
     }
 
     let rafId, prev = null
 
     function ghostAI(g, dt) {
-      g.timer -= dt
-      if (g.timer > 0) return
-      const canGo = d => { const [dx,dy] = DIRS[d]; return !isWall(Math.round(g.x)+dx, Math.round(g.y)+dy) }
+      // advance smooth interpolation
+      if (g.moveT < 1) {
+        g.moveT = Math.min(1, g.moveT + dt * diff.ghostSpeed)
+        g.vx = g.fromX + (g.toX - g.fromX) * g.moveT
+        g.vy = g.fromY + (g.toY - g.fromY) * g.moveT
+        return
+      }
+      // arrived at target tile — pick next direction
+      g.x = g.toX; g.y = g.toY; g.vx = g.x; g.vy = g.y
+      const canGo = d => { const [dx,dy] = DIRS[d]; return !isWall(g.x+dx, g.y+dy) }
       if (!canGo(g.dir)) {
         const opts = Object.keys(DIRS).filter(canGo)
         g.dir = opts.length ? opts[Math.floor(Math.random() * opts.length)] : g.dir
@@ -197,9 +213,12 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
         if (opts.length) g.dir = opts[Math.floor(Math.random() * opts.length)]
       }
       const [dx,dy] = DIRS[g.dir]
-      g.x = Math.round(g.x) + dx
-      g.y = Math.round(g.y) + dy
-      g.timer = 1 / diff.ghostSpeed
+      const nx = g.x + dx, ny = g.y + dy
+      if (!isWall(nx, ny)) {
+        g.fromX = g.x; g.fromY = g.y
+        g.toX = nx; g.toY = ny
+        g.moveT = 0
+      }
     }
 
     function frame(ts) {
@@ -228,6 +247,9 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
         if (st.caughtAnim.t <= 0) {
           // animation done — now respawn at centre with invincibility
           st.px = playerStart[0]; st.py = playerStart[1]
+          st.vx = st.px; st.vy = st.py
+          st.fromX = st.px; st.fromY = st.py
+          st.toX = st.px; st.toY = st.py; st.moveT = 1
           st.dir = 'right'; st.pendingDir = null
           st.invincible = 2; st.started = false
           st.caughtAnim = null
@@ -238,46 +260,63 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       // ── Physics (skipped while caught animation plays) ────────────────
       if (st.alive && !st.won && !st.caughtAnim) {
         if (dirRef.current) { st.pendingDir = dirRef.current; dirRef.current = null }
-        const tryMove = d => {
-          const [dx,dy] = DIRS[d]
-          const nx = Math.round(st.px)+dx, ny = Math.round(st.py)+dy
-          if (!isWall(nx,ny)) { st.px=nx; st.py=ny; st.dir=d; return true }
-          return false
-        }
-        if (st.pendingDir && !st.started) {
-          st.moveTimer -= dt
-          if (st.moveTimer <= 0) {
-            st.moveTimer = 1 / diff.speed
-            if (tryMove(st.pendingDir)) { st.pendingDir = null; st.started = true }
+
+        if (!st.started && st.pendingDir) {
+          // first move — start interpolating toward first tile
+          const [dx,dy] = DIRS[st.pendingDir]
+          const nx = st.px + dx, ny = st.py + dy
+          if (!isWall(nx, ny)) {
+            st.dir = st.pendingDir; st.pendingDir = null
+            st.fromX = st.px; st.fromY = st.py
+            st.toX = nx; st.toY = ny; st.moveT = 0
+            st.started = true
           }
         } else if (st.started) {
-          st.moveTimer -= dt
-          if (st.moveTimer <= 0) {
-            st.moveTimer = 1 / diff.speed
-            if (!(st.pendingDir && tryMove(st.pendingDir))) tryMove(st.dir)
-            else st.pendingDir = null
+          // advance smooth interpolation
+          if (st.moveT < 1) {
+            st.moveT = Math.min(1, st.moveT + dt * diff.speed)
+            st.vx = st.fromX + (st.toX - st.fromX) * st.moveT
+            st.vy = st.fromY + (st.toY - st.fromY) * st.moveT
           }
+          if (st.moveT >= 1) {
+            // arrived — snap to tile, collect dot, queue next move
+            st.px = st.toX; st.py = st.toY; st.vx = st.px; st.vy = st.py
+            const key = `${st.px},${st.py}`
+            if (st.dots.has(key)) { st.dots.delete(key); st.score++; if (!st.dots.size) st.won = true }
+            const tryDir = d => {
+              const [dx,dy] = DIRS[d]
+              const nx = st.px + dx, ny = st.py + dy
+              if (!isWall(nx, ny)) {
+                st.dir = d
+                st.fromX = st.px; st.fromY = st.py
+                st.toX = nx; st.toY = ny; st.moveT = 0
+                return true
+              }
+              return false
+            }
+            if (st.pendingDir && tryDir(st.pendingDir)) st.pendingDir = null
+            else tryDir(st.dir)
+          }
+          for (const g of ghosts) ghostAI(g, dt)
         }
-        const key = `${st.px},${st.py}`
-        if (st.dots.has(key)) { st.dots.delete(key); st.score++; if (!st.dots.size) st.won = true }
-        if (st.started) for (const g of ghosts) ghostAI(g, dt)
+
         if (st.invincible > 0) {
           st.invincible -= dt
         } else {
           for (const g of ghosts) {
-            if (Math.round(g.x) === st.px && Math.round(g.y) === st.py) {
+            const dx = st.vx - g.vx, dy = st.vy - g.vy
+            if (Math.sqrt(dx*dx + dy*dy) < 0.65) {
               st.lives--
               if (st.lives <= 0) {
                 st.alive = false
               } else {
-                // start caught animation at the hit screen position
-                st.caughtAnim = { sx: toSX(st.px), sy: toSY(st.py), t: 1.0 }
+                st.caughtAnim = { sx: toSX(st.vx), sy: toSY(st.vy), t: 1.0 }
               }
               break
             }
           }
         }
-        st.walkT += dt
+        if (st.moveT < 1) st.walkT += dt
       }
 
       // ── Draw background ───────────────────────────────────────────────
@@ -308,7 +347,12 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       }
 
       // Ghosts
-      for (const g of ghosts) drawEmoji(ctx, g.emoji, toSX(g.x), toSY(g.y), cs * 0.72)
+      for (const g of ghosts) {
+        const flicker = 0.52 + 0.18 * Math.sin(ts / 1000 * 7.5 + g.x * 3.7 + g.y * 2.3)
+        ctx.save(); ctx.globalAlpha = flicker
+        drawEmoji(ctx, g.emoji, toSX(g.vx), toSY(g.vy), cs * 0.72)
+        ctx.restore()
+      }
 
       // Tick spawn pop-in
       if (st.spawnAnim > 0) st.spawnAnim -= dt
@@ -316,8 +360,10 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       // Player (Pac-Man) — hidden during caught anim, blinks when invincible
       const showPlayer = st.alive && !st.caughtAnim && (st.invincible <= 0 || Math.floor(st.invincible / 0.1) % 2 === 0)
       if (showPlayer) {
-        const px = toSX(st.px), py = toSY(st.py), pr = cs * 0.42
-        const mouth = (0.5 + 0.5 * Math.sin(st.walkT * 12)) * 0.38
+        const px = toSX(st.vx), py = toSY(st.vy), pr = cs * 0.42
+        // mouth closes as the player arrives at a tile (moveT → 1) and stays closed when stopped
+        const moveFrac = st.started ? Math.min(1, (1 - st.moveT) * 4) : 0
+        const mouth = 0.08 + (0.5 + 0.5 * Math.sin(st.walkT * 12)) * 0.28 * moveFrac
         const rot   = { right:0, down:Math.PI/2, left:Math.PI, up:-Math.PI/2 }[st.dir] || 0
 
         const spawnP = st.spawnAnim > 0 ? 1 - (st.spawnAnim / 0.45) : 1
@@ -330,12 +376,11 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
         ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, pr, mouth, Math.PI*2-mouth); ctx.closePath(); ctx.fill()
         ctx.restore()
 
-        // Eye + character emoji — scaled with pop-in
+        // Eye — scaled with pop-in
         ctx.save(); ctx.translate(px, py); ctx.scale(popScale, popScale); ctx.translate(-px, -py)
         const eOff = { right:[pr*.12,-pr*.46], left:[-pr*.12,-pr*.46], down:[-pr*.46,pr*.12], up:[-pr*.46,-pr*.12] }[st.dir] || [pr*.12,-pr*.46]
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px+eOff[0], py+eOff[1], pr*.13, 0, Math.PI*2); ctx.fill()
         ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(px+eOff[0]+pr*.03, py+eOff[1]+pr*.02, pr*.07, 0, Math.PI*2); ctx.fill()
-        drawEmoji(ctx, characterEmoji || '🧒', px, py - pr * 0.08, pr * 1.05)
         ctx.restore()
       }
 
@@ -358,12 +403,15 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
           ctx.restore()
         }
 
-        // Character emoji shrinks + fades out at catch position
-        const emojiScale = Math.max(0, 1 - progress * 1.3)
-        if (emojiScale > 0) {
+        // Pac-Man shrinks + fades out at catch position
+        const shrink = Math.max(0, 1 - progress * 1.3)
+        if (shrink > 0) {
+          const pr = cs * 0.42 * shrink
           ctx.save()
-          ctx.globalAlpha = emojiScale
-          drawEmoji(ctx, characterEmoji || '🧒', sx, sy, cs * 0.8 * emojiScale)
+          ctx.globalAlpha = shrink
+          ctx.translate(sx, sy); ctx.scale(shrink, shrink)
+          ctx.fillStyle = col
+          ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, pr / shrink, 0.3, Math.PI*2-0.3); ctx.closePath(); ctx.fill()
           ctx.restore()
         }
       }

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import NotificationBell from '../components/NotificationBell'
 import AppFooter from '../components/AppFooter'
+import CreditInfoModal from '../components/CreditInfoModal'
 
 function fmtExpiry(iso) {
   if (!iso) return ''
@@ -77,14 +78,21 @@ function PromoPopup({ quota, onClose, anchorRef }) {
   )
 }
 
-export default function ManagementLayout({ children, lockModalEl, quota, handleLogout }) {
+export default function ManagementLayout({ children, lockModalEl, quota, featureConfig, handleLogout }) {
   const navigate  = useNavigate()
   const location  = useLocation()
   const [mgmtMenuOpen, setMgmtMenuOpen] = useState(false)
   const [showPromoDesktop, setShowPromoDesktop] = useState(false)
   const [showPromoMobile, setShowPromoMobile]   = useState(false)
+  const [showCreditInfo, setShowCreditInfo]     = useState(false)
   const promoDesktopRef = useRef(null)
   const promoMobileRef  = useRef(null)
+
+  useEffect(() => {
+    const handler = () => setShowCreditInfo(true)
+    window.addEventListener('glumbi:credit-info', handler)
+    return () => window.removeEventListener('glumbi:credit-info', handler)
+  }, [])
 
   const hasPromo = (quota?.totalPromoRemaining ?? 0) > 0 || (quota?.promoGrants?.length ?? 0) > 0
   const pct = quota ? Math.min(quota.used / quota.limit, 1) : 0
@@ -304,6 +312,10 @@ export default function ManagementLayout({ children, lockModalEl, quota, handleL
         {children}
       </div>
       <AppFooter />
+
+      {showCreditInfo && (
+        <CreditInfoModal featureConfig={featureConfig || []} onClose={() => setShowCreditInfo(false)} />
+      )}
     </div>
   )
 }

@@ -15,6 +15,7 @@ import useFeatureDuration from '../../hooks/useFeatureDuration'
 import { runPageCurl } from '../../utils/pageCurl'
 import VocabWords from '../../components/VocabWords'
 import { useTheme } from '../../contexts/ThemeContext'
+import ChaseRunner from './ChaseRunner'
 
 function useIsMobile() {
   const [m, setM] = useState(window.innerWidth < 1024)
@@ -172,6 +173,25 @@ export default function Stories({ child, quota }) {
     return saved ? parseInt(saved, 10) : null  // null = default Google TTS
   })
   const [similarStories, setSimilarStories] = useState([])
+
+  // Story Chase runner state
+  const [runnerOpen, setRunnerOpen]       = useState(false)
+  const [runnerLoading, setRunnerLoading] = useState(false)
+  const [runnerError, setRunnerError]     = useState(null)
+
+  async function handlePlayRunner() {
+    if (!selected) return
+    setRunnerError(null)
+    if (selected.runnerLevelJson) { setRunnerOpen(true); return }
+    setRunnerLoading(true)
+    try {
+      const data = await storyApi.generateRunnerLevel(selected.id, child.id)
+      setStories(prev => prev.map(s => s.id === selected.id ? { ...s, runnerLevelJson: data.runnerLevelJson } : s))
+      setSelected(prev => prev?.id === selected.id ? { ...prev, runnerLevelJson: data.runnerLevelJson } : prev)
+      setRunnerOpen(true)
+    } catch { setRunnerError('Could not generate runner level. Try again!') }
+    finally { setRunnerLoading(false) }
+  }
 
   // Glumbi guide state
   const [glumbiPhase, setGlumbiPhase]           = useState('idle') // idle | intro | reading1 | mid | reading2 | post | epilogue
@@ -1025,8 +1045,10 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                         track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
                         navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
                       }, false)}
+                      {!offline && gbtn(runnerLoading ? <><span className="spinner" /> Building level…</> : 'Play story! 🎮', handlePlayRunner, false)}
                       {gbtn('Bye Glumbi! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
                     </div>
+                    {runnerError && <div style={{ color: '#ff6b6b', fontSize: 13, marginTop: 6 }}>{runnerError}</div>}
                   </GlumbiBubble>
                   <VocabWords vocabWordsJson={selected.vocabWordsJson} theme={theme} />
                 </>
@@ -1040,6 +1062,7 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
                         track('stories', 'glumbi_cross_nav', { metadata: { from: 'stories', to: 'readquiz' } })
                         navigate(`/child/${child.id}/readquiz`, { state: { storyId: selected.id } })
                       }, false)}
+                      {!offline && gbtn(runnerLoading ? <><span className="spinner" /> Building level…</> : 'Play story! 🎮', handlePlayRunner, false)}
                       {gbtn('The end! 🌙', () => { track('stories', 'glumbi_post_response'); updateGlumbiPhase('idle') }, false)}
                     </div>
                   </GlumbiBubble>
@@ -1215,6 +1238,18 @@ if (similar.length > 0) track('stories', 'similar_viewed', { metadata: { trigger
         </HistoryDrawer>
       )
     })()}
+
+    {runnerLoading && <ThemeLoader theme={child.theme} />}
+
+    {runnerOpen && selected?.runnerLevelJson && (
+      <ChaseRunner
+        runnerLevelJson={selected.runnerLevelJson}
+        characterEmoji={child.avatarEmoji}
+        theme={theme}
+        birthYear={child.birthYear}
+        onClose={() => setRunnerOpen(false)}
+      />
+    )}
     </>
   )
 }

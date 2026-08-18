@@ -358,6 +358,25 @@ public class StoryController {
         }
     }
 
+    @PostMapping("/{id}/runner-level")
+    public ResponseEntity<?> generateRunnerLevel(@PathVariable Long id,
+                                                  @RequestBody Map<String, Object> body,
+                                                  @AuthenticationPrincipal AuthUser authUser) {
+        Long childId = body.containsKey("childId") ? ((Number) body.get("childId")).longValue() : null;
+        if (!quotaService.isFeatureEnabled(authUser.id(), "story-runner")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Story Chase is currently unavailable."));
+        }
+        try {
+            Story story = service.generateRunnerLevel(id);
+            if (!quotaService.tryConsume(authUser.id(), "story-runner", childId)) {
+                return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
+            }
+            return ResponseEntity.ok(Map.of("runnerLevelJson", story.getRunnerLevelJson() != null ? story.getRunnerLevelJson() : "{}"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate runner level"));
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (r2Service.isAvailable()) {

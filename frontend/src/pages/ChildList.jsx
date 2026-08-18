@@ -11,69 +11,12 @@ function calcAge(birthYear) {
   return !birthYear ? null : new Date().getFullYear() - parseInt(birthYear)
 }
 
-const FEATURE_META = {
-  'story':               { label: 'Stories',          emoji: '📖' },
-  'activity':            { label: 'Activities',       emoji: '🎮' },
-  'learn-validate':      { label: 'Learn to Write',   emoji: '✏️' },
-  'learn-word':          { label: 'Learn a Word',     emoji: '🔤' },
-  'curiosity':           { label: 'Curiosity',        emoji: '🔍' },
-  'draw':                { label: 'Draw',             emoji: '🎨' },
-  'draw-guide':          { label: 'Drawing Guide',    emoji: '🖌️' },
-  'draw-animate':        { label: 'Bring to Life',    emoji: '🎬' },
-  'read-quiz':           { label: 'Read & Quiz',      emoji: '📚' },
-  'story-listen':        { label: 'Story Listening',  emoji: '🎧' },
-  'writing-coach':       { label: 'My Writing',       emoji: '✍️' },
-  'translation':         { label: 'Translation',      emoji: '🌍' },
-  'flipbook':            { label: 'Flipbook Studio',  emoji: '🎞️' },
-  'memory':              { label: 'Memory',           emoji: '🧠' },
-  'memory-flashcards':   { label: 'Flashcards',       emoji: '🧠' },
-  'memory-match':        { label: 'Memory Match',     emoji: '🃏' },
-  'word-of-day':         { label: 'Word of Day',      emoji: '💡' },
-  'journal-ai':          { label: 'AI Journal',       emoji: '📔' },
-  'maze':                { label: 'Maze',             emoji: '🌀' },
-  'riddle':              { label: 'Riddles',          emoji: '❓' },
-  'torch-hunt':          { label: 'Torch Hunt',       emoji: '🔦' },
-}
-
-/* ── Credit info modal ── */
+/* ── Format expiry date ── */
 function fmtExpiry(iso) {
   if (!iso) return ''
   const [y, m, d] = iso.split('-')
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   return `${parseInt(d)} ${months[parseInt(m) - 1]}, ${y}`
-}
-
-function CreditInfoModal({ featureConfig, onClose }) {
-  const items = featureConfig.filter(f => f.featureName && FEATURE_META[f.featureName])
-  return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 24, padding: '24px 20px', maxWidth: 360, width: '100%', maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 80px rgba(0,0,0,0.35)', position: 'relative', boxSizing: 'border-box', animation: 'glm-fadein 0.3s ease both', fontFamily: 'Nunito, sans-serif' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, width: 28, height: 28, minWidth: 28, minHeight: 28, borderRadius: '50%', border: '1.5px solid #eee', background: '#f9f9f9', fontSize: 13, color: '#aaa', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0 }}>✕</button>
-        <div style={{ fontSize: 26, marginBottom: 4 }}>🪙</div>
-        <div style={{ fontWeight: 900, fontSize: 16, color: '#333', marginBottom: 3 }}>How AI Credits Work</div>
-        <div style={{ fontSize: 12, color: '#aaa', marginBottom: 16, lineHeight: 1.5 }}>Each AI interaction uses a small number of credits. Here's the cost per use:</div>
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 7 }}>
-          {items.map(f => {
-            const meta = FEATURE_META[f.featureName]
-            return (
-              <div key={f.featureName} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 12px', borderRadius: 12, background: '#fafafa', border: '1.5px solid #f0f0f0', flexShrink: 0 }}>
-                <span style={{ fontSize: 18, width: 26, textAlign: 'center' }}>{meta.emoji}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 13, color: '#333' }}>{meta.label}</div>
-                  {f.description && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1, lineHeight: 1.5 }}>{f.description}</div>}
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontWeight: 900, fontSize: 14, color: '#ff6b6b' }}>{f.creditCost} cr</div>
-                  <div style={{ fontSize: 10, color: '#ccc' }}>per use</div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <div style={{ fontSize: 11, color: '#ccc', textAlign: 'center', marginTop: 14, flexShrink: 0 }}>Monthly credits reset on the 1st of each month</div>
-      </div>
-    </div>
-  )
 }
 
 /* ── Quota pill ── */
@@ -620,7 +563,6 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
   const [loading, setLoading]         = useState(true)
   const [offlineModes, setOfflineModes] = useState({})
   const [pendingChild, setPendingChild] = useState(null)
-  const [showCreditInfo, setShowCreditInfo] = useState(false)
   const [showParentGuide, setShowParentGuide] = useState(() => !localStorage.getItem('glm_parent_guide_seen'))
   const [dismissedGrownUp, setDismissedGrownUp] = useState(() => {
     try { return JSON.parse(localStorage.getItem('glm_grownup_dismissed') || '[]') } catch { return [] }
@@ -685,9 +627,6 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
     // Refresh the quota pill in the header too
     window.__glumbiRefreshQuota?.()
 
-    const openInfo = () => setShowCreditInfo(true)
-    window.addEventListener('glumbi:credit-info', openInfo)
-    return () => window.removeEventListener('glumbi:credit-info', openInfo)
   }, [])
 
   function handleToggleOffline(e, c) {
@@ -968,9 +907,6 @@ export default function ChildList({ onChildSelected, onLogout, onLockConfirmed, 
       </div>
 
       {/* Modals */}
-      {showCreditInfo && (
-        <CreditInfoModal featureConfig={featureConfig} onClose={() => setShowCreditInfo(false)} />
-      )}
       {showParentGuide && (
         <ParentGuideModal onClose={() => { setShowParentGuide(false); localStorage.setItem('glm_parent_guide_seen', '1') }} />
       )}

@@ -120,6 +120,7 @@ export const storyApi = {
   toggleFavorite: (id)                => api.patch(`/stories/${id}/favorite`).then(r => r.data),
   getSimilar:     (id)                => api.get(`/stories/${id}/similar`).then(r => r.data),
   translate:      (id, language)      => api.get(`/stories/${id}/translate?language=${language}`).then(r => r.data),
+  generateRunnerLevel: (id, childId) => api.post(`/stories/${id}/runner-level`, { childId }).then(r => r.data),
   listenUrl:      async (id, language, voice, familyVoiceId, part, branch) => {
     const base   = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
     const stoken = await getAudioToken(`story:${id}`)

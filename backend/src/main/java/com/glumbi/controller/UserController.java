@@ -32,6 +32,7 @@ public class UserController {
     private static final Pattern STRONG_PASSWORD =
         Pattern.compile("^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{}|;':\",./<>?]).{8,}$");
 
+
     private final UserRepository          userRepository;
     private final ChildRepository         childRepository;
     private final ApiQuotaService         quotaService;
@@ -266,28 +267,6 @@ public class UserController {
             logMap.computeIfAbsent(cid, k -> new java.util.HashMap<>()).put(feat, new long[]{credits, count});
         }
 
-        // Feature display metadata
-        record FeatMeta(String label, String icon) {}
-        java.util.Map<String, FeatMeta> meta = new java.util.HashMap<>();
-        meta.put("story",             new FeatMeta("Stories",      "📖"));
-        meta.put("story-listen",      new FeatMeta("Story Listen", "🔊"));
-        meta.put("activity",          new FeatMeta("Activities",   "🎮"));
-        meta.put("curiosity",         new FeatMeta("Curiosity",    "🔍"));
-        meta.put("read-quiz",         new FeatMeta("Read & Quiz",  "📚"));
-        meta.put("writing-coach",     new FeatMeta("My Writing",   "✍️"));
-        meta.put("draw",              new FeatMeta("Drawing",      "🎨"));
-        meta.put("draw-animate",      new FeatMeta("Bring to Life","✨"));
-        meta.put("memory-flashcards", new FeatMeta("Flashcards",   "🧠"));
-        meta.put("memory-match",      new FeatMeta("Memory Match", "🃏"));
-        meta.put("word-of-day",       new FeatMeta("Word of Day",  "✏️"));
-        meta.put("draw-guide",        new FeatMeta("Draw Guide",   "🖌️"));
-        meta.put("learn-validate",    new FeatMeta("Letter Check", "🔤"));
-        meta.put("learn-word",        new FeatMeta("Learn Word",   "✏️"));
-        meta.put("journal-ai",        new FeatMeta("Journal AI",   "📓"));
-        meta.put("maze",              new FeatMeta("Maze",         "🌀"));
-        meta.put("riddle",            new FeatMeta("Riddle",       "🧩"));
-        meta.put("translation",       new FeatMeta("Translation",  "🌐"));
-
         var breakdown = children.stream().map(child -> {
             var childLog = logMap.getOrDefault(child.getId(), java.util.Map.of());
             long total = childLog.values().stream().mapToLong(v -> v[0]).sum();
@@ -295,16 +274,11 @@ public class UserController {
             var features = childLog.entrySet().stream()
                 .sorted(java.util.Map.Entry.<String, long[]>comparingByValue(
                     (a, b) -> Long.compare(b[0], a[0])))
-                .map(e -> {
-                    FeatMeta m = meta.getOrDefault(e.getKey(), new FeatMeta(e.getKey(), "⚙️"));
-                    return Map.of(
-                        "feature", (Object) e.getKey(),
-                        "label",   (Object) m.label(),
-                        "icon",    (Object) m.icon(),
-                        "count",   (Object) e.getValue()[1],
-                        "credits", (Object) e.getValue()[0]
-                    );
-                }).toList();
+                .map(e -> Map.of(
+                    "feature", (Object) e.getKey(),
+                    "count",   (Object) e.getValue()[1],
+                    "credits", (Object) e.getValue()[0]
+                )).toList();
 
             return Map.of(
                 "childId",      (Object) child.getId(),

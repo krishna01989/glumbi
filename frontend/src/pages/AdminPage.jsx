@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { adminApi, analyticsApi } from '../api/client'
 import ConfirmDialog from '../components/ConfirmDialog'
 import ErrorBox from '../components/ErrorBox'
+import SHARED_FEATURE_META from '../constants/featureMeta'
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(() => window.innerWidth < 640)
@@ -168,29 +169,10 @@ function SetQuotaModal({ user, onClose, onSave }) {
 }
 
 // ─── Feature Access modal ─────────────────────────────────────────────────────
-const FEATURE_DISPLAY_MAP = {
-  'story':          { label: 'Stories',        icon: '📖' },
-  'activity':       { label: 'Activities',     icon: '🎮' },
-  'curiosity':      { label: 'Curiosity',      icon: '🔍' },
-  'read-quiz':      { label: 'Read & Quiz',    icon: '📚' },
-  'writing-coach':  { label: 'Writing Coach',  icon: '✍️'  },
-  'translation':    { label: 'Translation',    icon: '🌐' },
-  'draw':           { label: 'Drawing',        icon: '🎨' },
-  'flipbook':       { label: 'Flipbook Studio', icon: '🖼️' },
-  'learn-validate': { label: 'Letter Validate',icon: '🔤' },
-  'learn-word':     { label: 'Learn Word',     icon: '✏️'  },
-  'story-listen':        { label: 'Story Audio',    icon: '🔊' },
-  'memory':              { label: 'Memory Play',     icon: '🧠' },
-  'memory-flashcards':   { label: 'Flashcards',      icon: '📇' },
-  'word-of-day':         { label: 'Word of the Day', icon: '📘' },
-  'memory-match':        { label: 'Memory Match',    icon: '🃏' },
-  'journal-ai':          { label: 'Journal AI',      icon: '📝' },
-  'draw-guide':          { label: 'Drawing Guide',   icon: '🎨' },
-  'draw-animate':        { label: 'Bring to Life',   icon: '🎬' },
-  'maze':                { label: 'Maze',            icon: '🌀' },
-  'riddle':              { label: 'Riddle',          icon: '🧩' },
-  'torch-hunt':          { label: 'Torch Hunt',      icon: '🔦' },
-}
+// Derived from shared meta — renames 'emoji' → 'icon' for backward compat
+const FEATURE_DISPLAY_MAP = Object.fromEntries(
+  Object.entries(SHARED_FEATURE_META).map(([k, v]) => [k, { label: v.label, icon: v.emoji }])
+)
 
 function FeatureAccessModal({ user, onClose }) {
   const [data, setData]     = useState(null)
@@ -1831,30 +1813,37 @@ function Agents() {
 
 // ─── Feature Credits section ──────────────────────────────────────────────────
 
-// Token complexity derived from application.yml max-tokens values.
-// Used as a reference guide — higher output tokens → heavier AI workload → should cost more.
-const FEATURE_META = {
-  'story':          { label: 'Story',           icon: '📖', desc: 'Generate a bedtime story',              maxTokens: 512,  suggestedCost: 2 },
-  'activity':       { label: 'Activity',        icon: '🎮', desc: 'Generate a personalised activity',      maxTokens: 1024, suggestedCost: 2 },
-  'curiosity':      { label: 'Curiosity',       icon: '🔍', desc: "Answer a child's curiosity question",   maxTokens: 512,  suggestedCost: 1 },
-  'read-quiz':      { label: 'Read & Quiz',     icon: '📚', desc: 'Generate a read & quiz session',        maxTokens: 1024, suggestedCost: 3 },
-  'writing-coach':  { label: 'Writing Coach',   icon: '✍️',  desc: 'Writing coach feedback',               maxTokens: 300,  suggestedCost: 1 },
-  'translation':    { label: 'Translation',     icon: '🌐', desc: 'Translate a passage',                   maxTokens: 2048, suggestedCost: 5 },
-  'draw':           { label: 'Drawing',         icon: '🎨', desc: "React to a child's drawing with AI praise (guesses or gives contextual feedback when a guide is active)", maxTokens: 256,  suggestedCost: 1 },
-  'learn-validate': { label: 'Letter Validate', icon: '🔤', desc: 'Validate a letter drawing',             maxTokens: 200,  suggestedCost: 1 },
-  'learn-word':     { label: 'Learn Word',      icon: '✏️',  desc: 'Identify a written word',              maxTokens: 400,  suggestedCost: 2 },
-  'story-listen':        { label: 'Story Audio',     icon: '🔊', desc: 'First-time TTS synthesis (cache miss)',  maxTokens: 0,   suggestedCost: 1 },
-  'memory':              { label: 'Memory Play',     icon: '🧠', desc: 'Parent gate — enables all Memory Play sub-features', maxTokens: 0, suggestedCost: 0 },
-  'memory-flashcards':   { label: 'Flashcards',      icon: '📇', desc: 'Generate a flashcard set',               maxTokens: 512, suggestedCost: 1 },
-  'word-of-day':         { label: 'Word of the Day', icon: '📘', desc: 'Generate word of the day',               maxTokens: 300, suggestedCost: 1 },
-  'memory-match':        { label: 'Memory Match',    icon: '🃏', desc: 'Generate a memory match game',           maxTokens: 300, suggestedCost: 1 },
-  'journal-ai':          { label: 'Journal AI',      icon: '📝', desc: "AI-generated journal entry from child's daily activity", maxTokens: 400, suggestedCost: 2 },
-  'draw-guide':          { label: 'Drawing Guide',   icon: '🎨', desc: 'Step-by-step AI drawing guide for a chosen subject',     maxTokens: 300, suggestedCost: 1 },
-  'draw-animate':        { label: 'Bring to Life',   icon: '🎬', desc: "Analyzes a child's drawing and returns animation objects (1 credit per tap; replays are free)", maxTokens: 600, suggestedCost: 1 },
-  'maze':                { label: 'Maze',            icon: '🌀', desc: 'Generate a themed maze level with age-based complexity',  maxTokens: 300, suggestedCost: 1 },
-  'riddle':              { label: 'Riddle',          icon: '🧩', desc: 'Generate a set of 5 age-appropriate riddles',             maxTokens: 400, suggestedCost: 1 },
-  'torch-hunt':          { label: 'Torch Hunt',      icon: '🔦', desc: 'Generate a 30-object hidden-object adventure pack (pooled; 2 credits per pack, 0 per session)', maxTokens: 2400, suggestedCost: 2 },
-  'flipbook':            { label: 'Flipbook Studio', icon: '🖼️', desc: 'Frame-by-frame animation studio (no AI credits)',         maxTokens: 0,   suggestedCost: 0 },
+// Admin-only fields: desc, maxTokens, suggestedCost.
+// label and icon are derived from SHARED_FEATURE_META at usage time.
+const FEATURE_ADMIN_META = {
+  'story':          { desc: 'Generate a bedtime story',              maxTokens: 512,  suggestedCost: 2 },
+  'activity':       { desc: 'Generate a personalised activity',      maxTokens: 1024, suggestedCost: 2 },
+  'curiosity':      { desc: "Answer a child's curiosity question",   maxTokens: 512,  suggestedCost: 1 },
+  'read-quiz':      { desc: 'Generate a read & quiz session',        maxTokens: 1024, suggestedCost: 3 },
+  'writing-coach':  { desc: 'Writing coach feedback',               maxTokens: 300,  suggestedCost: 1 },
+  'translation':    { desc: 'Translate a passage',                   maxTokens: 2048, suggestedCost: 5 },
+  'draw':           { desc: "React to a child's drawing with AI praise (guesses or gives contextual feedback when a guide is active)", maxTokens: 256,  suggestedCost: 1 },
+  'learn-validate': { desc: 'Validate a letter drawing',             maxTokens: 200,  suggestedCost: 1 },
+  'learn-word':     { desc: 'Identify a written word',              maxTokens: 400,  suggestedCost: 2 },
+  'story-listen':   { desc: 'First-time TTS synthesis (cache miss)',  maxTokens: 0,   suggestedCost: 1 },
+  'story-runner':   { desc: 'Generate a runner level from a story',   maxTokens: 300, suggestedCost: 1 },
+  'memory':         { desc: 'Parent gate — enables all Memory Play sub-features', maxTokens: 0, suggestedCost: 0 },
+  'memory-flashcards': { desc: 'Generate a flashcard set',           maxTokens: 512, suggestedCost: 1 },
+  'word-of-day':    { desc: 'Generate word of the day',              maxTokens: 300, suggestedCost: 1 },
+  'memory-match':   { desc: 'Generate a memory match game',          maxTokens: 300, suggestedCost: 1 },
+  'journal-ai':     { desc: "AI-generated journal entry from child's daily activity", maxTokens: 400, suggestedCost: 2 },
+  'draw-guide':     { desc: 'Step-by-step AI drawing guide for a chosen subject',     maxTokens: 300, suggestedCost: 1 },
+  'draw-animate':   { desc: "Analyzes a child's drawing and returns animation objects (1 credit per tap; replays are free)", maxTokens: 600, suggestedCost: 1 },
+  'maze':           { desc: 'Generate a themed maze level with age-based complexity',  maxTokens: 300, suggestedCost: 1 },
+  'riddle':         { desc: 'Generate a set of 5 age-appropriate riddles',             maxTokens: 400, suggestedCost: 1 },
+  'torch-hunt':     { desc: 'Generate a 30-object hidden-object adventure pack (pooled; 2 credits per pack, 0 per session)', maxTokens: 2400, suggestedCost: 2 },
+  'flipbook':       { desc: 'Frame-by-frame animation studio (no AI credits)',         maxTokens: 0,   suggestedCost: 0 },
+}
+
+function adminMeta(featureName) {
+  const shared = SHARED_FEATURE_META[featureName] || {}
+  const admin  = FEATURE_ADMIN_META[featureName]  || {}
+  return { label: shared.label || featureName, icon: shared.emoji || '⚙️', ...admin }
 }
 
 const MAX_TOKENS_OVERALL = 2048  // translation is the ceiling
@@ -1908,7 +1897,7 @@ function FeatureCredits() {
     try {
       await adminApi.setFeatureEnabled(featureName, next)
       setFeatures(prev => prev.map(f => f.featureName === featureName ? { ...f, enabled: next } : f))
-      const label = FEATURE_META[featureName]?.label || FEATURE_DISPLAY_MAP[featureName]?.label || featureName
+      const label = adminMeta(featureName).label
       setMsg(next ? `✅ ${label} enabled globally` : `🔒 ${label} disabled globally`)
     } catch (e) {
       setMsg('❌ ' + e.message)
@@ -2025,7 +2014,7 @@ function FeatureCredits() {
         {features.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#aaa' }}>Loading…</div>}
 
         {features.map((fc, i) => {
-          const meta    = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️', desc: fc.description || '', maxTokens: 256, suggestedCost: 1 }
+          const meta    = { desc: fc.description || '', maxTokens: 256, suggestedCost: 1, ...adminMeta(fc.featureName) }
           const cx      = complexityLabel(meta.maxTokens)
           const usesMax = Math.floor(budget / fc.creditCost)
           const isOffSuggestion = fc.creditCost !== meta.suggestedCost
@@ -2147,7 +2136,7 @@ function FeatureCredits() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile || isTablet ? 14 : 10 }}>
           {features.map(fc => {
-            const meta   = FEATURE_META[fc.featureName] || { label: fc.featureName, icon: '⚙️' }
+            const meta   = adminMeta(fc.featureName)
             const uses   = mix[fc.featureName] ?? 0
             const spend  = uses * fc.creditCost
             const spendPct = Math.min(spend / budget * 100, 100)

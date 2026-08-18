@@ -78,6 +78,9 @@ public class Story {
     @Column(columnDefinition = "TEXT")
     private String vocabWordsJson;    // JSON array of {word, definition, emoji}
 
+    @Column(columnDefinition = "TEXT")
+    private String runnerLevelJson;   // JSON object for Story Chase runner level
+
     @Column(updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
 }

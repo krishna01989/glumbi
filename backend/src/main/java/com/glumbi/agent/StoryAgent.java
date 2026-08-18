@@ -207,6 +207,43 @@ public class StoryAgent {
         return new String[]{ content.substring(0, split).trim(), content.substring(split).trim() };
     }
 
+    public RunnerLevelResult generateRunnerLevel(String title, String content, String childName, int age) {
+        String prompt = String.format("""
+            A child named %s (age %d) just read a story titled "%s".
+            Story content: %s
+
+            Extract a Story Chase runner game level from this story. Return ONLY a JSON object:
+            {
+              "theme": "2-3 word setting description from the story (e.g. enchanted forest, volcanic cave)",
+              "character": "the main character with one adjective (e.g. brave rabbit, clever fox)",
+              "obstacles": ["3-5 single emoji characters representing obstacles from the story world (e.g. 🦈, 🌊, ⚡)"],
+              "collectibles": ["3-5 single emoji characters representing collectible items from the story (e.g. ⭐, 🐚, 💎, 🌸)"],
+              "glumbiNarration": "one short exciting sentence Glumbi says as the run starts (max 12 words, age-appropriate for a %d year old)",
+              "endLine": "one warm fun line when the run ends successfully (max 10 words)"
+            }
+            IMPORTANT: obstacles and collectibles must each be a SINGLE emoji character, nothing else — no words, no descriptions.
+            Keep everything grounded in the actual story. No scary elements. Return ONLY the JSON.
+            """, childName, age, title, content, age);
+
+        ObjectNode body = mapper.createObjectNode();
+        body.put("model", model);
+        body.put("max_tokens", 300);
+        body.putArray("messages").addObject().put("role", "user").put("content", prompt);
+
+        try {
+            String raw = anthropicClient.call(body);
+            JsonNode root = mapper.readTree(raw);
+            String text = root.path("content").get(0).path("text").asText();
+            text = text.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();
+            JsonNode node = mapper.readTree(text);
+            return new RunnerLevelResult(node.toString());
+        } catch (Exception e) {
+            return new RunnerLevelResult(null);
+        }
+    }
+
+    public record RunnerLevelResult(String runnerLevelJson) {}
+
     public record StoryResult(
         String title, String content,
         String part1, String part2a, String part2b,

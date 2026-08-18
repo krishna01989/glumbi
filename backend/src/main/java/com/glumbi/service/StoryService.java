@@ -146,6 +146,17 @@ public class StoryService {
         return repo.save(story);
     }
 
+    public Story generateRunnerLevel(Long storyId) {
+        Story story = repo.findById(storyId)
+                .orElseThrow(() -> new RuntimeException("Story not found: " + storyId));
+        Child child = story.getChild();
+        int age = com.glumbi.service.ChildService.ageFromBirthYear(child.getBirthYear());
+        StoryAgent.RunnerLevelResult result = storyAgent.generateRunnerLevel(
+                story.getTitle(), story.getContent(), child.getName(), age);
+        story.setRunnerLevelJson(result.runnerLevelJson());
+        return repo.save(story);
+    }
+
     @org.springframework.transaction.annotation.Transactional
     public boolean delete(Long storyId) {
         List<Story> chapters = repo.findBySeriesId(storyId);

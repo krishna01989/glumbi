@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { analyticsApi, userApi, childApi } from '../api/client'
 import { THEMES } from '../themes'
 import Timeline from '../features/timeline/Timeline'
+import FEATURE_META, { featureByAnalyticsKey } from '../constants/featureMeta'
 
 const COMPLETION_LABELS = {
   maze:      n => `🏁 ${n} maze${n !== 1 ? 's' : ''} completed`,
@@ -27,23 +28,6 @@ const SCRIPT_META = {
 }
 
 /* ── helpers ── */
-const ACTIVITY_FEATURES = {
-  stories:     { label: 'Stories',        emoji: '📖' },
-  draw:        { label: 'Draw',           emoji: '🎨' },
-  flipbook:    { label: 'Flipbook Studio', emoji: '🖼️' },
-  journal:     { label: 'Journal',        emoji: '📓' },
-  curiosity:   { label: 'Curiosity',      emoji: '🔍' },
-  readquiz:    { label: 'Read & Quiz',    emoji: '📚' },
-  activities:  { label: 'Activities',     emoji: '🎮' },
-  mywriting:   { label: 'My Writing',     emoji: '✍️' },
-  riddle:      { label: 'Riddles',        emoji: '🎯' },
-  maze:        { label: 'Maze',           emoji: '🌀' },
-  'torch-hunt':{ label: 'Torch Hunt',    emoji: '🔦' },
-  learn:       { label: 'Learn to Write', emoji: '✏️' },
-  flashcards:  { label: 'Flashcards',     emoji: '📇' },
-  wordofday:   { label: 'Word of Day',    emoji: '🌟' },
-  memorymatch: { label: 'Memory Match',   emoji: '🧠' },
-}
 
 function fmtDuration(sec) {
   if (!sec || sec < 60) return sec > 0 ? `${sec}s` : null
@@ -195,7 +179,7 @@ function ActivityTab({ childName, t }) {
                 </div>
               </div>
               {allFeatures.map(({ feature, count, sec }) => {
-                const meta  = ACTIVITY_FEATURES[feature] || { label: feature, emoji: '🎮' }
+                const meta  = featureByAnalyticsKey(feature)
                 const val   = featureMode === 'time' ? sec : count
                 const pct   = Math.round((val / featureMax) * 100)
                 const label = featureMode === 'time' ? (fmtDuration(sec) ?? '—') : `${count}×`
@@ -411,8 +395,8 @@ function CreditsTab({ t }) {
               const config = featureConfig.find(c => c.featureName === f.feature)
               return (
                 <div key={f.feature} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 18 }}>{f.icon}</span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#444' }}>{f.label}</span>
+                  <span style={{ fontSize: 18 }}>{FEATURE_META[f.feature]?.emoji || '⚙️'}</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#444' }}>{FEATURE_META[f.feature]?.label || f.feature}</span>
                   {config?.creditCost > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: '#999', background: '#f0f0f0', borderRadius: 50, padding: '2px 8px' }}>{config.creditCost} cr</span>}
                   <span style={{ flex: 1 }} />
                   <span style={{ fontSize: 12, color: '#bbb', fontWeight: 600 }}>×{f.count}</span>

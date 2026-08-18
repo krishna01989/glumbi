@@ -388,7 +388,7 @@ export default function App() {
       setConsentGiven(true)
     }
     return (
-      <ManagementLayout lockModalEl={lockModalEl} quota={quota} handleLogout={handleLogout}>
+      <ManagementLayout lockModalEl={lockModalEl} quota={quota} featureConfig={featureConfig} handleLogout={handleLogout}>
         {role === 'USER' && consentLoaded && needsConsent && location.pathname === '/child' && (
           <ConsentModal onAccept={onConsentAccept} />
         )}

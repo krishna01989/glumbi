@@ -235,6 +235,11 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
     setPaused(pausedRef.current)
   }
 
+  useEffect(() => {
+    window.addEventListener('glumbi-force-exit', onClose)
+    return () => window.removeEventListener('glumbi-force-exit', onClose)
+  }, [onClose])
+
   // Keyboard
   useEffect(() => {
     if (phase !== 'playing') return

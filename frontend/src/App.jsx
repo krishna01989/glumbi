@@ -304,6 +304,11 @@ export default function App() {
     handleScreenTimeSnooze, endSessionLocked, engageLock, resetLock, formatElapsed,
   } = lock
 
+  // Close any active mini-games when the screen-time modal appears
+  useEffect(() => {
+    if (screenTimeAlert) window.dispatchEvent(new CustomEvent('glumbi-force-exit'))
+  }, [screenTimeAlert])
+
   function handleLogout() {
     resetLock()
     resetChild()

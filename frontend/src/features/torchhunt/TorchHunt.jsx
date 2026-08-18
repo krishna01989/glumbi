@@ -536,6 +536,15 @@ export default function TorchHunt({ child, quota, featureConfig }) {
     }
   }, [handlePointerMove])
 
+  useEffect(() => {
+    const handler = () => {
+      setPhase('idle')
+      if (document.fullscreenElement) document.exitFullscreen?.()
+    }
+    window.addEventListener('glumbi-force-exit', handler)
+    return () => window.removeEventListener('glumbi-force-exit', handler)
+  }, [])
+
   // ── Parallax layers ──
   const layerShift = (layerIdx) => {
     const strength = [8, 14, 20][layerIdx] || 8

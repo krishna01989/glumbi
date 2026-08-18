@@ -377,6 +377,15 @@ export default function Maze({ child, quota, featureConfig }) {
     return () => document.removeEventListener('fullscreenchange', h)
   }, [])
 
+  useEffect(() => {
+    const handler = () => {
+      setPhase('idle'); phaseRef.current = 'idle'
+      if (document.fullscreenElement) document.exitFullscreen?.()
+    }
+    window.addEventListener('glumbi-force-exit', handler)
+    return () => window.removeEventListener('glumbi-force-exit', handler)
+  }, [])
+
   // ── AI Theme + Riddle ──────────────────────────────────────────────────────
   async function handleAiTheme() {
     if (!canGenerate) return

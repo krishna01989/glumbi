@@ -463,9 +463,6 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
         ctx.beginPath(); ctx.arc(sx, oy, 26, 0, Math.PI * 2); ctx.fill()
 
         drawEmoji(ctx, o.emoji, sx, oy, 32)
-        ctx.fillStyle = '#FF4444'; ctx.font = 'bold 13px Nunito,sans-serif'
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText('!', sx, oy - 28)
       }
 
       // ── Glumbi character ─────────────────────────────────────────────────
@@ -540,7 +537,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
         ctx.font = '17px Nunito,sans-serif'
         ctx.fillText(`Collected: ${st.score} / ${total}`, W / 2, H * 0.52)
         cancelAnimationFrame(rafId)
-        setTimeout(() => setResult({ won: st.won, score: st.score, total }), 1400)
+        setTimeout(() => { setPhase('result'); setResult({ won: st.won, score: st.score, total }) }, 1400)
         return
       }
 
@@ -567,8 +564,8 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: '#0a0a1a',
                   display: 'flex', flexDirection: 'column', fontFamily: 'Nunito,sans-serif' }}>
 
-      {/* ✕ shown only during playing/result — GameIntroScreen renders its own */}
-      {phase !== 'narration' && (
+      {/* ✕ during playing exits StoryRunner (back to picker or story page) */}
+      {phase === 'playing' && (
         <button onClick={onClose} style={{
           position: 'absolute', top: 14, right: 14, zIndex: 10002,
           width: 36, height: 36, minWidth: 36, minHeight: 36,
@@ -606,17 +603,22 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
             <div style={{ position: 'absolute', bottom: 18, left: 0, right: 0,
                           display: 'flex', justifyContent: 'space-between', padding: '0 18px',
                           pointerEvents: 'none' }}>
-              {[['◀', -1], ['▶', 1]].map(([label, d]) => (
+              {[[-1, '10,4 2,12 10,20'], [1, '2,4 10,12 2,20']].map(([d, points]) => (
                 <button key={d}
                   onTouchStart={e => { e.preventDefault(); dirRef.current = d }}
                   onMouseDown={() => dirRef.current = d}
                   style={{
-                    width: 58, height: 58, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)',
-                    background: 'rgba(0,0,0,0.30)', color: '#fff',
-                    fontSize: 22, fontWeight: 900, cursor: 'pointer',
+                    width: 58, height: 58, minWidth: 58, minHeight: 58,
+                    borderRadius: '50%', border: '2px solid rgba(255,255,255,0.25)',
+                    background: 'rgba(0,0,0,0.30)',
                     pointerEvents: 'all', touchAction: 'none', userSelect: 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>{label}</button>
+                    cursor: 'pointer', padding: 0, flexShrink: 0,
+                  }}>
+                  <svg width="16" height="30" viewBox="0 0 12 24" style={{ display: 'block' }}>
+                    <polygon points={points} fill="white"/>
+                  </svg>
+                </button>
               ))}
             </div>
           )}
@@ -647,7 +649,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
         </div>
       )}
 
-      {result && (
+      {phase === 'result' && result && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>
           <div style={{ fontSize: 56 }}>{result.won ? '🎉' : '💪'}</div>
@@ -659,13 +661,13 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
             ⭐ {result.score} / {result.total}
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button onClick={() => { setPhase('narration'); setResult(null) }} style={{
-              background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none',
+            <button onClick={() => { setResult(null); setPhase('playing') }} style={{
+              background: col, color: '#fff', border: 'none',
               borderRadius: 50, padding: '12px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
               Play Again
             </button>
             <button onClick={onClose} style={{
-              background: col, color: '#fff', border: 'none',
+              background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none',
               borderRadius: 50, padding: '12px 28px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
               Done ✓
             </button>

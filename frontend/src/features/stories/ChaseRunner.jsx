@@ -90,7 +90,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
   const [paused, setPaused]   = useState(false)
   const [phase, setPhase]     = useState('narration')
   const [result, setResult]   = useState(null)
-  const [showMario, setShowMario] = useState(false)
+  const [showStoryRun, setShowStoryRun] = useState(false)
 
   const togglePause = () => {
     pausedRef.current = !pausedRef.current
@@ -360,7 +360,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
         ctx.font = `${Math.round(17*scale)}px Nunito,sans-serif`
         ctx.fillText(`Collected: ${st.score} / ${st.total}`, W/2, H*.52)
         cancelAnimationFrame(rafId)
-        setTimeout(() => setResult({ won: st.won, score: st.score, total: st.total }), 1400)
+        setTimeout(() => { setPhase('result'); setResult({ won: st.won, score: st.score, total: st.total }) }, 1400)
         return
       }
 
@@ -379,10 +379,10 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
     <div style={{ position:'fixed', inset:0, zIndex:9999, background:'#0a0a1a',
                   display:'flex', flexDirection:'column', fontFamily:'Nunito,sans-serif' }}>
 
-      {/* Close — hidden while StoryRunner overlay is open (it has its own ✕) */}
-      <button onClick={onClose} style={{
+      {/* Close — during play/result goes back to picker; from picker exits entirely */}
+      <button onClick={() => phase === 'narration' ? onClose() : (setPhase('narration'), setResult(null))} style={{
         position:'absolute', top:14, right:14, zIndex:10001,
-        display: (showMario || phase === 'intro') ? 'none' : undefined,
+        display: (showStoryRun || phase === 'intro' || phase === 'result') ? 'none' : undefined,
         width:36, height:36, minWidth:36, minHeight:36, padding:0, flexShrink:0,
         borderRadius:'50%', border:'none', background:'rgba(255,255,255,0.18)',
         color:'#fff', fontSize:16, cursor:'pointer', lineHeight:1,
@@ -408,7 +408,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
               <span>Maze Chase</span>
               <span style={{ fontSize:11, fontWeight:400, opacity:0.8 }}>Swipe to navigate</span>
             </button>
-            <button onClick={() => setShowMario(true)} style={{
+            <button onClick={() => setShowStoryRun(true)} style={{
               background:'rgba(255,255,255,0.14)', color:'#fff', border:`2px solid ${col}`,
               borderRadius:20, padding:'18px 28px', fontSize:15, fontWeight:800, cursor:'pointer',
               display:'flex', flexDirection:'column', alignItems:'center', gap:6, minWidth:130 }}>
@@ -469,7 +469,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       )}
 
       {/* Result */}
-      {result && (
+      {phase === 'result' && result && (
         <div style={{ flex:1, display:'flex', flexDirection:'column',
                       alignItems:'center', justifyContent:'center', padding:32, gap:20 }}>
           <div style={{ fontSize:56 }}>{result.won ? '🎉' : '💪'}</div>
@@ -484,26 +484,26 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
             <button onClick={() => { setResult(null); setPhase('playing') }} style={{
               background:col, color:'#fff', border:'none', borderRadius:50,
               padding:'12px 28px', fontSize:16, fontWeight:800, cursor:'pointer' }}>
-              Try Again 🔄
+              Play Again 🔄
             </button>
-            <button onClick={onClose} style={{
+            <button onClick={() => { setResult(null); setPhase('narration') }} style={{
               background:'transparent', color:'#fff', borderRadius:50,
               border:'2px solid rgba(255,255,255,0.35)',
               padding:'12px 28px', fontSize:16, fontWeight:800, cursor:'pointer' }}>
-              Done ✓
+              Change Game
             </button>
           </div>
         </div>
       )}
 
-      {/* Mario game — full-screen overlay, own close goes back to picker */}
-      {showMario && (
+      {/* Story Run — full-screen overlay, own close goes back to picker */}
+      {showStoryRun && (
         <StoryRunner
           runnerLevelJson={runnerLevelJson}
           characterEmoji={characterEmoji}
           theme={theme}
           birthYear={birthYear}
-          onClose={() => setShowMario(false)}
+          onClose={() => setShowStoryRun(false)}
         />
       )}
     </div>

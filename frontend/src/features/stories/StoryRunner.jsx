@@ -669,7 +669,8 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: '#0a0a1a',
-                  display: 'flex', flexDirection: 'column', fontFamily: 'Nunito,sans-serif' }}>
+                  display: 'flex', flexDirection: 'column', fontFamily: 'Nunito,sans-serif',
+                  overflowY: 'auto' }}>
 
       {/* ✕ during playing exits StoryRunner (back to picker or story page) */}
       {phase === 'playing' && (
@@ -703,7 +704,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
       )}
 
       {phase === 'playing' && (
-        <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+        <div style={{ flex: 1, position: 'relative', display: 'flex', minHeight: 320 }}>
           <canvas ref={canvasRef} style={{ flex: 1, width: '100%', display: 'block', touchAction: 'none' }} />
           {/* On-screen direction buttons */}
           {!paused && (
@@ -759,7 +760,8 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
       {phase === 'result' && result?.won && <Confetti />}
       {phase === 'result' && result && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
-                      alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>
+                      alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20,
+                      overflowY: 'auto', minHeight: 'max-content' }}>
           <div style={{ fontSize: 56 }}>{result.won ? '🎉' : '💪'}</div>
           <div style={{ color: '#fff', fontSize: 21, fontWeight: 900, textAlign: 'center' }}>
             {result.won ? victoryMsg : 'Better luck next time!'}

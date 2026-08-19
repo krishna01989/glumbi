@@ -474,15 +474,17 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div style={{ position:'fixed', inset:0, zIndex:9999, background:'#0a0a1a',
-                  display:'flex', flexDirection:'column', fontFamily:'Nunito,sans-serif' }}>
+                  display:'flex', flexDirection:'column', fontFamily:'Nunito,sans-serif',
+                  overflowY:'auto' }}>
 
       {/* Close — always exits to GamePicker */}
       <button onClick={onClose} style={{
-        position:'absolute', top:14, right:14, zIndex:10001,
+        position:'sticky', top:14, alignSelf:'flex-end', marginRight:14, zIndex:10001,
         display: (phase === 'result') ? 'none' : undefined,
         width:36, height:36, minWidth:36, minHeight:36, padding:0, flexShrink:0,
+        margin:'14px 14px 0 auto', boxSizing:'border-box',
         borderRadius:'50%', border:'none', background:'rgba(255,255,255,0.18)',
-        color:'#fff', fontSize:16, cursor:'pointer', lineHeight:1,
+        color:'#fff', fontSize:16, cursor:'pointer', lineHeight:'36px', textAlign:'center',
       }}>✕</button>
 
       {/* Maze Chase intro screen */}
@@ -506,7 +508,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
 
       {/* Canvas */}
       {phase === 'playing' && (
-        <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
+        <div style={{ flex: 1, position: 'relative', display: 'flex', minHeight: 320 }}>
           <canvas ref={canvasRef} style={{ flex:1, width:'100%', display:'block', touchAction:'none' }} />
           <button onClick={togglePause} style={{
             position: 'absolute', top: 10, left: 10,
@@ -537,7 +539,8 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       {phase === 'result' && result?.won && <Confetti />}
       {phase === 'result' && result && (
         <div style={{ flex:1, display:'flex', flexDirection:'column',
-                      alignItems:'center', justifyContent:'center', padding:32, gap:20 }}>
+                      alignItems:'center', justifyContent:'center', padding:32, gap:20,
+                      overflowY:'auto', minHeight:'max-content' }}>
           <div style={{ fontSize:56 }}>{result.won ? '🎉' : '💪'}</div>
           <div style={{ color:'#fff', fontSize:21, fontWeight:900, textAlign:'center' }}>
             {result.won ? victoryMsg : 'A ghost got you! Try again?'}

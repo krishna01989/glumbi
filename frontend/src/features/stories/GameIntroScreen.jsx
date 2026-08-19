@@ -2,25 +2,25 @@
 // Parent provides the full-screen container; this renders the content + close button.
 export default function GameIntroScreen({ emoji, title, description, tips, col, onPlay, onBack, playLabel = 'Play!' }) {
   return (
-    <>
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* Close → back to game picker */}
       <button
         onClick={onBack}
         style={{
-          position: 'absolute', top: 14, right: 14, zIndex: 1,
+          position: 'sticky', top: 14, alignSelf: 'flex-end', marginRight: 14, zIndex: 1,
           width: 36, height: 36, minWidth: 36, minHeight: 36,
-          padding: 0, margin: 0, boxSizing: 'border-box',
-          borderRadius: '50%', border: 'none',
+          padding: 0, margin: '14px 14px 0 auto', boxSizing: 'border-box',
+          borderRadius: '50%', border: 'none', flexShrink: 0,
           background: 'rgba(255,255,255,0.18)', color: '#fff',
           fontSize: 16, lineHeight: '36px', textAlign: 'center',
-          cursor: 'pointer', flexShrink: 0,
+          cursor: 'pointer',
         }}
       >✕</button>
 
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
-        padding: 32, gap: 22,
+        padding: '8px 24px 32px', gap: 18, minHeight: 'max-content',
       }}>
         <div style={{ fontSize: 54 }}>{emoji}</div>
 
@@ -57,6 +57,6 @@ export default function GameIntroScreen({ emoji, title, description, tips, col, 
           }}
         >{playLabel}</button>
       </div>
-    </>
+    </div>
   )
 }

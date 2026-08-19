@@ -367,11 +367,18 @@ public class StoryController {
             return ResponseEntity.status(403).body(Map.of("error", "Story Chase is currently unavailable."));
         }
         try {
-            Story story = service.generateRunnerLevel(id);
+            // Return cached level without AI call or credit charge
+            Story existing = storyRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Story not found: " + id));
+            if (existing.getRunnerLevelJson() != null && !existing.getRunnerLevelJson().isBlank()) {
+                return ResponseEntity.ok(Map.of("runnerLevelJson", existing.getRunnerLevelJson(), "cached", true));
+            }
+            // No cache — generate via AI then charge
             if (!quotaService.tryConsume(authUser.id(), "story-runner", childId)) {
                 return ResponseEntity.status(429).body(Map.of("error", "You've reached your monthly limit. It resets at the start of next month!"));
             }
-            return ResponseEntity.ok(Map.of("runnerLevelJson", story.getRunnerLevelJson() != null ? story.getRunnerLevelJson() : "{}"));
+            Story story = service.generateRunnerLevel(id);
+            return ResponseEntity.ok(Map.of("runnerLevelJson", story.getRunnerLevelJson() != null ? story.getRunnerLevelJson() : "{}", "cached", false));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Could not generate runner level"));
         }

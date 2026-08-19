@@ -188,6 +188,7 @@ export default function Stories({ child, quota }) {
       const data = await storyApi.generateRunnerLevel(selected.id, child.id)
       setStories(prev => prev.map(s => s.id === selected.id ? { ...s, runnerLevelJson: data.runnerLevelJson } : s))
       setSelected(prev => prev?.id === selected.id ? { ...prev, runnerLevelJson: data.runnerLevelJson } : prev)
+      if (!data.cached) window.__glumbiRefreshQuota?.('story-runner')
       setRunnerOpen(true)
     } catch { setRunnerError('Could not generate runner level. Try again!') }
     finally { setRunnerLoading(false) }

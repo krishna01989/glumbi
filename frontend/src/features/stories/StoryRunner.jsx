@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import GameIntroScreen from './GameIntroScreen'
+import Confetti from '../../components/Confetti'
 
 // ── Difficulty ──────────────────────────────────────────────────────────────
 function mDiff(birthYear) {
@@ -755,6 +756,7 @@ export default function StoryRunner({ runnerLevelJson, characterEmoji, theme, bi
         </div>
       )}
 
+      {phase === 'result' && result?.won && <Confetti />}
       {phase === 'result' && result && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column',
                       alignItems: 'center', justifyContent: 'center', padding: 32, gap: 20 }}>

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
 import GameIntroScreen from './GameIntroScreen'
+import Confetti from '../../components/Confetti'
 
 // ── Age difficulty (platform brackets: ≤4, ≤6, ≤8, 9–10) ──────────────────
 function difficulty(birthYear) {
@@ -533,6 +534,7 @@ export default function ChaseRunner({ runnerLevelJson, characterEmoji, theme, bi
       )}
 
       {/* Result */}
+      {phase === 'result' && result?.won && <Confetti />}
       {phase === 'result' && result && (
         <div style={{ flex:1, display:'flex', flexDirection:'column',
                       alignItems:'center', justifyContent:'center', padding:32, gap:20 }}>

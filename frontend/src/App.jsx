@@ -474,7 +474,7 @@ export default function App() {
                 {childAge !== null && <span style={{ fontWeight: 400, fontSize: isTV ? 13 : 11, color: 'rgba(255,255,255,0.7)' }}>{childAge} yrs</span>}
                 {child?.streakCount > 0 && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, height: 20, padding: '0 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(247,168,0,0.35)', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>🔥</span> {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
+                    <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>{child.streakCount >= 30 ? '👑' : child.streakCount >= 14 ? '💫' : child.streakCount >= 7 ? '🔥' : child.streakCount >= 3 ? '🌟' : '⭐'}</span> {child.streakCount} {child.streakCount === 1 ? 'day' : 'days'} streak
                   </span>
                 )}
                 {sessionStart && childLocked && (
@@ -522,7 +522,7 @@ export default function App() {
                     {childAge !== null && !sessionStart && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>{childAge} yrs</span>}
                     {child?.streakCount > 0 && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'linear-gradient(135deg, #ff6b35, #f7a800)', borderRadius: 50, height: 20, padding: '0 7px', fontSize: 10, fontWeight: 800, color: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
-                        <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>🔥</span> {child.streakCount}d
+                        <span style={{ fontSize: 11, lineHeight: 0, verticalAlign: 'middle' }}>{child.streakCount >= 30 ? '👑' : child.streakCount >= 14 ? '💫' : child.streakCount >= 7 ? '🔥' : child.streakCount >= 3 ? '🌟' : '⭐'}</span> {child.streakCount}d
                       </span>
                     )}
                     {sessionStart && <SessionTimerPill sessionStart={sessionStart} lockTimeLimit={lockTimeLimit} formatElapsed={formatElapsed} sessionMinutes={sessionMinutes} mobile />}

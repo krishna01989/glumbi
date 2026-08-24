@@ -18,5 +18,6 @@ public interface WordOfDayRepository extends JpaRepository<WordOfDay, Long> {
     Page<WordOfDay> findByChildIdOrderByDateDesc(Long childId, Pageable pageable);
     long countByCreatedAtAfter(LocalDateTime since);
     List<WordOfDay> findTop5ByOrderByCreatedAtDesc();
+    boolean existsByChildIdAndWordIgnoreCase(Long childId, String word);
     void deleteByChildId(Long childId);
 }

@@ -183,7 +183,8 @@ public class MemoryPlayAgent {
         for (String blocked : BLOCKED_WORDS) {
             if (lower.contains(blocked)) return false;
         }
-        // For young children (4-6), reject words over 8 characters as likely too complex
+        // Reject words that are too long for the child's age
+        if (age <= 3 && word.length() > 5) return false;
         if (age <= 6 && word.length() > 8) return false;
         return true;
     }

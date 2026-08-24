@@ -13,6 +13,7 @@ import com.glumbi.repository.MemoryMatchRepository;
 import com.glumbi.repository.WordOfDayRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemoryPlayService {
@@ -114,6 +116,12 @@ public class MemoryPlayService {
                 agent.generateWordOfDay(child.getName(), age, today, recentWords);
 
         if (agentResult == null) {
+            return null;
+        }
+
+        // Hard dedup — reject if AI repeated a word already in history
+        if (wordOfDayRepo.existsByChildIdAndWordIgnoreCase(childId, agentResult.word())) {
+            log.warn("WOTD dedup: AI generated already-used word '{}' for child {}", agentResult.word(), childId);
             return null;
         }
 

@@ -483,7 +483,7 @@ export default function Riddle({ child, quota, featureConfig }) {
             {canGenerate && (
               <button onClick={handleGenerate} disabled={loading}
                 style={{ padding: '14px 28px', borderRadius: 50, border: 'none', background: loading ? '#eee' : 'linear-gradient(135deg,var(--primary),var(--accent))', color: loading ? '#aaa' : 'white', fontWeight: 800, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Nunito, sans-serif', opacity: loading ? 0.6 : 1 }}>
-                ✨ New AI Riddles (1 credit)
+                ✨ New AI Riddles
               </button>
             )}
           </div>

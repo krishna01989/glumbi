@@ -107,7 +107,7 @@ public class MemoryPlayService {
         Child child = childService.getByIdUnchecked(childId);
         int age = ChildService.ageFromBirthYear(child.getBirthYear());
 
-        List<String> recentWords = wordOfDayRepo.findTop30ByChildIdOrderByDateDesc(childId)
+        List<String> recentWords = wordOfDayRepo.findTop60ByChildIdOrderByDateDesc(childId)
                 .stream()
                 .map(WordOfDay::getWord)
                 .toList();
@@ -116,12 +116,6 @@ public class MemoryPlayService {
                 agent.generateWordOfDay(child.getName(), age, today, recentWords);
 
         if (agentResult == null) {
-            return null;
-        }
-
-        // Hard dedup — reject if AI repeated a word already in history
-        if (wordOfDayRepo.existsByChildIdAndWordIgnoreCase(childId, agentResult.word())) {
-            log.warn("WOTD dedup: AI generated already-used word '{}' for child {}", agentResult.word(), childId);
             return null;
         }
 

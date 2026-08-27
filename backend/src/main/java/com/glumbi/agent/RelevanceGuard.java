@@ -56,8 +56,19 @@ public class RelevanceGuard {
 
     // Per-context: what topics ARE allowed (used in Claude classifier prompt)
     private static final String STORY_SCOPE =
-        "children's bedtime story themes: animals, nature, adventure, friendship, magic, fantasy, " +
-        "fairy tale characters, dinosaurs, space, ocean creatures, seasons, colours, toys";
+        "children's story themes: animals, nature, adventure, friendship, magic, fantasy, " +
+        "fairy tale characters, dinosaurs, space, ocean creatures, seasons, colours, toys, " +
+        "food and cooking, vehicles and transport (trains, cars, rockets, boats), " +
+        "school and teachers, sports and games, superheroes and superpowers, " +
+        "robots and inventions, weather and sky, music and dance, art and painting, " +
+        "pirates and treasure, castles and knights, fairies and elves, witches and wizards, " +
+        "jungle and safari, farm animals, pets, underwater world, mountains and forests, " +
+        "gardens and flowers, circus and carnival, holidays and celebrations, " +
+        "family and siblings, helping others, feelings and emotions, dreams and imagination, " +
+        "everyday objects coming to life, insects and bugs, birds, planets and stars, " +
+        "mystery and detective stories (clues, secrets, solving puzzles, finding things), " +
+        "silly and funny scenarios (jokes, pranks, silly characters, unexpected twists), " +
+        "bedtime and sleep themes (stars, moon, cosy, nighttime, dreams, lullabies)";
 
     private static final String CURIOSITY_SCOPE =
         "child-friendly 'why' questions about: nature, animals, weather, space, human body basics, " +
@@ -87,8 +98,24 @@ public class RelevanceGuard {
     }
 
     private String classify(String input, Context context) {
+        // Story uses its own permissive prompt — imaginative/made-up kids' words must pass
+        if (context == Context.STORY) {
+            String prompt = String.format(promptLoader.load("relevance-guard-story-user"), input);
+            try {
+                ObjectNode body = mapper.createObjectNode();
+                body.put("model", fastModel);
+                body.put("max_tokens", maxTokens);
+                body.putArray("messages").addObject().put("role", "user").put("content", prompt);
+                String response = anthropicClient.call(body);
+                JsonNode root = mapper.readTree(response);
+                return root.path("content").get(0).path("text").asText("RELEVANT").trim();
+            } catch (Exception e) {
+                return "RELEVANT";
+            }
+        }
+
         String scope = switch (context) {
-            case STORY     -> STORY_SCOPE;
+            case STORY     -> ""; // unreachable — handled above
             case CURIOSITY -> CURIOSITY_SCOPE;
             case ACTIVITY  -> ACTIVITY_SCOPE;
         };

@@ -595,6 +595,7 @@ export default function FlipbookStudio({ child, quota }) {
 
   function switchFrame(idx) {
     if (isPlaying) return
+    commitPendingShape()
     if (selStateRef.current.phase === 'floating') commitSelection()
     saveCurrentFrame()
     historyRef.current = []
@@ -606,6 +607,7 @@ export default function FlipbookStudio({ child, quota }) {
 
   function addFrameAfter() {
     if (isPlaying) return
+    commitPendingShape()
     saveCurrentFrame()
     const at = currentIdxRef.current + 1
     const next = [...framesRef.current.slice(0, at), null, ...framesRef.current.slice(at)]
@@ -620,6 +622,7 @@ export default function FlipbookStudio({ child, quota }) {
 
   function duplicateFrame() {
     if (isPlaying) return
+    commitPendingShape()
     const url = saveCurrentFrame()
     const at = currentIdxRef.current + 1
     const next = [...framesRef.current.slice(0, at), url, ...framesRef.current.slice(at)]
@@ -1885,12 +1888,12 @@ export default function FlipbookStudio({ child, quota }) {
 
           {/* Onion skin overlay */}
           <canvas ref={onionRef} width={W} height={H}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto',
               pointerEvents: 'none', display: showPlayback ? 'none' : 'block' }} />
 
           {/* Selection overlay — captures pointer events when select tool is active */}
           <canvas ref={selOverlayRef} width={W} height={H}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto',
               pointerEvents: selectTool && !showPlayback ? 'auto' : 'none',
               display: showPlayback ? 'none' : 'block',
               cursor: 'crosshair' }}
@@ -1898,7 +1901,7 @@ export default function FlipbookStudio({ child, quota }) {
             onMouseUp={onSelUp} onMouseLeave={onSelUp} />
           {/* Shape preview overlay */}
           <canvas ref={shapeOverlayRef} width={W} height={H}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto',
               pointerEvents: 'none', display: showPlayback ? 'none' : 'block' }} />
           {/* Touch indicator */}
           <div ref={touchIndicatorRef} style={{

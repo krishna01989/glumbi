@@ -113,8 +113,8 @@ export default function ManagementLayout({ children, lockModalEl, quota, feature
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         boxShadow: '0 2px 12px rgba(0,0,0,0.06)', fontFamily: 'Nunito, sans-serif',
       }}>
-        <div onClick={() => navigate('/child')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-          <img src="/icon.svg" alt="Glumbi" style={{ width: 32, height: 32 }} />
+        <div onClick={() => navigate('/child')} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+          <img src="/icon.svg" alt="Glumbi" draggable={false} style={{ width: 32, height: 32 }} />
           <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: '#ff6b6b' }}>Glumbi</span>
         </div>
 
@@ -215,8 +215,8 @@ export default function ManagementLayout({ children, lockModalEl, quota, feature
         fontFamily: 'Nunito, sans-serif',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src="/icon.svg" alt="Glumbi" style={{ width: 28, height: 28 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, userSelect: 'none', WebkitUserSelect: 'none' }}>
+            <img src="/icon.svg" alt="Glumbi" draggable={false} style={{ width: 28, height: 28 }} />
             <span style={{ fontSize: 18, color: 'white', fontFamily: 'Nunito, sans-serif' }}>Glumbi</span>
           </div>
           <button onClick={() => setMgmtMenuOpen(false)}

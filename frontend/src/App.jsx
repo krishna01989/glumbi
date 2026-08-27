@@ -461,8 +461,8 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {/* Glumbi logo — click to go to Universe hub */}
             <div onClick={() => navigate(`/child/${child.id}/hub`)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, cursor: 'pointer' }}>
-              <img src="/icon.svg" alt="Glumbi" style={{ width: isTV ? 36 : 28, height: isTV ? 36 : 28 }} />
+              style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}>
+              <img src="/icon.svg" alt="Glumbi" draggable={false} style={{ width: isTV ? 36 : 28, height: isTV ? 36 : 28 }} />
               <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: isTV ? 20 : 16, color: 'white', fontWeight: 700, letterSpacing: 0.2 }}>Glumbi</span>
             </div>
             <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
@@ -505,8 +505,8 @@ export default function App() {
         {/* Mobile header */}
         <header className="mobile-header" style={{ alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
           <div onClick={() => navigate(`/child/${child.id}/hub`)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <img src="/icon.svg" alt="Glumbi" style={{ width: 30, height: 30 }} />
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}>
+            <img src="/icon.svg" alt="Glumbi" draggable={false} style={{ width: 30, height: 30 }} />
             {!childLocked && <span style={{ fontFamily: 'Nunito, sans-serif', fontSize: 20, color: 'white' }}>Glumbi</span>}
             {childLocked && (
               <>

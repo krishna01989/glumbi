@@ -1625,13 +1625,13 @@ function Scene_minecraft() {
       {/* Fuse spark */}
       <circle cx={576} cy={334} r={4} fill="#ffdd00" style={{ animation: 'bg-glow-fast 0.4s ease-in-out infinite' }}/>
       {/* Tree 1 */}
-      <rect x={128} y={304} width={32} height={96} fill="#7a4a28" stroke="#222" strokeWidth={0.5}/>
+      <rect x={128} y={272} width={32} height={128} fill="#7a4a28" stroke="#222" strokeWidth={0.5}/>
       <rect x={96} y={240} width={96} height={32} fill="#4a7a30" stroke="#222" strokeWidth={0.5}/>
       <rect x={96} y={208} width={96} height={32} fill="#4a7a30" stroke="#222" strokeWidth={0.5}/>
       <rect x={112} y={176} width={64} height={32} fill="#3a6820" stroke="#222" strokeWidth={0.5}/>
       <rect x={128} y={144} width={32} height={32} fill="#3a6820" stroke="#222" strokeWidth={0.5}/>
       {/* Tree 2 */}
-      <rect x={340} y={336} width={32} height={64} fill="#7a4a28" stroke="#222" strokeWidth={0.5}/>
+      <rect x={340} y={304} width={32} height={96} fill="#7a4a28" stroke="#222" strokeWidth={0.5}/>
       <rect x={308} y={272} width={96} height={32} fill="#4a7a30" stroke="#222" strokeWidth={0.5}/>
       <rect x={308} y={240} width={96} height={32} fill="#4a7a30" stroke="#222" strokeWidth={0.5}/>
       <rect x={324} y={208} width={64} height={32} fill="#3a6820" stroke="#222" strokeWidth={0.5}/>
@@ -1647,7 +1647,7 @@ function Scene_minecraft() {
       ))}
       {/* Steve — walks left with pickaxe */}
       <g style={{ animation: 'bg-drift-l 10s 0s linear infinite normal backwards' }}>
-        <g transform="translate(420,320)">
+        <g transform="translate(420,346)">
           {/* Legs (walking) */}
           <rect x={-8} y={32} width={14} height={22} rx={2} fill="#3a60b0" style={{ animation: 'bg-sway-sm 0.5s ease-in-out infinite', transformBox:'fill-box', transformOrigin:'top center' }}/>
           <rect x={4} y={32} width={14} height={22} rx={2} fill="#3a60b0" style={{ animation: 'bg-sway-sm 0.5s 0.25s ease-in-out infinite', transformBox:'fill-box', transformOrigin:'top center' }}/>
@@ -1671,7 +1671,7 @@ function Scene_minecraft() {
         </g>
       </g>
       {/* Creeper — stands still, flashes when close to TNT */}
-      <g transform="translate(630,318)">
+      <g transform="translate(630,354)">
         <rect x={-20} y={0} width={40} height={32} fill="#3a9a3a" stroke="#222" strokeWidth={1}/>
         <rect x={-20} y={-32} width={40} height={34} fill="#3a9a3a" stroke="#222" strokeWidth={1}/>
         <rect x={-14} y={-26} width={10} height={10} fill="#111"/>

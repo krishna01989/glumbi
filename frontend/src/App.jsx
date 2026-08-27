@@ -467,7 +467,7 @@ export default function App() {
             </div>
             <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
             {/* Child identity */}
-            <div id="tour-child-name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div id="tour-child-name" style={{ display: 'flex', alignItems: 'center', gap: 10, userSelect: 'none', WebkitUserSelect: 'none' }}>
               <span style={{ fontSize: isTV ? 32 : 24 }}>{child.avatarEmoji}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 800, fontSize: isTV ? 18 : 14, color: 'white' }}>{child.name}</span>
@@ -516,7 +516,7 @@ export default function App() {
                   {child.avatarEmoji}
                   <span style={{ position: 'absolute', bottom: -2, right: -4, fontSize: 10 }}>🔒</span>
                 </span>
-                <div style={{ lineHeight: 1.2 }}>
+                <div style={{ lineHeight: 1.2, userSelect: 'none', WebkitUserSelect: 'none' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
                     {childAge !== null && !sessionStart && <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)' }}>{childAge} yrs</span>}
@@ -534,8 +534,8 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {!childLocked && (
               <>
-                <span id="tour-child-name" style={{ fontSize: 24 }}>{child.avatarEmoji}</span>
-                <div style={{ lineHeight: 1.2 }}>
+                <span id="tour-child-name" style={{ fontSize: 24, userSelect: 'none', WebkitUserSelect: 'none' }}>{child.avatarEmoji}</span>
+                <div style={{ lineHeight: 1.2, userSelect: 'none', WebkitUserSelect: 'none' }}>
                   <span style={{ fontSize: 13, fontWeight: 800, color: 'white' }}>{child.name}</span>
                   {childAge !== null && <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.75)' }}>{childAge} yrs</div>}
                 </div>

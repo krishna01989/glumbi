@@ -457,7 +457,7 @@ export default function App() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
         {/* Desktop / TV / Tablet header */}
-        <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${isTV ? 40 : 24}px`, height: isTV ? 72 : 60, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', userSelect: 'none', WebkitUserSelect: 'none' }}>
+        <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `0 ${isTV ? 40 : 24}px`, height: isTV ? 72 : 60, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {/* Glumbi logo — click to go to Universe hub */}
             <div onClick={() => navigate(`/child/${child.id}/hub`)}
@@ -503,7 +503,7 @@ export default function App() {
         </header>
 
         {/* Mobile header */}
-        <header className="mobile-header" style={{ alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', userSelect: 'none', WebkitUserSelect: 'none' }}>
+        <header className="mobile-header" style={{ alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 56, flexShrink: 0, background: theme.headerGrad, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
           <div onClick={() => navigate(`/child/${child.id}/hub`)}
             style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', WebkitUserSelect: 'none' }}>
             <img src="/icon.svg" alt="Glumbi" draggable={false} style={{ width: 30, height: 30 }} />

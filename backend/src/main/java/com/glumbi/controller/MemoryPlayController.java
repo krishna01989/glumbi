@@ -89,7 +89,7 @@ public class MemoryPlayController {
 
         WordOfDayResult result = service.getOrGenerateWordOfDay(childId);
         if (result == null) {
-            return ResponseEntity.status(503).body(Map.of("error", "Could not generate a word today. Please try again later."));
+            return ResponseEntity.noContent().build();
         }
 
         // Only consume quota on fresh generation

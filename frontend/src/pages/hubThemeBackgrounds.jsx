@@ -17,6 +17,9 @@ function injectBgStyles() {
       inset: 0;
       width: 100%;
       height: 100%;
+      user-select: none;
+      -webkit-user-select: none;
+      pointer-events: none;
     }
 
     /* ─── Float / sway ─── */
@@ -1618,10 +1621,8 @@ function Scene_minecraft() {
       {/* TNT stack */}
       <rect x={560} y={336} width={32} height={32} fill="#cc3322" stroke="#000" strokeWidth={1}/>
       <rect x={568} y={343} width={16} height={8} fill="#f0e8d0"/>
-      <text x={570} y={351} fontSize={7} fill="#cc3322" fontWeight="bold">TNT</text>
       <rect x={560} y={368} width={32} height={32} fill="#cc3322" stroke="#000" strokeWidth={1} style={{ animation: 'bg-pixel-blink 1.5s ease-in-out infinite' }}/>
       <rect x={568} y={375} width={16} height={8} fill="#f0e8d0"/>
-      <text x={570} y={383} fontSize={7} fill="#cc3322" fontWeight="bold">TNT</text>
       {/* Fuse spark */}
       <circle cx={576} cy={334} r={4} fill="#ffdd00" style={{ animation: 'bg-glow-fast 0.4s ease-in-out infinite' }}/>
       {/* Tree 1 */}

@@ -21,8 +21,8 @@ public class ReadQuizAgent {
     @Value("${anthropic.max-tokens.read-quiz}")  private int maxTokens;
 
     public ReadQuizResult generate(String childName, int childAge, String topic, String glumbiMemory) {
-        relevance.validate(topic, RelevanceGuard.Context.STORY);
         safety.validateInput(topic);
+        relevance.validate(topic, RelevanceGuard.Context.STORY);
 
         String agentPrompt = String.format(
                 promptLoader.load("read-quiz-system"), childAge, readingGuidance(childAge));

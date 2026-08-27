@@ -35,10 +35,10 @@ public class CuriosityAgent {
     @Value("${anthropic.max-tokens.curiosity}") private int maxTokens;
 
     public CuriosityResult explain(String question, String childName, int childAge, String glumbiMemory) {
-        // Layer 0 — relevance (is this a child-appropriate curiosity question?)
-        relevance.validate(question, RelevanceGuard.Context.CURIOSITY);
-        // Layer 1 — safety
+        // Layer 0 — safety first (pure regex, zero API cost — blocks before any Claude call)
         safety.validateInput(question);
+        // Layer 1 — relevance (is this a child-appropriate curiosity question?)
+        relevance.validate(question, RelevanceGuard.Context.CURIOSITY);
 
         String prompt = String.format(promptLoader.load("curiosity-user"),
                 childAge, childName, question, childAge, childAge, ageComparisons(childAge), childAge, childAge, childAge);

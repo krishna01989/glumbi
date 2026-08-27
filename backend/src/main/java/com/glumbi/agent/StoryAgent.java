@@ -21,8 +21,8 @@ public class StoryAgent {
     @Value("${anthropic.max-tokens.story}")    private int maxTokens;
 
     public StoryResult generateStory(String childName, int childAge, String gender, String keywords, String category, String glumbiMemory) {
-        relevance.validate(keywords, RelevanceGuard.Context.STORY);
         safety.validateInput(keywords);
+        relevance.validate(keywords, RelevanceGuard.Context.STORY);
 
         String pronoun = "girl".equalsIgnoreCase(gender) ? "she/her" : "he/him";
         String[] cp = categoryPrompt(category);

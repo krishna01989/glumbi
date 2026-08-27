@@ -368,6 +368,10 @@ export default function FlipbookStudio({ child, quota }) {
     const full = await flipbookSaveApi.getFull(save.id).catch(() => null)
     if (!full) return
     try {
+      clearInterval(playTimerRef.current)
+      setIsPlaying(false)
+      setShowPlayback(false)
+      setPlaybackSrc(null)
       const loaded = JSON.parse(full.framesJson)
       framesRef.current = loaded
       setFrames([...loaded])
@@ -648,6 +652,10 @@ export default function FlipbookStudio({ child, quota }) {
 
   async function newFlipbook() {
     if (hasContent && child?.id) await saveFlipbook()
+    clearInterval(playTimerRef.current)
+    setIsPlaying(false)
+    setShowPlayback(false)
+    setPlaybackSrc(null)
     if (selStateRef.current.phase === 'floating') {
       selStateRef.current.phase = null; selTmpRef.current = null
       setSelPanelOpen(false); setSelTick(t => t + 1)
@@ -1870,8 +1878,9 @@ export default function FlipbookStudio({ child, quota }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* Canvas container — fixed aspect ratio */}
         <div style={{ aspectRatio: `${W} / ${H}`,
-          maxWidth: '100%', maxHeight: '100%',
-          width: '100%', height: 'auto',
+          ...(isFullscreen
+            ? { width: 'auto', height: '100%', maxWidth: '100%' }
+            : { width: '100%', height: 'auto', maxHeight: '100%' }),
           borderRadius: isFullscreen ? 0 : 20,
           boxShadow: isFullscreen ? 'none' : 'var(--shadow)',
           position: 'relative', background: 'white', overflow: 'hidden' }}>
@@ -1880,7 +1889,7 @@ export default function FlipbookStudio({ child, quota }) {
 
           {/* Draw canvas */}
           <canvas ref={canvasRef} width={W} height={H}
-            style={{ width: '100%', height: 'auto', display: 'block',
+            style={{ width: '100%', height: '100%', display: 'block',
               touchAction: 'none', cursor: canvasCursor,
               visibility: showPlayback ? 'hidden' : 'visible' }}
             onMouseDown={startDraw} onMouseMove={doDraw}
@@ -1888,12 +1897,12 @@ export default function FlipbookStudio({ child, quota }) {
 
           {/* Onion skin overlay */}
           <canvas ref={onionRef} width={W} height={H}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto',
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
               pointerEvents: 'none', display: showPlayback ? 'none' : 'block' }} />
 
           {/* Selection overlay — captures pointer events when select tool is active */}
           <canvas ref={selOverlayRef} width={W} height={H}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto',
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
               pointerEvents: selectTool && !showPlayback ? 'auto' : 'none',
               display: showPlayback ? 'none' : 'block',
               cursor: 'crosshair' }}
@@ -1901,7 +1910,7 @@ export default function FlipbookStudio({ child, quota }) {
             onMouseUp={onSelUp} onMouseLeave={onSelUp} />
           {/* Shape preview overlay */}
           <canvas ref={shapeOverlayRef} width={W} height={H}
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 'auto',
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
               pointerEvents: 'none', display: showPlayback ? 'none' : 'block' }} />
           {/* Touch indicator */}
           <div ref={touchIndicatorRef} style={{
